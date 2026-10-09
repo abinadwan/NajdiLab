@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "registry_version": "najdilab-tools-v1",
+  "tools": [
+    {
+      "name": "system.whoami",
+      "description": "Return the operating-system identity of the explicitly selected runtime.",
+      "arguments_schema": {"type": "object", "properties": {}, "required": [], "additionalProperties": false},
+      "result_schema": {"type": "object", "properties": {"identity": {"type": "string"}}, "required": ["identity"], "additionalProperties": false},
+      "error_schema": {"type": "object", "properties": {"code": {"type": "string"}, "message": {"type": "string"}}, "required": ["code", "message"], "additionalProperties": false},
+      "execution_availability": "runtime_declared",
+      "execution_target": "selected_local_runtime",
+      "classification": "read_only",
+      "approval_required": false,
+      "timeout_seconds": 10,
+      "controller_authority": "Only a controller-emitted TOOL_RESULT event proves execution."
+    }
+  ]
+}

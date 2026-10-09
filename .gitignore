@@ -1,0 +1,72 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+
+# Python caches and test artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pytest_*/
+.pytest-*/
+.test-temp*/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local databases and sidecars
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Private, frozen, or generated data
+datasets/
+exports/
+backups/
+reports/
+training/
+
+# Model weights, adapters, checkpoints, and generated ML caches
+checkpoints/
+unsloth_compiled_cache/
+scripts/unsloth_compiled_cache/
+*.safetensors
+*.gguf
+*.ckpt
+*.pt
+*.pth
+
+# Logs and generated output
+*.log
+*.out
+*.err
+audit_output.log
+
+# Archives and large generated bundles
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Editor and OS metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local project status snapshots can contain operational details
+CURRENT_PROJECT_STATUS.md
+docs/CURRENT_PROJECT_STATUS.md
+docs/master-execution-progress-*.md

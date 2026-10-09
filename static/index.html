@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="منصة محلية لجمع المحادثات ومراجعتها وإدارة البيانات الذهبية">
+  <title>NajdiLab — مختبر البيانات الذهبية</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script src="/theme-init.js"></script>
+  <script src="/localization.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/manual-data.css">
+  <link rel="stylesheet" href="/review-lifecycle.css">
+  <link rel="stylesheet" href="/phase1.css">
+  <link rel="stylesheet" href="/rtl-overhaul.css">
+  <link rel="stylesheet" href="/theme.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="التنقل الرئيسي">
+      <div class="brand" aria-label="NajdiLab">
+        <img src="/favicon.svg" width="38" height="38" alt="">
+        <div><strong>NajdiLab</strong><span>مختبر البيانات الذهبية</span></div>
+        <button id="collapse-sidebar" class="collapse-sidebar" type="button" aria-label="طي القائمة" title="طي القائمة">‹</button>
+      </div>
+      <nav id="main-nav">
+        <span class="nav-group">الرئيسية</span>
+        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">◈</span><span class="nav-label">لوحة التحكم</span></button>
+        <span class="nav-group">البيانات</span>
+        <button class="nav-item" data-view="review-queue"><span class="nav-icon">⌁</span><span class="nav-label">طابور المراجعة</span> <b id="nav-pending">—</b></button>
+        <button class="nav-item" data-view="conversations"><span class="nav-icon">◫</span> المحادثات</button>
+        <button class="nav-item" data-view="reviewed"><span class="nav-icon">✓</span> تمت مراجعتها</button>
+        <button class="nav-item" data-view="add-data"><span class="nav-icon">＋</span> إضافة بيانات</button>
+        <button class="nav-item" data-view="manual-data"><span class="nav-icon">▦</span> البيانات المضافة يدويًا</button>
+        <button class="nav-item" data-view="dataset"><span class="nav-icon">▤</span> بيانات التدريب</button>
+        <button class="nav-item" data-view="dataset-health"><span class="nav-icon">♥</span> صحة البيانات</button>
+        <button class="nav-item" data-view="balancer"><span class="nav-icon">≋</span><span class="nav-label">موازن البيانات<small>Dataset Balancer</small></span></button>
+        <button class="nav-item" data-view="dataset-versions"><span class="nav-icon">◇</span> إصدارات البيانات</button>
+        <span class="nav-group">التدريب</span>
+        <button class="nav-item" data-view="training"><span class="nav-icon">△</span> إعداد التدريب</button>
+        <button class="nav-item" data-view="training-jobs"><span class="nav-icon">▣</span> مهام التدريب</button>
+        <span class="nav-group">التقييم</span>
+        <button class="nav-item" data-view="eval-sets"><span class="nav-icon">⌕</span> مجموعات التقييم</button>
+        <button class="nav-item" data-view="human-review"><span class="nav-icon">◉</span> المراجعة البشرية</button>
+        <button class="nav-item" data-view="phase38-review"><span class="nav-icon">◎</span><span class="nav-label">مراجعة بيانات المعالجة<small>Phase 3.8</small></span><b id="nav-phase38">0/36</b></button>
+        <button class="nav-item" data-view="phase39-review"><span class="nav-icon">✎</span><span class="nav-label">التحقق من التعديلات<small>Phase 3.9</small></span><b id="nav-phase39">0/7</b></button>
+        <span class="nav-group">التصدير</span>
+        <button class="nav-item" data-view="exports"><span class="nav-icon">⇩</span> مركز التصدير</button>
+        <span class="nav-group">النظام</span>
+        <button class="nav-item" data-view="analytics"><span class="nav-icon">⌁</span> التحليلات</button>
+        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span> الإعدادات</button>
+      </nav>
+      <div class="local-badge"><i></i><span>محلي فقط<br><small>127.0.0.1:8770</small></span></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button id="mobile-menu" class="icon-button" aria-label="فتح القائمة">☰</button>
+        <div>
+          <span id="page-breadcrumb" class="breadcrumb">NajdiLab / نظرة عامة</span>
+          <h1 id="page-title">لوحة التحكم</h1>
+          <p id="page-subtitle">حالة البيانات ومسار العمل المحلي في مكان واحد.</p>
+        </div>
+        <div class="top-actions"><div class="theme-control"><label for="theme-select">المظهر</label><select id="theme-select" aria-label="اختيار مظهر الواجهة"><option value="system">تلقائي</option><option value="light">فاتح</option><option value="dark">داكن</option></select></div><span class="privacy-chip">● تخزين محلي</span><button id="refresh-view" class="button ghost">تحديث</button></div>
+      </header>
+
+      <section id="view-dashboard" class="view active">
+        <div id="dashboard-stats" class="stat-grid" aria-live="polite"></div>
+        <div class="dashboard-grid">
+          <section class="panel workflow-card"><span class="eyebrow">مسار العمل</span><h2>من المحادثة إلى نسخة Gold</h2><div class="workflow-steps"><button data-go="review-queue">مراجعة</button><i>←</i><button data-go="dataset-health">الصحة</button><i>←</i><button data-go="balancer">الموازنة</button><i>←</i><button data-go="exports">البناء</button></div></section>
+          <section class="panel readiness-card"><span class="eyebrow">حالة النظام</span><h2>جاهزية Phase 1</h2><ul id="dashboard-readiness"><li><span class="status-dot ok"></span>قاعدة البيانات محلية</li><li><span class="status-dot ok"></span>المراجعة Overlay ولا تغيّر الأصل</li><li><span class="status-dot ok"></span>نسخ Gold غير قابلة للاستبدال</li><li><span class="status-dot neutral"></span>التدريب والنشر يتطلبان إجراءً صريحًا لاحقًا</li></ul></section>
+          <section class="panel recent-card"><div class="panel-heading"><div><span class="eyebrow">آخر الإصدارات</span><h2>Dataset Versions</h2></div><button class="button ghost" data-go="exports">عرض الكل</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
+        </div>
+      </section>
+
+      <section id="view-review-queue" class="view">
+        <div id="queue-empty" class="empty-state hidden">
+          <div class="empty-mark">✓</div><h2>انتهى طابور المراجعة</h2><p>كل الردود الحالية تمت مراجعتها.</p>
+        </div>
+        <div id="review-workspace" class="review-workspace">
+          <section class="context-column panel">
+            <div class="panel-heading"><div><span class="eyebrow">السياق الكامل</span><h2 id="review-conversation-title">—</h2></div><span id="review-demo" class="badge demo hidden">تجريبي</span></div>
+            <div id="review-meta" class="meta-row"></div>
+            <div id="context-messages" class="chat-stream"></div>
+          </section>
+          <section class="review-column panel">
+            <div class="review-progress"><span id="queue-position">—</span><div class="progress"><i id="queue-progress"></i></div><kbd>Ctrl + Enter لحفظ التعديل</kbd></div>
+            <div class="original-card">
+              <div class="label-row"><span>الرد الأصلي</span><span class="locked">🔒 محفوظ لا يتغير</span></div>
+              <p id="original-response"></p>
+            </div>
+            <div class="review-actions" role="group" aria-label="إجراءات المراجعة">
+              <button id="approve-review" class="button approve-action">اعتماد</button>
+              <button id="edit-review" class="button edit-action">تعديل</button>
+              <button id="exclude-review" class="button ignore-action">استبعاد</button>
+              <button id="delete-review" class="button delete-action">حذف</button>
+            </div>
+            <div class="field ignore-reason-field"><label for="ignored-reason">سبب التجاهل <span class="muted">اختياري</span></label><input id="ignored-reason" type="text" maxlength="300" placeholder="مثال: مكرر أو غير مناسب لنطاق البيانات"></div>
+            <div id="edit-review-panel" class="edit-review-panel hidden">
+              <div class="status-grid" role="group" aria-label="نوع التصحيح">
+                <button data-status="FULL_CORRECTION"><span>تصحيح كامل</span><small>اللهجة والمحتوى</small></button>
+                <button data-status="DIALECT_CORRECTION"><span>تصحيح اللهجة</span><small>الصياغة فقط</small></button>
+                <button data-status="CONTENT_CORRECTION"><span>تصحيح المحتوى</span><small>المعلومة فقط</small></button>
+              </div>
+              <div id="correction-editor" class="field hidden"><label for="corrected-response">النسخة المصححة الكاملة</label><textarea id="corrected-response" rows="7"></textarea></div>
+            </div>
+            <div class="field"><label for="review-notes">ملاحظات المراجع</label><textarea id="review-notes" rows="2" placeholder="سبب التعديل أو ملاحظة مفيدة…"></textarea></div>
+            <div class="field"><label for="reviewer-identity">هوية المراجع</label><select id="reviewer-identity"><option value="human">مراجع بشري</option><option value="ai_suggestion">اقتراح آلي راجعه إنسان</option><option value="import">قرار مستورد</option></select></div>
+            <div class="field"><label>وسوم الخطأ <span class="muted">اختيارية ومتعددة</span></label><div id="error-tags" class="tag-picker"></div></div>
+            <div class="check-grid">
+              <label><input id="training-eligible" type="checkbox"> مؤهل للتدريب</label>
+              <label><input id="evaluation-only" type="checkbox"> للتقييم فقط</label>
+              <label><input id="exclude-training" type="checkbox"> استبعاد دائم من التدريب</label>
+              <label><input id="needs-fact-check" type="checkbox"> يحتاج تدقيق حقائق</label>
+              <label><input id="contains-personal" type="checkbox"> يحتوي بيانات شخصية</label>
+              <label><input id="contains-sensitive" type="checkbox"> يحتوي بيانات حساسة</label>
+            </div>
+            <div id="correction-save-row" class="save-row hidden"><button id="cancel-edit-review" class="button ghost">إلغاء التعديل</button><button id="save-review" class="button primary" disabled>حفظ التعديل والانتقال</button></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-conversations" class="view">
+        <div class="toolbar panel"><input id="conversation-search" type="search" placeholder="ابحث في العنوان أو المعرّف أو محتوى الرسائل…"><select id="conversation-channel"><option value="">كل القنوات</option></select><button id="search-conversations" class="button primary">بحث</button></div>
+        <div class="split-list">
+          <div id="conversation-list" class="panel list-panel"></div>
+          <div id="conversation-detail" class="panel detail-panel"><div class="empty-inline">اختر محادثة لعرضها كاملة.</div></div>
+        </div>
+      </section>
+
+      <section id="view-reviewed" class="view">
+        <div class="filters panel">
+          <input id="reviewed-search" type="search" placeholder="بحث في الردود والملاحظات…">
+          <select id="filter-status"><option value="">الحالات المعتمدة والمصححة</option><option value="APPROVED">معتمد</option><option value="FULL_CORRECTION">تصحيح كامل</option><option value="DIALECT_CORRECTION">تصحيح اللهجة</option><option value="CONTENT_CORRECTION">تصحيح المحتوى</option><option value="IGNORED">تم تجاهلها</option><option value="DELETED">محذوفة</option></select>
+          <select id="filter-channel"><option value="">كل القنوات</option></select>
+          <select id="filter-tag"><option value="">كل الوسوم</option></select>
+          <select id="filter-eligible"><option value="">كل الأهلية</option><option value="1">مؤهل</option><option value="0">غير مؤهل</option></select>
+          <label class="date-label">من <input id="filter-date-from" type="date"></label><label class="date-label">إلى <input id="filter-date-to" type="date"></label>
+          <button id="apply-reviewed-filters" class="button primary">تطبيق</button>
+        </div>
+        <div class="panel bulk-review-toolbar"><span id="bulk-review-count">لم تُحدد مراجعات</span><input id="bulk-review-reason" maxlength="300" placeholder="سبب الاستبعاد أو الاستعادة"><button id="bulk-exclude-reviews" class="button ignore-action">استبعاد المحدد</button><button id="bulk-restore-reviews" class="button ghost">استعادة المحدد</button></div>
+        <div id="reviewed-list" class="cards-grid"></div>
+      </section>
+
+      <section id="view-manual-data" class="view">
+        <div id="manual-stats" class="stat-grid"></div>
+        <div class="manual-filters panel">
+          <input id="manual-search" type="search" placeholder="ابحث داخل المحتوى أو المصدر أو الملاحظات…">
+          <select id="manual-type"><option value="">كل الأنواع</option><option value="sft">محادثة / SFT</option><option value="direct">نص لغوي مباشر</option><option value="dpo">زوج تفضيل / DPO</option></select>
+          <select id="manual-status"><option value="">كل الحالات النشطة</option><option value="eligible">مؤهل للتدريب</option><option value="ineligible">غير مؤهل</option><option value="archived">مؤرشف</option><option value="excluded">مستبعد من التدريب</option></select>
+          <select id="manual-language"><option value="">كل طبقات اللغة</option><option value="najdi_riyadh">نجدي / الرياض</option><option value="saudi_neutral">سعودي محايد</option><option value="msa">MSA</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select>
+          <input id="manual-source" list="manual-source-options" placeholder="المصدر"><datalist id="manual-source-options"></datalist>
+          <input id="manual-origin" list="manual-origin-options" placeholder="الأصل"><datalist id="manual-origin-options"></datalist>
+          <input id="manual-domain" list="manual-domain-options" placeholder="المجال"><datalist id="manual-domain-options"></datalist>
+          <label class="date-label">من <input id="manual-date-from" type="date"></label>
+          <label class="date-label">إلى <input id="manual-date-to" type="date"></label>
+          <select id="manual-sort"><option value="newest">الأحدث</option><option value="oldest">الأقدم</option><option value="updated">آخر تعديل</option><option value="type">النوع</option><option value="domain">المجال</option><option value="language_layer">طبقة اللغة</option><option value="eligible">مؤهل للتدريب</option></select>
+          <label class="inline-check"><input id="manual-show-archived" type="checkbox"> إظهار المؤرشف</label>
+          <button id="apply-manual-filters" class="button primary">تطبيق</button>
+          <button id="reset-manual-filters" class="button ghost">إعادة ضبط</button>
+        </div>
+        <div id="manual-bulk" class="bulk-bar panel hidden">
+          <strong><span id="manual-selected-count">0</span> محدد</strong>
+          <select id="manual-bulk-action"><option value="">اختر إجراءً جماعيًا</option><option value="eligible">اجعل مؤهلًا للتدريب</option><option value="ineligible">اجعل غير مؤهل</option><option value="archive">أرشفة</option><option value="unarchive">إلغاء الأرشفة</option><option value="exclude">استبعاد من التدريب</option><option value="include">إلغاء الاستبعاد</option></select>
+          <button id="apply-manual-bulk" class="button primary">تنفيذ</button>
+        </div>
+        <div class="manual-table-wrap panel">
+          <table class="manual-table">
+            <thead><tr><th><input id="manual-select-all" type="checkbox" aria-label="تحديد الكل"></th><th>ID</th><th>النوع والمحتوى</th><th>اللغة / المجال</th><th>المصدر / الأصل</th><th>الإنشاء / التعديل</th><th>الحالة</th><th>النسخة</th><th>الإجراءات</th></tr></thead>
+            <tbody id="manual-list"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="view-add-data" class="view">
+        <div class="subtabs" role="tablist">
+          <button class="active" data-add-tab="sft">محادثة / SFT</button><button data-add-tab="direct">نص لغوي مباشر</button><button data-add-tab="preference">زوج تفضيل / DPO</button>
+        </div>
+        <form id="form-sft" class="data-form panel active">
+          <div class="form-intro"><h2>محادثة يدوية</h2><p>أضف حوارًا قصيرًا أو متعدد الأدوار، مع الاحتفاظ بترتيب السياق.</p></div>
+          <div id="sft-turns" class="turn-builder"></div>
+          <button id="add-sft-turn" type="button" class="button ghost">＋ إضافة دور</button>
+          <div class="form-grid"><label>طبقة اللغة<select name="language_layer"><option value="najdi_riyadh">نجدي / الرياض</option><option value="saudi_neutral">سعودي محايد</option><option value="msa">فصحى</option><option value="technical_arabic">عربية تقنية</option><option value="formal_arabic">عربية رسمية</option></select></label><label>المجال<input name="domain" placeholder="مثال: تقنية"></label><label>المصدر<input name="source" value="NajdiLab manual entry"></label><label>نوع المصدر<select name="source_type"><option value="human_written">مكتوب بشريًا</option><option value="human_corrected">مصحح بشريًا</option><option value="synthetic_reviewed">اصطناعي مراجع</option><option value="external_licensed">خارجي مرخص</option></select></label><label>الأصل<select name="origin"><option value="manual">يدوي</option><option value="human_corrected">مصحح بشريًا</option><option value="synthetic_reviewed">اصطناعي مراجع</option></select></label></div>
+          <label class="wide-label">ملاحظات<textarea name="notes" rows="2"></textarea></label>
+          <label class="inline-check"><input name="training_eligible" type="checkbox"> اعتماد كمؤهل للتدريب</label>
+          <button class="button primary" type="submit">حفظ المحادثة</button>
+        </form>
+        <form id="form-direct" class="data-form panel">
+          <div class="form-intro"><h2>نص لغوي مباشر</h2><p>نص مستقل مخصص لطبقة اللغة، من دون user/assistant.</p></div>
+          <label class="wide-label">النص<textarea name="text" rows="9" required></textarea></label>
+          <div class="form-grid"><label>طبقة اللغة<select name="language_layer"><option value="najdi_riyadh">نجدي / الرياض</option><option value="saudi_neutral">سعودي محايد</option><option value="msa">فصحى</option><option value="technical_arabic">عربية تقنية</option><option value="formal_arabic">عربية رسمية</option></select></label><label>المجال<input name="domain"></label><label>المصدر<input name="source"></label><label>نوع المصدر<select name="source_type"><option value="human_written">مكتوب بشريًا</option><option value="human_corrected">مصحح بشريًا</option><option value="synthetic_reviewed">اصطناعي مراجع</option><option value="external_licensed">خارجي مرخص</option></select></label><label>الأصل<select name="origin"><option value="manual">يدوي</option><option value="human_corrected">مصحح بشريًا</option><option value="imported">مستورد</option></select></label></div>
+          <label class="wide-label">ملاحظات<textarea name="notes" rows="2"></textarea></label>
+          <label class="inline-check"><input name="training_eligible" type="checkbox"> اعتماد كمؤهل للتدريب</label>
+          <button class="button primary" type="submit">حفظ النص</button>
+        </form>
+        <form id="form-preference" class="data-form panel">
+          <div class="form-intro"><h2>زوج تفضيل</h2><p>سجّل السياق والرد المرفوض والرد المفضل كعينة مستقلة.</p></div>
+          <label class="wide-label">Prompt / Context<textarea name="prompt_context" rows="4" required></textarea></label>
+          <div class="preference-grid"><label>الرد المرفوض<textarea name="rejected_response" rows="7" required></textarea></label><label>الرد المفضل<textarea name="preferred_response" rows="7" required></textarea></label></div>
+          <div class="form-grid"><label>طبقة اللغة<select name="language_layer"><option value="najdi_riyadh">نجدي / الرياض</option><option value="saudi_neutral">سعودي محايد</option><option value="msa">فصحى</option><option value="technical_arabic">عربية تقنية</option><option value="formal_arabic">عربية رسمية</option></select></label><label>المجال<input name="domain"></label><label>المصدر<input name="source" value="NajdiLab manual entry"></label><label>نوع المصدر<select name="source_type"><option value="human_written">مكتوب بشريًا</option><option value="human_corrected">مصحح بشريًا</option><option value="synthetic_reviewed">اصطناعي مراجع</option><option value="external_licensed">خارجي مرخص</option></select></label><label>الأصل<select name="origin"><option value="manual">يدوي</option><option value="synthetic_reviewed">اصطناعي مراجع</option><option value="ai_arena">AI Arena</option></select></label></div>
+          <label class="wide-label">ملاحظات<textarea name="notes" rows="2"></textarea></label>
+          <label class="inline-check"><input name="training_eligible" type="checkbox"> اعتماد كمؤهل للتدريب</label>
+          <button class="button primary" type="submit">حفظ زوج التفضيل</button>
+        </form>
+      </section>
+
+      <section id="view-dataset" class="view">
+        <div id="dataset-stats" class="stat-grid"></div>
+        <div class="panel"><div class="panel-heading"><div><span class="eyebrow">المعتمد فقط</span><h2>سجلات البيانات الذهبية</h2></div><label class="inline-check"><input id="dataset-demo" type="checkbox"> تضمين التجريبي</label></div><div id="dataset-list" class="dataset-list"></div></div>
+      </section>
+
+      <section id="view-dataset-health" class="view">
+        <div class="phase-toolbar panel"><div class="dataset-picker"><label for="health-version">الإصدار</label><select id="health-version" class="technical-select" dir="ltr" aria-label="الإصدار"><option>جارٍ تحميل الإصدارات...</option></select></div><div id="health-last-result" class="last-result">آخر نتيجة محفوظة</div><button id="refresh-health" class="button primary" disabled>فحص الصحة</button></div>
+        <div id="health-state" class="panel health-state">جارٍ تحميل الإصدارات...</div>
+        <div id="health-results" class="hidden">
+          <div class="health-identity"><div><span>Dataset</span><strong id="health-dataset" dir="ltr">—</strong></div><div><span>Health timestamp</span><strong id="health-timestamp" dir="ltr">—</strong></div><button id="health-version-details" class="button ghost">عرض تفاصيل الإصدار</button></div>
+          <div id="health-summary" class="health-card-grid"></div>
+          <div id="health-checks" class="health-card-grid secondary"></div>
+          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">التنبيهات</span><h2>Warnings</h2></div><span id="health-warning-count" class="count-chip">0</span></div><div id="health-warnings"></div></section>
+          <section id="health-detail-panel" class="panel phase-panel health-detail hidden"></section>
+        </div>
+      </section>
+
+      <section id="view-balancer" class="view">
+        <div class="phase-toolbar panel"><div><span class="eyebrow">Read-only diagnosis</span><h2>Dataset Balancer</h2></div><div class="dataset-picker"><label for="balance-version">الإصدار</label><select id="balance-version" class="technical-select" dir="ltr" aria-label="إصدار البيانات"><option>جارٍ تحميل الإصدارات...</option></select></div><button id="run-balance" class="button primary" disabled>تحليل التوازن</button></div>
+        <div class="safety-banner">تحليل وتشخيص فقط. لا يعدّل Gold أو Raw Data، ولا يغيّر split، ولا يبدأ أي تدريب.</div>
+        <div id="balance-state" class="panel health-state">جارٍ تحميل الإصدارات...</div>
+        <div id="balance-results" class="hidden">
+          <div class="health-identity"><div><span>Dataset</span><strong id="balance-dataset" dir="ltr">—</strong></div><div><span>State</span><strong id="balance-dataset-state" dir="ltr">—</strong></div><div><span>Last analyzed</span><strong id="balance-timestamp" dir="ltr">—</strong></div></div>
+          <div id="balance-overview" class="health-card-grid balance-overview"></div>
+          <div id="balance-panels" class="balance-grid"></div>
+          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Balance Warnings</span><h2>التنبيهات المكتشفة</h2></div><span id="balance-warning-count" class="count-chip">0</span></div><div id="balance-warnings" class="balance-notices"></div></section>
+          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Recommendations</span><h2>توصيات للقرار البشري</h2></div></div><div id="balance-recommendations" class="balance-notices"></div></section>
+        </div>
+      </section>
+
+      <section id="view-dataset-versions" class="view">
+        <div class="versions-layout"><section class="panel version-list-panel"><div class="panel-heading"><div><span class="eyebrow">Gold Library</span><h2>Dataset Versions</h2></div></div><div id="version-list" class="version-list"></div></section><section id="version-detail" class="panel phase-panel"><div class="empty-inline">اختر إصدارًا لعرض manifest والحالة والملفات.</div></section></div>
+      </section>
+
+      <section id="view-training" class="view">
+        <div class="safety-banner" role="note">التجهيز والتحقق فقط. لا يبدأ التدريب ولا تُشغّل WSL أو Unsloth تلقائيًا.</div>
+        <div class="training-layout">
+          <form id="training-setup-form" class="panel phase-panel training-form">
+            <div class="panel-heading"><div><span class="eyebrow">إدارة التدريب</span><h2>إعداد التدريب وفحص الجاهزية</h2></div><span id="quality-gate-badge" class="gate-badge unavailable">غير متاح</span></div>
+            <div class="form-grid">
+              <label>إصدار البيانات<select id="training-dataset" dir="ltr"></select></label>
+              <label>النموذج الأساسي<select id="training-model" dir="ltr" aria-describedby="selected-model-help"></select><small id="selected-model-help">اختر مرشحًا ثم شغّل فحص الجاهزية؛ الاختيار لا يبدأ تنزيلًا أو تدريبًا.</small></label>
+              <label>طريقة التدريب<select id="training-method"><option>QLoRA</option><option>LoRA</option></select></label>
+              <label>عدد الدورات<input id="training-epochs" type="number" min="0.1" step="0.1" value="3"></label>
+              <label>الحد الأقصى للخطوات<input id="training-max-steps" type="number" min="0" value="0"></label>
+              <label>معدل التعلّم<input id="training-lr" type="number" min="0.0000001" step="0.00001" value="0.0002"></label>
+              <label>حجم الدفعة<input id="training-batch" type="number" min="1" value="1"></label>
+              <label>تراكم التدرج<input id="training-grad-acc" type="number" min="1" value="8"></label>
+              <label>أقصى طول للتسلسل<input id="training-seq" type="number" min="128" step="128" value="2048"></label>
+              <label>نسبة الإحماء<input id="training-warmup" type="number" min="0" max="0.99" step="0.01" value="0.03"></label>
+              <label>اضمحلال الأوزان<input id="training-weight-decay" type="number" min="0" step="0.01" value="0.01"></label>
+              <label>جدولة التعلّم<select id="training-scheduler"><option>cosine</option><option>linear</option><option>constant</option><option>constant_with_warmup</option></select></label>
+              <label>المحسّن<select id="training-optimizer"><option>adamw_8bit</option><option>paged_adamw_8bit</option><option>adamw_torch</option></select></label>
+              <label>رتبة LoRA<input id="training-rank" type="number" min="1" value="16"></label>
+              <label>معامل LoRA Alpha<input id="training-alpha" type="number" min="1" value="32"></label>
+              <label>إسقاط LoRA<input id="training-dropout" type="number" min="0" max="1" step="0.01" value="0"></label>
+            </div>
+            <div class="check-grid"><label><input id="training-packing" type="checkbox"> حزم العينات (Packing)</label><label><input id="training-checkpointing" type="checkbox" checked> حفظ تدرجات الذاكرة</label><label><input id="training-bf16" type="checkbox" checked> BF16</label><label><input id="training-fp16" type="checkbox"> FP16</label></div>
+            <div class="training-actions"><button id="run-training-preflight" type="button" class="button primary">تشغيل فحص الجاهزية</button><button id="check-training-runtime" type="button" class="button ghost">فحص بيئة التشغيل</button><button id="create-training-job" type="button" class="button ghost" disabled>إنشاء مهمة تدريب</button></div>
+          </form>
+          <section class="panel phase-panel model-register-panel"><div class="panel-heading"><div><span class="eyebrow">سجل النماذج</span><h2>إضافة نموذج مرشح</h2></div></div><p class="muted">يسجّل المرجع فقط، ولا ينزّل أوزانًا. يلزم اجتياز التحقق قبل اعتباره قابلًا للتدريب.</p><form id="model-register-form" class="form-grid"><label>المعرّف التقني<input name="id" dir="ltr" required pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,119}" placeholder="qwen-local-7b"></label><label>اسم العرض<input name="display_name" required placeholder="Qwen محلي 7B"></label><label class="wide-label">المسار المحلي أو معرّف المستودع<input name="path" dir="ltr" required placeholder="/home/user/models/model"></label><label>بيئة التشغيل<select name="runtime"><option value="wsl:NajdiTrain">WSL · NajdiTrain</option><option value="local">Windows محلي</option></select></label><label>المعمارية<input name="architecture" dir="ltr" placeholder="AutoModelForCausalLM"></label><label>التكميم<input name="quantization" dir="ltr" placeholder="bnb-4bit"></label><label>حجم النموذج (GB)<input name="model_size_gb" type="number" min="0" step="0.1"></label><button class="button ghost" type="submit">تسجيل المرشح</button></form><div id="model-register-status" class="detail-status" aria-live="polite"></div></section>
+          <div class="training-results"><section id="quality-gate-result" class="panel phase-panel"><div class="empty-inline">اختر إصدار البيانات ثم شغّل فحص الجاهزية.</div></section><section id="training-plan-result" class="panel phase-panel"><div class="empty-inline">سيظهر حساب الخطوات هنا.</div></section><section id="runtime-result" class="panel phase-panel"><div class="empty-inline">لا يُفحص التشغيل تلقائيًا.</div></section></div>
+        </div>
+      </section>
+
+      <section id="view-training-jobs" class="view">
+        <div class="jobs-layout"><section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">سجل دائم</span><h2>مهام التدريب</h2></div><button id="refresh-training-jobs" class="button ghost">تحديث</button></div><div id="training-job-list" class="training-job-list"></div></section><section id="training-job-detail" class="panel phase-panel"><div class="empty-inline">اختر مهمة لعرض التفاصيل.</div></section></div>
+      </section>
+
+      <section id="view-eval-sets" class="view">
+        <div class="phase-toolbar panel"><div><span class="eyebrow">Locked Holdout</span><h2>عزل التقييم عن التدريب</h2></div><select id="eval-version" aria-label="إصدار البيانات"></select><button id="refresh-eval" class="button primary">تحقق من التسرب</button></div>
+        <div id="eval-status-card" class="panel phase-panel"></div><div id="eval-files" class="eval-file-grid"></div><div id="leakage-detail" class="panel phase-panel"></div>
+      </section>
+
+      <section id="view-human-review" class="view">
+        <div class="phase-toolbar panel"><div><span class="eyebrow">المرحلة 3 · الاعتماد البشري</span><h2>المراجعة البشرية</h2></div><label class="inline-check"><input id="phase3-blind" type="checkbox" checked> مراجعة عمياء</label><select id="phase3-filter"><option value="all">الكل</option><option value="text">نصي</option><option value="tool">أدوات</option><option value="ADAPTER_WIN">فوز المحوّل</option><option value="BASE_WIN">فوز الأساس</option><option value="TIE">تعادل</option><option value="critical">حرج</option><option value="unreviewed">غير محسوم</option></select></div>
+        <div id="phase3-progress" class="stat-grid"></div>
+        <div id="phase3-review-state" class="phase3-layout"><section id="phase3-case" class="panel phase-panel"><div class="empty-inline">جارٍ تحميل حالات المقارنة...</div></section><section id="phase3-controls" class="panel phase-panel"></section></div>
+        <section id="phase3-summary" class="panel phase-panel"></section>
+      </section>
+
+      <section id="view-phase38-review" class="view">
+        <div class="phase38-head panel">
+          <div><span class="eyebrow">المرحلة 3.8 · سجلات التدريب الجديدة فقط</span><h2>مراجعة بيانات المعالجة</h2><p>تعرض هذه الصفحة 36 سجلًا جديدًا فقط. بيانات مجموعة الاختبار المحجوزة غير معروضة ولا تُنسخ إلى التدريب.</p></div>
+          <span class="gate-badge blocked">المسودة غير مجمّدة</span>
+        </div>
+        <div id="phase38-status" class="panel phase38-status" role="status" aria-live="polite">جارٍ تحميل سجلات المراجعة…</div>
+        <div id="phase38-workspace" class="phase38-workspace hidden">
+          <section class="panel phase38-record"><div id="phase38-record"></div></section>
+          <section class="panel phase38-review-panel">
+            <div id="phase38-summary" class="phase38-summary"></div>
+            <div id="phase38-criteria" class="phase38-criteria"></div>
+            <div id="phase38-edit-fields"></div>
+            <label class="wide-label">ملاحظات المراجع<textarea id="phase38-notes" rows="4" placeholder="سبب القرار أو ملاحظة مفيدة…"></textarea></label>
+            <div class="phase38-decisions" role="group" aria-label="قرار المراجعة">
+              <button data-phase38-decision="APPROVE" class="button ghost">اعتماد</button>
+              <button data-phase38-decision="EDIT" class="button ghost">طلب تعديل</button>
+              <button data-phase38-decision="REJECT" class="button ghost">رفض</button>
+            </div>
+            <div id="phase38-save-state" class="save-state" aria-live="polite"></div>
+            <div class="save-row"><button data-phase38-nav="prev" class="button ghost">السابق</button><button id="phase38-save" class="button primary" disabled>حفظ القرار</button><button data-phase38-nav="next" class="button ghost">التالي</button></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-phase39-review" class="view">
+        <div class="phase38-head panel"><div><span class="eyebrow">المرحلة 3.9 · بعد تطبيق تعديلات المراجعة</span><h2>التحقق من التعديلات</h2><p>مراجعة السجلات المعدلة فقط. بيانات مجموعة الاختبار غير معروضة.</p></div><span class="gate-badge blocked">0/7</span></div>
+        <section class="panel phase38-status"><h3>مراجعة السجلات المعدلة</h3><p id="phase39-status">جارٍ تحميل حالة التحقق…</p><div id="phase39-records"></div></section>
+      </section>
+
+      <section id="view-exports" class="view">
+        <div class="export-layout">
+          <div class="panel export-card"><span class="eyebrow">نسخة غير قابلة للكتابة فوقها</span><h2>إنشاء Gold Dataset</h2><p>يتم فصل الأنواع، منع تسرب عينات التقييم، وحساب SHA-256 لكل ملف.</p><label class="inline-check warning"><input id="export-demo" type="checkbox"> تضمين بيانات Demo في هذه النسخة</label><button id="preview-dedup" class="button ghost">فحص التكرار أولًا</button><button id="create-export" class="button primary">إنشاء نسخة جديدة</button><div id="dedup-result" class="dedup-result"></div></div>
+          <div class="panel"><div class="panel-heading"><div><span class="eyebrow">التاريخ</span><h2>النسخ السابقة</h2></div></div><div id="exports-list" class="exports-list"></div></div>
+        </div>
+        <div class="panel export-types"><h2>ملفات كل نسخة</h2><div class="type-grid"><span>SFT JSONL</span><span>Multi-turn SFT</span><span>Direct Language</span><span>Preference / DPO</span><span>Evaluation Holdout</span><span>Full Archive</span></div></div>
+      </section>
+
+      <section id="view-analytics" class="view">
+        <div id="analytics-stats" class="stat-grid"></div>
+        <div class="analytics-grid"><div class="panel"><h2>الأداء حسب المودل</h2><div id="model-analytics"></div></div><div class="panel"><h2>حسب القناة</h2><div id="channel-analytics" class="bar-list"></div></div><div class="panel"><h2>أكثر وسوم الأخطاء</h2><div id="tag-analytics" class="bar-list"></div></div></div>
+      </section>
+
+      <section id="view-settings" class="view">
+        <div class="settings-grid"><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>مظهر الواجهة</h2><p>اختر فاتحًا أو داكنًا، أو استخدم إعداد النظام. يُحفظ الاختيار في هذا المتصفح فقط.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="اختيار مظهر الواجهة من الإعدادات"><option value="system">تلقائي</option><option value="light">فاتح</option><option value="dark">داكن</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>تشغيل محلي آمن</h2><p>الخادم يستمع على 127.0.0.1 فقط. لا توجد مفاتيح API في السجلات، ويتم حجب الحقول الحساسة من metadata.</p></div><span class="status-ok">مفعّل</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>SQLite</h2><p>Foreign keys + WAL + معاملات ذرّية + migrations مرقّمة.</p></div><span class="status-ok">سليم</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>التدريب</h2><p>Phase 4 محجوب حتى موافقة صريحة؛ الثيم لا يغيّر بوابات التدريب.</p></div><span class="status-neutral">BLOCKED</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>بيانات Demo</h2><p>موسومة ومنفصلة منطقيًا. التصدير يستبعدها افتراضيًا.</p></div><span class="status-demo">معزولة</span></div></div>
+      </section>
+      <footer class="app-footer">© <span id="copyright-year"></span> <span id="copyright-owner">NajdiLab</span>. All rights reserved.</footer>
+    </main>
+  </div>
+  <dialog id="manual-dialog" class="manual-dialog">
+    <div class="dialog-head"><div><span id="manual-dialog-kind" class="eyebrow"></span><h2 id="manual-dialog-title"></h2></div><button id="close-manual-dialog" class="icon-close" aria-label="إغلاق">×</button></div>
+    <div id="manual-dialog-status" class="detail-status"></div>
+    <div class="subtabs dialog-tabs"><button class="active" data-manual-tab="details">التفاصيل</button><button data-manual-tab="versions">سجل التعديلات</button></div>
+    <div id="manual-tab-details" class="manual-tab active"></div>
+    <div id="manual-tab-versions" class="manual-tab"></div>
+  </dialog>
+  <dialog id="review-delete-dialog" class="confirmation-dialog">
+    <div class="confirmation-content">
+      <h2>حذف هذه العينة؟</h2>
+      <p>لن تدخل في التدريب، وستبقى محفوظة في الأرشيف ويمكن استعادتها مستقبلًا.</p>
+      <div class="confirmation-actions"><button id="cancel-review-delete" class="button ghost" type="button">إلغاء</button><button id="confirm-review-delete" class="button delete-action" type="button">حذف</button></div>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/theme.js" defer></script>
+  <script src="/app.js" defer></script>
+</body>
+</html>
+

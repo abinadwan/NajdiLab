@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Send one synthetic turn to a running local NajdiLab collector."""
+
+import json
+import sys
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+
+URL = "http://127.0.0.1:8770/api/v1/turn"
+payload = {
+    "conversation_id": f"cli-test-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+    "title": "اختبار Collector من CLI",
+    "source": "import",
+    "channel": "cli",
+    "provider": "test-provider",
+    "model_name": "synthetic-test-model",
+    "model_version": "demo-only",
+    "system_prompt_version": "none",
+    "user_message": "هذه رسالة تجريبية. وش وظيفة NajdiLab؟",
+    "assistant_response": "يجمع المحادثات محليًا ويرتب مراجعتها البشرية.",
+    "generation_settings": {"temperature": 0.2, "seed": 42},
+    "metadata": {"synthetic": True, "purpose": "collector smoke test"},
+    "demo": True,
+}
+
+request = urllib.request.Request(
+    URL,
+    data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+try:
+    with urllib.request.urlopen(request, timeout=10) as response:
+        print(json.dumps(json.load(response), ensure_ascii=False, indent=2))
+except urllib.error.URLError as exc:
+    print(f"تعذر الوصول إلى NajdiLab على {URL}: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
