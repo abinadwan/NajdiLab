@@ -30,25 +30,25 @@ Last updated: 2026-10-09 (Asia/Riyadh). Status values are evidence-based; `DONE`
 | DATA-07 Stale review detection | P0 | DATA-02 | validation/UI | Structured confirmed/ambiguous findings; isolated pending/conflict/stale/history fixtures | DONE |
 | DATA-08 Export blocking | P0 | DATA-07 | export gate/API/UI | Fail-closed before filesystem writes; HTTP 409 reasons; frozen-release hash preserved | DONE |
 | DATA-09 Search/bulk review | P0 | DATA-02–08 | API/UI | Search plus atomic approve/correct/exclude/restore; complete rollback fixtures | DONE |
-| DATA-10 Future-version isolation | P0 | DATA-03–09 | release pipeline | Frozen releases byte-identical after review changes | TODO |
+| DATA-10 Future-version isolation | P0 | DATA-03–09 | release pipeline | Candidate-only validation; protected releases byte-identical in sprint hash comparison | DONE |
 
 ## Phase 3 — Data Quality & Duplicate Detection
 
 | IDs | Priority | Dependencies | Components | Acceptance / tests | Status |
 |---|---|---|---|---|---|
 | QUAL-01 current logic audit | P0 | DATA-01 | cleaning/dedup/health | Capability and gap report | DONE |
-| QUAL-02–07 detectors | P0 | QUAL-01 | validation modules | Deterministic, traceable fixtures; no silent deletion | TODO |
-| QUAL-08–09 finding review queue/actions | P0 | QUAL-02–07, DATA-02 | API/UI | Retain/correct/exclude/intentional with audit | TODO |
-| QUAL-10 regression summaries | P0 | QUAL-02–09 | tests/reports | Full quality matrix green | TODO |
+| QUAL-02–07 detectors | P0 | QUAL-01 | `app/dataset_quality.py` | Stable IDs; duplicates/conflicts/leakage/structure/provenance; no silent deletion | DONE |
+| QUAL-08–09 finding review queue/actions | P0 | QUAL-02–07, DATA-02 | API/UI | Read-only findings API/UI complete; decision persistence awaits event migration | PARTIAL |
+| QUAL-10 regression summaries | P0 | QUAL-02–09 | tests/reports | 230 tests + 8 subtests green; live v008/v009 results recorded | DONE |
 
 ## Phase 4 — Dataset Versioning & Release Pipeline
 
 | IDs | Priority | Dependencies | Components | Acceptance / tests | Status |
 |---|---|---|---|---|---|
 | VER-01 process audit | P0 | DATA/QUAL audits | export/build modules | Reproducibility and gap report | DONE |
-| VER-02–08 reproducible build/validation | P0 | DATA, QUAL | dataset platform | Deterministic isolated builds and lineage | TODO |
-| VER-09–11 lifecycle/immutability/UI | P0 | VER-02–08 | registry/API/UI | Draft → Validated → Frozen; blockers visible | TODO |
-| VER-12 reproducibility proof | P0 | VER-02–11 | fixtures | Two isolated builds byte-identical | TODO |
+| VER-02–08 reproducible build/validation | P0 | DATA, QUAL | dataset platform | Deterministic manifest fingerprint, masks and fail-closed quality validation | DONE |
+| VER-09–11 lifecycle/immutability/UI | P0 | VER-02–08 | registry/API/UI | Validation/blockers visible; production registry activation awaits Migration 005 | PARTIAL |
+| VER-12 reproducibility proof | P0 | VER-02–11 | fixtures | Repeated isolated validation produces identical release fingerprint | DONE |
 
 This platform phase does not authorize the blocked model-release Phase 4.
 
@@ -56,9 +56,10 @@ This platform phase does not authorize the blocked model-release Phase 4.
 
 | IDs | Priority | Dependencies | Components | Acceptance / tests | Status |
 |---|---|---|---|---|---|
-| TRAIN-01–02 environment audit/constraints | P1 | Catalog/release contracts | runtime/config/docs | Versions and ownership evidenced | TODO |
-| TRAIN-03–07 recreation/runtime/config checks | P1 | TRAIN-01–02 | isolated env/runtime | Reproducible validation; live VRAM | TODO |
-| TRAIN-08–12 profiles, dry-run, recovery, registry, UI | P1 | TRAIN-03–07 | training platform/API/UI | Validation explains READY/BLOCKED; no implicit run | TODO |
+| TRAIN-01–02 environment audit/constraints | P1 | Catalog/release contracts | runtime/config/docs | Live RTX 5070/VRAM and Python/CUDA/package versions evidenced | DONE |
+| TRAIN-03–07 recreation/runtime/config checks | P1 | TRAIN-01–02 | isolated env/runtime | Live probe, model-aware configuration and conservative estimate | DONE |
+| TRAIN-08–12 profiles, dry-run, recovery, registry, UI | P1 | TRAIN-03–07 | training platform/API/UI | Draft→READY guards, manifests and no implicit run; smoke awaits approval | DONE |
+| TRAIN-13–14 dynamic Base model selection | P0 | TRAIN-01–12 | registry/API/UI/loader | Exact model ID/path/revision reaches loader; historical Ministral excluded | DONE |
 
 Training, adapter merge, GGUF export, and Ollama model creation remain prohibited without separate approval.
 
@@ -66,25 +67,25 @@ Training, adapter merge, GGUF export, and Ollama model creation remain prohibite
 
 | IDs | Priority | Dependencies | Components | Acceptance / tests | Status |
 |---|---|---|---|---|---|
-| EVAL-01–03 pipeline/fallback/config audit | P1 | TRAIN contracts | evaluation modules | Adapter failure cannot fall back silently | TODO |
-| EVAL-04–12 human/quality/capability gates | P1 | EVAL-01–03 | reports/API/UI | Blind, repeatable, severity/confidence-aware | TODO |
+| EVAL-01–03 pipeline/fallback/config audit | P1 | TRAIN contracts | `app/evaluation_guard.py` | Explicit Base/Adapter; path/revision mismatch and silent fallback fail closed | DONE |
+| EVAL-04–12 human/quality/capability gates | P1 | EVAL-01–03 | reports/API/UI | Existing blind review preserved; expanded scoring workflow remains future work | PARTIAL |
 | EVAL-13–15 lineage/run selector/blocking | P1 | Registry + training | experiment registry/UI | Job→Attempt→Benchmark→Review→Decision | TODO |
 
 ## Phase 7 — Platform UX & Operational Quality
 
 | IDs | Priority | Dependencies | Components | Acceptance / tests | Status |
 |---|---|---|---|---|---|
-| UX-01–03 theme/accessibility/responsive | P1 | Stable pages | UI/E2E | Light/dark/system±, RTL, focus, mobile | TODO |
-| UX-04–09 dynamic state/navigation/diagnostics | P1 | Registries/APIs | UI/API | No stale IDs/counters; robust states | TODO |
-| UX-10–11 browser/keyboard/mobile proof | P1 | UX-01–09 | E2E/screenshots | Real browser matrix with evidence | TODO |
+| UX-01–03 theme/accessibility/responsive | P1 | Stable pages | UI/E2E | RTL, focus, contrast, long IDs and light/dark/system contracts | DONE |
+| UX-04–09 dynamic state/navigation/diagnostics | P1 | Registries/APIs | UI/API | Arabic states, dynamic registry and blocked-quality rendering | DONE |
+| UX-10–11 browser/keyboard/mobile proof | P1 | UX-01–09 | E2E/screenshots | Real browser desktop verification done; mobile visual matrix pending | PARTIAL |
 
 ## Phase 8 — Regression, Documentation & Release Readiness
 
 | IDs | Priority | Dependencies | Components | Acceptance / tests | Status |
 |---|---|---|---|---|---|
-| QA-01–06 test matrix/recovery/hashes/status | P1 | Phases 1.3–7 | tests/reports | All critical suites and protected hashes | TODO |
-| QA-07–09 documentation/recovery/release notes | P1 | Implemented contracts | docs | Operationally reproducible guidance | TODO |
-| QA-10 final acceptance | P1 | QA-01–09 | entire platform | Remaining blockers explicitly listed | TODO |
+| QA-01–06 test matrix/recovery/hashes/status | P1 | Phases 1.3–7 | tests/reports | 230 tests + 8 subtests; protected datasets/model evidence unchanged | DONE |
+| QA-07–09 documentation/recovery/release notes | P1 | Implemented contracts | docs | Selection guide, preflight runbook, next plan and sprint report | DONE |
+| QA-10 final acceptance | P1 | QA-01–09 | entire platform | PARTIALLY_READY: no eligible selected Base model; approvals separated | PARTIAL |
 
 ## Current protected baseline
 

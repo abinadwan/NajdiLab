@@ -11,7 +11,7 @@ from app import training_control as control
 
 
 def row(record_id: str, conversation: str, target: str) -> dict:
-    return {"id": record_id, "conversation_id": conversation, "messages": [{"role": "user", "content": "سؤال"}, {"role": "assistant", "content": target}], "target_message_index": 1, "message_loss_mask": [0, 1]}
+    return {"id": record_id, "conversation_id": conversation, "messages": [{"role": "user", "content": f"سؤال {record_id}"}, {"role": "assistant", "content": target}], "target_message_index": 1, "message_loss_mask": [0, 1]}
 
 
 class TrainingControlTests(unittest.TestCase):
