@@ -27,6 +27,15 @@ ALLOWED_METHODS = {"LoRA", "QLoRA"}
 ALLOWED_SCHEDULERS = {"linear", "cosine", "constant", "constant_with_warmup"}
 ALLOWED_OPTIMIZERS = {"adamw_8bit", "adamw_torch", "paged_adamw_8bit"}
 ALLOWED_TARGET_MODULES = {"q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"}
+OFFICIAL_MODEL_CATALOG = [{
+    "id": "gemma4-e2b-it-official", "display_name": "Gemma 4 E2B IT (Google official)",
+    "repository_id": "google/gemma-4-E2B-it", "revision": "3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+    "architecture": "Gemma4ForConditionalGeneration", "parameter_count": 5123178051,
+    "download_size_gb": 10.3, "required_free_storage_gb": 20.6, "license": "Apache-2.0",
+    "runtime": "wsl:NajdiTrain", "target_path": "/home/najdi/najdi-training/models/gemma-4-E2B-it-3e22461f",
+    "training_method": "QLoRA", "minimum_vram_gb": 8, "native_tool_template": "gemma4",
+    "source_url": "https://huggingface.co/google/gemma-4-E2B-it",
+}]
 
 
 class TrainingControlError(ValueError):
@@ -83,12 +92,131 @@ def _enrich_model(model: dict[str, Any]) -> dict[str, Any]:
     value.setdefault("estimated_memory_gb", value.get("model_size_gb")); value.setdefault("measured_memory_gb", None)
     value.setdefault("availability", "NOT_CHECKED"); value.setdefault("validation_status", "NOT_CHECKED")
     value.setdefault("excluded", False); value.setdefault("exclusion_reason", None); value.setdefault("last_verified_at", None)
+    if value["source_type"] == "ollama": value["availability"] = "INFERENCE_ONLY"
     value["fingerprint"] = _model_fingerprint(value)
     value["trainable"] = bool(value.get("enabled")) and not value["excluded"] and value["source_type"] != "ollama" and value["validation_status"] == "VALID"
     return value
 
 
 def list_models() -> list[dict[str, Any]]: return [_enrich_model(item) for item in _models()]
+
+
+def model_acquisition_catalog() -> dict[str, Any]:
+    """Pinned metadata only. Merely viewing this catalog never downloads weights."""
+    return {"items": OFFICIAL_MODEL_CATALOG, "downloads_started": False, "requires_separate_authorization": True}
+
+
+def prepare_model_acquisition(data: dict[str, Any]) -> dict[str, Any]:
+    candidate_id = str(data.get("candidate_id") or "")
+    candidate = next((dict(item) for item in OFFICIAL_MODEL_CATALOG if item["id"] == candidate_id), None)
+    if candidate is None: raise TrainingControlError("MODEL_CANDIDATE_NOT_FOUND", "مرشح النموذج الرسمي غير موجود", status=404)
+    live = _model_acquisition_probe(candidate)
+    return {"status": "AWAITING_EXPLICIT_DOWNLOAD_AUTHORIZATION", "candidate": candidate,
+        "download_started": False, "training_started": False,
+        "approval_text": f"أوافق على تنزيل {candidate['repository_id']} بحجم تقريبي {candidate['download_size_gb']} GB",
+        "checks_required": ["Hugging Face access", "free storage", "revision integrity", "local tokenizer and weights validation"],
+        "pre_download_checks": live}
+
+
+def _wsl_python(candidate: dict[str, Any], code: str, *, timeout: int) -> dict[str, Any]:
+    distro = str(candidate["runtime"]).split(":", 1)[1]
+    python = "/home/najdi/najdi-training/.venv/bin/python"
+    try:
+        completed = subprocess.run(
+            ["wsl.exe", "-d", distro, "--", python, "-c", code],
+            capture_output=True, text=True, timeout=timeout, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise TrainingControlError("MODEL_ACQUISITION_RUNTIME_FAILED", f"تعذر تشغيل فحص الاقتناء: {exc}", status=503) from exc
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "unknown failure")[-3000:]
+        raise TrainingControlError("MODEL_ACQUISITION_RUNTIME_FAILED", f"فشل فحص الاقتناء داخل NajdiTrain: {detail}", status=503)
+    try:
+        return json.loads(completed.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as exc:
+        raise TrainingControlError("MODEL_ACQUISITION_RESULT_INVALID", "لم يُرجع عامل الاقتناء نتيجة JSON صالحة", status=503) from exc
+
+
+def _model_acquisition_probe(candidate: dict[str, Any]) -> dict[str, Any]:
+    payload = json.dumps(candidate, ensure_ascii=True)
+    code = f'''import json, shutil
+from huggingface_hub import HfApi
+c=json.loads({payload!r})
+info=HfApi().model_info(c["repository_id"], revision=c["revision"], files_metadata=True)
+size=sum((item.size or 0) for item in info.siblings)
+license_value=(info.card_data or {{}}).get("license") if hasattr(info.card_data, "get") else getattr(info.card_data, "license", None)
+free=shutil.disk_usage(c["target_path"].rsplit("/", 1)[0]).free
+print(json.dumps({{"repository_id":c["repository_id"],"requested_revision":c["revision"],"resolved_revision":info.sha,"license":license_value,"actual_download_bytes":size,"actual_download_gb":round(size/10**9,3),"actual_download_gib":round(size/1024**3,3),"free_storage_bytes":free,"free_storage_gib":round(free/1024**3,2),"required_free_storage_gb":c["required_free_storage_gb"],"access":"PUBLIC" if not info.gated else "GATED","private":bool(info.private),"revision_matches":info.sha==c["revision"],"license_matches":str(license_value).lower()==str(c["license"]).lower(),"storage_ok":free>=int(c["required_free_storage_gb"]*10**9)}}))'''
+    result = _wsl_python(candidate, code, timeout=60)
+    if not result.get("revision_matches"):
+        raise TrainingControlError("MODEL_REVISION_MISMATCH", "الـrevision المحلول لا يطابق الإصدار المثبّت", status=409)
+    if not result.get("license_matches"):
+        raise TrainingControlError("MODEL_LICENSE_MISMATCH", "الترخيص الفعلي لا يطابق الترخيص المعتمد", status=409)
+    if not result.get("storage_ok"):
+        raise TrainingControlError("MODEL_STORAGE_INSUFFICIENT", "المساحة الحرة أقل من الحد الآمن 20.6 GB", status=409)
+    return result
+
+
+def acquire_model(data: dict[str, Any]) -> dict[str, Any]:
+    candidate_id = str(data.get("candidate_id") or "")
+    candidate = next((dict(item) for item in OFFICIAL_MODEL_CATALOG if item["id"] == candidate_id), None)
+    if candidate is None:
+        raise TrainingControlError("MODEL_CANDIDATE_NOT_FOUND", "مرشح النموذج الرسمي غير موجود", status=404)
+    expected_approval = f"أوافق على تنزيل {candidate['repository_id']} بحجم تقريبي {candidate['download_size_gb']} GB"
+    if data.get("approval_text") != expected_approval:
+        raise TrainingControlError("DOWNLOAD_AUTHORIZATION_MISMATCH", "نص موافقة التنزيل لا يطابق المرشح المثبّت", status=409)
+    live = _model_acquisition_probe(candidate)
+    payload = json.dumps(candidate, ensure_ascii=True)
+    code = f'''import hashlib, json, os
+from pathlib import Path
+from huggingface_hub import HfApi, snapshot_download
+c=json.loads({payload!r})
+target=Path(c["target_path"])
+target.parent.mkdir(parents=True, exist_ok=True)
+snapshot_download(repo_id=c["repository_id"], revision=c["revision"], local_dir=str(target), max_workers=4)
+info=HfApi().model_info(c["repository_id"], revision=c["revision"], files_metadata=True)
+expected={{item.rfilename:item.lfs.sha256 for item in info.siblings if item.lfs and item.lfs.sha256}}
+actual={{}}
+for name,digest in expected.items():
+ p=target/name
+ if not p.is_file(): raise RuntimeError("missing file: "+name)
+ h=hashlib.sha256()
+ with p.open("rb") as f:
+  for chunk in iter(lambda:f.read(8*1024*1024),b""): h.update(chunk)
+ actual[name]=h.hexdigest()
+bad=[name for name,digest in expected.items() if actual.get(name)!=digest]
+config=json.loads((target/"config.json").read_text(encoding="utf-8"))
+arch=(config.get("architectures") or [None])[0]
+tokenizer=any((target/name).is_file() for name in ("tokenizer.json","tokenizer.model","tokenizer_config.json"))
+template=(target/"chat_template.jinja").is_file()
+weights=sorted(p.name for p in target.glob("*.safetensors"))
+size=sum(p.stat().st_size for p in target.rglob("*") if p.is_file())
+print(json.dumps({{"status":"VERIFIED","repository_id":c["repository_id"],"revision":info.sha,"target_path":str(target),"architecture":arch,"tokenizer_available":tokenizer,"chat_template_available":template,"weight_files":weights,"verified_lfs_files":len(expected),"hash_mismatches":bad,"local_size_bytes":size,"local_size_gib":round(size/1024**3,3)}}))'''
+    verified = _wsl_python(candidate, code, timeout=7200)
+    if verified.get("revision") != candidate["revision"] or verified.get("architecture") != candidate["architecture"]:
+        raise TrainingControlError("MODEL_IDENTITY_MISMATCH", "هوية checkpoint المحلية لا تطابق المرشح المعتمد", status=409)
+    if not verified.get("tokenizer_available") or not verified.get("chat_template_available") or not verified.get("weight_files"):
+        raise TrainingControlError("MODEL_ARTIFACTS_INCOMPLETE", "ملفات tokenizer أو chat template أو الأوزان غير مكتملة", status=409)
+    if verified.get("hash_mismatches"):
+        raise TrainingControlError("MODEL_INTEGRITY_FAILED", "فشل تحقق SHA-256 لملفات النموذج", status=409)
+    models = _models(); index = next((i for i,item in enumerate(models) if item.get("id") == candidate["id"]), None)
+    local = {"id": candidate["id"], "display_name": candidate["display_name"], "path": candidate["target_path"],
+        "source_type": "local", "provider": "huggingface", "repository_id": candidate["repository_id"], "revision": candidate["revision"],
+        "architecture": verified["architecture"], "tokenizer_path": candidate["target_path"], "quantization": "bnb-4bit",
+        "precision": "bf16", "weight_format": "safetensors", "parameter_count": candidate["parameter_count"], "context_length": None,
+        "minimum_vram_gb": candidate["minimum_vram_gb"],
+        "runtime": candidate["runtime"], "enabled": True, "model_size_gb": verified["local_size_gib"], "notes": "Official pinned checkpoint acquired through NajdiLab UI.",
+        "availability": "AVAILABLE", "validation_status": "VALID", "excluded": False, "exclusion_reason": None,
+        "tokenizer_available": True, "native_tool_template": candidate["native_tool_template"],
+        "framework_compatibility": {"transformers": "COMPATIBLE", "unsloth": "COMPATIBLE", "peft": "COMPATIBLE"},
+        "acquisition_checks": {"pre_download": live, "post_download": verified}, "last_verified_at": _now(), "created_at": _now()}
+    if index is None: models.append(local)
+    else: models[index] = local
+    _atomic_json(MODELS_FILE, {"models": models})
+    manifest = TRAINING_ROOT / "acquisitions" / f"{candidate['id']}.json"
+    _atomic_json(manifest, {"candidate": candidate, "pre_download_checks": live, "verification": verified, "completed_at": _now(), "training_started": False, "optimizer_steps": 0})
+    return {"status": "COMPLETED", "candidate": candidate, "pre_download_checks": live, "verification": verified,
+        "model": _enrich_model(local), "manifest": str(manifest), "training_started": False, "optimizer_steps": 0}
 
 
 def get_model(model_id: str) -> dict[str, Any]:
@@ -143,9 +271,18 @@ def validate_model(model_id: str) -> dict[str, Any]:
         if root.is_dir() and not config.is_file(): blockers.append({"code": "MODEL_CONFIG_MISSING", "message": "config.json مفقود."})
         if root.is_dir() and not tokenizer: blockers.append({"code": "TOKENIZER_NOT_AVAILABLE", "message": "ملفات tokenizer مفقودة."})
         if root.is_dir() and not weights: blockers.append({"code": "TRAINABLE_WEIGHTS_MISSING", "message": "لا توجد أوزان تدريب قابلة للاستخدام."})
+        if config.is_file():
+            try:
+                model_config = json.loads(config.read_text(encoding="utf-8"))
+                architectures = model_config.get("architectures") or []
+                if architectures and not model.get("architecture"): model["architecture"] = architectures[0]
+            except (OSError, json.JSONDecodeError):
+                blockers.append({"code": "MODEL_CONFIG_INVALID", "message": "config.json غير صالح."})
+        if model.get("architecture") == "Gemma4ForConditionalGeneration" and (root / "chat_template.jinja").is_file():
+            model["native_tool_template"] = "gemma4"
         model["tokenizer_available"] = tokenizer
     model["validation_status"] = "INVALID" if blockers else "VALID"
-    model["availability"] = "UNAVAILABLE" if blockers else "AVAILABLE"
+    model["availability"] = "INFERENCE_ONLY" if model["source_type"] == "ollama" else ("UNAVAILABLE" if blockers else "AVAILABLE")
     model["last_verified_at"] = _now(); model["validation"] = {"blockers": blockers, "warnings": warnings}
     model["fingerprint"] = _model_fingerprint(model); models[index] = {k: v for k, v in model.items() if k != "trainable"}
     _atomic_json(MODELS_FILE, {"models": models}); return _enrich_model(models[index])
@@ -296,18 +433,30 @@ def calculate_plan(records: int, config: dict[str, Any]) -> dict[str, Any]:
 def estimate_vram(model: dict[str, Any], config: dict[str, Any], runtime: dict[str, Any] | None = None) -> dict[str, Any]:
     size = model.get("model_size_gb"); total = (runtime or {}).get("gpu_vram_total_gb"); free = (runtime or {}).get("gpu_vram_free_gb")
     if not size: return {"status": "UNKNOWN", "estimated_requirement_gb": None, "gpu_total_gb": total, "gpu_available_gb": free, "margin_gb": None, "estimation_method": "unavailable_without_model_size", "confidence": "low", "assumptions": ["Runtime check and model size are required."]}
-    multiplier = 1.45 if config["method"] == "QLoRA" else 3.0
-    estimate = round(float(size) * multiplier + config["batch_size"] * config["max_seq_length"] / 4096 * 0.75, 2)
+    activation = config["batch_size"] * config["max_seq_length"] / 4096 * 0.75
+    parameters = model.get("parameter_count")
+    if config["method"] == "QLoRA" and parameters:
+        quantized_weights = float(parameters) * 0.5 / 1024**3
+        estimate = round(max(float(model.get("minimum_vram_gb") or 8), quantized_weights + 4.5 + activation), 2)
+        method = "qlora_4bit_parameter_plus_adapter_activation_heuristic_v2"
+    else:
+        multiplier = 1.45 if config["method"] == "QLoRA" else 3.0
+        estimate = round(float(size) * multiplier + activation, 2)
+        method = "conservative_parameter_plus_activation_heuristic_v1"
     margin = round(float(free) - estimate, 2) if free is not None else None
     status = "UNKNOWN" if margin is None else "LIKELY_SAFE" if margin >= 2 else "TIGHT" if margin >= 0 else "LIKELY_OOM"
     return {"status": status, "estimated_requirement_gb": estimate, "gpu_total_gb": total, "gpu_available_gb": free, "margin_gb": margin,
-        "estimation_method": "conservative_parameter_plus_activation_heuristic_v1", "confidence": "low", "assumptions": ["Single GPU", "No optimizer offload", "Estimate is not a guarantee"]}
+        "estimation_method": method, "confidence": "low", "assumptions": ["Single GPU", "No optimizer offload", "Estimate is not a guarantee"]}
 
 
 def training_preflight(data: dict[str, Any]) -> dict[str, Any]:
     version, model_id = str(data.get("dataset_version") or ""), str(data.get("model_id") or "")
     gate = quality_gate(version); model = get_model(model_id); config = validate_training_config(data.get("training_config") or {})
-    native=(gate.get("checks") or {}).get("native_tool_use") or {}; template_supported=model.get("id")=="ministral-3-3b-unsloth-bnb4"
+    native=(gate.get("checks") or {}).get("native_tool_use") or {}
+    template_supported = model.get("id") == "ministral-3-3b-unsloth-bnb4" or (
+        model.get("architecture") == "Gemma4ForConditionalGeneration"
+        and model.get("validation_status") == "VALID"
+        and model.get("native_tool_template") == "gemma4")
     if native.get("count") and not template_supported:
         gate["blocking_issues"].append({"code":"NATIVE_TOOL_TEMPLATE_UNSUPPORTED","message":"Configured model/template cannot consume Native Tool-Use records."}); gate["status"]="BLOCKED"
     gate.setdefault("checks",{})["native_tool_trainer"]={"supported":True,"template_supported":template_supported,"will_consume":bool(native.get("count"))}

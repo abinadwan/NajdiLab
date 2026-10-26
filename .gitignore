@@ -70,3 +70,43 @@ Thumbs.db
 CURRENT_PROJECT_STATUS.md
 docs/CURRENT_PROJECT_STATUS.md
 docs/master-execution-progress-*.md
+
+# Python environments and packaging
+.venv/
+venv/
+env/
+build/
+dist/
+*.egg-info/
+.pyre/
+.pytype/
+.tox/
+.nox/
+coverage.xml
+
+# Additional local databases, model binaries and scratch files
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
+*.db-journal
+*.bin
+*.h5
+*.onnx
+*.tmp
+*.bak
+*.swp
+*.swo
+.tmp-tests/
+.test-tmp/
+Desktop.ini
+$RECYCLE.BIN/
+
+# Messaging sessions and authentication state
+*.session
+*.session-journal
+auth.json
+tokens*.json
+whatsapp/
+telegram/
+sessions/

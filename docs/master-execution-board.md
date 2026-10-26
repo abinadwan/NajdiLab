@@ -93,3 +93,45 @@ Training, adapter merge, GGUF export, and Ollama model creation remain prohibite
 - Phase 3 historical decision remains `REJECT`; Phase 4 remains `BLOCKED`.
 - Frozen datasets, original conversations, historical decisions, rejected adapters, and model assets are outside the write scope of this plan.
 
+
+## Corpus v1.1 Track — Phase 1 COMPLETE (design approved 2026-10-23)
+
+Design set: [`docs/corpus-v1.1/`](corpus-v1.1/README.md). Phase 1 (documentation only) is **COMPLETE**; criteria C1–C8 are verified in [`17-phase1-approval-package.md`](corpus-v1.1/17-phase1-approval-package.md). **Phase 1A is NOT AUTHORIZED.** Nothing in this track is implemented.
+
+| ID | Priority | Dependencies | Components | Acceptance | Status |
+|---|---|---|---|---|---|
+| CV11-01 Behavior spec | P0 | — | `corpus-v1.1/01` | Owner approval; P1-03/P1-04 resolved | DESIGN_APPROVED (language content provisional: PRQ-LANG-01) |
+| CV11-02 Reuse map | P0 | — | `corpus-v1.1/02` | Owner approval | DESIGN_APPROVED |
+| CV11-03 Manual-item review lifecycle | P0 | 006, 008 | `corpus-v1.1/03` | `03` §10 criteria (Phase 2) | DESIGN_APPROVED; NOT IMPLEMENTED |
+| CV11-04 G1–G4 / revised G2 | P0 | CV11-01 | `corpus-v1.1/04` | `04` acceptance tables | DESIGN_APPROVED; NOT IMPLEMENTED |
+| CV11-05 Security S1–S8 | P0 | 1A-0 | `corpus-v1.1/05` | `05` §4 tests | DESIGN_APPROVED; NOT IMPLEMENTED |
+| CV11-06 Adapter drift K2 | P0 | 1A-0 | `corpus-v1.1/06` | R1–R9 | DOCUMENTED; reconciliation BLOCKED_PENDING_APPROVAL (OA-02) |
+| CV11-07 Migration review 005–007, 008 draft | P0 | PRQ-MIG-01 | `corpus-v1.1/07` | `07` §5 | REVIEWED; 005/006/007/008 BLOCKED |
+| CV11-08 Traceability matrix | P0 | CV11-01 | `corpus-v1.1/12` | No unmapped requirement | DESIGN_APPROVED |
+| CV11-09 Decision register | P0 | — | `corpus-v1.1/13` | All P1 resolved or confirmed | P1 CLOSED; DF-01…DF-10 DEFERRED; OA-01…OA-12 PENDING SEPARATE APPROVAL |
+| CV11-10 K12 working-tree inventory | P0 | — | `corpus-v1.1/14` | Plan W1–W7 (execution OA-01) | PLAN_APPROVED; execution BLOCKED_PENDING_APPROVAL; 16 items preserved untouched |
+| CV11-11 Migration loader guard (PRQ-MIG-01) | P0 | 1A-0 | `corpus-v1.1/15` | `15` §5 tests | DESIGN_APPROVED; NOT IMPLEMENTED (OA-05) |
+| CV11-12 UI-first confirmation | P0 | — | `corpus-v1.1/16` | Owner confirmation | CONFIRMED |
+
+### Outstanding prerequisites (visible until closed)
+
+| ID | Prerequisite | Blocks | Status |
+|---|---|---|---|
+| PRQ-LANG-01 | Native Riyadh Najdi validation of all Arabic word lists and examples | Pilot, any release, blocking dialect detectors | OPEN (needs OA-11: appoint ≥ 2 native reviewers and a linguistic lead) |
+| PRQ-BASE-01 | Clean Phase 1A baseline: the 16 uncommitted items reconciled without loss | Any Phase 1A code work | OPEN (OA-01) |
+| PRQ-MIG-01 | Migration loader guard implemented and tested | Any SQL entering `migrations/` | OPEN (OA-05) |
+| K2 | Adapter drift (WSL `c35e88…` ≠ repo `b14c7c…` ≠ HEAD `6885fe…`; `bb2c52…` unrecoverable) | New training dry runs and authorizations | OPEN (OA-02) |
+
+### Top open risks (full register: `corpus-v1.1/08-risk-register.md`, K1–K24)
+
+| ID | Risk | Status |
+|---|---|---|
+| K1 | Review audit table (006) not live | OPEN; blocked by PRQ-MIG-01 |
+| K4 | Manual items can be inserted trainable without review | OPEN; fixed by lifecycle (Phase 2) |
+| K5 | CSRF / DNS rebinding on the local API | OPEN; S1–S4 (Phase 1A, not authorized) |
+| K6 | No reviewer identity or roles | OPEN; S6–S8 (Phase 2) |
+| K12 | Uncommitted live code; HEAD ≠ running system | OPEN; OA-01 |
+| K14 | Migrations auto-apply on server start | OPEN; PRQ-MIG-01 |
+| K16 | 007 would create a competing training registry | OPEN; 007 ON HOLD (OA-09) |
+| K22 | Unvalidated Arabic content treated as ground truth | OPEN; PRQ-LANG-01 |
+| K23 | Repo adapter fractional-epoch rounding (O-1) | OPEN; DF-10 |

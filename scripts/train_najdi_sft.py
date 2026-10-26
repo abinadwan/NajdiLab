@@ -283,10 +283,12 @@ def encode_masked_native_tool_record(
 
     validation = validate_native_tool_record(record, registry)
     messages = copy.deepcopy(record["messages"])
+    gemma_native = "<|tool_call>" in str(getattr(tokenizer, "chat_template", ""))
     for message in messages:
         for call in message.get("tool_calls") or []:
             arguments = call["function"]["arguments"]
-            if not isinstance(arguments, str): arguments = canonical_json(arguments)
+            if gemma_native and isinstance(arguments, str): arguments = json.loads(arguments)
+            elif not gemma_native and not isinstance(arguments, str): arguments = canonical_json(arguments)
             call["function"]["arguments"] = arguments
     tools = visible_tools(registry, set(record["available_tools"]))
     rendered = tokenizer.apply_chat_template(messages, tools=tools, tokenize=False, add_generation_prompt=False)
@@ -299,9 +301,15 @@ def encode_masked_native_tool_record(
         message=messages[segment["message_index"]]
         if segment["kind"]=="tool_call":
             call=next(x for x in message["tool_calls"] if x["id"]==segment["call_id"])
-            needle="[TOOL_CALLS]"+call["function"]["name"]+"[ARGS]"+call["function"]["arguments"]
-        else: needle=message["content"]
-        start=rendered.rfind(needle) if segment["kind"]=="final_response" else rendered.find(needle,cursor)
+            if gemma_native:
+                needle="<|tool_call>call:"+call["function"]["name"]
+                start=rendered.find(needle,cursor); close=rendered.find("<tool_call|>",start)
+                if start>=0 and close>=0: needle=rendered[start:close+len("<tool_call|>")]
+            else:
+                needle="[TOOL_CALLS]"+call["function"]["name"]+"[ARGS]"+call["function"]["arguments"]
+                start=rendered.find(needle,cursor)
+        else:
+            needle=message["content"]; start=rendered.rfind(needle)
         if start<0: raise TrainingDataError(f"chat template did not preserve supervised {segment['kind']}")
         spans.append((start,start+len(needle),segment["kind"])); cursor=start+len(needle)
     labels=[IGNORE_INDEX]*len(input_ids); supervised_kinds=[]

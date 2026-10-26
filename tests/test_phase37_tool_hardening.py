@@ -32,6 +32,22 @@ class CharTokenizer:
     def decode(self,ids,**kwargs): return "".join(chr(x) for x in ids)
 
 
+class GemmaCharTokenizer(CharTokenizer):
+    chat_template="<|tool_call>"
+    def apply_chat_template(self,messages,tools=None,tokenize=False,add_generation_prompt=False,return_tensors=None,**kwargs):
+        assert all(tool.get("type")=="function" and "function" in tool for tool in tools or [])
+        out="<bos>"
+        for m in messages:
+            if m["role"]=="assistant":
+                for call in m.get("tool_calls") or []:
+                    assert isinstance(call["function"]["arguments"],dict)
+                    out += "<|tool_call>call:"+call["function"]["name"]+json.dumps(call["function"]["arguments"],sort_keys=True)+"<tool_call|>"
+                out += m.get("content") or ""
+            elif m["role"]=="tool": out += "<|tool_response>"+m["content"]+"<tool_response|>"
+            else: out += m.get("content") or ""
+        return [ord(x) for x in out] if tokenize else out
+
+
 def record(registry):
     return {"schema_version":1,"record_type":"native_tool_use","id":"dev-1","capability_registry":{"version":registry["registry_version"],"fingerprint":registry["fingerprint"]},"available_tools":["system.whoami"],"messages":[
         {"role":"system","content":"Use only declared tools."},{"role":"user","content":"Development fixture."},
@@ -71,6 +87,12 @@ class Phase37Tests(unittest.TestCase):
         self.assertIn("[TOOL_CALLS]system.whoami[ARGS]{}",supervised); self.assertIn("dev-user",supervised)
         rendered="".join(chr(t) for t in encoded["input_ids"]); result_start=rendered.index("[TOOL_RESULTS]"); result_end=rendered.index("[/TOOL_RESULTS]")+len("[/TOOL_RESULTS]")
         self.assertTrue(all(x==IGNORE_INDEX for x in encoded["labels"][result_start:result_end])); self.assertTrue(encoded["tool_results_masked"])
+    def test_gemma_native_template_uses_object_arguments_and_masks_results(self):
+        encoded=encode_masked_native_tool_record(record(self.registry),GemmaCharTokenizer(),self.registry)
+        supervised="".join(chr(t) for t,l in zip(encoded["input_ids"],encoded["labels"]) if l!=IGNORE_INDEX)
+        self.assertIn("<|tool_call>call:system.whoami{}<tool_call|>",supervised); self.assertIn("dev-user",supervised)
+        rendered="".join(chr(t) for t in encoded["input_ids"]); start=rendered.index("<|tool_response>"); end=rendered.index("<tool_response|>")+len("<tool_response|>")
+        self.assertTrue(all(x==IGNORE_INDEX for x in encoded["labels"][start:end]))
     def test_preflight_blocks_missing_native_masks(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); (root/"capability-registry.json").write_text(json.dumps({k:v for k,v in self.registry.items() if k!="fingerprint"}),encoding="utf-8")

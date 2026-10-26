@@ -65,6 +65,14 @@ class TrainingControlTests(unittest.TestCase):
         self.assertEqual(control.calculate_plan(30, {"max_steps": 7})["estimated_total_optimizer_steps"], 7)
         with self.assertRaises(control.TrainingControlError): control.calculate_plan(30, {"batch_size": 0})
 
+    def test_qlora_vram_uses_quantized_parameter_footprint_not_disk_size(self):
+        model = {"model_size_gb": 9.573, "parameter_count": 5123178051, "minimum_vram_gb": 8}
+        config = control.validate_training_config({"method": "QLoRA", "batch_size": 1, "max_seq_length": 2048})
+        result = control.estimate_vram(model, config, {"gpu_vram_total_gb": 11.94, "gpu_vram_free_gb": 10.78})
+        self.assertEqual(result["estimated_requirement_gb"], 8.0)
+        self.assertEqual(result["status"], "LIKELY_SAFE")
+        self.assertEqual(result["estimation_method"], "qlora_4bit_parameter_plus_adapter_activation_heuristic_v2")
+
     def test_create_persist_edit_ready_immutable_and_cancel(self):
         job = control.create_job(self.payload()); self.assertEqual(job["status"], "DRAFT"); self.assertTrue((self.jobs / job["job_id"] / "job.json").is_file())
         self.assertEqual(control.get_job(job["job_id"])["dataset_fingerprint"], job["dataset_fingerprint"])
@@ -101,6 +109,11 @@ class TrainingControlTests(unittest.TestCase):
     def test_ollama_is_visible_but_never_trainable(self):
         model = control.register_model({"id": "ollama-info", "source_type": "ollama", "repository_id": "qwen:latest"})
         self.assertTrue(model["excluded"]); self.assertFalse(model["trainable"])
+        checked = control.validate_model("ollama-info")
+        self.assertEqual(checked["repository_id"], "qwen:latest")
+        self.assertEqual(checked["validation_status"], "INVALID")
+        self.assertEqual(checked["availability"], "INFERENCE_ONLY")
+        self.assertEqual(checked["validation"]["blockers"][0]["code"], "INFERENCE_ONLY")
         with self.assertRaises(control.TrainingControlError) as caught:
             control.create_job({**self.payload(), "model_id": "ollama-info"})
         self.assertEqual(caught.exception.code, "MODEL_UNAVAILABLE")
@@ -110,6 +123,24 @@ class TrainingControlTests(unittest.TestCase):
         (root / "nested" / "two").mkdir(parents=True); (root / "nested" / "two" / "config.json").write_text("{}")
         result = control.discover_models({"roots": [str(root)]})
         self.assertEqual(result["count"], 1); self.assertEqual(result["items"][0]["display_name"], "one")
+
+    def test_acquisition_requires_exact_approval_and_registers_verified_local_model(self):
+        probe = {"resolved_revision": control.OFFICIAL_MODEL_CATALOG[0]["revision"], "revision_matches": True,
+            "license": "apache-2.0", "license_matches": True, "storage_ok": True, "actual_download_bytes": 10278849571}
+        verified = {"status": "VERIFIED", "repository_id": "google/gemma-4-E2B-it",
+            "revision": control.OFFICIAL_MODEL_CATALOG[0]["revision"], "target_path": control.OFFICIAL_MODEL_CATALOG[0]["target_path"],
+            "architecture": "Gemma4ForConditionalGeneration", "tokenizer_available": True, "chat_template_available": True,
+            "weight_files": ["model-00001-of-00003.safetensors"], "verified_lfs_files": 4, "hash_mismatches": [], "local_size_gib": 9.573}
+        with patch.object(control, "_model_acquisition_probe", return_value=probe), patch.object(control, "_wsl_python", return_value=verified):
+            with self.assertRaises(control.TrainingControlError) as denied:
+                control.acquire_model({"candidate_id": "gemma4-e2b-it-official", "approval_text": "wrong"})
+            self.assertEqual(denied.exception.code, "DOWNLOAD_AUTHORIZATION_MISMATCH")
+            approval = control.prepare_model_acquisition({"candidate_id": "gemma4-e2b-it-official"})["approval_text"]
+            result = control.acquire_model({"candidate_id": "gemma4-e2b-it-official", "approval_text": approval})
+        self.assertEqual(result["status"], "COMPLETED"); self.assertFalse(result["training_started"]); self.assertEqual(result["optimizer_steps"], 0)
+        model = control.get_model("gemma4-e2b-it-official")
+        self.assertEqual(model["source_type"], "local"); self.assertEqual(model["validation_status"], "VALID")
+        self.assertEqual(model["revision"], control.OFFICIAL_MODEL_CATALOG[0]["revision"]); self.assertEqual(model["native_tool_template"], "gemma4")
 
     def test_only_authorized_full_start_api_exists(self):
         source = (Path(__file__).resolve().parents[1] / "app" / "server.py").read_text(encoding="utf-8")

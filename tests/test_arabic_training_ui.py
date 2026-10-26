@@ -27,8 +27,13 @@ def test_training_setup_is_arabic_first_and_keeps_technical_terms():
 
 def test_candidate_model_registration_is_wired_without_download_action():
     assert 'id="model-register-form"' in INDEX
+    assert 'name="source_type"' in INDEX
+    assert 'value="ollama"' in INDEX
+    assert 'name="revision"' in INDEX
     assert "registerModelCandidate" in APP
     assert "'/api/v1/training/models'" in APP
+    assert "values.repository_id=values.path" in APP
+    assert "/validate`" in APP
     assert "fetch(" not in I18N
     assert "لا ينزّل أوزانًا" in INDEX
 
@@ -39,6 +44,18 @@ def test_accessibility_and_long_identifier_contracts():
     assert "overflow-wrap:anywhere" in THEME
     assert ":focus-visible" in THEME
     assert "aria-label" in APP[APP.index("async function loadTrainingJobs"):]
+
+
+def test_official_model_acquisition_is_reviewable_and_never_implicit():
+    assert 'id="model-acquisition-card"' in INDEX
+    assert 'التحقق وإعداد خطة التنزيل' in INDEX
+    assert 'id="acquire-model"' in INDEX
+    assert 'disabled>تنزيل checkpoint المعتمد والتحقق منه' in INDEX
+    assert '/api/v1/training/model-acquisition/catalog' in APP
+    assert '/api/v1/training/model-acquisition/prepare' in APP
+    assert '/api/v1/training/model-acquisition/acquire' in APP
+    assert 'gemma4-e2b-it-official' in APP
+    assert 'state.modelAcquisitionApproval=data.approval_text' in APP
 
 
 def test_model_or_config_change_invalidates_stale_preflight():

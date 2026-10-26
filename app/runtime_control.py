@@ -347,18 +347,119 @@ except Exception:
     return staging_status(runtime_id,version)
 
 
-def deploy_adapter(runtime_id: str) -> dict[str, Any]:
-    runtime=get_runtime(runtime_id); source=training.PROJECT_ROOT/"scripts"/"najdilab_training_adapter.py"; helper=training.PROJECT_ROOT/"scripts"/"train_najdi_sft.py"; target=PurePosixPath(runtime["training_script_path"]).parent
-    extras=[training.PROJECT_ROOT/"app"/"tool_runtime.py",training.PROJECT_ROOT/"app"/"native_tool_data.py"]
-    payload={"files":[[_windows_to_wsl(source),runtime["training_script_path"]],[_windows_to_wsl(helper),str(target/"train_najdi_sft.py")],*([_windows_to_wsl(x),str(target/x.name)] for x in extras)]}
-    script="""import hashlib,json,os,shutil,sys
-p=json.loads(sys.argv[1]); out={}
-for src,dst in p['files']:
- os.makedirs(os.path.dirname(dst),exist_ok=True); tmp=dst+'.tmp'; shutil.copy2(src,tmp); os.replace(tmp,dst); out[dst]=hashlib.sha256(open(dst,'rb').read()).hexdigest()
-print(json.dumps(out))"""
-    run=_wsl(runtime,[runtime["python_path"],"-c",script,json.dumps(payload)],30)
-    if run.returncode!=0: raise training.TrainingControlError("ADAPTER_DEPLOY_FAILED",run.stderr[-2000:],status=409)
-    return {"status":"PASS","runtime_id":runtime_id,"files":json.loads(run.stdout.strip().splitlines()[-1])}
+ADAPTER_DEPLOY_MODE = 0o444
+ADAPTER_DEPLOY_SCRIPT = r"""import hashlib,json,os,shutil,stat,sys,time,uuid
+p=json.loads(sys.argv[1]); src=p['source']; dst=p['destination']; expected=p['source_sha256']; mode=int(p['mode'])
+lock=dst+'.deploy.lock'; lock_acquired=False; tmp=None; backup=None; replaced=False; had_destination=False
+def sha256(path):
+ h=hashlib.sha256()
+ with open(path,'rb') as handle:
+  for chunk in iter(lambda:handle.read(1024*1024),b''): h.update(chunk)
+ return h.hexdigest()
+def live_training_process():
+ own={os.getpid(),os.getppid()}; directory=os.path.dirname(dst)
+ markers=(dst,os.path.join(directory,'train_najdi_sft.py'))
+ for name in os.listdir('/proc') if os.path.isdir('/proc') else ():
+  if not name.isdigit() or int(name) in own: continue
+  try:
+   command=open('/proc/'+name+'/cmdline','rb').read().replace(b'\0',b' ').decode('utf-8','replace')
+  except (OSError,PermissionError): continue
+  if any(marker in command for marker in markers): return {'pid':int(name),'command':command[:500]}
+ return None
+def fail(code,message): raise RuntimeError(code+': '+message)
+try:
+ if not os.path.isfile(src): fail('SOURCE_NOT_FOUND','adapter source is not a regular file')
+ if os.path.islink(src): fail('INVALID_SOURCE','adapter source must not be a symlink')
+ if sha256(src)!=expected: fail('SOURCE_HASH_MISMATCH','source changed before deployment')
+ parent=os.path.dirname(dst)
+ if not os.path.isdir(parent): fail('TARGET_DIRECTORY_NOT_FOUND','target directory does not exist')
+ if not os.access(parent,os.W_OK): fail('TARGET_NOT_WRITABLE','target directory is not writable')
+ if os.path.islink(dst): fail('INVALID_TARGET','deployment target must not be a symlink')
+ active=live_training_process()
+ if active: fail('ACTIVE_TRAINING_PROCESS',json.dumps(active,separators=(',',':')))
+ try: os.mkdir(lock,0o700); lock_acquired=True
+ except FileExistsError: fail('DEPLOYMENT_IN_PROGRESS','another adapter deployment holds the target lock')
+ active=live_training_process()
+ if active: fail('ACTIVE_TRAINING_PROCESS',json.dumps(active,separators=(',',':')))
+ had_destination=os.path.exists(dst)
+ current_sha=sha256(dst) if had_destination and os.path.isfile(dst) else None
+ if had_destination and current_sha==expected:
+  os.chmod(dst,mode); actual_mode=stat.S_IMODE(os.stat(dst).st_mode)
+  if actual_mode!=mode or actual_mode & stat.S_IWOTH: fail('INSECURE_TARGET_MODE','unable to enforce secure target permissions')
+  print(json.dumps({'status':'PASS','action':'UNCHANGED','destination':dst,'source_sha256':expected,'destination_sha256':current_sha,'mode':oct(actual_mode),'backup':None}))
+  sys.exit(0)
+ token=uuid.uuid4().hex; tmp=dst+'.tmp-'+token
+ if had_destination:
+  stamp=time.strftime('%Y%m%dT%H%M%SZ',time.gmtime()); backup=dst+'.backup-'+stamp+'-'+token
+  shutil.copy2(dst,backup)
+ fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+ with open(src,'rb') as source_handle,os.fdopen(fd,'wb') as tmp_handle: shutil.copyfileobj(source_handle,tmp_handle)
+ tmp_sha=sha256(tmp)
+ if tmp_sha!=expected: fail('DESTINATION_HASH_MISMATCH','temporary file checksum differs from source')
+ os.replace(tmp,dst); tmp=None; replaced=True
+ os.chmod(dst,mode)
+ destination_sha=sha256(dst); actual_mode=stat.S_IMODE(os.stat(dst).st_mode)
+ if destination_sha!=expected: fail('DESTINATION_HASH_MISMATCH','deployed file checksum differs from source')
+ if actual_mode!=mode or actual_mode & stat.S_IWOTH: fail('INSECURE_TARGET_MODE','unable to enforce secure target permissions')
+ print(json.dumps({'status':'PASS','action':'DEPLOYED','destination':dst,'source_sha256':expected,'destination_sha256':destination_sha,'mode':oct(actual_mode),'backup':backup}))
+except Exception as exc:
+ rollback_error=None
+ try:
+  if replaced:
+   if had_destination and backup and os.path.isfile(backup):
+    rollback=dst+'.rollback-'+uuid.uuid4().hex; shutil.copy2(backup,rollback); os.replace(rollback,dst)
+   elif not had_destination and os.path.exists(dst): os.unlink(dst)
+ except Exception as rollback_exc: rollback_error=type(rollback_exc).__name__+': '+str(rollback_exc)
+ if tmp and os.path.exists(tmp):
+  try: os.unlink(tmp)
+  except OSError: pass
+ print(json.dumps({'status':'FAIL','error':str(exc),'rollback_error':rollback_error,'backup':backup}),file=sys.stderr)
+ sys.exit(1)
+finally:
+ try:
+  if lock_acquired and os.path.isdir(lock): os.rmdir(lock)
+ except OSError: pass
+"""
+
+
+def _active_local_training() -> bool:
+    with ACTIVE_LOCK:
+        return any(process.poll() is None for process in ACTIVE_PROCESSES.values())
+
+
+def deploy_adapter(runtime_id: str, *, runner: Callable[..., subprocess.CompletedProcess[str]] = _run) -> dict[str, Any]:
+    runtime = get_runtime(runtime_id)
+    if runtime.get("type") != "WSL2" or not runtime.get("enabled", False):
+        raise training.TrainingControlError("INVALID_RUNTIME", "Runtime must be an enabled WSL2 target", status=409)
+    destination = _posix_path(runtime.get("training_script_path"), "training_script_path")
+    python_path = _posix_path(runtime.get("python_path"), "python_path")
+    if PurePosixPath(destination).name != "najdilab_training_adapter.py":
+        raise training.TrainingControlError("INVALID_RUNTIME", "Runtime adapter target has an unexpected filename", status=409)
+    source = training.PROJECT_ROOT / "scripts" / "najdilab_training_adapter.py"
+    if not source.is_file() or source.is_symlink():
+        raise training.TrainingControlError("ADAPTER_SOURCE_INVALID", "Official adapter source is missing or unsafe", status=409)
+    try:
+        worker = get_worker_state(runtime_id)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise training.TrainingControlError("WORKER_STATE_UNAVAILABLE", f"Cannot verify worker state: {exc}", status=409) from exc
+    if worker.get("state") == "BUSY" or worker.get("current_job_id") or _active_local_training():
+        raise training.TrainingControlError("ACTIVE_TRAINING", "Adapter deployment is forbidden while training is active", status=409)
+    source_sha = training._sha256(source)
+    payload = {"source": _windows_to_wsl(source), "destination": destination, "source_sha256": source_sha, "mode": ADAPTER_DEPLOY_MODE}
+    run = _wsl(runtime, [python_path, "-c", ADAPTER_DEPLOY_SCRIPT, json.dumps(payload)], 60, runner)
+    if run.returncode != 0:
+        details: dict[str, Any] = {}
+        try: details = json.loads(run.stderr.strip().splitlines()[-1])
+        except (json.JSONDecodeError, IndexError): pass
+        message = str(details.get("error") or run.stderr or "Adapter deployment failed")[-2000:]
+        code = "ACTIVE_TRAINING" if message.startswith("ACTIVE_TRAINING_PROCESS:") else "ADAPTER_DEPLOY_FAILED"
+        raise training.TrainingControlError(code, message, status=409)
+    try: deployed = json.loads(run.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as exc:
+        raise training.TrainingControlError("ADAPTER_DEPLOY_FAILED", "Invalid deployment verification result", status=409) from exc
+    if deployed.get("source_sha256") != source_sha or deployed.get("destination_sha256") != source_sha or deployed.get("mode") != oct(ADAPTER_DEPLOY_MODE):
+        raise training.TrainingControlError("ADAPTER_DEPLOY_FAILED", "Deployment evidence did not match the official source", status=409)
+    return {"status": "PASS", "runtime_id": runtime_id, "files": {destination: source_sha}, **deployed}
 
 
 def job_fingerprint(job: dict[str, Any]) -> str:

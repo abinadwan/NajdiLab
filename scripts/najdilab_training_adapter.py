@@ -93,9 +93,24 @@ def parser() -> argparse.ArgumentParser:
 
 
 def resolve_plan(records: int, batch_size: int, gradient_accumulation_steps: int, epochs: float, max_steps: int) -> dict[str,Any]:
-    batches=math.ceil(records/batch_size); steps_epoch=math.ceil(batches/gradient_accumulation_steps)
-    total=max_steps if max_steps > 0 else math.ceil(steps_epoch*epochs)
-    return {"batches_per_epoch":batches,"optimizer_steps_per_epoch":steps_epoch,"estimated_total_optimizer_steps":total,"trainer_max_steps":max_steps if max_steps>0 else -1,"max_steps_override":max_steps if max_steps>0 else None}
+    """Calculate training plan with proper handling of smoke test vs full training."""
+    batches = math.ceil(records / batch_size)
+    steps_epoch = math.ceil(batches / gradient_accumulation_steps)
+    
+    if max_steps == -1:
+        # Full training: use epochs to calculate total steps
+        total = steps_epoch * epochs
+    else:
+        # Limited training (smoke test): cap at max_steps
+        total = min(steps_epoch * epochs, max_steps)
+    
+    return {
+        "batches_per_epoch": batches,
+        "optimizer_steps_per_epoch": steps_epoch,
+        "estimated_total_optimizer_steps": total,
+        "trainer_max_steps": max_steps if max_steps > 0 else -1,
+        "max_steps_override": max_steps if max_steps > 0 else None
+    }
 
 
 def validate(a: argparse.Namespace) -> dict[str,Any]:
@@ -112,8 +127,22 @@ def validate(a: argparse.Namespace) -> dict[str,Any]:
         parent=path if path.exists() else next((x for x in path.parents if x.exists()),None)
         if parent is None or not os.access(parent,os.W_OK): raise PermissionError(path)
     config=a.model_path/"config.json"
-    plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
-    if plan["estimated_total_optimizer_steps"] != a.expected_steps: raise RuntimeError(f"TRAINING_PLAN_MISMATCH: expected {a.expected_steps}, resolved {plan['estimated_total_optimizer_steps']}")
+    
+    # فصل منطق التحقق بين وضعين: Smoke Test و Full Training
+    if a.smoke_test and a.max_steps==2:
+        # Smoke Test: حساب خطة التدريب الكامل (بدون max_steps) للمقارنة مع expected-steps
+        full_plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,-1)
+        if full_plan["estimated_total_optimizer_steps"] != a.expected_steps: raise RuntimeError(f"TRAINING_PLAN_MISMATCH: expected {a.expected_steps}, resolved {full_plan['estimated_total_optimizer_steps']}")
+        # استخدام max_steps=2 للتنفيذ الفعلي فقط
+        plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
+    elif not a.smoke_test:
+        # Full Training: التحقق من تطابق خطة التدريب مع max_steps و expected-steps
+        plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
+        if plan["estimated_total_optimizer_steps"] != a.expected_steps or plan["trainer_max_steps"] != a.max_steps: raise RuntimeError(f"TRAINING_PLAN_MISMATCH: expected {a.expected_steps}, resolved {plan['estimated_total_optimizer_steps']}")
+    else:
+        # validate_only أو حالات أخرى
+        plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
+    
     tokenizer_hashes={p.name:sha256(p) for p in tokenizer_paths}; tokenizer_fingerprint=hashlib.sha256(json.dumps(tokenizer_hashes,sort_keys=True).encode()).hexdigest()
     return {"status":"VALID","mode":"VALIDATE_ONLY" if a.validate_only else "SMOKE" if a.smoke_test else "FULL","training_started":False,"optimizer_steps_executed":0,"training_records":len(rows)+native_count,"sft":sum(1 for _ in a.sft_file.read_text(encoding="utf-8").splitlines() if _.strip()),"multi_turn":sum(1 for _ in a.multi_turn_file.read_text(encoding="utf-8").splitlines() if _.strip()),"native_tool_use":native_count,"direct_language":0,"preference_pairs":0,"native_tool_validation":native_diagnostics,"model_config_sha256":sha256(config) if config.is_file() else None,"tokenizer_files":tokenizer_files,"tokenizer_sha256":tokenizer_hashes,"tokenizer_fingerprint":tokenizer_fingerprint,"chat_template_file_sha256":tokenizer_hashes.get("chat_template.jinja"),"smoke_max_steps":2,"epochs":a.epochs,**plan}
 
@@ -151,8 +180,11 @@ def train(a: argparse.Namespace, result: dict[str,Any]) -> dict[str,Any]:
     full=bool(a.full_training); enforced_steps=2 if a.smoke_test else (a.max_steps if a.max_steps>0 else -1)
     args=TrainingArguments(output_dir=str(a.checkpoint_dir),num_train_epochs=a.epochs,max_steps=enforced_steps,per_device_train_batch_size=a.batch_size,gradient_accumulation_steps=a.gradient_accumulation_steps,learning_rate=a.learning_rate,warmup_ratio=a.warmup_ratio,weight_decay=a.weight_decay,lr_scheduler_type=a.lr_scheduler,logging_steps=1,save_strategy="steps" if full and a.save_steps>0 else "no",save_steps=max(1,a.save_steps),save_total_limit=2,bf16=a.bf16,fp16=a.fp16,optim=a.optimizer,seed=a.seed,data_seed=a.seed,remove_unused_columns=False,report_to="none",dataloader_num_workers=0)
     trainer=Trainer(model=model,args=args,train_dataset=Rows(records),data_collator=MaskedSFTDataCollator(tokenizer),callbacks=[Metrics()])
-    resolved=resolve_plan(len(records),a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
-    if resolved["estimated_total_optimizer_steps"] != a.expected_steps or trainer.args.max_steps != resolved["trainer_max_steps"]: raise RuntimeError("TRAINING_PLAN_MISMATCH: adapter and manifest plans differ")
+    full_plan=resolve_plan(len(records),a.batch_size,a.gradient_accumulation_steps,a.epochs,-1)
+    execution_plan=resolve_plan(len(records),a.batch_size,a.gradient_accumulation_steps,a.epochs,enforced_steps)
+    plan_mismatch=full_plan["estimated_total_optimizer_steps"] != a.expected_steps
+    if a.full_training: plan_mismatch = plan_mismatch or execution_plan["estimated_total_optimizer_steps"] != a.expected_steps
+    if plan_mismatch or trainer.args.max_steps != execution_plan["trainer_max_steps"]: raise RuntimeError("TRAINING_PLAN_MISMATCH: adapter and manifest plans differ")
     torch.cuda.reset_peak_memory_stats(); train_result=trainer.train(); metrics=[json.loads(x) for x in metrics_path.read_text().splitlines()]
     losses=[x["loss"] for x in metrics];
     expected=2 if a.smoke_test else (a.max_steps if a.max_steps>0 else math.ceil(len(records)/a.batch_size/a.gradient_accumulation_steps*a.epochs))

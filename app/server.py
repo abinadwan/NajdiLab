@@ -35,7 +35,7 @@ from .review_integrity import ExportReadinessError, export_readiness
 from .training_control import (
     TrainingControlError, cancel_job, create_job, create_production_job, get_job, initialize_training_control,
     discover_models, list_jobs, list_models, mark_job_ready, quality_gate, register_model, training_datasets, validate_model,
-    training_preflight, update_job,
+    training_preflight, update_job, model_acquisition_catalog, prepare_model_acquisition, acquire_model,
 )
 from .runtime_control import (
     attempt_logs, attempt_metrics, cancel_attempt, check_runtime as check_runtime_target, deploy_adapter, dry_run,
@@ -211,6 +211,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(quality_gate(query.get("dataset", "")))
             elif parsed.path == "/api/v1/training/models":
                 self._json({"items": list_models()})
+            elif parsed.path == "/api/v1/training/model-acquisition/catalog":
+                self._json(model_acquisition_catalog())
             elif parsed.path == "/api/v1/training/runtimes":
                 self._json({"items": list_runtimes()})
             elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/latest-check", parsed.path):
@@ -350,6 +352,10 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 )
             elif parsed.path == "/api/v1/training/models":
                 self._json({"ok": True, "model": register_model(data)}, HTTPStatus.CREATED)
+            elif parsed.path == "/api/v1/training/model-acquisition/prepare":
+                self._json(prepare_model_acquisition(data))
+            elif parsed.path == "/api/v1/training/model-acquisition/acquire":
+                self._json(acquire_model(data))
             elif parsed.path == "/api/v1/training/models/discover":
                 self._json(discover_models(data))
             elif match := re.fullmatch(r"/api/v1/training/models/([A-Za-z0-9._-]+)/validate", parsed.path):
