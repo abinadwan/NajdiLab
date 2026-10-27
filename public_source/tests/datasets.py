@@ -56,10 +56,10 @@ class DatasetWorkflow(CandidateCase):
         self.seed_valid();r=self.new_review(user_message='سؤال تقييم خيالي مستقل.',assistant_response='جواب التقييم الخيالي مستقل.')
         self.assertEqual(self.request(f"/api/v1/reviews/{r['id']}/approve",{'expected_updated_at':r['updated_at'],'evaluation_only':True})[0],200)
         excluded=self.new_review();self.assertEqual(self.request(f"/api/v1/reviews/{excluded['id']}/exclude",{'expected_updated_at':excluded['updated_at'],'reason':'Fictional exclusion'})[0],200)
-        version=self.prepare();manifest=json.loads((self.work/'exports'/version/'manifest.json').read_text())
-        training=''.join((self.work/'exports'/version/name).read_text() for name in manifest['files'] if name!='evaluation_holdout.jsonl')
+        version=self.prepare();manifest=json.loads((self.work/'exports'/version/'manifest.json').read_text(encoding='utf-8'))
+        training=''.join((self.work/'exports'/version/name).read_text(encoding='utf-8') for name in manifest['files'] if name!='evaluation_holdout.jsonl')
         self.assertNotIn(f'"id": "review:{r["id"]}"',training);self.assertNotIn(f'"id": "review:{excluded["id"]}"',training)
-        self.assertIn(f'review:{r["id"]}',(self.work/'exports'/version/'evaluation_holdout.jsonl').read_text())
+        self.assertIn(f'review:{r["id"]}',(self.work/'exports'/version/'evaluation_holdout.jsonl').read_text(encoding='utf-8'))
 
     def test_tampered_manifest_or_file_denies_diagnostics(self):
         self.seed_valid();version=self.prepare();manifest=self.work/'exports'/version/'manifest.json';raw=manifest.read_bytes();obj=json.loads(raw);obj['training_record_count']=999;manifest.write_text(json.dumps(obj))
@@ -96,10 +96,10 @@ class DatasetWorkflow(CandidateCase):
     def test_holdout_masks_and_balance_use_actual_export_format(self):
         self.seed_valid();version=self.prepare()
         code,balance=self.request(f'/api/v1/dataset-versions/{version}/balance');self.assertEqual(code,200);self.assertGreaterEqual(balance['record_counts']['evaluation'],3);self.assertEqual(balance['record_counts']['unknown'],0)
-        directory=self.work/'exports'/version;file=directory/'evaluation_holdout.jsonl';rows=[json.loads(x) for x in file.read_text().splitlines()];rows[0]['message_loss_mask']=[0]*len(rows[0]['messages']);file.write_text(''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in rows))
+        directory=self.work/'exports'/version;file=directory/'evaluation_holdout.jsonl';rows=[json.loads(x) for x in file.read_text(encoding='utf-8').splitlines()];rows[0]['message_loss_mask']=[0]*len(rows[0]['messages']);file.write_text(''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in rows),encoding='utf-8')
         # Deliberately register internally consistent bad synthetic content to test
         # structural validation separately from hash-tamper refusal.
-        manifest=json.loads((directory/'manifest.json').read_text());manifest['sha256']['evaluation_holdout.jsonl']=hashlib.sha256(file.read_bytes()).hexdigest();(directory/'manifest.json').write_text(json.dumps(manifest))
+        manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'));manifest['sha256']['evaluation_holdout.jsonl']=hashlib.sha256(file.read_bytes()).hexdigest();(directory/'manifest.json').write_text(json.dumps(manifest))
         c=sqlite3.connect(self.work/'data/najdilab.db');c.execute('UPDATE dataset_versions SET manifest_json=? WHERE version=?',(json.dumps(manifest),version));c.commit();c.close()
         code,health=self.request(f'/api/v1/dataset-versions/{version}/health');self.assertEqual(code,200);self.assertEqual(health['status'],'BLOCKED')
         self.assertEqual(self.request(f'/api/v1/dataset-versions/{version}/quality-findings')[1]['status'],'BLOCKED')
@@ -126,8 +126,8 @@ class DatasetWorkflow(CandidateCase):
         self.assertEqual(self.rows('SELECT * FROM messages ORDER BY id'),before)
 
     def test_training_user_target_mask_cannot_be_ready(self):
-        self.seed_valid();version=self.prepare();directory=self.work/'exports'/version;file=directory/'sft.jsonl';rows=[json.loads(x) for x in file.read_text().splitlines()];rows[0].update(target_message_index=0,message_loss_mask=[1,0],train_on_last_assistant_only=False);file.write_text(''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in rows))
-        manifest=json.loads((directory/'manifest.json').read_text());manifest['sha256']['sft.jsonl']=hashlib.sha256(file.read_bytes()).hexdigest();(directory/'manifest.json').write_text(json.dumps(manifest));c=sqlite3.connect(self.work/'data/najdilab.db');c.execute('UPDATE dataset_versions SET manifest_json=? WHERE version=?',(json.dumps(manifest),version));c.commit();c.close()
+        self.seed_valid();version=self.prepare();directory=self.work/'exports'/version;file=directory/'sft.jsonl';rows=[json.loads(x) for x in file.read_text(encoding='utf-8').splitlines()];rows[0].update(target_message_index=0,message_loss_mask=[1,0],train_on_last_assistant_only=False);file.write_text(''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in rows),encoding='utf-8')
+        manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'));manifest['sha256']['sft.jsonl']=hashlib.sha256(file.read_bytes()).hexdigest();(directory/'manifest.json').write_text(json.dumps(manifest));c=sqlite3.connect(self.work/'data/najdilab.db');c.execute('UPDATE dataset_versions SET manifest_json=? WHERE version=?',(json.dumps(manifest),version));c.commit();c.close()
         self.assertEqual(self.request(f'/api/v1/dataset-versions/{version}/health')[1]['status'],'BLOCKED')
 
     def test_deferred_manual_kind_blocks_before_any_version_write(self):
@@ -137,6 +137,6 @@ class DatasetWorkflow(CandidateCase):
 
     def test_empty_holdout_never_reports_ready_even_with_matching_hashes(self):
         self.seed_valid();version=self.prepare();directory=self.work/'exports'/version;file=directory/'evaluation_holdout.jsonl';file.write_bytes(b'')
-        manifest=json.loads((directory/'manifest.json').read_text());manifest['sha256']['evaluation_holdout.jsonl']=hashlib.sha256(b'').hexdigest();manifest['files']['evaluation_holdout.jsonl']=0;(directory/'manifest.json').write_text(json.dumps(manifest));c=sqlite3.connect(self.work/'data/najdilab.db');c.execute('UPDATE dataset_versions SET manifest_json=? WHERE version=?',(json.dumps(manifest),version));c.commit();c.close()
+        manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'));manifest['sha256']['evaluation_holdout.jsonl']=hashlib.sha256(b'').hexdigest();manifest['files']['evaluation_holdout.jsonl']=0;(directory/'manifest.json').write_text(json.dumps(manifest));c=sqlite3.connect(self.work/'data/najdilab.db');c.execute('UPDATE dataset_versions SET manifest_json=? WHERE version=?',(json.dumps(manifest),version));c.commit();c.close()
         self.assertEqual(self.request(f'/api/v1/dataset-versions/{version}/health')[1]['status'],'BLOCKED')
         self.assertEqual(self.request(f'/api/v1/dataset-versions/{version}/release-validation')[1]['status'],'BLOCKED')

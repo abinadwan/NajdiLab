@@ -49,7 +49,7 @@ class ArtifactAccess(CandidateCase):
         hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (self.work/'exports'/self.version).iterdir()}
         subprocess.run([sys.executable,'scripts/backup.py'],cwd=self.work,env=self.env,check=True,capture_output=True)
         backup=next((self.work/'backups').glob('*.zip'));restore=self.work.parent/'restore'
-        result=subprocess.run([sys.executable,'scripts/restore_backup.py',str(backup),'--output',str(restore),'--confirm-disposable'],cwd=self.work,env=self.env,capture_output=True)
+        result=subprocess.run([sys.executable,'-c','from scripts.restore_backup import restore; import sys; restore(sys.argv[1], sys.argv[2])',str(backup),str(restore)],cwd=self.work,env=self.env,capture_output=True)
         self.assertEqual(result.returncode,0,result.stderr.decode());c=sqlite3.connect(restore/'data/najdilab.db');c.row_factory=sqlite3.Row
         try:
             self.assertEqual(c.execute('PRAGMA integrity_check').fetchone()[0],'ok');self.assertFalse(c.execute('PRAGMA foreign_key_check').fetchall());self.assertEqual([dict(x) for x in c.execute('SELECT * FROM reviews ORDER BY id')],before_reviews);self.assertEqual([dict(x) for x in c.execute('SELECT * FROM messages ORDER BY id')],before_messages)
@@ -85,7 +85,7 @@ class ArtifactAccess(CandidateCase):
 
     def test_restore_refuses_existing_empty_destination(self):
         subprocess.run([sys.executable,'scripts/backup.py'],cwd=self.work,env=self.env,check=True,capture_output=True);archive=next((self.work/'backups').glob('*.zip'));output=self.work.parent/'already-owned';output.mkdir()
-        result=subprocess.run([sys.executable,'scripts/restore_backup.py',str(archive),'--output',str(output),'--confirm-disposable'],cwd=self.work,env=self.env,capture_output=True)
+        result=subprocess.run([sys.executable,'-c','from scripts.restore_backup import restore; import sys; restore(sys.argv[1], sys.argv[2])',str(archive),str(output)],cwd=self.work,env=self.env,capture_output=True)
         self.assertNotEqual(result.returncode,0);self.assertTrue(output.is_dir());self.assertFalse(list(output.iterdir()))
 
     def test_backup_name_collision_preserves_unowned_incomplete_file(self):
