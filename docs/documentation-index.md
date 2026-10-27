@@ -14,3 +14,19 @@ Current combined work: [unified verification](unified-readiness-verification.md)
 | Historical/design evidence | [engineering record](historical-project-status.md), [board](master-execution-board.md), [Corpus v1.1 approved design](corpus-v1.1/README.md) |
 
 Historical documents are preserved dated snapshots. PROJECT_STATUS reconciles them; an old approval/status is not a new action grant. Arabic linguistic examples remain intentional and provisional where specified. No private artifact/evidence location is part of public documentation.
+
+## Visual and practical navigation by audience
+
+| Audience | Additional entry points |
+|---|---|
+| New users | [Practical user guide](user-guide.md), [screenshots](screenshots.md) |
+| Reviewers | [Correction walkthrough](user-guide.md), [review screens](screenshots.md) |
+| Researchers | [Diagram gallery](architecture-diagrams.md), [source provenance](source-provenance.md), existing historical/design evidence above |
+| Dataset curators | [Data/storage architecture](architecture-diagrams.md), [dataset guide](dataset-and-training.md) |
+| Model-training operators | [Training boundary](architecture-diagrams.md), [existing preflight](training-preflight-runbook.md) |
+| Developers | [Editable diagram and maintenance](architecture-diagrams.md), [architecture](architecture.md) |
+| Maintainers | [Visual verification/no-loss evidence](visual-documentation-verification.md), [asset register](asset-provenance.md) |
+| Contributors | [Source provenance](source-provenance.md), [contribution standards](../CONTRIBUTING.md) |
+| License and security reviewers | [Third-party attribution](third-party-attributions.md), [assets](asset-provenance.md), [release decision](public-release-decision.md), [SECURITY](../SECURITY.md) |
+
+These pages extend navigation; they do not replace existing status, technical references, historical reports or ADRs.

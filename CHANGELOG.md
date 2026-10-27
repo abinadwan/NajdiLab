@@ -1,5 +1,12 @@
 # Changelog
 
+## Visual documentation and provenance continuation — 2026-10-27
+
+- Added an editable source-grounded seven-layer SVG and deterministic generator; preserved the owner conceptual JPEG byte-for-byte and every existing Mermaid/media asset.
+- Added architecture gallery, seven real synthetic UI screenshots, practical correction walkthrough and audience-based navigation.
+- Added source/asset provenance and third-party attribution registers with explicit ownership, historical artifact and optional AGPL uncertainties.
+- Verified SVG rendering/labels/contrast, synthetic-original preservation and documentation/application regressions; mobile detail needs zoom/scroll. No application source or protected research data changed.
+
 ## Unified readiness preparation — 2026-10-27
 
 - Recovered the prior local rights/privacy decision package onto a branch from current main.

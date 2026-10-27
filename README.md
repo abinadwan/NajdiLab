@@ -23,7 +23,29 @@ NajdiLab connects these steps: collect a completed turn, review it, retain the o
 
 These are source capabilities, not a claim that every historical research artifact is included or every roadmap item is implemented. The conceptual flow is collection → review → validation → dataset version → controlled training preparation → evaluation → human decision.
 
+## Visual introduction
+
+### NajdiLab interface — real synthetic demonstration
+
+![Real NajdiLab dashboard with three fictional Arabic conversations and no Gold versions](docs/images/screenshots/dashboard.png)
+
+Captured in a disposable instance using synthetic data only. Explore the [screenshot gallery](docs/screenshots.md) and [practical user guide](docs/user-guide.md). The previous interface preview below is preserved.
+
+### System architecture overview
+
+![Editable NajdiLab architecture showing local security, review and dataset storage, optional training and blocked model release](docs/images/architecture/najdilab-system-architecture.svg)
+
+The web platform is independent of external training. SQLite records and filesystem datasets are distinct; optional runtime and blocked future workflows have different line styles. [Open full-size SVG](docs/images/architecture/najdilab-system-architecture.svg) for zoom on narrow screens.
+
+### Explore the documentation
+
+[Architecture diagrams](docs/architecture-diagrams.md) · [Screenshots](docs/screenshots.md) · [User guide](docs/user-guide.md) · [Developer setup](docs/developer-setup.md) · [Source provenance](docs/source-provenance.md) · [Third-party attribution](docs/third-party-attributions.md) · [Asset provenance](docs/asset-provenance.md)
+
+The [owner-supplied conceptual illustration](docs/architecture-diagrams.md#b-original-owner-supplied-conceptual-illustration) is preserved alongside the new SVG. Existing Mermaid diagrams and all technical sections remain available below.
+
 ## Contents
+
+- [Visual introduction](#visual-introduction)
 
 - [Current status](#current-status)
 - [Interface preview](#interface-preview)

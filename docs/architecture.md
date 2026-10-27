@@ -67,3 +67,7 @@ The framework-free frontend uses `static/index.html`, `app.js`, theme and locali
 SQLite WAL/foreign keys and `BEGIN IMMEDIATE` protect composite writes; review overlays preserve original records. Existing startup migrations remain automatic and the loader is not atomic/guarded. The public source includes protected historical Phase 3.8/3.9 data-bearing modules imported by server/freeze/resolution paths: see [separation policy](dataset-model-distribution-policy.md). A source-only clone is independently runnable but is not yet cleared for public redistribution.
 
 The [README architecture and workflow diagrams](../README.md#system-architecture) distinguish optional runtime boundaries and blocked future deployment. Model registry/preflight, zero-step Dry Run, distinct Smoke/Full approvals, adapter validation and human evaluation are separate stages. Planned SQL registry/reviewer-event/RBAC work must not be confused with implemented filesystem registry and local CSRF controls.
+
+## Visual and conceptual views
+
+See the [architecture gallery](architecture-diagrams.md) for the new editable SVG, preserved owner illustration, Mermaid/data/schema/security views and documented discrepancies. This technical reference and its existing Mermaid remain unchanged above. [User guide](user-guide.md) and [real synthetic screenshots](screenshots.md) connect concepts to the interface.
