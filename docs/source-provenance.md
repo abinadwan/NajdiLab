@@ -44,3 +44,9 @@ New Core UI/wrappers/tests/docs are AI-assisted engineering additions on the ded
 ## Phase5 final selected-source review
 
 [Exact74-file inventory](public-core-phase5-rights.md) distinguishes28 preserved original-project paths from46 AI-assisted candidate additions; repository lineage does not prove independent authorship. No confirmed copied/adapted third-party application source or bundled external asset was established from selected-byte review, headers/origin searches and current history; ownership/employer/contributor authority remains NOT_VERIFIED/AWAITING_OWNER_APPROVAL. Original comments/notices are preserved. Residual v007 helper naming/defaults require owner disposition, contain no original records and do not trigger import-time/installation data loading. Matched tagged external license texts and binary/transitive uncertainties are separate. Source-only privacy/build/test success grants no redistribution permission.
+
+## Owner-reported project conception and staged development
+
+Recorded 2026-10-28 with the owner's express approval. The owner reports conceiving and directing NajdiLab and iteratively evolving it through staged directions, from improving selected model outputs into a comprehensive correction, review, monitoring and dataset platform. The owner also reports directing the observation/monitoring design. Codex and Claude Code implemented code in response to those staged directions, according to this owner-reported account.
+
+This is owner-reported provenance, not independent legal proof of authorship, exclusive ownership, absence of copied code, copyright eligibility or redistribution permission. Existing findings, verification statuses and release-rights blockers (including B07) remain unchanged; no license, publication approval or rights clearance is granted by this note.
