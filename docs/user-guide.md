@@ -1,5 +1,7 @@
 # User guide — a fictional Arabic text workshop
 
+**Profile scope:** this preserved walkthrough demonstrates the original full application UI, not the reduced source-only candidate. Candidate setup is in its [README](../public_source/README.md); [parity](public-core-feature-parity.md) and [release scope](public-core-release-scope.md) identify unavailable screens and planned improvements. No step here newly authorizes training or access to private data.
+
 This walkthrough uses three invented turns about Arabic text storage and review. The screenshots come from the real UI, not a mockup. **Demonstrated** means performed in the disposable instance; **explanation only** means no dataset/model operation was executed. Use a new checkout with a free port; a new port alone does not isolate data. Follow [installation](installation.md), [configuration](configuration.md) and [security](../SECURITY.md).
 
 | Step | Objective and action | Expected behavior / evidence | Status and technical reference |

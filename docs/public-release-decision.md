@@ -2,6 +2,8 @@
 
 Date: **2026-10-27**. Verdict: **NOT READY — BLOCKERS REMAIN**.
 
+Current scope-review continuation: [public core parity](public-core-feature-parity.md) and [proposed release scope/backlog](public-core-release-scope.md) compare PR #2's original application with PR #3's narrower candidate. Earlier numbered findings below retain their historical baseline; appended engineering outcomes remain separate. The analysis does not implement parity, clear rights/history, or change either Draft PR.
+
 ## 1. Executive summary and baseline
 
 This combined review is on `dev/open-source-final-readiness`, based on current remote main `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`. GitHub reconciliation found PR #1 already merged, the former branch deleted and no open PR. The prior local package `5ac0f2b99bef445e119e4bdb7fb5289464947de9` was found, its diff reviewed and incorporated as `5d9fde8` after confirming its parent tree matched main. One new coordinated Draft PR is authorized by the unified task. The old commit remains preserved. Main and Private visibility are unchanged; no speculation about the prior merge's authorization is made.

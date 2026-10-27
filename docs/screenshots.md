@@ -1,5 +1,7 @@
 # Application screenshot gallery
 
+**Profile clarification (2026-10-27):** these captures show the original NajdiLab interface from PR #2, using synthetic state. “Source-only checkout” below means a checkout without private runtime artifacts, not PR #3's mapped 37-file candidate with its replacement UI. These are not candidate screenshots. See [UI comparison](public-core-feature-parity.md#ui-comparison-matrix); no image is replaced.
+
 All new images below are **actual application screenshots using fictional synthetic data**, captured from an isolated source-only Linux checkout on 2026-10-27 at 1440 × 1000. No UI/mock API responses were substituted. No private corpus, original correction, Gold artifact, checkpoint, model or runtime was loaded. The disposable instance was stopped after capture. Text/correction steps are reproduced in the [user guide](user-guide.md); rights and hashes are in the [asset register](asset-provenance.md).
 
 ## Dashboard — demonstrated

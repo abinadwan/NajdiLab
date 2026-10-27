@@ -1,5 +1,7 @@
 # Architecture diagram gallery
 
+**Profile scope (2026-10-27):** the preserved SVG, owner image and Mermaid views below describe the original application/design boundaries. PR #3's mapped candidate excludes original training/runtime/historical modules and uses a replacement server/UI. These images are not its deployment topology. See the [candidate boundary](public-private-boundary.md) and [module comparison](public-core-feature-parity.md#backend-module-inventory). Candidate-specific artwork is proposed in the [scope backlog](public-core-release-scope.md), not fabricated here.
+
 These views explain the implementation at `15c7517` and this documentation continuation. They do not authorize training, production deployment or publication. Keep [architecture](architecture.md) as the technical reference and [PROJECT_STATUS](../PROJECT_STATUS.md) as status authority. Visual provenance is recorded in [asset register](asset-provenance.md).
 
 ## A. System overview — editable SVG

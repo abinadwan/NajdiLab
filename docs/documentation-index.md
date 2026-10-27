@@ -34,3 +34,7 @@ These pages extend navigation; they do not replace existing status, technical re
 ## Source-only candidate engineering
 
 Developers/maintainers: [public/private boundary and blocked compatibility patch](public-private-boundary.md), [exact-candidate build/test/release report](public-source-isolation-report.md). These extend, rather than replace, the original architecture/status and PR #2 documentation.
+
+## Public core scope review
+
+Owner/product reviewers: [original-versus-candidate feature, UI, module and API matrices](public-core-feature-parity.md), [recommended first-release scope, approval gates and prioritized backlog](public-core-release-scope.md). Developers should use the proposed B02–B06 next phase only after scope approval. This analysis does not migrate features or change the two existing Draft PRs. Original-interface guides/screenshots/architecture above describe the private full application; the mapped candidate has a smaller interface.

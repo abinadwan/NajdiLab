@@ -25,6 +25,8 @@ These are source capabilities, not a claim that every historical research artifa
 
 ## Visual introduction
 
+**Profile scope:** the screenshots, architecture and full-interface guides below describe the preserved original application. The isolated source-only candidate has a smaller UI/API. See the [feature comparison](docs/public-core-feature-parity.md) and [proposed public core scope](docs/public-core-release-scope.md); neither is publication approval.
+
 ### NajdiLab interface — real synthetic demonstration
 
 ![Real NajdiLab dashboard with three fictional Arabic conversations and no Gold versions](docs/images/screenshots/dashboard.png)

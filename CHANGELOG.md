@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — public core scope review (2026-10-27)
+
+- Added original/candidate UI, 27-module, 101-route and workflow parity inventories, with actual unavailable/partial behavior and reusable-versus-historical boundaries.
+- Proposed a minimum local review-to-dataset release scope and dependency-ordered B01–B12 backlog with acceptance, regression, rollback and owner gates; no feature migration.
+- Clarified that existing screenshots, user guide and architecture show the original application; preserved every asset, historical record, protected source and candidate pin.
+- Re-ran isolated candidate and preserved-source Linux tests; recorded explicit skips and prior-versus-current evidence in the parity report/worklog. Publication remains blocked.
+
 ## Private research isolation engineering — 2026-10-27
 
 - Added a separate source-only core server/UI, explicit unavailable extension interface, opt-in fictional fixtures and deterministic hash-pinned candidate builder.
