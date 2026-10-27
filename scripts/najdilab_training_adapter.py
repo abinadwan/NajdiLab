@@ -128,19 +128,19 @@ def validate(a: argparse.Namespace) -> dict[str,Any]:
         if parent is None or not os.access(parent,os.W_OK): raise PermissionError(path)
     config=a.model_path/"config.json"
     
-    # فصل منطق التحقق بين وضعين: Smoke Test و Full Training
+    # Validate Smoke Test and Full Training plans separately.
     if a.smoke_test and a.max_steps==2:
-        # Smoke Test: حساب خطة التدريب الكامل (بدون max_steps) للمقارنة مع expected-steps
+        # Smoke Test: compare the full plan (without max_steps) with expected-steps.
         full_plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,-1)
         if full_plan["estimated_total_optimizer_steps"] != a.expected_steps: raise RuntimeError(f"TRAINING_PLAN_MISMATCH: expected {a.expected_steps}, resolved {full_plan['estimated_total_optimizer_steps']}")
-        # استخدام max_steps=2 للتنفيذ الفعلي فقط
+        # Apply max_steps=2 only to the actual execution.
         plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
     elif not a.smoke_test:
-        # Full Training: التحقق من تطابق خطة التدريب مع max_steps و expected-steps
+        # Full Training: validate the plan against max_steps and expected-steps.
         plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
         if plan["estimated_total_optimizer_steps"] != a.expected_steps or plan["trainer_max_steps"] != a.max_steps: raise RuntimeError(f"TRAINING_PLAN_MISMATCH: expected {a.expected_steps}, resolved {plan['estimated_total_optimizer_steps']}")
     else:
-        # validate_only أو حالات أخرى
+        # Validate-only or other modes.
         plan=resolve_plan(len(rows)+native_count,a.batch_size,a.gradient_accumulation_steps,a.epochs,a.max_steps)
     
     tokenizer_hashes={p.name:sha256(p) for p in tokenizer_paths}; tokenizer_fingerprint=hashlib.sha256(json.dumps(tokenizer_hashes,sort_keys=True).encode()).hexdigest()

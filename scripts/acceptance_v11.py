@@ -7,22 +7,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import statistics
 import sys
 import time
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-HERMES_ROOT = PROJECT_ROOT.parent / "hermes-agent"
+HERMES_ROOT = Path(os.environ.get("NAJDILAB_HERMES_ROOT", PROJECT_ROOT.parent / "hermes-agent"))
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(HERMES_ROOT))
 
-from agent import outbound_webhooks as webhooks  # noqa: E402
 from app.db import DB_PATH, connect  # noqa: E402
 from app.service import create_export, save_review  # noqa: E402
+from scripts.collector_client import collector_url, verify_collector
 
 
-COLLECTOR_URL = "http://127.0.0.1:8770/api/v1/hermes-hook"
+COLLECTOR_URL = collector_url("/api/v1/hermes-hook")
 FIELDS = {
     "turn_id",
     "user_message",
@@ -146,12 +147,23 @@ def _assert_capture(conversations: list[dict], messages: list[dict]) -> None:
 
 
 def main() -> None:
+    if os.environ.get("NAJDILAB_ACCEPTANCE_WRITE") != "1":
+        raise SystemExit("This integration check writes synthetic demo records to its configured local database and collector. Set NAJDILAB_ACCEPTANCE_WRITE=1 only in a disposable test installation.")
+    ingest_secret = os.environ.get("NAJDILAB_INGEST_TOKEN", "")
+    if not ingest_secret:
+        raise SystemExit("Set NAJDILAB_INGEST_TOKEN to the collector shared secret before this integration check.")
+    verify_collector(DB_PATH)
+    try:
+        from agent import outbound_webhooks as webhooks
+    except ImportError as exc:
+        raise SystemExit("Set NAJDILAB_HERMES_ROOT to a compatible Hermes checkout for this optional integration check.") from exc
     target = webhooks.WebhookTarget(
         url=COLLECTOR_URL,
         events=["post_llm_call"],
         name="najdilab-v11-acceptance",
         timeout=1,
         fields=FIELDS,
+        secret=ingest_secret,
     )
     callback = webhooks._make_callback("post_llm_call", target)
 
@@ -267,6 +279,7 @@ def main() -> None:
         name="najdilab-v11-failure-test",
         timeout=1,
         fields=FIELDS,
+        secret=ingest_secret,
     )
     failure_callback = webhooks._make_callback("post_llm_call", failure_target)
     start = time.perf_counter_ns()

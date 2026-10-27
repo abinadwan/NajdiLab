@@ -3,12 +3,14 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from difflib import SequenceMatcher
 
-DATA_DIR = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean")
+ROOT = Path(__file__).resolve().parents[1]
+
+DATA_DIR = ROOT / 'exports/gold-v006-clean'
 SFT_PATH = DATA_DIR / "sft.jsonl"
 MULTI_PATH = DATA_DIR / "multi_turn.jsonl"
 EVAL_PATH = DATA_DIR / "text_sft_eval.jsonl"
 
-REPORT_DIR = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\reports")
+REPORT_DIR = ROOT / 'reports'
 OUTPUT_JSON = REPORT_DIR / "gold-v006-overlap-metrics.json"
 
 # Helper to read jsonl

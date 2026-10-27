@@ -10,7 +10,7 @@ Observed read-only with `GIT_OPTIONAL_LOCKS=0` on 2026-10-23. HEAD = `bcdf4a7` (
 | 1 | `app/server.py` | M | +7 −1 | 10-09 13:57 | G-A | Routes for model acquisition: `GET /api/v1/training/model-acquisition/catalog`, `POST …/prepare`, `POST …/acquire` |
 | 2 | `app/training_control.py` | M | +154 −5 | 10-09 14:05 | G-A, G-E | `OFFICIAL_MODEL_CATALOG` (Gemma 4 E2B IT, `google/gemma-4-E2B-it`, pinned revision `3e22461f…`), `model_acquisition_catalog`, `prepare_model_acquisition`, `acquire_model` with an exact-approval step and WSL probe; QLoRA VRAM estimate change |
 | 3 | `static/app.js` | M | +7 −1 | 10-09 13:57 | G-A | UI: acquisition card, prepare and acquire buttons, approval state |
-| 4 | `static/index.html` | M | +2 −1 | 10-09 13:57 | G-A | Panel "اقتناء النموذج — Gemma 4 الرسمي القابل للتدريب" |
+| 4 | `static/index.html` | M | +2 −1 | 10-09 13:57 | G-A | Panel "Model acquisition — Official trainable Gemma 4" (historically Arabic) |
 | 5 | `tests/test_arabic_training_ui.py` | M | +17 | 10-09 13:58 | G-A | `test_official_model_acquisition_is_reviewable_and_never_implicit` |
 | 6 | `tests/test_training_control.py` | M | +31 | 10-09 14:05 | G-A, G-E | `test_qlora_vram_uses_quantized_parameter_footprint_not_disk_size`, `test_acquisition_requires_exact_approval_and_registers_verified_local_model` |
 | 7 | `app/runtime_control.py` | M | +113 −12 | 10-10 13:57 | G-B | Hardened `deploy_adapter`: injectable runner, `ADAPTER_DEPLOY_MODE=0o444`, in-WSL deploy script with lock, live-training-process detection, timestamped backup, atomic replace and rollback, hash evidence |
@@ -18,7 +18,7 @@ Observed read-only with `GIT_OPTIONAL_LOCKS=0` on 2026-10-23. HEAD = `bcdf4a7` (
 | 9 | `tests/test_safe_adapter_deployment_simple.py` | ?? | 5,947 B | 10-10 01:54 | G-B | Simplified deploy tests (atomic replace, rollback, SHA-256, companions, permissions, active training) |
 | 10 | `scripts/najdilab_training_adapter.py` | M | +39 −7 | 10-10 01:10 | G-C | Training-plan fix: Smoke validates the **full** plan against `expected_steps` but executes 2 steps; Full validates plan and `max_steps`. Repo hash `b14c7c…` (see `06-adapter-drift-k2.md`) |
 | 11 | `tests/test_training_plan_mismatch_regression.py` | ?? | 5,551 B | 10-10 01:11 | G-C | Mocked-stack regression: Smoke validates 27-step plan and runs 2; Full runs 27; genuine mismatch rejected before `trainer.train` |
-| 12 | `tests/test_training_plan_mismatch_unit.py` | ?? | 5,577 B | 10-09 19:51 | G-C | Unit test of the same logic. **References a WSL model path** (`/home/najdi/najdi-training/models/gemma-4-E2B-it-official`) |
+| 12 | `tests/test_training_plan_mismatch_unit.py` | ?? | 5,577 B | 10-09 19:51 | G-C | Unit test of the same logic. **References a WSL model path** (`<runtime-root>/models/gemma-4-E2B-it-official`) |
 | 13 | `scripts/najdilab_training_adapter.py.tmp` | ?? | 3,681 B / 32 lines | 10-09 19:34 | G-G | Scratch fragment of `validate()` (not a runnable file) |
 | 14 | `scripts/train_najdi_sft.py` | M | +12 −4 | 10-09 14:11 | G-D | Gemma-native tool-call serialization and masking (`<|tool_call>…<tool_call|>`), branching on the tokenizer's chat template; Ministral path unchanged. **Identical to the deployed WSL copy** (`71d546e0…`) |
 | 15 | `tests/test_phase37_tool_hardening.py` | M | +22 | 10-09 14:11 | G-D | `test_gemma_native_template_uses_object_arguments_and_masks_results` |
@@ -40,7 +40,7 @@ Observed read-only with `GIT_OPTIONAL_LOCKS=0` on 2026-10-23. HEAD = `bcdf4a7` (
 
 - **O-1:** in the repo adapter's `resolve_plan`, full training computes `total = steps_epoch * epochs` without rounding up, while HEAD used `math.ceil(steps_epoch*epochs)`. With fractional `epochs` this yields a non-integer step count, and the plan check could reject valid jobs. Verify in R2/R3 (`06-adapter-drift-k2.md`).
 - **O-2:** HEAD doesn't represent the running system. If NajdiLab was restarted after 2026-10-09 it runs the working-tree code (G-A, G-B). Any `git reset`/`checkout` would remove live capabilities and the deploy safety logic.
-- **O-3:** `backups/model-acquisition-ui-20261009/` holds copies of `server.py`, `training_control.py`, `app.js` and `index.html` whose hashes match **neither** HEAD nor the working tree (intermediate snapshots). Keep them as evidence.
+- **O-3:** a private intermediate-snapshot directory holds copies of `server.py`, `training_control.py`, `app.js` and `index.html` whose hashes match **neither** HEAD nor the working tree (intermediate snapshots). Keep them as evidence.
 - **O-4:** test #12 depends on a machine-specific WSL path, so it isn't portable.
 
 ## 4. Safe reconciliation plan (proposal; every write step needs separate owner approval, OA-01)

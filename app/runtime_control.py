@@ -43,7 +43,7 @@ def _posix_path(value: Any, field: str) -> str:
     text = str(value or "")
     path = PurePosixPath(text)
     if not text or not path.is_absolute() or ".." in path.parts or any(ord(ch) < 32 for ch in text):
-        raise training.TrainingControlError("INVALID_RUNTIME", f"{field} ليس مسار WSL مطلقًا آمنًا")
+        raise training.TrainingControlError("INVALID_RUNTIME", f"{field} is not a safe absolute WSL path")
     return text
 
 
@@ -75,20 +75,20 @@ def list_runtimes() -> list[dict[str, Any]]:
 
 
 def get_runtime(runtime_id: str) -> dict[str, Any]:
-    if not training.SAFE_ID.fullmatch(runtime_id): raise training.TrainingControlError("RUNTIME_NOT_FOUND", "Runtime ID غير صالح", status=404)
+    if not training.SAFE_ID.fullmatch(runtime_id): raise training.TrainingControlError("RUNTIME_NOT_FOUND", "Invalid runtime ID", status=404)
     runtime = next((item for item in list_runtimes() if item.get("id") == runtime_id), None)
-    if not runtime: raise training.TrainingControlError("RUNTIME_NOT_FOUND", "Runtime غير مسجل", status=404)
+    if not runtime: raise training.TrainingControlError("RUNTIME_NOT_FOUND", "Runtime is not registered", status=404)
     return runtime
 
 
 def register_runtime(data: dict[str, Any]) -> dict[str, Any]:
     runtime_id = str(data.get("id") or "")
-    if not training.SAFE_ID.fullmatch(runtime_id): raise training.TrainingControlError("INVALID_RUNTIME", "Runtime ID غير صالح")
-    if str(data.get("type")) != "WSL2": raise training.TrainingControlError("INVALID_RUNTIME", "Phase 2-B1 يدعم WSL2 فقط")
+    if not training.SAFE_ID.fullmatch(runtime_id): raise training.TrainingControlError("INVALID_RUNTIME", "Invalid runtime ID")
+    if str(data.get("type")) != "WSL2": raise training.TrainingControlError("INVALID_RUNTIME", "Phase 2-B1 supports WSL2 only")
     distro = str(data.get("wsl_distro") or "")
-    if not training.SAFE_ID.fullmatch(distro): raise training.TrainingControlError("INVALID_RUNTIME", "اسم WSL distro غير صالح")
+    if not training.SAFE_ID.fullmatch(distro): raise training.TrainingControlError("INVALID_RUNTIME", "Invalid WSL distribution name")
     runtimes = list_runtimes()
-    if any(item.get("id") == runtime_id for item in runtimes): raise training.TrainingControlError("RUNTIME_EXISTS", "Runtime ID مستخدم", status=409)
+    if any(item.get("id") == runtime_id for item in runtimes): raise training.TrainingControlError("RUNTIME_EXISTS", "Runtime ID is already in use", status=409)
     fields = ("project_root", "python_path", "venv_path", "training_script_path", "dataset_root", "default_output_root", "checkpoint_root", "logs_root")
     runtime = {"id": runtime_id, "display_name": str(data.get("display_name") or runtime_id), "type": "WSL2",
         "enabled": bool(data.get("enabled", True)), "host_os": "Windows", "wsl_distro": distro,
@@ -98,7 +98,7 @@ def register_runtime(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _runtime_dir(runtime_id: str) -> Path:
-    if not training.SAFE_ID.fullmatch(runtime_id): raise training.TrainingControlError("RUNTIME_NOT_FOUND", "Runtime ID غير صالح", status=404)
+    if not training.SAFE_ID.fullmatch(runtime_id): raise training.TrainingControlError("RUNTIME_NOT_FOUND", "Invalid runtime ID", status=404)
     return RUNTIME_ROOT / runtime_id
 
 
@@ -123,7 +123,7 @@ def get_worker_state(runtime_id: str, *, now: datetime | None = None) -> dict[st
 
 
 def set_worker_state(runtime_id: str, state: str, *, current_job_id: str | None = None, error: str | None = None, heartbeat: bool = True) -> dict[str, Any]:
-    if state not in WORKER_STATES: raise training.TrainingControlError("INVALID_WORKER_STATE", "Worker state غير صالحة")
+    if state not in WORKER_STATES: raise training.TrainingControlError("INVALID_WORKER_STATE", "Invalid worker state")
     current = get_worker_state(runtime_id); now = training._now()
     updated = {key: current.get(key) for key in ("runtime_id", "pid", "started_at", "capabilities", "worker_version")}
     updated.update({"state": state, "current_job_id": current_job_id, "heartbeat_at": now if heartbeat else current.get("heartbeat_at"), "last_error": error})
@@ -503,36 +503,36 @@ def execution_gate(job_id: str, *, now: datetime | None = None, live_gpu_probe: 
     job = training.get_job(job_id); blockers: list[dict[str, str]] = []; warnings: list[dict[str, str]] = []; checks: dict[str, Any] = {}
     def block(code: str, message: str) -> None: blockers.append({"code": code, "message": message})
     gate = training.quality_gate(job["dataset_version"]); checks["dataset_gate"] = gate["status"]
-    if gate["status"] not in {"PASS", "PASS_WITH_WARNINGS"}: block("QUALITY_GATE_BLOCKED", "Dataset Quality Gate غير صالح")
-    if gate.get("dataset_fingerprint") != job.get("dataset_fingerprint"): block("STALE_DATASET_FINGERPRINT", "Dataset fingerprint تغير")
+    if gate["status"] not in {"PASS", "PASS_WITH_WARNINGS"}: block("QUALITY_GATE_BLOCKED", "Dataset Quality Gate is invalid")
+    if gate.get("dataset_fingerprint") != job.get("dataset_fingerprint"): block("STALE_DATASET_FINGERPRINT", "The dataset fingerprint changed")
     checks["job_status"] = job.get("status")
-    if job.get("status") != "READY": block("JOB_NOT_READY", "Job يجب أن يكون READY")
-    if job.get("warnings") and not (job.get("acknowledged_warnings") or {}).get("acknowledged"): block("WARNING_ACK_REQUIRED", "تحذيرات البيانات غير مقرة")
+    if job.get("status") != "READY": block("JOB_NOT_READY", "The job must be READY")
+    if job.get("warnings") and not (job.get("acknowledged_warnings") or {}).get("acknowledged"): block("WARNING_ACK_REQUIRED", "Dataset warnings have not been acknowledged")
     try: model = training.get_model(str((job.get("model_config") or {}).get("id") or ""))
-    except training.TrainingControlError: model = None; block("MODEL_NOT_FOUND", "Base model غير مسجل")
-    if model and not model.get("enabled"): block("MODEL_DISABLED", "Base model معطل")
+    except training.TrainingControlError: model = None; block("MODEL_NOT_FOUND", "Base model is not registered")
+    if model and not model.get("enabled"): block("MODEL_DISABLED", "Base model is disabled")
     runtime_id = _runtime_for_job(job); runtime = get_runtime(runtime_id); result = get_runtime_result(runtime_id); worker = get_worker_state(runtime_id, now=now)
     staged=staging_status(runtime_id,job["dataset_version"]); checks.update({"runtime_id": runtime_id, "worker": worker, "runtime": result,"staging":staged})
     if staged["status"]!="PASS": block("STAGING_INVALID","Staged dataset missing, stale, or corrupt")
     age = _age_seconds((result or {}).get("checked_at"), now)
-    if result is None: block("RUNTIME_CHECK_REQUIRED", "شغّل Runtime Check يدويًا")
-    elif age is None or age > RUNTIME_CHECK_MAX_AGE_SECONDS: block("RUNTIME_CHECK_STALE", "Runtime Check قديم")
-    elif result.get("status") not in {"AVAILABLE", "AVAILABLE_WITH_WARNINGS"}: block("RUNTIME_UNAVAILABLE", "Runtime غير متاح: " + ", ".join(result.get("blockers") or []))
-    if worker.get("state") != "IDLE": block("WORKER_NOT_IDLE", f"Worker state هي {worker.get('state')}")
-    if worker.get("heartbeat_freshness") != "FRESH": block("WORKER_HEARTBEAT_STALE", "Worker heartbeat غير حديث")
+    if result is None: block("RUNTIME_CHECK_REQUIRED", "Run the Runtime Check manually")
+    elif age is None or age > RUNTIME_CHECK_MAX_AGE_SECONDS: block("RUNTIME_CHECK_STALE", "The Runtime Check is stale")
+    elif result.get("status") not in {"AVAILABLE", "AVAILABLE_WITH_WARNINGS"}: block("RUNTIME_UNAVAILABLE", "Runtime is unavailable: " + ", ".join(result.get("blockers") or []))
+    if worker.get("state") != "IDLE": block("WORKER_NOT_IDLE", f"Worker state is {worker.get('state')}")
+    if worker.get("heartbeat_freshness") != "FRESH": block("WORKER_HEARTBEAT_STALE", "Worker heartbeat is not fresh")
     detected = (result or {}).get("detected") or {}; paths = detected.get("paths") or {}
     for key, code in (("script","TRAINING_SCRIPT_NOT_FOUND"),("dataset_root","DATASET_PATH_NOT_ACCESSIBLE"),("output","OUTPUT_NOT_WRITABLE"),("checkpoint","OUTPUT_NOT_WRITABLE"),("logs","OUTPUT_NOT_WRITABLE")):
         item = paths.get(key, {}); ok = item.get("writable") if key in {"output","checkpoint","logs"} else item.get("exists")
-        if result and not ok: block(code, f"Runtime path {key} غير صالح")
+        if result and not ok: block(code, f"Runtime path {key} is invalid")
     if result:
         package = detected.get("packages") or {}
-        if not (package.get("torch") or {}).get("available"): block("TORCH_NOT_AVAILABLE", "torch غير متاح")
-        if not detected.get("cuda_available"): block("CUDA_NOT_AVAILABLE", "CUDA غير متاح")
-        if not detected.get("gpu"): block("GPU_NOT_FOUND", "GPU غير مكتشف")
-        if not (package.get("unsloth") or {}).get("available"): block("UNSLOTH_NOT_AVAILABLE", "Unsloth غير متاح")
+        if not (package.get("torch") or {}).get("available"): block("TORCH_NOT_AVAILABLE", "PyTorch is unavailable")
+        if not detected.get("cuda_available"): block("CUDA_NOT_AVAILABLE", "CUDA is unavailable")
+        if not detected.get("gpu"): block("GPU_NOT_FOUND", "GPU was not detected")
+        if not (package.get("unsloth") or {}).get("available"): block("UNSLOTH_NOT_AVAILABLE", "Unsloth is unavailable")
         model_path = (paths.get("model") or {})
-        if model_path and not model_path.get("exists"): block("MODEL_PATH_NOT_ACCESSIBLE", "Model path غير متاح")
-        if model_path and not model_path.get("tokenizer_exists", True): block("TOKENIZER_NOT_AVAILABLE", "Tokenizer files غير متاحة")
+        if model_path and not model_path.get("exists"): block("MODEL_PATH_NOT_ACCESSIBLE", "Model path is unavailable")
+        if model_path and not model_path.get("tokenizer_exists", True): block("TOKENIZER_NOT_AVAILABLE", "Tokenizer files are unavailable")
     config = training.validate_training_config(job.get("training_config") or {})
     static_model = dict(model or job.get("model_config") or {})
     if not static_model.get("model_size_gb") and (paths.get("model") or {}).get("size_bytes"):
@@ -540,13 +540,13 @@ def execution_gate(job_id: str, *, now: datetime | None = None, live_gpu_probe: 
     cached_gpu = detected.get("gpu") or {}
     live_gpu = (live_gpu_probe or probe_live_gpu)(runtime); checks["gpu_measurement"] = live_gpu; checks["cached_gpu_diagnostic"] = {"authoritative": False, "checked_at": (result or {}).get("checked_at"), **cached_gpu}
     if not live_gpu.get("success"):
-        block("LIVE_GPU_PROBE_FAILED", "تعذر قياس ذاكرة GPU الحية من بيئة التدريب")
+        block("LIVE_GPU_PROBE_FAILED", "Unable to measure live GPU memory from the training runtime")
     runtime_vram = {"gpu_vram_total_gb": live_gpu.get("total_gib") if live_gpu.get("success") else None,
         "gpu_vram_free_gb": live_gpu.get("free_gib") if live_gpu.get("success") else None}
     vram = training.estimate_vram(static_model, config, runtime_vram); checks["vram"] = vram
-    if vram["status"] == "LIKELY_OOM": block("LIKELY_OOM", "VRAM estimate يرجح نفاد الذاكرة")
-    elif vram["status"] == "TIGHT": warnings.append({"code":"VRAM_TIGHT","message":"هامش VRAM ضيق"})
-    elif vram["status"] == "UNKNOWN": block("VRAM_UNKNOWN", "لا يمكن تقدير VRAM دون model size/runtime data")
+    if vram["status"] == "LIKELY_OOM": block("LIKELY_OOM", "The VRAM estimate indicates likely out-of-memory failure")
+    elif vram["status"] == "TIGHT": warnings.append({"code":"VRAM_TIGHT","message":"The VRAM margin is narrow"})
+    elif vram["status"] == "UNKNOWN": block("VRAM_UNKNOWN", "VRAM cannot be estimated without model size and runtime data")
     warnings.extend({"code": item.get("code", "QUALITY_WARNING"), "message": item.get("message", "")} for item in gate.get("warnings", []))
     status = "BLOCKED" if blockers else "PASS_WITH_WARNINGS" if warnings else "PASS"
     if result is None or (result and (age is None or age > RUNTIME_CHECK_MAX_AGE_SECONDS)): status = "UNAVAILABLE" if blockers else status
@@ -745,7 +745,7 @@ def _authorization_path(job_id: str) -> Path: return training.JOBS_ROOT/job_id/"
 
 def authorize_full_training(job_id: str, acknowledgement: str) -> dict[str,Any]:
     job=training.get_job(job_id)
-    if acknowledgement != f"أوافق على بدء Full Training للمهمة {job_id}": raise training.TrainingControlError("AUTHORIZATION_ACK_REQUIRED","Explicit acknowledgement text does not match",status=409)
+    if acknowledgement != f"I agree to start FULL TRAINING for job {job_id}": raise training.TrainingControlError("AUTHORIZATION_ACK_REQUIRED","Explicit acknowledgement text does not match",status=409)
     if job.get("status")!="READY" or not job.get("production_mode"): raise training.TrainingControlError("JOB_NOT_READY","Production READY job required",status=409)
     smoke=(job.get("provenance") or {}).get("smoke_reference") or {}; smoke_result=training.JOBS_ROOT/str(smoke.get("job_id"))/"attempts"/str(smoke.get("attempt_id"))/"result.json"
     if not smoke_result.is_file() or json.loads(smoke_result.read_text(encoding="utf-8")).get("status")!="PASSED": raise training.TrainingControlError("SMOKE_REFERENCE_INVALID","Approved Smoke is not PASSED",status=409)

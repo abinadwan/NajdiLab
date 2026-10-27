@@ -5,6 +5,6 @@ $PythonBin = $env:NAJDILAB_PYTHON
 if (-not $PythonBin) {
     $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
     if ($PythonCommand) { $PythonBin = $PythonCommand.Source }
-    else { $PythonBin = 'C:\Users\Admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' }
 }
+if (-not $PythonBin) { throw 'Python 3.11+ was not found. Set NAJDILAB_PYTHON to the path of python.exe.' }
 & $PythonBin scripts\backup.py

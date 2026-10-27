@@ -10,13 +10,15 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+
 # Paths
-BASE = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean")
+BASE = ROOT / 'exports/gold-v006-clean'
 SFT_FILE = BASE / "sft.jsonl"
 MULTI_TURN_FILE = BASE / "multi_turn.jsonl"
 EVAL_FILE = BASE / "text_sft_eval.jsonl"
-REPORT_JSON = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\reports\gold-v006-dataset-influence-audit.json")
-REPORT_MD = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\reports\gold-v006-dataset-influence-audit.md")
+REPORT_JSON = ROOT / 'reports/gold-v006-dataset-influence-audit.json'
+REPORT_MD = ROOT / 'reports/gold-v006-dataset-influence-audit.md'
 
 # Ensure reports dir exists
 REPORTS_DIR = BASE.parent / "reports"

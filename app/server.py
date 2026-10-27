@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .db import DB_PATH, ROOT, apply_migrations
+from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .dataset_platform import (
     DatasetPlatformError,
     apply_overlap_plan,
@@ -103,6 +104,17 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 class NajdiLabHandler(BaseHTTPRequestHandler):
     server_version = "NajdiLab/1.1"
 
+    def parse_request(self) -> bool:
+        if not super().parse_request():
+            return False
+        try:
+            validate_request(self.headers, self.command, self.server.server_address[1], urlparse(self.path).path)
+        except RequestSecurityError as exc:
+            self.close_connection = True
+            self._error(str(exc), exc.status, code=exc.code)
+            return False
+        return True
+
     def log_message(self, fmt: str, *args: object) -> None:
         sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), fmt % args))
 
@@ -123,8 +135,11 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         self._headers(status, "application/json; charset=utf-8", len(data))
         self.wfile.write(data)
 
-    def _error(self, message: str, status: int = HTTPStatus.BAD_REQUEST) -> None:
-        self._json({"ok": False, "error": message}, status)
+    def _error(self, message: str, status: int = HTTPStatus.BAD_REQUEST, *, code: str | None = None) -> None:
+        payload = {"ok": False, "error": message}
+        if code:
+            payload["code"] = code
+        self._json(payload, status)
 
     def _dataset_error(self, error: DatasetPlatformError) -> None:
         status = HTTPStatus.NOT_FOUND if error.code in {"PROJECT_ROOT_NOT_FOUND", "EXPORTS_ROOT_NOT_FOUND", "DATASET_NOT_FOUND", "MANIFEST_NOT_FOUND"} else HTTPStatus.CONFLICT if error.code in {"VERSION_ALREADY_EXISTS", "SOURCE_NOT_FROZEN", "TARGET_NOT_DRAFT", "OVERLAP_PLAN_STALE"} else HTTPStatus.FORBIDDEN if error.code == "ACCESS_DENIED" else HTTPStatus.UNPROCESSABLE_ENTITY if error.code in {"INVALID_MANIFEST", "INVALID_DATASET", "UNSUPPORTED_DATASET_FORMAT", "INVALID_VERSION_NAME"} else HTTPStatus.INTERNAL_SERVER_ERROR
@@ -138,17 +153,20 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         try:
             length = int(raw_length)
         except ValueError as exc:
-            raise ValidationError("Content-Length غير صالح") from exc
-        if length <= 0:
-            return {}
+            raise ValidationError("Invalid Content-Length") from exc
         if length > MAX_BODY_BYTES:
-            raise ValidationError("حجم الطلب أكبر من الحد المسموح")
+            raise ValidationError("Request body exceeds the allowed limit")
+        raw = self.rfile.read(length) if length else b""
+        if self.command == "POST" and urlparse(self.path).path in INGEST_PATHS:
+            validate_ingest(self.headers, raw)
+        if not raw:
+            return {}
         try:
-            value = json.loads(self.rfile.read(length).decode("utf-8"))
+            value = json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValidationError("JSON غير صالح") from exc
+            raise ValidationError("Invalid JSON") from exc
         if not isinstance(value, dict):
-            raise ValidationError("جسم الطلب يجب أن يكون object")
+            raise ValidationError("Request body must be an object")
         return value
 
     def _serve_static(self, request_path: str) -> None:
@@ -157,7 +175,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         try:
             candidate.relative_to(STATIC_DIR.resolve())
         except ValueError:
-            self._error("مسار غير صالح", HTTPStatus.FORBIDDEN)
+            self._error("Invalid path", HTTPStatus.FORBIDDEN)
             return
         if not candidate.is_file():
             candidate = STATIC_DIR / "index.html"
@@ -175,7 +193,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             return
         query = {key: values[-1] for key, values in parse_qs(parsed.query).items()}
         try:
-            if parsed.path == "/api/v1/health":
+            if parsed.path == "/api/v1/session":
+                self._json({"ok": True, "csrf_token": CSRF_TOKEN})
+            elif parsed.path == "/api/v1/health":
                 self._json({"ok": True, "service": "NajdiLab", "version": "1.1", "database": str(DB_PATH)})
             elif parsed.path == "/api/v1/platform/status":
                 self._json(platform_status())
@@ -286,7 +306,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                     }
                 )
             else:
-                self._error("المسار غير موجود", HTTPStatus.NOT_FOUND)
+                self._error("Route not found", HTTPStatus.NOT_FOUND)
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
         except EvaluationGuardError as exc:
@@ -301,7 +321,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             self._error(str(exc))
         except Exception:
             traceback.print_exc()
-            self._error("حدث خطأ داخلي آمن؛ لم تُحفظ عملية جزئية", HTTPStatus.INTERNAL_SERVER_ERROR)
+            self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -400,7 +420,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(validate_trained_adapter(match.group(1),match.group(2)))
             elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/smoke", parsed.path):
                 if data.get("confirm_smoke_only") is not True or data.get("max_steps") != 2:
-                    raise TrainingControlError("SMOKE_CONFIRMATION_REQUIRED", "تأكيد Smoke-only مع max_steps=2 مطلوب", status=409)
+                    raise TrainingControlError("SMOKE_CONFIRMATION_REQUIRED", "Smoke-only confirmation with max_steps=2 is required", status=409)
                 self._json({"ok":True,"attempt":start_smoke(match.group(1))},HTTPStatus.ACCEPTED)
             elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/attempts/(attempt-\d{3})/cancel", parsed.path):
                 self._json({"ok":True,"attempt":cancel_attempt(match.group(1),match.group(2))})
@@ -438,20 +458,22 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 archived = data.get("archived", True)
                 self._json({"ok": True, "item": update_manual_data(
                     match.group(1), int(match.group(2)),
-                    {"archived": archived, "change_notes": "أرشفة السجل" if archived else "إلغاء أرشفة السجل"},
+                    {"archived": archived, "change_notes": "Archive record" if archived else "Unarchive record"},
                 )})
             elif match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)/exclude", parsed.path):
                 excluded = data.get("excluded", True)
                 self._json({"ok": True, "item": update_manual_data(
                     match.group(1), int(match.group(2)),
-                    {"exclude_from_training": excluded, "change_notes": "استبعاد من التدريب" if excluded else "إلغاء الاستبعاد من التدريب"},
+                    {"exclude_from_training": excluded, "change_notes": "Exclude from training" if excluded else "Restore training inclusion"},
                 )})
             elif match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)/ignore", parsed.path):
                 self._json({"ok": True, "item": ignore_manual_data(
                     match.group(1), int(match.group(2)), data
                 )})
             else:
-                self._error("المسار غير موجود", HTTPStatus.NOT_FOUND)
+                self._error("Route not found", HTTPStatus.NOT_FOUND)
+        except RequestSecurityError as exc:
+            self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
         except TrainingControlError as exc:
@@ -466,7 +488,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             self._error(str(exc))
         except Exception:
             traceback.print_exc()
-            self._error("حدث خطأ داخلي آمن؛ لم تُحفظ عملية جزئية", HTTPStatus.INTERNAL_SERVER_ERROR)
+            self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_PATCH(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -477,14 +499,14 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})", parsed.path):
                 self._json({"ok": True, "job": update_job(match.group(1), data)})
             else:
-                self._error("المسار غير موجود", HTTPStatus.NOT_FOUND)
+                self._error("Route not found", HTTPStatus.NOT_FOUND)
         except TrainingControlError as exc:
             self._training_error(exc)
         except ValidationError as exc:
             self._error(str(exc))
         except Exception:
             traceback.print_exc()
-            self._error("حدث خطأ داخلي آمن؛ لم تُحفظ عملية جزئية", HTTPStatus.INTERNAL_SERVER_ERROR)
+            self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_DELETE(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -495,17 +517,19 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                     match.group(1), int(match.group(2)), bool(data.get("confirm_exported"))
                 )})
             else:
-                self._error("المسار غير موجود", HTTPStatus.NOT_FOUND)
+                self._error("Route not found", HTTPStatus.NOT_FOUND)
         except ValidationError as exc:
             self._error(str(exc))
         except Exception:
             traceback.print_exc()
-            self._error("حدث خطأ داخلي آمن؛ لم تُحفظ عملية جزئية", HTTPStatus.INTERNAL_SERVER_ERROR)
+            self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
 def run(host: str = "127.0.0.1", port: int = 8770, seed_demo: bool = True) -> None:
     if host != "127.0.0.1":
         raise SystemExit("NajdiLab v1.1 refuses non-local bind addresses; use 127.0.0.1")
+    if os.environ.get("NAJDILAB_ALLOW_LEGACY_INGEST") == "1":
+        print("WARNING: legacy unauthenticated ingestion is enabled; remove NAJDILAB_ALLOW_LEGACY_INGEST after migration.", file=sys.stderr)
     apply_migrations()
     initialize_training_control()
     initialize_runtime_control()
@@ -516,7 +540,7 @@ def run(host: str = "127.0.0.1", port: int = 8770, seed_demo: bool = True) -> No
         server = NajdiLabHTTPServer((host, port), NajdiLabHandler)
     except OSError as exc:
         raise SystemExit(
-            f"تعذر تشغيل NajdiLab على http://{host}:{port}؛ يبدو أن نسخة أخرى تعمل بالفعل."
+            f"Could not start NajdiLab on http://{host}:{port}; another instance may already be running."
         ) from exc
     print(f"NajdiLab v1.1: http://{host}:{port}")
     print(f"Database: {DB_PATH}")

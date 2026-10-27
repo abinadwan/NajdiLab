@@ -1,4 +1,4 @@
-# Najdi Corpus v1.1 / AbuAdwan SFT — Phase 1 Design Set
+# Najdi Corpus v1.1 / Najdi Assistant SFT — Phase 1 Design Set
 
 Status: **Phase 1 COMPLETE: design approved by the owner on 2026-10-23 (rev. 2). Documentation only; nothing in this folder has been implemented. Phase 1A is NOT authorized.** Arabic examples and word lists are provisional until native validation (PRQ-LANG-01). No code, schema, data, dataset, model, adapter, Hermes, Ollama or WSL runtime change was made. Phase 1A and Phase 2 need separate, explicit approval.
 
@@ -8,7 +8,7 @@ Date: 2026-10-23 · Design baseline approved by the owner: NajdiLab-first archit
 
 | # | Document | Purpose |
 |---|---|---|
-| 01 | [Behavior specification](01-behavior-spec.md) | SFT objective, AbuAdwan voice, Riyadh Najdi definition, register matrix, task taxonomy |
+| 01 | [Behavior specification](01-behavior-spec.md) | SFT objective, the Najdi assistant voice, Riyadh Najdi definition, register matrix, task taxonomy |
 | 02 | [Component reuse map](02-component-reuse-map.md) | Gold/Silver/Bronze and G1–G4 mapped onto existing modules, tables, APIs and pages |
 | 03 | [Review lifecycle](03-review-lifecycle.md) | Manual-item lifecycle; no generated record becomes trainable without human approval |
 | 04 | [Quality gates](04-quality-gates.md) | G1–G4; revised G2 (deterministic vs heuristic vs human-only) |
@@ -28,7 +28,7 @@ Date: 2026-10-23 · Design baseline approved by the owner: NajdiLab-first archit
 | ADR | [adr/](adr/) | ADR-001 … ADR-011 (all Accepted, 2026-10-23) |
 
 ## Related evidence outside NajdiLab
-- Corpus v1.0 (frozen, NO-GO): `/home/najdi/najdi-corpus-v1/governance/v1.0/STATUS.json` and `PHASE0_REPORT.md` (WSL distro `NajdiTrain`).
+- Corpus v1.0 (frozen, NO-GO): `<corpus-archive-root>/governance/v1.0/STATUS.json` and `PHASE0_REPORT.md` (WSL distro `NajdiTrain`).
 
 ## Pointers added to existing docs (additive only)
 - `docs/architecture.md`: a short "Corpus v1.1 track (design only)" section.

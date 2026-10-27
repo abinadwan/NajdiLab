@@ -1065,13 +1065,13 @@ def create_clean_export(
         scoring_schema = {
             "type": "manual_evaluation",
             "scale": {
-                "0": "سيئ",
-                "1": "جزئي",
-                "2": "جيد",
+                "0": "Poor",
+                "1": "Partial",
+                "2": "Good",
             },
             "dimensions": list(SCORING_DIMENSIONS),
             "automatic_llm_judge": False,
-            "instructions": "املأ كل محور يدويًا بدرجة 0 أو 1 أو 2 مع ملاحظة قصيرة عند الحاجة.",
+            "instructions": "Score each dimension manually from 0 to 2 and add a short note where needed.",
         }
         (temp_eval / "scoring_schema.json").write_text(
             json.dumps(scoring_schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

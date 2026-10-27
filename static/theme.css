@@ -11,7 +11,7 @@
 :root[data-theme="dark"] :is(.gate-badge.blocked,.gate-badge.unavailable,.job-status.cancelled,.health-card-status.failed,.health-card-status.not_ready,.health-pill.critical){background:var(--status-blocked-bg);color:var(--status-blocked-text)}
 .theme-control{display:flex;align-items:center;gap:7px}.theme-control label{font-size:.75rem;font-weight:700}.theme-control select{padding:7px 28px 7px 8px;min-width:92px}.theme-setting{grid-column:1/-1}.theme-setting select{min-width:150px}.sr-status{font-size:.72rem;color:var(--muted)}
 :focus-visible{outline:3px solid var(--focus)!important;outline-offset:2px}
-.model-register-panel{grid-column:1;align-self:start}.model-register-panel .muted{line-height:1.8}.model-register-panel button{align-self:end}.technical-value,bdi,code,pre{overflow-wrap:anywhere;word-break:break-word}.gate-badge,.job-status{direction:rtl}.gate-message.warning,.gate-message.blocked{color:var(--ink)}
+.model-register-panel{grid-column:1;align-self:start}.model-register-panel .muted{line-height:1.8}.model-register-panel button{align-self:end}.technical-value,bdi,code,pre{overflow-wrap:anywhere;word-break:break-word}.gate-badge,.job-status{direction:ltr}.gate-message.warning,.gate-message.blocked{color:var(--ink)}
 :root[data-theme="dark"] :is(.model-register-panel,.gate-message.warning,.gate-message.blocked,.safety-banner){background:var(--surface-raised);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .training-job-list button.active{background:var(--gold-soft);color:var(--ink)}
 @media (prefers-contrast:more){:root{--line:#53645f}.button,input,select,textarea,.panel{border-width:2px}.muted,small{color:var(--ink)!important}}

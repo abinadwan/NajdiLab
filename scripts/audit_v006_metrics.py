@@ -6,14 +6,17 @@ No LLM, no classification, no verdict.
 """
 
 import json, os, re, statistics, math
+from pathlib import Path
 from collections import Counter, defaultdict
 
 # Paths
-DATA_DIR = r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean"
+ROOT = Path(__file__).resolve().parents[1]
+
+DATA_DIR = ROOT / 'exports/gold-v006-clean'
 SFT_PATH = os.path.join(DATA_DIR, "sft.jsonl")
 MULTI_PATH = os.path.join(DATA_DIR, "multi_turn.jsonl")
 EVAL_PATH = os.path.join(DATA_DIR, "text_sft_eval.jsonl")
-REPORT_DIR = r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\reports"
+REPORT_DIR = ROOT / 'reports'
 
 # Utility to read jsonl
 def load_jsonl(path):
@@ -32,6 +35,7 @@ def tokenize(text):
 
 # Compute similarity >=0.90 using SequenceMatcher
 from difflib import SequenceMatcher
+
 
 def is_near_duplicate(a,b,threshold=0.90):
     return SequenceMatcher(None,a,b).ratio() >= threshold

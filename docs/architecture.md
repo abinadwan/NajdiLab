@@ -1,53 +1,59 @@
-# المعمارية
+# Architecture
 
-## الحدود
-
-NajdiLab v1 يتولى أربعة أدوار فقط: جمع المحادثات، المراجعة البشرية، إدارة البيانات الذهبية، والتصدير. التدريب وعمليات GGUF/Ollama وأوزان المودل خارج المشروع عمدًا.
-
-## التدفق
+NajdiLab runs locally: clients send completed turns to a Python HTTP server, human reviewers create overlays, and gated exports produce immutable training versions. The original v1 scope covered collection, review, Gold management and data export; later phases added explicit training controls and evaluation workflows. Model merge, GGUF/Ollama release and deployment remain separately gated work.
 
 ```text
-أي Model / Provider
-        │ POST /api/v1/turn
-        ▼
-Collector محلي (127.0.0.1)
-        │ transaction
-        ▼
-SQLite: conversation + user + assistant + pending review
-        │
-        ▼
-واجهة المراجعة العربية
-        │ قرار بشري وتصحيح منفصل
-        ▼
-Training eligibility + privacy gates
-        │ dedup report
-        ▼
-exports/gold-vNNN + manifest + SHA-256
+Model / provider -> POST /api/v1/turn -> loopback collector
+    -> SQLite transaction: conversation + user + assistant + pending review
+    -> review UI -> separate human decision/correction
+    -> eligibility + privacy gates -> deduplication / holdout / balance
+    -> exports/gold-vNNN + manifest + SHA-256
 ```
 
-## المكونات
+## Components
 
-- `app/server.py`: خادم HTTP محلي من مكتبة Python القياسية، API والملفات الثابتة.
-- `app/service.py`: منطق الأعمال، المعاملات، المراجعات، إعادة بناء السياق والتصدير.
-- `app/dataset_platform.py`: خدمات قراءة الإصدارات، الصحة، Candidate balancing، hashes، وLocked Eval leakage detection. تستدعي منطق اختيار النوافذ الموثوق بدل نسخه في الواجهة.
-- `app/db.py`: الاتصال الآمن، WAL، migrations، redaction للحقول السرية.
-- `static/`: واجهة HTML/CSS/JS عربية RTL بلا framework.
-- `migrations/`: schema مرقّم append-only.
+- `app/server.py`: standard-library HTTP server, JSON routes and static assets.
+- `app/service.py`: transactions, ingestion, review, context reconstruction and exports.
+- `app/dataset_platform.py`: version discovery, health, candidate balancing, hashes and locked-evaluation leakage detection; reuses the trusted window selector.
+- `app/dataset_balancer.py` and `app/dataset_quality.py`: read-only balance and deterministic quality reports.
+- `app/db.py`: SQLite connections, WAL, migrations and credential-field redaction.
+- `app/training_control.py`: explicit model registry, configuration, quality gates and jobs.
+- `app/runtime_control.py`: runtime evidence, worker/staging gates, dry runs and authorized execution.
+- `static/`: framework-free HTML, CSS and JavaScript; see current README for interface language.
+- `migrations/`: ordered schema changes. Proposed SQL in `plans/` is deliberately outside automatic startup migrations.
 
-## قرارات السلامة
+## Integrity and security boundaries
 
-- الخادم يرفض أي bind غير `127.0.0.1`.
-- حد جسم الطلب 2MB، وتُطبق headers تمنع framing وcontent sniffing.
-- الحقول التي تشبه API key أو token أو password تُستبدل بـ`[REDACTED]` في metadata وgeneration settings.
-- الإدخال المركب يتم داخل `BEGIN IMMEDIATE`؛ الفشل يرجع العملية كاملة.
-- التصحيح لا يكتب فوق `messages.content` ولا `reviews.original_response`.
-- `evaluation_only` و`exclude_from_training` يجعلان `training_eligible=false` عند الحفظ.
-- التصدير يكتب أولًا إلى مجلد مؤقت ثم يعيد تسميته ذريًا.
+The server binds only to `127.0.0.1`. Request bodies are limited to 2 MB, and response headers restrict framing and content sniffing. See [SECURITY.md](../SECURITY.md) for current browser-write protections and remaining limitations. Historical security proposals describe their state at the date of each audit.
 
-## Model-agnostic وfuture-ready
+Secret-like keys in metadata and generation settings are replaced with `[REDACTED]`; this does not guarantee that conversation text is free of personal information. Composite writes use `BEGIN IMMEDIATE` and roll back on failure. Corrections never replace `messages.content` or `reviews.original_response`. Evaluation-only and excluded records cannot become training-eligible. Exports write into a temporary directory before atomic rename.
 
-المزود والمودل والإصدار موجودة كmetadata وليست علاقة ثابتة. الحقول `parent_message_id` و`candidate_group_id` و`judge_result_json` تدعم AI user / candidate models / critic / judge مستقبلًا. جدول `comparison_records` يحفظ المقارنات دون تنفيذ generation.
+## Model independence
 
-## مسار Najdi Corpus v1.1 (المرحلة 1 مكتملة: تصميم معتمد في 2026-10-23 — غير منفّذ)
+Provider, model and version are metadata rather than a fixed relationship. `parent_message_id`, `candidate_group_id`, `judge_result_json` and `comparison_records` support future candidate/critic/judge workflows without implicitly running generation. Stored conversational content stays template-free; the selected runtime applies its tokenizer template and proves loss masks.
 
-بتاريخ 2026-10-23 أُضيفت حزمة تصميم المرحلة 1 في [`docs/corpus-v1.1/`](corpus-v1.1/README.md). تعتمد الحزمة NajdiLab مصدرًا وحيدًا للحقيقة وواجهةً أساسية، وNajdiTrain بيئة تشغيل التدريب فقط. تصف الحزمة مواصفة سلوك أبو عدوان، وربط Gold/Silver/Bronze وبوابات G1–G4 بالمكونات الحالية، ودورة مراجعة للعناصر اليدوية تمنع أي سجل مولّد من أن يصبح قابلًا للتدريب دون موافقة بشرية صريحة، ومتطلبات الأمان، ومراجعة migrations 005–007. لم يُغيَّر أي كود أو schema أو بيانات، وكل تنفيذ لاحق يتطلب موافقة مستقلة. اعتمد المالك تصميم المرحلة 1 في 2026-10-23؛ المرحلة 1A غير مصرّح بها.
+Training snapshots bind model identity/revision, dataset/staging fingerprints, runtime and execution evidence. READY or a browser confirmation alone does not authorize training. Training, evaluation and model release are independent workflows; restoring a runtime does not refresh authorization.
+
+## Corpus v1.1 design track
+
+The [Phase 1 design package](corpus-v1.1/README.md) was approved on 2026-10-23. It makes NajdiLab the authoritative platform and UI, with NajdiTrain serving only as the training runtime. It defines the Najdi assistant behavior, Gold/Silver/Bronze provenance, G1–G4 gates, human approval of generated manual items, security prerequisites and migration review 005–007. Approval covered documentation only: no code, schema, data or runtime changes were authorized. Phase 1A remains separately gated. These historical decisions do not assert that the later implementation is complete.
+
+## Developer entry points and request flow
+
+```mermaid
+flowchart LR
+  B[English LTR browser / Arabic data] --> Q[HTTP Host Origin CSRF boundary]
+  I[Authenticated local Ingest] --> Q
+  Q --> S[Service / immutable messages and review overlay]
+  S --> DB[(SQLite WAL / current migrations)]
+  S --> G[Quality privacy holdout masks]
+  G --> V[Immutable dataset manifest and files]
+  V --> P[Model runtime preflight and zero-step Dry Run]
+  P --> A[Separate training authorization]
+  A --> W[Registered isolated WSL worker]
+  W --> E[Adapter validation / locked human evaluation]
+```
+
+Setup uses scripts/install.py with platform wrappers; launch uses scripts/launch.py, then app.server. Browser JS obtains a process CSRF session and sends JSON; server boundary runs before route handling, domain services enforce data/job gates. UI uses no bundler. SQLite migrations are automatic only for files already in migrations, with known loader limitations. Filesystem dataset registry is implemented; proposed canonical SQL registry/event activation remains blocked. Evaluation uses locked provenance and human decisions; model release is separately gated.
+
+Extend the responsible component in [code map](codebase-navigation.md); preserve API fields/protocol masks and tests before introducing an extension. [API](api-reference.md), [migration guide](database-and-migrations.md), [training guide](dataset-and-training.md) and [handover](maintainer-handover.md) describe implementation versus plans.

@@ -1,33 +1,33 @@
 (function (global) {
   'use strict';
-  const ar = {
+  const en = {
     statuses: {
-      READY: 'جاهز', WARNING: 'تحذير', BLOCKED: 'محظور', NOT_CONFIGURED: 'غير مُعدّ',
-      NOT_CHECKED: 'لم يُفحص', NOT_RUN: 'لم يُشغّل', NOT_PRESENT: 'غير موجود',
-      RUNNING: 'قيد التشغيل', FAILED: 'فشل', COMPLETED: 'مكتمل', CANCELLED: 'ملغى',
-      DRAFT: 'مسودة', VALIDATING: 'قيد التحقق', PASS: 'ناجح', PASSED: 'ناجح',
-      PASS_WITH_WARNINGS: 'ناجح مع تحذيرات', UNAVAILABLE: 'غير متاح', UNKNOWN: 'غير معروف',
-      LOCKED: 'مقفل', IDLE: 'خامل', BUSY: 'مشغول', CLEAN: 'سليم'
+      READY: 'Ready', WARNING: 'Warning', BLOCKED: 'Blocked', NOT_CONFIGURED: 'Not configured',
+      NOT_CHECKED: 'Not checked', NOT_RUN: 'Not run', NOT_PRESENT: 'Not present',
+      RUNNING: 'Running', FAILED: 'Failed', COMPLETED: 'Completed', CANCELLED: 'Cancelled',
+      DRAFT: 'Draft', VALIDATING: 'Validating', PASS: 'Passed', PASSED: 'Passed',
+      PASS_WITH_WARNINGS: 'Passed with warnings', UNAVAILABLE: 'Unavailable', UNKNOWN: 'Unknown',
+      LOCKED: 'Locked', IDLE: 'Idle', BUSY: 'Busy', CLEAN: 'Clean'
     },
     terms: {
-      dataset: 'البيانات', datasetVersion: 'إصدار البيانات', baseModel: 'النموذج الأساسي',
-      trainingMethod: 'طريقة التدريب', learningRate: 'معدل التعلّم', batchSize: 'حجم الدفعة',
-      trainingPlan: 'خطة التدريب', preflight: 'فحص الجاهزية', runtime: 'بيئة التشغيل',
-      model: 'النموذج', fingerprint: 'البصمة', blockers: 'العوائق', warnings: 'التحذيرات',
-      trainingRecords: 'سجلات التدريب', effectiveBatch: 'حجم الدفعة الفعلي',
-      optimizerSteps: 'خطوات المحسّن', checkpoints: 'نقاط الحفظ', estimate: 'تقدير',
-      job: 'مهمة التدريب', jobs: 'مهام التدريب', qualityGate: 'بوابة جودة البيانات'
+      dataset: 'Dataset', datasetVersion: 'Dataset version', baseModel: 'Base model',
+      trainingMethod: 'Training method', learningRate: 'Learning rate', batchSize: 'Batch size',
+      trainingPlan: 'Training plan', preflight: 'Preflight', runtime: 'Runtime',
+      model: 'Model', fingerprint: 'Fingerprint', blockers: 'Blockers', warnings: 'Warnings',
+      trainingRecords: 'Training records', effectiveBatch: 'Effective batch size',
+      optimizerSteps: 'Optimizer steps', checkpoints: 'Checkpoints', estimate: 'Estimate',
+      job: 'Training job', jobs: 'Training jobs', qualityGate: 'Dataset quality gate'
     }
   };
   function status(value) {
     const key = String(value == null ? 'UNKNOWN' : value).trim().toUpperCase().replaceAll(' ', '_');
-    return ar.statuses[key] || String(value || ar.statuses.UNKNOWN);
+    return en.statuses[key] || String(value || en.statuses.UNKNOWN);
   }
-  function term(key) { return ar.terms[key] || key; }
+  function term(key) { return en.terms[key] || key; }
   function date(value) {
     if (!value) return '—';
     const parsed = new Date(value);
-    return Number.isNaN(parsed.valueOf()) ? String(value) : new Intl.DateTimeFormat('ar-SA', {dateStyle:'medium', timeStyle:'short'}).format(parsed);
+    return Number.isNaN(parsed.valueOf()) ? String(value) : new Intl.DateTimeFormat('en-US', {dateStyle:'medium', timeStyle:'short'}).format(parsed);
   }
-  global.NajdiI18n = Object.freeze({locale:'ar-SA', direction:'rtl', messages:ar, status, term, date});
+  global.NajdiI18n = Object.freeze({locale:'en-US', direction:'ltr', messages:en, status, term, date});
 })(window);

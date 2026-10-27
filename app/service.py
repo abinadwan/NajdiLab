@@ -78,14 +78,14 @@ def _bool(value: Any) -> int:
 def _required(data: dict[str, Any], key: str) -> str:
     value = data.get(key)
     if value is None or not str(value).strip():
-        raise ValidationError(f"الحقل مطلوب: {key}")
+        raise ValidationError(f"Required field: {key}")
     return str(value).strip()
 
 
 def _reviewer(data: dict[str, Any]) -> str:
     reviewer = str(data.get("reviewer") or "human")
     if reviewer not in {"human", "ai_suggestion", "import"}:
-        raise ValidationError("هوية المراجع غير صالحة")
+        raise ValidationError("Invalid reviewer identity")
     return reviewer
 
 
@@ -114,7 +114,7 @@ def create_conversation(data: dict[str, Any], db_path: Path | str = DB_PATH) -> 
                 """,
                 (
                     external_id,
-                    data.get("title") or f"محادثة {external_id[:12]}",
+                    data.get("title") or f"Conversation {external_id[:12]}",
                     data.get("source") or "manual",
                     data.get("channel") or "manual",
                     data.get("provider"),
@@ -135,7 +135,7 @@ def create_conversation(data: dict[str, Any], db_path: Path | str = DB_PATH) -> 
 def add_message(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     role = _required(data, "role")
     if role not in {"system", "user", "assistant", "tool"}:
-        raise ValidationError("role غير صالح")
+        raise ValidationError("Invalid role")
     content = _required(data, "content")
     conn = connect(db_path)
     try:
@@ -144,10 +144,10 @@ def add_message(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str
             if isinstance(conversation_id, str) and not conversation_id.isdigit():
                 row = _conversation_row(conn, conversation_id)
                 if not row:
-                    raise ValidationError("المحادثة غير موجودة")
+                    raise ValidationError("Conversation not found")
                 conversation_id = row["id"]
             if not conversation_id:
-                raise ValidationError("conversation_id مطلوب")
+                raise ValidationError("conversation_id is required")
             next_turn = conn.execute(
                 "SELECT COALESCE(MAX(turn_index), -1) + 1 FROM messages WHERE conversation_id = ?",
                 (conversation_id,),
@@ -232,7 +232,7 @@ def ingest_turn(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str
                     """,
                     (
                         external_id,
-                        data.get("title") or f"محادثة {external_id[:12]}",
+                        data.get("title") or f"Conversation {external_id[:12]}",
                         data.get("source") or "api",
                         data.get("channel") or "api",
                         data.get("provider"),
@@ -260,7 +260,7 @@ def ingest_turn(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str
                     (conversation_id, reply_to_source_message_id),
                 ).fetchone()
                 if not linked:
-                    raise ValidationError("reply_to_source_message_id لا يشير إلى رسالة مساعد داخل المحادثة")
+                    raise ValidationError("reply_to_source_message_id does not identify an assistant message in this conversation")
                 reply_to_message_id = linked["id"]
             if reply_to_message_id is not None:
                 linked = conn.execute(
@@ -268,7 +268,7 @@ def ingest_turn(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str
                     (reply_to_message_id, conversation_id),
                 ).fetchone()
                 if not linked:
-                    raise ValidationError("reply_to_message_id لا يشير إلى رسالة مساعد داخل المحادثة")
+                    raise ValidationError("reply_to_message_id does not identify an assistant message in this conversation")
                 reply_to_message_id = linked["id"]
             next_turn = conn.execute(
                 "SELECT COALESCE(MAX(turn_index), -1) + 1 FROM messages WHERE conversation_id = ?",
@@ -344,10 +344,10 @@ def ingest_turn(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str
 
 def ingest_hermes_hook(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     if data.get("hook_event_name") != "post_llm_call":
-        raise ValidationError("يدعم مسار Hermes حدث post_llm_call فقط")
+        raise ValidationError("The Hermes endpoint only supports the post_llm_call event")
     extra = data.get("extra")
     if not isinstance(extra, dict):
-        raise ValidationError("Hermes hook extra مطلوب")
+        raise ValidationError("Hermes hook extra is required")
     user_message = _required(extra, "user_message")
     assistant_response = _required(extra, "assistant_response")
     profile = str(data.get("profile") or "default").strip() or "default"
@@ -401,7 +401,7 @@ def ingest_hermes_hook(data: dict[str, Any], db_path: Path | str = DB_PATH) -> d
 def _message_context(conn: sqlite3.Connection, message_id: int) -> list[dict[str, Any]]:
     message = conn.execute("SELECT conversation_id, turn_index FROM messages WHERE id = ?", (message_id,)).fetchone()
     if not message:
-        raise ValidationError("الرسالة غير موجودة")
+        raise ValidationError("Message not found")
     rows = conn.execute(
         """
         SELECT id, turn_index, role, content, provider, model_name, model_version, created_at
@@ -490,16 +490,16 @@ def _save_review_conn(
 ) -> dict[str, Any]:
     status = _required(data, "review_status").upper()
     if status not in FINAL_REVIEW_STATUSES:
-        raise ValidationError("حالة المراجعة النهائية غير صالحة")
+        raise ValidationError("Invalid final review status")
     corrected = data.get("corrected_response")
     if status == "APPROVED":
         corrected = None
     elif corrected is None or not str(corrected).strip():
-        raise ValidationError("النسخة المصححة الكاملة مطلوبة")
+        raise ValidationError("The complete corrected response is required")
     tags = list(dict.fromkeys(data.get("tags") or []))
     invalid_tags = set(tags) - ERROR_TAGS
     if invalid_tags:
-        raise ValidationError(f"وسوم غير صالحة: {', '.join(sorted(invalid_tags))}")
+        raise ValidationError(f"Invalid tags: {', '.join(sorted(invalid_tags))}")
     training_eligible = _bool(data.get("training_eligible"))
     evaluation_only = _bool(data.get("evaluation_only"))
     exclude = _bool(data.get("exclude_from_training"))
@@ -508,10 +508,10 @@ def _save_review_conn(
     reviewer = _reviewer(data)
     current = conn.execute("SELECT * FROM reviews WHERE id = ?", (review_id,)).fetchone()
     if not current:
-        raise ValidationError("المراجعة غير موجودة")
+        raise ValidationError("Review not found")
     expected = data.get("expected_updated_at")
     if expected is not None and str(expected) != str(current["updated_at"]):
-        raise ValidationError("تغيّرت المراجعة منذ تحميلها؛ أعد التحميل قبل الحفظ")
+        raise ValidationError("The review changed after it was loaded; reload before saving")
     now = utc_now()
     conn.execute(
                 """
@@ -553,7 +553,7 @@ def approve_review(review_id: int, data: dict[str, Any], db_path: Path | str = D
 def correct_review(review_id: int, data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     status = _required(data, "review_status").upper()
     if status not in CORRECTION_REVIEW_STATUSES:
-        raise ValidationError("نوع التصحيح غير صالح")
+        raise ValidationError("Invalid correction type")
     payload = {**data, "review_status": status}
     payload.setdefault("training_eligible", True)
     return save_review(review_id, payload, db_path)
@@ -565,7 +565,7 @@ def ignore_review(review_id: int, data: dict[str, Any], db_path: Path | str = DB
         with transaction(conn):
             current = conn.execute("SELECT * FROM reviews WHERE id = ?", (review_id,)).fetchone()
             if not current:
-                raise ValidationError("المراجعة غير موجودة")
+                raise ValidationError("Review not found")
             now = utc_now()
             conn.execute(
                 """
@@ -575,7 +575,7 @@ def ignore_review(review_id: int, data: dict[str, Any], db_path: Path | str = DB
                 """,
                 (now, str(data.get("ignored_reason") or "").strip() or None, _reviewer(data), now, review_id),
             )
-            _record_review_event(conn, current, "IGNORED", data, reason=str(data.get("ignored_reason") or "استبعاد من التدريب"))
+            _record_review_event(conn, current, "IGNORED", data, reason=str(data.get("ignored_reason") or "Exclude from training"))
             return get_review(review_id, db_path, conn=conn)
     finally:
         conn.close()
@@ -587,7 +587,7 @@ def delete_review(review_id: int, data: dict[str, Any] | None = None, db_path: P
         with transaction(conn):
             current = conn.execute("SELECT * FROM reviews WHERE id = ?", (review_id,)).fetchone()
             if not current:
-                raise ValidationError("المراجعة غير موجودة")
+                raise ValidationError("Review not found")
             now = utc_now()
             conn.execute(
                 """
@@ -597,7 +597,7 @@ def delete_review(review_id: int, data: dict[str, Any] | None = None, db_path: P
                 """,
                 (now, _reviewer(data or {}), now, review_id),
             )
-            _record_review_event(conn, current, "DELETED", data or {}, reason=str((data or {}).get("reason") or "حذف منطقي"))
+            _record_review_event(conn, current, "DELETED", data or {}, reason=str((data or {}).get("reason") or "Soft delete"))
             return get_review(review_id, db_path, conn=conn)
     finally:
         conn.close()
@@ -615,9 +615,9 @@ def restore_review(review_id: int, data: dict[str, Any], db_path: Path | str = D
         with transaction(conn):
             current = conn.execute("SELECT * FROM reviews WHERE id = ?", (review_id,)).fetchone()
             if not current:
-                raise ValidationError("المراجعة غير موجودة")
+                raise ValidationError("Review not found")
             if current["review_status"] not in {"IGNORED", "DELETED"}:
-                raise ValidationError("يمكن استعادة المراجعات المستبعدة أو المحذوفة فقط")
+                raise ValidationError("Only excluded or deleted reviews can be restored")
             now = utc_now()
             conn.execute(
                 """
@@ -637,16 +637,16 @@ def restore_review(review_id: int, data: dict[str, Any], db_path: Path | str = D
 def bulk_review_actions(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     raw_ids = data.get("review_ids")
     if not isinstance(raw_ids, list) or not raw_ids:
-        raise ValidationError("اختر مراجعة واحدة على الأقل")
+        raise ValidationError("Select at least one review")
     try:
         review_ids = list(dict.fromkeys(int(value) for value in raw_ids))
     except (TypeError, ValueError):
-        raise ValidationError("معرّفات المراجعات غير صالحة") from None
+        raise ValidationError("Invalid review identifiers") from None
     if len(review_ids) > 500:
-        raise ValidationError("الحد الأقصى للعملية الجماعية 500 مراجعة")
+        raise ValidationError("Bulk actions are limited to 500 reviews")
     action = _required(data, "action").lower()
     if action not in {"approve", "correct", "exclude", "restore"}:
-        raise ValidationError("إجراء المراجعة الجماعي غير صالح")
+        raise ValidationError("Invalid bulk review action")
     conn = connect(db_path)
     results: list[dict[str, Any]] = []
     try:
@@ -660,7 +660,7 @@ def bulk_review_actions(data: dict[str, Any], db_path: Path | str = DB_PATH) -> 
                     reason = _required(data, "reason")
                     current = conn.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
                     if not current:
-                        raise ValidationError("المراجعة غير موجودة")
+                        raise ValidationError("Review not found")
                     now = utc_now()
                     conn.execute("UPDATE reviews SET review_status='IGNORED',training_eligible=0,ignored_at=?,ignored_reason=?,deleted_at=NULL,reviewer=?,updated_at=? WHERE id=?", (now, reason, _reviewer(data), now, review_id))
                     _record_review_event(conn, current, "IGNORED", data, reason=reason)
@@ -669,9 +669,9 @@ def bulk_review_actions(data: dict[str, Any], db_path: Path | str = DB_PATH) -> 
                     reason = _required(data, "reason")
                     current = conn.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
                     if not current:
-                        raise ValidationError("المراجعة غير موجودة")
+                        raise ValidationError("Review not found")
                     if current["review_status"] not in {"IGNORED", "DELETED"}:
-                        raise ValidationError(f"المراجعة {review_id} غير قابلة للاستعادة")
+                        raise ValidationError(f"Review {review_id} cannot be restored")
                     now = utc_now()
                     conn.execute("UPDATE reviews SET review_status='PENDING',training_eligible=0,exclude_from_training=0,evaluation_only=0,ignored_at=NULL,ignored_reason=NULL,deleted_at=NULL,reviewer=?,updated_at=? WHERE id=?", (_reviewer(data), now, review_id))
                     _record_review_event(conn, current, "PENDING", data, reason=reason)
@@ -697,7 +697,7 @@ def get_review(
             (review_id,),
         ).fetchone()
         if not row:
-            raise ValidationError("المراجعة غير موجودة")
+            raise ValidationError("Review not found")
         item = dict(row)
         item["tags"] = [x[0] for x in conn.execute("SELECT tag FROM review_tags WHERE review_id = ?", (review_id,))]
         item["context"] = _message_context(conn, row["message_id"])
@@ -746,7 +746,7 @@ def get_conversation(conversation_id: int, db_path: Path | str = DB_PATH) -> dic
     try:
         conversation = conn.execute("SELECT * FROM conversations WHERE id = ?", (conversation_id,)).fetchone()
         if not conversation:
-            raise ValidationError("المحادثة غير موجودة")
+            raise ValidationError("Conversation not found")
         messages = conn.execute(
             """
             SELECT m.*, r.id AS review_id, r.review_status, r.corrected_response,
@@ -768,7 +768,7 @@ def list_reviewed(filters: dict[str, str], db_path: Path | str = DB_PATH) -> lis
         params: list[Any] = []
         if requested_status:
             if requested_status not in REVIEW_STATUSES:
-                raise ValidationError("حالة المراجعة غير صالحة")
+                raise ValidationError("Invalid review status")
             clauses = ["r.review_status = ?"]
             params.append(requested_status)
         else:
@@ -870,11 +870,11 @@ def _manual_item(
 ) -> dict[str, Any]:
     table = MANUAL_TABLES.get(item_type)
     if not table:
-        raise ValidationError("نوع البيانات اليدوية غير صالح")
+        raise ValidationError("Invalid manual data type")
     lifecycle_clause = "" if include_deleted else " AND deleted_at IS NULL"
     row = conn.execute(f"SELECT * FROM {table} WHERE id = ?{lifecycle_clause}", (item_id,)).fetchone()
     if not row:
-        raise ValidationError("العنصر غير موجود")
+        raise ValidationError("Item not found")
     item = _manual_snapshot(row, item_type)
     item["preview"] = _manual_preview(item)
     item["exported_versions"] = _manual_export_versions(conn, item_type, item_id)
@@ -908,7 +908,7 @@ def initialize_manual_versions(db_path: Path | str = DB_PATH) -> int:
                             row["id"],
                             row["version_number"],
                             json_dumps(_manual_snapshot(row, item_type)),
-                            "إنشاء النسخة الأساسية للسجل الموجود",
+                            "Create a baseline version for the existing record",
                             row["updated_at"] or row["created_at"],
                         ),
                     )
@@ -1208,43 +1208,43 @@ def _validate_manual_payload(
             payload[key] = data[key]
     layer = payload.get("language_layer", current.get("language_layer"))
     if layer not in LANGUAGE_LAYERS:
-        raise ValidationError("طبقة اللغة غير صالحة")
+        raise ValidationError("Invalid language layer")
     origin = payload.get("origin", current.get("origin"))
     if origin not in ORIGINS:
-        raise ValidationError("origin غير صالح")
+        raise ValidationError("Invalid origin")
     for key in ("origin", "source_type"):
         if key in payload and not str(payload[key] or "").strip():
-            raise ValidationError(f"لا يمكن مسح بيانات المصدر الأصلية: {key}")
+            raise ValidationError(f"Original source data cannot be cleared: {key}")
     if "source" in payload and current.get("source") and not str(payload["source"] or "").strip():
-        raise ValidationError("لا يمكن مسح بيانات المصدر الأصلية: source")
+        raise ValidationError("Original source data cannot be cleared: source")
     if item_type == "sft":
         messages = payload.get("messages", current.get("messages"))
         if not isinstance(messages, list) or len(messages) < 2:
-            raise ValidationError("أضف رسالتي user وassistant على الأقل")
+            raise ValidationError("Add at least one user message and one assistant message")
         if any(turn.get("role") not in {"system", "user", "assistant"} or not str(turn.get("content") or "").strip() for turn in messages):
-            raise ValidationError("كل أدوار المحادثة يجب أن تكون صالحة وغير فارغة")
+            raise ValidationError("All conversation turns must be valid and nonempty")
         payload["messages_json"] = json_dumps(messages)
         payload.pop("messages", None)
     elif item_type == "direct":
         text = str(payload.get("text", current.get("text")) or "").strip()
         if not text:
-            raise ValidationError("النص لا يمكن أن يكون فارغًا")
+            raise ValidationError("Text cannot be empty")
         payload["text"] = text
         source_type = payload.get("source_type", current.get("source_type"))
         if source_type not in {"human_written", "human_corrected", "synthetic_reviewed", "external_licensed"}:
-            raise ValidationError("نوع المصدر غير صالح")
+            raise ValidationError("Invalid source type")
     else:
         context = payload.get("prompt_context", current.get("prompt_context"))
         if isinstance(context, str):
             context = [{"role": "user", "content": context.strip()}]
         if not isinstance(context, list) or not context or not any(str(turn.get("content") or "").strip() for turn in context):
-            raise ValidationError("Prompt / Context مطلوب")
+            raise ValidationError("Prompt / Context is required")
         rejected = str(payload.get("rejected_response", current.get("rejected_response")) or "").strip()
         preferred = str(payload.get("preferred_response", current.get("preferred_response")) or "").strip()
         if not rejected or not preferred:
-            raise ValidationError("الرد المرفوض والرد المفضل مطلوبان")
+            raise ValidationError("The rejected and preferred responses are required")
         if rejected == preferred:
-            raise ValidationError("الرد المرفوض يجب أن يختلف عن الرد المفضل")
+            raise ValidationError("The rejected response must differ from the preferred response")
         payload["prompt_context_json"] = json_dumps(context)
         payload.pop("prompt_context", None)
         payload["rejected_response"] = rejected
@@ -1266,7 +1266,7 @@ def update_manual_data(
 ) -> dict[str, Any]:
     table = MANUAL_TABLES.get(item_type)
     if not table:
-        raise ValidationError("نوع البيانات اليدوية غير صالح")
+        raise ValidationError("Invalid manual data type")
     conn = connect(db_path)
     try:
         with transaction(conn):
@@ -1293,7 +1293,7 @@ def update_manual_data(
             snapshot = _manual_snapshot(updated_row, item_type)
             changed_by = data.get("changed_by") or "human"
             if changed_by not in {"human", "system"}:
-                raise ValidationError("changed_by غير صالح")
+                raise ValidationError("Invalid changed_by value")
             conn.execute(
                 """
                 INSERT INTO manual_data_versions(
@@ -1303,7 +1303,7 @@ def update_manual_data(
                 """,
                 (
                     item_type, item_id, version, json_dumps(snapshot), json_dumps(changed_fields),
-                    str(data.get("change_notes") or "تعديل يدوي").strip(), changed_by, payload["updated_at"],
+                    str(data.get("change_notes") or "Manual edit").strip(), changed_by, payload["updated_at"],
                 ),
             )
             return _manual_item(conn, item_type, item_id, include_deleted=include_deleted_result)
@@ -1321,7 +1321,7 @@ def clone_manual_data(item_type: str, item_id: int, data: dict[str, Any], db_pat
     clone.update(data)
     clone["parent_item_id"] = item_id
     clone["archived"] = False
-    clone["change_notes"] = data.get("change_notes") or f"نسخة جديدة من {item_type}:{item_id}"
+    clone["change_notes"] = data.get("change_notes") or f"New copy of {item_type}:{item_id}"
     for key in ("id", "item_type", "created_at", "updated_at", "version_number", "preview", "exported_versions", "exported_before", "training_eligible_effective", "metadata", "ignored_at", "ignored_reason", "deleted_at"):
         clone.pop(key, None)
     if item_type == "sft":
@@ -1334,14 +1334,14 @@ def clone_manual_data(item_type: str, item_id: int, data: dict[str, Any], db_pat
 def delete_manual_data(item_type: str, item_id: int, confirm_exported: bool = False, db_path: Path | str = DB_PATH) -> dict[str, Any]:
     table = MANUAL_TABLES.get(item_type)
     if not table:
-        raise ValidationError("نوع البيانات اليدوية غير صالح")
+        raise ValidationError("Invalid manual data type")
     conn = connect(db_path)
     try:
         current = _manual_item(conn, item_type, item_id)
     finally:
         conn.close()
     if current["exported_before"] and not confirm_exported:
-        raise ValidationError("هذا السجل سبق تضمينه في Dataset Version سابقة.")
+        raise ValidationError("This record was already included in a previous dataset version.")
     deleted_at = utc_now()
     updated = update_manual_data(
         item_type,
@@ -1352,7 +1352,7 @@ def delete_manual_data(item_type: str, item_id: int, confirm_exported: bool = Fa
             "ignored_reason": None,
             "training_eligible": False,
             "exclude_from_training": True,
-            "change_notes": "حذف منطقي للسجل",
+            "change_notes": "Soft delete record",
         },
         db_path,
         include_deleted_result=True,
@@ -1373,7 +1373,7 @@ def ignore_manual_data(
             "deleted_at": None,
             "training_eligible": False,
             "exclude_from_training": True,
-            "change_notes": data.get("change_notes") or "تجاهل السجل",
+            "change_notes": data.get("change_notes") or "Ignore record",
         },
         db_path,
         allow_lifecycle=True,
@@ -1392,12 +1392,12 @@ def bulk_update_manual_data(data: dict[str, Any], db_path: Path | str = DB_PATH)
         "include": {"exclude_from_training": False},
     }
     if not isinstance(items, list) or not items or action not in actions:
-        raise ValidationError("عملية جماعية غير صالحة")
+        raise ValidationError("Invalid bulk action")
     updated = 0
     for item in items[:500]:
         if not isinstance(item, dict):
             continue
-        payload = {**actions[action], "change_notes": data.get("change_notes") or "تعديل جماعي"}
+        payload = {**actions[action], "change_notes": data.get("change_notes") or "Bulk edit"}
         update_manual_data(str(item.get("type")), int(item.get("id")), payload, db_path)
         updated += 1
     return {"updated": updated}
@@ -1406,22 +1406,22 @@ def bulk_update_manual_data(data: dict[str, Any], db_path: Path | str = DB_PATH)
 def add_manual_sft(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     messages = data.get("messages")
     if not isinstance(messages, list) or len(messages) < 2:
-        raise ValidationError("أضف رسالتي user وassistant على الأقل")
+        raise ValidationError("Add at least one user message and one assistant message")
     for index, message in enumerate(messages):
         if message.get("role") not in {"system", "user", "assistant"} or not str(message.get("content", "")).strip():
-            raise ValidationError(f"رسالة غير صالحة في الموضع {index + 1}")
+            raise ValidationError(f"Invalid message at position {index + 1}")
     language_layer = data.get("language_layer") or "saudi_neutral"
     if language_layer not in LANGUAGE_LAYERS:
-        raise ValidationError("طبقة اللغة غير صالحة")
+        raise ValidationError("Invalid language layer")
     return _insert_training_item("manual_sft_items", {**data, "messages_json": json_dumps(messages)}, db_path)
 
 
 def add_direct_text(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     _required(data, "text")
     if data.get("language_layer") not in LANGUAGE_LAYERS:
-        raise ValidationError("طبقة اللغة غير صالحة")
+        raise ValidationError("Invalid language layer")
     if data.get("source_type") not in {"human_written", "human_corrected", "synthetic_reviewed", "external_licensed"}:
-        raise ValidationError("نوع المصدر غير صالح")
+        raise ValidationError("Invalid source type")
     return _insert_training_item("direct_language_texts", data, db_path)
 
 
@@ -1429,10 +1429,10 @@ def add_preference_pair(data: dict[str, Any], db_path: Path | str = DB_PATH) -> 
     rejected = _required(data, "rejected_response")
     preferred = _required(data, "preferred_response")
     if rejected == preferred:
-        raise ValidationError("الرد المرفوض يجب أن يختلف عن الرد المفضل")
+        raise ValidationError("The rejected response must differ from the preferred response")
     context = data.get("prompt_context")
     if not context:
-        raise ValidationError("Prompt / Context مطلوب")
+        raise ValidationError("Prompt / Context is required")
     if isinstance(context, str):
         context = [{"role": "user", "content": context}]
     return _insert_training_item(
@@ -1443,7 +1443,7 @@ def add_preference_pair(data: dict[str, Any], db_path: Path | str = DB_PATH) -> 
 def _insert_training_item(table: str, data: dict[str, Any], db_path: Path | str) -> dict[str, Any]:
     origin = data.get("origin") or "manual"
     if origin not in ORIGINS:
-        raise ValidationError("origin غير صالح")
+        raise ValidationError("Invalid origin")
     evaluation_only = _bool(data.get("evaluation_only"))
     exclude = _bool(data.get("exclude_from_training"))
     eligible = 0 if evaluation_only or exclude else _bool(data.get("training_eligible"))
@@ -1499,7 +1499,7 @@ def _insert_training_item(table: str, data: dict[str, Any], db_path: Path | str)
                     item_type,
                     cursor.lastrowid,
                     json_dumps(snapshot),
-                    str(data.get("change_notes") or "إنشاء السجل").strip(),
+                    str(data.get("change_notes") or "Create record").strip(),
                     now,
                 ),
             )
@@ -1634,13 +1634,13 @@ def _annotate_sft_record(item: dict[str, Any]) -> dict[str, Any]:
     record = dict(item)
     raw_messages = record.get("messages")
     if not isinstance(raw_messages, list) or not raw_messages:
-        raise ValidationError(f"سجل SFT بلا messages صالح: {record.get('id')}")
+        raise ValidationError(f"SFT record has no valid messages: {record.get('id')}")
     messages = [dict(message) if isinstance(message, dict) else message for message in raw_messages]
     record["messages"] = messages
     target_index = len(messages) - 1
     target = messages[target_index]
     if not isinstance(target, dict) or target.get("role") != "assistant" or not str(target.get("content") or "").strip():
-        raise ValidationError(f"سجل SFT يجب أن ينتهي برد assistant ذهبي: {record.get('id')}")
+        raise ValidationError(f"SFT record must end with a Gold assistant response: {record.get('id')}")
     record["target_message_index"] = target_index
     record["train_on_last_assistant_only"] = True
     record["message_loss_mask"] = [0] * target_index + [1]
@@ -1947,16 +1947,16 @@ def _balance_multi_turn_records(
 def _validate_sft_record(item: dict[str, Any], filename: str) -> None:
     messages = item.get("messages")
     if not isinstance(messages, list) or not messages:
-        raise ValidationError(f"{filename}: سجل بلا messages: {item.get('id')}")
+        raise ValidationError(f"{filename}: record has no messages: {item.get('id')}")
     if not any(isinstance(message, dict) and message.get("role") == "user" for message in messages):
-        raise ValidationError(f"{filename}: سجل بلا رسالة user: {item.get('id')}")
+        raise ValidationError(f"{filename}: record has no user message: {item.get('id')}")
     for index, message in enumerate(messages):
         if (
             not isinstance(message, dict)
             or message.get("role") not in {"system", "user", "assistant"}
             or not str(message.get("content") or "").strip()
         ):
-            raise ValidationError(f"{filename}: رسالة غير صالحة في {item.get('id')} عند {index}")
+            raise ValidationError(f"{filename}: invalid message in {item.get('id')} at {index}")
     target_index = item.get("target_message_index")
     mask = item.get("message_loss_mask")
     if (
@@ -1969,7 +1969,7 @@ def _validate_sft_record(item: dict[str, Any], filename: str) -> None:
         or mask[target_index] != 1
         or any(value not in {0, 1} for value in mask)
     ):
-        raise ValidationError(f"{filename}: هدف التدريب غير محدد بشكل وحيد: {item.get('id')}")
+        raise ValidationError(f"{filename}: the training target is not uniquely identified: {item.get('id')}")
 
 
 def _validate_export_records(
@@ -1983,17 +1983,17 @@ def _validate_export_records(
     all_gold = training + evaluation
     demo_records = sum(1 for item in all_gold if bool(item.get("demo")))
     if not include_demo and demo_records:
-        raise ValidationError("فشل التصدير: وُجدت بيانات Demo رغم أن include_demo=false")
+        raise ValidationError("Export failed: demo data was found although include_demo=false")
 
     target_owners: dict[str, str] = {}
     for item in training:
         target = _normalized(_training_target(item))
         if not target:
-            raise ValidationError(f"فشل التصدير: هدف تدريب فارغ في {item.get('id')}")
+            raise ValidationError(f"Export failed: empty training target in {item.get('id')}")
         digest = hashlib.sha256(target.encode("utf-8")).hexdigest()
         if digest in target_owners:
             raise ValidationError(
-                f"فشل التصدير: exact duplicate بين {target_owners[digest]} و{item.get('id')}"
+                f"Export failed: exact duplicate between {target_owners[digest]} and {item.get('id')}"
             )
         target_owners[digest] = str(item.get("id"))
 
@@ -2010,40 +2010,40 @@ def _validate_export_records(
     conversation_overlap = sorted(training_conversations & evaluation_conversations)
     if conversation_overlap:
         raise ValidationError(
-            "فشل التصدير: تسرب conversation_id بين التدريب والتقييم: "
+            "Export failed: conversation_id leakage between training and evaluation: "
             + ", ".join(conversation_overlap)
         )
     if (
         split_stats["available_conversation_count"] >= 3
         and len(evaluation_conversations) < 3
     ):
-        raise ValidationError("فشل التصدير: يجب توزيع evaluation على ثلاث محادثات على الأقل")
+        raise ValidationError("Export failed: evaluation must span at least three conversations")
     if split_stats["eligible_record_count"] >= EXPORT_MIN_AUTO_SPLIT_RECORDS and not (
         split_stats["evaluation_target_lower"]
         <= len(evaluation)
         <= split_stats["evaluation_target_upper"]
     ):
-        raise ValidationError("فشل التصدير: حجم evaluation خارج نطاق 10% إلى 15% المستهدف")
+        raise ValidationError("Export failed: evaluation size is outside the target range of 10% to 15%")
     training_ids = {str(item.get("id")) for item in training if item.get("id") is not None}
     evaluation_ids = {str(item.get("id")) for item in evaluation if item.get("id") is not None}
     id_overlap = sorted(training_ids & evaluation_ids)
     if id_overlap:
-        raise ValidationError("فشل التصدير: تسرب record id بين التدريب والتقييم: " + ", ".join(id_overlap))
+        raise ValidationError("Export failed: record ID leakage between training and evaluation: " + ", ".join(id_overlap))
 
     for filename in ("sft.jsonl", "multi_turn.jsonl"):
         for item in training_files.get(filename, []):
             _validate_sft_record(item, filename)
             if filename == "multi_turn.jsonl" and len(item["messages"]) <= 2:
-                raise ValidationError(f"multi_turn.jsonl: سجل بلا سياق متعدد: {item.get('id')}")
+                raise ValidationError(f"multi_turn.jsonl: record has no multi-turn context: {item.get('id')}")
             if "rejected_response" in item or "preferred_response" in item:
-                raise ValidationError(f"فشل التصدير: سجل Preference دخل ملف SFT: {item.get('id')}")
+                raise ValidationError(f"Export failed: a preference record entered an SFT file: {item.get('id')}")
     multi_counts = Counter(
         conversation_id
         for item in training_files.get("multi_turn.jsonl", [])
         if (conversation_id := _conversation_id(item)) is not None
     )
     if max(multi_counts.values(), default=0) > balance_stats["multi_turn_cap_per_conversation"]:
-        raise ValidationError("فشل التصدير: تجاوز multi-turn الحد الأقصى للمحادثة")
+        raise ValidationError("Export failed: multi-turn records exceed the per-conversation limit")
     for item in evaluation:
         if "messages" in item:
             _validate_sft_record(item, "evaluation_holdout.jsonl")
@@ -2088,12 +2088,12 @@ def _validate_jsonl_files(temp_dir: Path, files: dict[str, list[dict[str, Any]]]
                 try:
                     value = json.loads(line)
                 except json.JSONDecodeError as exc:
-                    raise ValidationError(f"{filename}:{line_number} ليس JSON صالحًا") from exc
+                    raise ValidationError(f"{filename}:{line_number} is not valid JSON") from exc
                 if not isinstance(value, dict):
-                    raise ValidationError(f"{filename}:{line_number} يجب أن يكون object")
+                    raise ValidationError(f"{filename}:{line_number} must be an object")
                 parsed.append(value)
         if len(parsed) != len(expected_items):
-            raise ValidationError(f"{filename}: عدد السجلات المكتوبة لا يطابق العدد المتوقع")
+            raise ValidationError(f"{filename}: written record count does not match the expected count")
 
 
 def create_export(
@@ -2113,7 +2113,7 @@ def create_export(
             number = conn.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM dataset_versions").fetchone()[0]
             version = f"gold-v{number:03d}"
             if (exports_dir / version).exists():
-                raise ValidationError("مجلد النسخة موجود مسبقًا")
+                raise ValidationError("The version directory already exists")
         dataset = training_dataset(db_path, include_demo)
         reviews = dataset["reviews"]
         manual = dataset["manual_sft"]
@@ -2334,7 +2334,7 @@ def analytics(db_path: Path | str = DB_PATH) -> dict[str, Any]:
             dict(row)
             for row in conn.execute(
                 """
-                SELECT COALESCE(c.model_name, 'غير محدد') AS name, COUNT(r.id) AS total,
+                SELECT COALESCE(c.model_name, 'Unspecified') AS name, COUNT(r.id) AS total,
                   ROUND(100.0 * SUM(r.review_status = 'APPROVED') / NULLIF(SUM(r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')), 0), 1) AS approval_rate,
                   ROUND(100.0 * SUM(r.review_status = 'DIALECT_CORRECTION') / NULLIF(SUM(r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')), 0), 1) AS dialect_error_rate,
                   ROUND(100.0 * SUM(r.review_status IN ('CONTENT_CORRECTION','FULL_CORRECTION')) / NULLIF(SUM(r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')), 0), 1) AS content_error_rate
@@ -2364,13 +2364,13 @@ def seed_demo_data(db_path: Path | str = DB_PATH) -> int:
     finally:
         conn.close()
     samples = [
-        ("ترحيب نجدي", "web", "ollama", "najdi-demo:latest", "وش أفضل وقت أزور فيه الرياض؟", "يمكنك زيارة الرياض في أي وقت. درجات الحرارة جيدة.", None),
-        ("اقتراحات عشاء", "whatsapp", "ollama", "najdi-demo:latest", "أبي مطعم شعبي قريب", "أنصحك بمطعم إيطالي فاخر.", None),
-        ("معلومة تقنية", "cli", "local", "coder-demo", "اشرح لي WAL في SQLite باختصار", "WAL يسجل التغييرات في ملف منفصل ويساعد على تزامن القراءة والكتابة.", "APPROVED"),
-        ("صياغة نجدية", "telegram", "cloud", "arabic-demo", "قلها بلهجة الرياض: لا تقلق", "لا تشعر بالقلق.", "DIALECT_CORRECTION"),
-        ("سياق متعدد", "web", "local", "context-demo", "تذكر أن ميزانيتي ١٠٠ ريال", "حاضر، ميزانيتك ١٠٠ ريال.", None),
-        ("حقائق محلية", "api", "cloud", "facts-demo", "وش عاصمة السعودية؟", "عاصمة السعودية جدة.", "CONTENT_CORRECTION"),
-        ("رد مطوّل", "manual", "local", "najdi-demo:latest", "اختصر لي فكرة المشروع", "هذا المشروع عبارة عن منظومة طويلة جدًا تهدف إلى جمع البيانات ثم مراجعتها والاستفادة منها مستقبلًا في عدة سياقات متعددة.", "FULL_CORRECTION"),
+        ("Najdi greeting", "web", "ollama", "najdi-demo:latest", "وش أفضل وقت أزور فيه الرياض؟", "يمكنك زيارة الرياض في أي وقت. درجات الحرارة جيدة.", None),
+        ("Dinner suggestions", "whatsapp", "ollama", "najdi-demo:latest", "أبي مطعم شعبي قريب", "أنصحك بمطعم إيطالي فاخر.", None),
+        ("Technical information", "cli", "local", "coder-demo", "اشرح لي WAL في SQLite باختصار", "WAL يسجل التغييرات في ملف منفصل ويساعد على تزامن القراءة والكتابة.", "APPROVED"),
+        ("Najdi phrasing", "telegram", "cloud", "arabic-demo", "قلها بلهجة الرياض: لا تقلق", "لا تشعر بالقلق.", "DIALECT_CORRECTION"),
+        ("Multi-turn context", "web", "local", "context-demo", "تذكر أن ميزانيتي ١٠٠ ريال", "حاضر، ميزانيتك ١٠٠ ريال.", None),
+        ("Local facts", "api", "cloud", "facts-demo", "وش عاصمة السعودية؟", "عاصمة السعودية جدة.", "CONTENT_CORRECTION"),
+        ("Verbose response", "manual", "local", "najdi-demo:latest", "اختصر لي فكرة المشروع", "هذا المشروع عبارة عن منظومة طويلة جدًا تهدف إلى جمع البيانات ثم مراجعتها والاستفادة منها مستقبلًا في عدة سياقات متعددة.", "FULL_CORRECTION"),
     ]
     count = 0
     for index, (title, channel, provider, model, user, assistant, status) in enumerate(samples, 1):
@@ -2402,7 +2402,7 @@ def seed_demo_data(db_path: Path | str = DB_PATH) -> int:
                     "corrected_response": corrected,
                     "training_eligible": True,
                     "tags": [] if status == "APPROVED" else ["dialect_issue" if status == "DIALECT_CORRECTION" else "factual_error" if status == "CONTENT_CORRECTION" else "too_verbose"],
-                    "review_notes": "مراجعة تجريبية",
+                    "review_notes": "Demo review",
                 },
                 db_path,
             )

@@ -1,6 +1,8 @@
 # NajdiLab Master Execution Board
 
-Last updated: 2026-10-09 (Asia/Riyadh). Status values are evidence-based; `DONE` is used only after acceptance verification.
+This is a historical engineering snapshot. [PROJECT_STATUS](../PROJECT_STATUS.md) reconciles current tracks and preparation-branch security versus undeployed production. Historical OPEN/NOT IMPLEMENTED security rows are not claims about this development branch.
+
+Historical board baseline: 2026-10-09 (Asia/Riyadh), with the explicitly dated Corpus v1.1 addition below. Current branch request/ingest protections are described in [SECURITY.md](../SECURITY.md). Status values are evidence-based; `DONE` is used only after acceptance verification.
 
 ## Phase 1.3 — Production Dataset Registry
 
@@ -9,7 +11,7 @@ Last updated: 2026-10-09 (Asia/Riyadh). Status values are evidence-based; `DONE`
 | REG-01 Recheck Phase 1.2 | P0 | None | Phase 1.2 report/SQL/rollback | Report and artifacts reviewed; risks carried forward | DONE |
 | REG-02 Production schema/WAL | P0 | REG-01 | `data/najdilab.db` read-only | WAL; migrations 001–004; integrity ok; FK errors 0 | DONE |
 | REG-03 Nine-version verification | P0 | REG-02 | `exports/`, `datasets/`, legacy registry | 13 source records → 9 versions/9 locations; conflicts 0 | DONE |
-| REG-04 Backup/restore proof | P0 | REG-02 | `backups/phase13-*` | SQLite Backup API; isolated restore integrity ok | DONE |
+| REG-04 Backup/restore proof | P0 | REG-02 | private verified snapshots | SQLite Backup API; isolated restore integrity ok | DONE |
 | REG-05 Transactional Migration 005 | P0 | REG-03 | `plans/phase13`, registry module/runner | Atomic DDL+backfill; second application changes 0 | DONE |
 | REG-06 Conflict/rollback tests | P0 | REG-05 | `tests/test_dataset_registry.py` | Duplicate/path/hash/invalid/missing/FK/transaction rollback: 7 passed | DONE |
 | REG-07 Execution/recovery procedure | P0 | REG-04–06 | Phase 1.3 runbook | Guarded commands and exact recovery documented | DONE |

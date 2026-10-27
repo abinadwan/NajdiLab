@@ -1,12 +1,14 @@
 import json, re, math, statistics
 from pathlib import Path
 
-DATA_DIR = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean")
+ROOT = Path(__file__).resolve().parents[1]
+
+DATA_DIR = ROOT / 'exports/gold-v006-clean'
 SFT_PATH = DATA_DIR / "sft.jsonl"
 MULTI_PATH = DATA_DIR / "multi_turn.jsonl"
 EVAL_PATH = DATA_DIR / "text_sft_eval.jsonl"
 
-REPORT_DIR = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\reports")
+REPORT_DIR = ROOT / 'reports'
 REPORT_JSON = REPORT_DIR / "gold-v006-metrics-v3.json"
 REPORT_MD = REPORT_DIR / "gold-v006-metrics-v3.md"
 
@@ -161,6 +163,7 @@ phrase_end=Counter()
 phrase_bigrams=Counter()
 phrase_trigrams=Counter()
 from collections import Counter
+
 for t in all_targets:
     words=re.findall(r"[\w']+",t)
     for p in phrases:
@@ -219,17 +222,17 @@ with open(REPORT_JSON,'w',encoding='utf-8') as f:
 # write md simple summary
 with open(REPORT_MD,'w',encoding='utf-8') as f:
     f.write('# Metrics v3 Summary\n\n')
-    f.write(f'- عدد conversations: {len(report_convs)}\n')
+    f.write(f'- Conversation count: {len(report_convs)}\n')
     sorted_weights=sorted(report_convs.items(),key=lambda x:x[1]['total_records'],reverse=True)[:5]
-    f.write('- أعلى 5 conversation weights:\n')
+    f.write('- Top 5 conversation weights:\n')
     for cid,info in sorted_weights:
         f.write(f'  - {cid}: {info}\n')
     f.write('- conversations >15%:\n')
     for cid in conv_over15:
         f.write(f'  - {cid}\n')
-    f.write('- overlap metrics للمحادثات الأربع ذات 10 windows: (placeholder)\n')
-    f.write('- nested-pair ratio لكل واحدة: (placeholder)\n')
-    f.write('- أعلى prior-message reuse: (placeholder)\n')
+    f.write('- Overlap metrics for the four conversations with 10 windows: (placeholder)\n')
+    f.write('- Nested-pair ratio for each conversation: (placeholder)\n')
+    f.write('- Highest prior-message reuse: (placeholder)\n')
     f.write('- exact/near duplicate counts: (placeholder)\n')
     f.write('- phrase counts: (placeholder)\n')
     f.write('- target length concentration: (placeholder)\n')

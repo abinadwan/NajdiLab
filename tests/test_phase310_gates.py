@@ -5,7 +5,10 @@ from app import dataset_platform as platform
 from app import training_control
 from app.training_control import freeze_readiness_gate, quality_gate
 
+from tests.private_artifacts import requires_private_artifacts
+
 class Phase310GateTests(unittest.TestCase):
+    @requires_private_artifacts('datasets/gold-v009-remediation-draft/manifest.json')
     def test_current_v009_gate_semantics_and_66_masks(self):
         freeze=freeze_readiness_gate('gold-v009-remediation-draft'); training=quality_gate('gold-v009-remediation-draft')
         self.assertNotIn('DATASET_NOT_FROZEN',{x['code'] for x in freeze['blocking_issues']})
@@ -23,6 +26,7 @@ class Phase310GateTests(unittest.TestCase):
             result=training_control.freeze_readiness_gate('draft')
         self.assertEqual(result['status'],'PASS'); self.assertEqual(result['blocking_issues'],[])
 
+    @requires_private_artifacts('datasets/gold-v009-remediation-draft/manifest.json')
     def test_stale_diagnostic_fingerprint_is_rejected(self):
         directory=platform.DATASETS_ROOT/'gold-v009-remediation-draft'; manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
         stale=json.loads(json.dumps(manifest)); stale['diagnostics']['training_fingerprint']='0'*64

@@ -37,17 +37,17 @@ def _read_jsonl(path: Path, version: str) -> list[dict[str, Any]]:
                 try:
                     value = json.loads(line)
                 except json.JSONDecodeError as exc:
-                    raise DatasetPlatformError("INVALID_DATASET", f"{path.name}:{line_number} يحتوي JSON غير صالح", dataset=version, path=path) from exc
+                    raise DatasetPlatformError("INVALID_DATASET", f"{path.name}:{line_number} contains invalid JSON", dataset=version, path=path) from exc
                 if not isinstance(value, dict):
-                    raise DatasetPlatformError("INVALID_DATASET", f"{path.name}:{line_number} يجب أن يكون object", dataset=version, path=path)
+                    raise DatasetPlatformError("INVALID_DATASET", f"{path.name}:{line_number} must be an object", dataset=version, path=path)
                 rows.append(value)
         return rows
     except DatasetPlatformError:
         raise
     except PermissionError as exc:
-        raise DatasetPlatformError("ACCESS_DENIED", "لا توجد صلاحية لقراءة Dataset", dataset=version, path=path) from exc
+        raise DatasetPlatformError("ACCESS_DENIED", "Permission denied when reading the dataset", dataset=version, path=path) from exc
     except OSError as exc:
-        raise DatasetPlatformError("BALANCE_ANALYSIS_FAILED", f"تعذر تحليل Dataset: {exc}", dataset=version, path=path) from exc
+        raise DatasetPlatformError("BALANCE_ANALYSIS_FAILED", f"Unable to analyze the dataset: {exc}", dataset=version, path=path) from exc
 
 
 def _messages(row: dict[str, Any]) -> list[dict[str, Any]] | None:
@@ -181,41 +181,41 @@ def analyze_dataset_balance(version: str) -> dict[str, Any]:
     multi_share = record_counts["multi_turn"] / training_conversations if training_conversations else 0
     rule = BALANCE_RULES["multi_turn_share"]
     if training_conversations and multi_share < rule["recommended_min"]:
-        warnings.append(_warning("MULTITURN_UNDERREPRESENTED", "warning", "record_type", "Multi-turn underrepresented", "حصة سجلات Multi-turn أقل من النطاق الموصى به لبيانات المحادثة.", round(multi_share, 4), **rule))
+        warnings.append(_warning("MULTITURN_UNDERREPRESENTED", "warning", "record_type", "Multi-turn underrepresented", "The share of multi-turn records is below the recommended range for conversation data.", round(multi_share, 4), **rule))
     elif training_conversations and multi_share > rule["recommended_max"]:
-        warnings.append(_warning("MULTITURN_OVERREPRESENTED", "warning", "record_type", "Multi-turn overrepresented", "حصة سجلات Multi-turn أعلى من النطاق الموصى به لبيانات المحادثة.", round(multi_share, 4), **rule))
+        warnings.append(_warning("MULTITURN_OVERREPRESENTED", "warning", "record_type", "Multi-turn overrepresented", "The share of multi-turn records is above the recommended range for conversation data.", round(multi_share, 4), **rule))
     source_total = sum(source_counts.values()); top_source, top_count = source_counts.most_common(1)[0] if source_counts else ("Unknown", 0)
     source_share = top_count / source_total if source_total else 0
     if len(source_counts) > 1 and source_share > BALANCE_RULES["source_dominance"]["recommended_max"]:
-        warnings.append(_warning("SOURCE_DOMINANCE", "warning", "source", "One source dominates", f"المصدر {top_source} يهيمن على معظم السجلات.", round(source_share, 4), **BALANCE_RULES["source_dominance"]))
+        warnings.append(_warning("SOURCE_DOMINANCE", "warning", "source", "One source dominates", f"Source {top_source} dominates most records.", round(source_share, 4), **BALANCE_RULES["source_dominance"]))
     very_short_share = sum(length < 40 for length in assistant_lengths) / len(assistant_lengths) if assistant_lengths else 0
     if very_short_share > BALANCE_RULES["very_short_assistant_share"]["recommended_max"]:
-        warnings.append(_warning("VERY_SHORT_ASSISTANT_RESPONSES", "warning", "text_length", "Too many very-short assistant responses", "نسبة الردود الأقصر من 40 محرفًا مرتفعة.", round(very_short_share, 4), **BALANCE_RULES["very_short_assistant_share"]))
-    if malformed or unknown_records: warnings.append(_warning("UNSUPPORTED_RECORDS", "error", "record_type", "Unsupported or malformed records", "بعض السجلات لا تطابق البنية المدعومة للتحليل.", malformed + unknown_records, recommended_max=0))
-    if exact_records: warnings.append(_warning("EXACT_DUPLICATE_RECORDS", "error", "duplicates", "Exact duplicate records", "تم العثور على سجلات متطابقة بالكامل.", exact_records, recommended_max=0))
+        warnings.append(_warning("VERY_SHORT_ASSISTANT_RESPONSES", "warning", "text_length", "Too many very-short assistant responses", "The share of responses shorter than 40 characters is high.", round(very_short_share, 4), **BALANCE_RULES["very_short_assistant_share"]))
+    if malformed or unknown_records: warnings.append(_warning("UNSUPPORTED_RECORDS", "error", "record_type", "Unsupported or malformed records", "Some records do not match the structure supported by this analysis.", malformed + unknown_records, recommended_max=0))
+    if exact_records: warnings.append(_warning("EXACT_DUPLICATE_RECORDS", "error", "duplicates", "Exact duplicate records", "Exact duplicate records were found.", exact_records, recommended_max=0))
     if eval_integrity.get("conversation_overlap_count", 0):
-        warnings.append(_warning("EVALUATION_CONVERSATION_OVERLAP", "warning", "evaluation_integrity", "Evaluation conversation overlap", "بعض معرّفات المحادثات تظهر في التدريب والتقييم؛ راجع سلامة الفصل قبل أي تدريب.", eval_integrity["conversation_overlap_count"], recommended_max=0))
+        warnings.append(_warning("EVALUATION_CONVERSATION_OVERLAP", "warning", "evaluation_integrity", "Evaluation conversation overlap", "Some conversation identifiers occur in both training and evaluation; review split integrity before training.", eval_integrity["conversation_overlap_count"], recommended_max=0))
     if eval_integrity.get("exact_target_overlap_count", 0):
-        warnings.append(_warning("EVALUATION_TARGET_OVERLAP", "error", "evaluation_integrity", "Evaluation target overlap", "توجد أهداف متطابقة بين التدريب والتقييم.", eval_integrity["exact_target_overlap_count"], recommended_max=0))
-    if total_records == 0: warnings.append(_warning("EMPTY_DATASET", "error", "record_type", "Empty dataset", "الإصدار لا يحتوي سجلات قابلة للتحليل.", 0, recommended_min=1))
+        warnings.append(_warning("EVALUATION_TARGET_OVERLAP", "error", "evaluation_integrity", "Evaluation target overlap", "Identical targets occur in training and evaluation.", eval_integrity["exact_target_overlap_count"], recommended_max=0))
+    if total_records == 0: warnings.append(_warning("EMPTY_DATASET", "error", "record_type", "Empty dataset", "The version contains no analyzable records.", 0, recommended_min=1))
 
     actions = {
-        "MULTITURN_UNDERREPRESENTED": ("high", "record_mix", "زيادة عينات Multi-turn بعد مراجعة بشرية، من دون تغيير هذا الإصدار المجمد."),
-        "MULTITURN_OVERREPRESENTED": ("medium", "record_mix", "إضافة عينات SFT أحادية الدور إلى إصدار جديد بعد الموافقة."),
-        "SOURCE_DOMINANCE": ("high", "source_diversity", "جمع ومراجعة عينات من مصادر أقل تمثيلًا في إصدار جديد."),
-        "VERY_SHORT_ASSISTANT_RESPONSES": ("medium", "length_mix", "مراجعة تمثيل الردود القصيرة وإضافة أمثلة أطول عند ملاءمتها للمهمة."),
-        "UNSUPPORTED_RECORDS": ("high", "data_quality", "فحص السجلات غير المدعومة يدويًا قبل استخدامها في أي تدريب."),
-        "EXACT_DUPLICATE_RECORDS": ("high", "duplicates", "مراجعة التكرارات وإنشاء إصدار جديد فقط إذا تمت الموافقة على المعالجة."),
-        "EVALUATION_CONVERSATION_OVERLAP": ("high", "evaluation_integrity", "مراجعة معرّفات المحادثات المتداخلة، ثم اتخاذ قرار بشري بشأن إصدار مستقبلي."),
-        "EVALUATION_TARGET_OVERLAP": ("high", "evaluation_integrity", "إزالة تسرب أهداف التقييم فقط عبر إصدار جديد وبعد موافقة صريحة."),
-        "EMPTY_DATASET": ("high", "availability", "اختيار إصدار قابل للقراءة ويحتوي سجلات."),
+        "MULTITURN_UNDERREPRESENTED": ("high", "record_mix", "Add multi-turn samples after human review, without modifying this frozen version."),
+        "MULTITURN_OVERREPRESENTED": ("medium", "record_mix", "Add single-turn SFT samples to a new version after approval."),
+        "SOURCE_DOMINANCE": ("high", "source_diversity", "Collect and review samples from underrepresented sources in a new version."),
+        "VERY_SHORT_ASSISTANT_RESPONSES": ("medium", "length_mix", "Review short-response representation and add longer examples where appropriate for the task."),
+        "UNSUPPORTED_RECORDS": ("high", "data_quality", "Manually inspect unsupported records before using them for training."),
+        "EXACT_DUPLICATE_RECORDS": ("high", "duplicates", "Review duplicates and create a new version only after the proposed remediation is approved."),
+        "EVALUATION_CONVERSATION_OVERLAP": ("high", "evaluation_integrity", "Review overlapping conversation identifiers, then make a human decision about a future version."),
+        "EVALUATION_TARGET_OVERLAP": ("high", "evaluation_integrity", "Remove evaluation-target leakage only in a new version after explicit approval."),
+        "EMPTY_DATASET": ("high", "availability", "Select a readable version that contains records."),
     }
     recommendations = []
     for item in warnings:
         priority, category, action = actions[item["code"]]
         recommendations.append({"priority": priority, "category": category, "reason": item["title"], "evidence": {key: value for key, value in item.items() if key == "observed" or key.startswith("recommended_")}, "suggested_action": action})
     if not warnings:
-        recommendations.append({"priority": "info", "category": "balance", "reason": "No balance rule was triggered", "evidence": {"rules": BALANCE_RULES}, "suggested_action": "الحفاظ على المزيج الحالي ومراجعته مجددًا عند إنشاء إصدار جديد."})
+        recommendations.append({"priority": "info", "category": "balance", "reason": "No balance rule was triggered", "evidence": {"rules": BALANCE_RULES}, "suggested_action": "Preserve the current mix and review it again when creating a new version."})
     status = "UNAVAILABLE" if total_records == 0 else "IMBALANCED" if any(item["severity"] == "error" for item in warnings) else "NEEDS_ATTENTION" if warnings else "BALANCED"
     return {
         "version": version, "state": _state(manifest, version), "analyzed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), "read_only": True,

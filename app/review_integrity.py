@@ -22,7 +22,7 @@ class ExportReadinessError(ValueError):
         )
         if len(blockers) > 5:
             summary += f"; +{len(blockers) - 5} more"
-        super().__init__(f"تصدير البيانات محجوب: {summary or 'فشل فحص الجاهزية'}")
+        super().__init__(f"Data export is blocked: {summary or 'Readiness check failed'}")
 
 
 def _normalized(value: str | None) -> str:
@@ -87,13 +87,13 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
             (int(include_demo),),
         ).fetchall()
     except sqlite3.Error as exc:
-        finding = _finding("REVIEW_DATA_UNAVAILABLE", None, "تعذر قراءة علاقات المراجعة المطلوبة للتصدير", "ERROR",
+        finding = _finding("REVIEW_DATA_UNAVAILABLE", None, "Unable to read the review relationships required for export", "ERROR",
                            confirmed=True, details={"error": type(exc).__name__})
         return _result([finding], include_demo)
 
     for item in missing:
         findings.append(_finding(
-            "REVIEW_MISSING", f"message:{item['id']}", "رسالة مساعد بلا قرار مراجعة", "ERROR", confirmed=True,
+            "REVIEW_MISSING", f"message:{item['id']}", "Assistant message has no review decision", "ERROR", confirmed=True,
             details={"conversation_id": item["external_conversation_id"]},
         ))
 
@@ -101,7 +101,7 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
     if not event_table:
         findings.append(_finding(
             "REVIEW_HISTORY_UNAVAILABLE", None,
-            "سجل أحداث المراجعة غير مُرحّل بعد؛ يمكن فحص الحالة الحالية لكن لا يمكن إثبات التسلسل التاريخي كاملًا",
+            "Review events have not been migrated; current state can be inspected, but the complete historical sequence cannot be established",
             "WARNING", confirmed=False,
         ))
 
@@ -110,60 +110,60 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
         status = str(row["review_status"] or "")
         corrected = row["corrected_response"]
         if row["source_message_id"] is None:
-            findings.append(_finding("REVIEW_SOURCE_MISSING", sample_id, "المراجعة لا ترتبط برسالة أصلية موجودة", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_SOURCE_MISSING", sample_id, "The review is not linked to an existing original message", "ERROR", confirmed=True))
             continue
         if row["message_role"] != "assistant":
-            findings.append(_finding("REVIEW_SOURCE_ROLE_INVALID", sample_id, "المراجعة مرتبطة برسالة ليست من دور assistant", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_SOURCE_ROLE_INVALID", sample_id, "The review is linked to a message whose role is not assistant", "ERROR", confirmed=True))
         if not str(row["original_response"] or "").strip():
-            findings.append(_finding("REVIEW_ORIGINAL_MISSING", sample_id, "لقطة الرد الأصلي مفقودة", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_ORIGINAL_MISSING", sample_id, "The original response snapshot is missing", "ERROR", confirmed=True))
         elif row["original_response"] != row["message_content"]:
             if _normalized(row["original_response"]) == _normalized(row["message_content"]):
                 findings.append(_finding(
                     "REVIEW_SOURCE_FORMAT_DRIFT", sample_id,
-                    "الرد الأصلي ورسالة المصدر يختلفان شكليًا فقط؛ يلزم تحقق بشري قبل اعتباره stale",
+                    "The original response and source message differ only in formatting; human verification is required before marking the review stale",
                     "WARNING", confirmed=False,
                 ))
             else:
                 findings.append(_finding(
-                    "REVIEW_SOURCE_STALE", sample_id, "رسالة المصدر تغيّرت بعد إنشاء لقطة المراجعة", "ERROR", confirmed=True,
+                    "REVIEW_SOURCE_STALE", sample_id, "The source message changed after the review snapshot was created", "ERROR", confirmed=True,
                     details={"recorded_sha256": _sha256(row["original_response"]), "current_sha256": _sha256(row["message_content"])},
                 ))
         if status == "PENDING":
-            findings.append(_finding("REVIEW_PENDING", sample_id, "قرار المراجعة المطلوب لم يُحسم", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_PENDING", sample_id, "The required review decision is unresolved", "ERROR", confirmed=True))
         if status in CORRECTIONS and not str(corrected or "").strip():
-            findings.append(_finding("REVIEW_CORRECTION_MISSING", sample_id, "حالة التصحيح لا تحتوي نصًا مصححًا", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_CORRECTION_MISSING", sample_id, "The correction status has no corrected text", "ERROR", confirmed=True))
         if status == "PENDING" and corrected is not None:
             findings.append(_finding(
                 "REVIEW_PRESERVED_CORRECTION_PENDING", sample_id,
-                "يوجد تصحيح محفوظ من قرار سابق، لكنه غير نشط حتى تُحسم المراجعة المستعادة",
+                "A correction from a previous decision is retained but remains inactive until the restored review is resolved",
                 "WARNING", confirmed=False,
             ))
         elif status not in CORRECTIONS and corrected is not None:
-            findings.append(_finding("REVIEW_CORRECTION_STATUS_CONFLICT", sample_id, "يوجد نص مصحح مع حالة لا تمثل تصحيحًا", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_CORRECTION_STATUS_CONFLICT", sample_id, "Corrected text exists with a status that does not represent a correction", "ERROR", confirmed=True))
         if bool(row["training_eligible"]) and status not in DECISIONS:
-            findings.append(_finding("REVIEW_ELIGIBILITY_CONFLICT", sample_id, "عينة غير محسومة أو غير نشطة معلّمة للتدريب", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_ELIGIBILITY_CONFLICT", sample_id, "An unresolved or inactive sample is marked for training", "ERROR", confirmed=True))
         if bool(row["training_eligible"]) and bool(row["evaluation_only"]):
-            findings.append(_finding("REVIEW_SPLIT_CONFLICT", sample_id, "العينة معلّمة للتدريب والتقييم فقط في آن واحد", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_SPLIT_CONFLICT", sample_id, "The sample is marked for both training and evaluation-only use", "ERROR", confirmed=True))
         if not str(row["reviewer"] or "").strip():
-            findings.append(_finding("REVIEW_PROVENANCE_MISSING", sample_id, "هوية مصدر قرار المراجعة مفقودة", "ERROR", confirmed=True))
+            findings.append(_finding("REVIEW_PROVENANCE_MISSING", sample_id, "The review decision source identity is missing", "ERROR", confirmed=True))
 
         if event_table:
             events = conn.execute(
                 "SELECT sequence,to_status,source_sha256 FROM review_events WHERE review_id=? ORDER BY sequence", (row["id"],)
             ).fetchall()
             if not events:
-                findings.append(_finding("REVIEW_EVENT_MISSING", sample_id, "الحالة الحالية لا تملك حدث مراجعة موثقًا", "ERROR", confirmed=True))
+                findings.append(_finding("REVIEW_EVENT_MISSING", sample_id, "The current state has no recorded review event", "ERROR", confirmed=True))
             else:
                 expected = list(range(1, len(events) + 1))
                 actual = [event["sequence"] for event in events]
                 if actual != expected:
-                    findings.append(_finding("REVIEW_EVENT_SEQUENCE_CONFLICT", sample_id, "تسلسل أحداث المراجعة غير متصل", "ERROR", confirmed=True,
+                    findings.append(_finding("REVIEW_EVENT_SEQUENCE_CONFLICT", sample_id, "The review event sequence is discontinuous", "ERROR", confirmed=True,
                                              details={"expected": expected, "actual": actual}))
                 latest = events[-1]
                 if latest["to_status"] != status:
-                    findings.append(_finding("REVIEW_EVENT_STATUS_CONFLICT", sample_id, "آخر حدث لا يطابق الحالة الحالية", "ERROR", confirmed=True))
+                    findings.append(_finding("REVIEW_EVENT_STATUS_CONFLICT", sample_id, "The latest event does not match the current status", "ERROR", confirmed=True))
                 if latest["source_sha256"] != _sha256(row["message_content"]):
-                    findings.append(_finding("REVIEW_EVENT_SOURCE_STALE", sample_id, "بصمة المصدر في آخر حدث قديمة", "ERROR", confirmed=True))
+                    findings.append(_finding("REVIEW_EVENT_SOURCE_STALE", sample_id, "The source fingerprint in the latest event is stale", "ERROR", confirmed=True))
 
     return _result(findings, include_demo)
 
@@ -192,7 +192,7 @@ def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = Fals
         conn = sqlite3.connect(f"file:{path.resolve().as_posix()}?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row
     except (sqlite3.Error, OSError) as exc:
-        return _result([_finding("DATABASE_UNAVAILABLE", None, "قاعدة بيانات المصدر غير متاحة", "ERROR", confirmed=True,
+        return _result([_finding("DATABASE_UNAVAILABLE", None, "The source database is unavailable", "ERROR", confirmed=True,
                                  details={"error": type(exc).__name__})], include_demo)
     try:
         result = review_integrity(conn, include_demo=include_demo)
@@ -212,12 +212,12 @@ def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = Fals
                 """
             , (int(include_demo),)).fetchone()[0]
         except sqlite3.Error as exc:
-            extra = _finding("EXPORT_SOURCE_DATA_UNAVAILABLE", None, "تعذر التحقق من مصادر بيانات التصدير", "ERROR", confirmed=True,
+            extra = _finding("EXPORT_SOURCE_DATA_UNAVAILABLE", None, "Unable to verify export data sources", "ERROR", confirmed=True,
                              details={"error": type(exc).__name__})
             return _result([*result["findings"], extra], include_demo)
         if exportable == 0:
             result = _result([*result["findings"], _finding(
-                "NO_EXPORTABLE_DATA", None, "لا توجد سجلات مراجعة أو بيانات يدوية مؤهلة للبناء", "ERROR", confirmed=True
+                "NO_EXPORTABLE_DATA", None, "No reviewed records or manual data are eligible for a build", "ERROR", confirmed=True
             )], include_demo)
         result["exportable_records"] = int(exportable)
         result["policy"] = "fail_closed_confirmed_errors; ambiguous_findings_warn_only; frozen_releases_unchanged"

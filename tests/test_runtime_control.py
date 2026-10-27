@@ -175,18 +175,18 @@ class RuntimeControlTests(unittest.TestCase):
         self.prepare_full_authorization()
         with self.assertRaises(training.TrainingControlError) as caught: runtime.authorize_full_training(self.job_id,"yes")
         self.assertEqual(caught.exception.code,"AUTHORIZATION_ACK_REQUIRED")
-        auth=runtime.authorize_full_training(self.job_id,f"أوافق على بدء Full Training للمهمة {self.job_id}")
+        auth=runtime.authorize_full_training(self.job_id,f"I agree to start FULL TRAINING for job {self.job_id}")
         stored=json.loads((self.jobs/self.job_id/"full-training-authorization.json").read_text(encoding="utf-8")); self.assertNotIn(auth["token"],json.dumps(stored)); self.assertEqual(len(stored["token_sha256"]),64)
 
     def test_full_authorization_single_use_and_full_command(self):
-        self.prepare_full_authorization(); auth=runtime.authorize_full_training(self.job_id,f"أوافق على بدء Full Training للمهمة {self.job_id}")
+        self.prepare_full_authorization(); auth=runtime.authorize_full_training(self.job_id,f"I agree to start FULL TRAINING for job {self.job_id}")
         with patch.object(runtime.threading.Thread,"start",return_value=None): attempt=runtime.start_full_training(self.job_id,auth["token"])
         self.assertEqual(attempt["attempt_type"],"FULL"); self.assertIn("--full-training",attempt["command"]["args"]); self.assertNotIn("--smoke-test",attempt["command"]["args"])
         with self.assertRaises(training.TrainingControlError) as caught: runtime.start_full_training(self.job_id,auth["token"])
         self.assertEqual(caught.exception.code,"AUTHORIZATION_ALREADY_USED")
 
     def test_full_authorization_rejects_wrong_token(self):
-        self.prepare_full_authorization(); runtime.authorize_full_training(self.job_id,f"أوافق على بدء Full Training للمهمة {self.job_id}")
+        self.prepare_full_authorization(); runtime.authorize_full_training(self.job_id,f"I agree to start FULL TRAINING for job {self.job_id}")
         with self.assertRaises(training.TrainingControlError) as caught: runtime.start_full_training(self.job_id,"wrong")
         self.assertEqual(caught.exception.code,"AUTHORIZATION_JOB_MISMATCH")
 

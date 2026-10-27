@@ -9,7 +9,8 @@ import threading
 import unittest
 import zipfile
 from pathlib import Path
-from urllib.request import Request, urlopen
+from urllib.request import Request
+from tests.http_client import urlopen
 from unittest.mock import patch
 
 import app.server as server_module
@@ -610,21 +611,21 @@ class NajdiLabTests(unittest.TestCase):
         javascript = (static_root / "app.js").read_text(encoding="utf-8")
         combined = html + javascript
         for button_id, label in (
-            ("approve-review", "اعتماد"),
-            ("edit-review", "تعديل"),
-            ("exclude-review", "استبعاد"),
-            ("delete-review", "حذف"),
+            ("approve-review", "Approve"),
+            ("edit-review", "Edit"),
+            ("exclude-review", "Exclude"),
+            ("delete-review", "Delete"),
         ):
             self.assertIn(f'id="{button_id}"', html)
             self.assertIn(label, html)
         for action in ("approve", "correct", "exclude", "delete"):
             self.assertIn(f"runReviewAction('{action}'", javascript)
-        self.assertIn("IGNORED:'تم تجاهلها'", javascript)
-        self.assertIn("DELETED:'محذوفة'", javascript)
+        self.assertIn("IGNORED:'Ignored'", javascript)
+        self.assertIn("DELETED:'Deleted'", javascript)
         # Phase 3 Human Review intentionally has a temporary-defer control; the
         # legacy review queue must still have no skip-review action.
         self.assertNotIn("skip-review", combined)
-        self.assertNotIn("حذف نهائي", combined)
+        self.assertNotIn("Permanently delete", combined)
         self.assertNotIn("prompt(", combined)
 
     def test_29_all_review_decisions_stay_out_of_queue_after_reload(self):

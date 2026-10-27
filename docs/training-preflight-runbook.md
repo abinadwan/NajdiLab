@@ -1,34 +1,28 @@
-# دليل تشغيل فحص جاهزية التدريب
+# Training preflight runbook
 
-## الغرض
+Preflight proves that the selected model, dataset, configuration and environment agree before READY. It performs no optimizer steps.
 
-الفحص يثبت أن اختيار النموذج والبيانات والإعدادات والبيئة متسق قبل السماح بحالة READY. لا ينفذ optimizer steps.
+## Sequence
 
-## التسلسل الآمن
+1. Select a registered, validated, non-excluded model.
+2. Select a dataset passing quality and release validation.
+3. Configure LoRA/QLoRA, rank, alpha, target modules, learning rate, batch size, accumulation, epochs/steps, sequence length, precision, checkpointing and seed.
+4. Run a live environment check. Measurements must identify `LIVE`, `CACHED`, `ESTIMATE` or `UNAVAILABLE`.
+5. Review VRAM. An estimate does not guarantee fit.
+6. Create DRAFT and run Safe Dry Run to generate the execution manifest only.
 
-1. اختر نموذجًا مسجلًا ومتحققًا وغير مستبعد.
-2. اختر إصدار بيانات يمر من بوابة الجودة وإصدار البيانات.
-3. اضبط LoRA/QLoRA، الرتبة وAlpha والوحدات، معدل التعلم، الدفعة، التراكم، الدورات/الخطوات، طول التسلسل، precision، checkpointing والبذرة.
-4. شغّل فحص البيئة الحي. يجب تمييز القياس إلى `LIVE`, `CACHED`, `ESTIMATE`, أو `UNAVAILABLE`.
-5. راجع تقدير VRAM؛ التقدير ليس ضمانًا للملاءمة.
-6. أنشئ DRAFT ثم Safe Dry Run لإنتاج execution manifest فقط.
+## Stop conditions
 
-## شروط الإيقاف
+- Unvalidated, excluded or changed model fingerprint.
+- `BLOCKED` dataset quality or stale dataset fingerprint.
+- Failed CUDA, tokenizer, Transformers, Unsloth, PEFT, TRL or bitsandbytes checks required by the selected runtime.
+- Missing required live measurements or insufficient VRAM.
+- Staging, runtime or worker no longer matches the job snapshot.
 
-- نموذج غير متحقق، مستبعد، أو تغيرت بصمته.
-- جودة بيانات `BLOCKED` أو بصمة بيانات قديمة.
-- فشل CUDA/Tokenizer/Transformers/Unsloth/PEFT/TRL/bitsandbytes.
-- تعذر القياس الحي المطلوب أو VRAM غير كافٍ.
-- اختلاف staging أو runtime أو worker عن Snapshot المهمة.
+## Historical live measurement — 2026-10-09
 
-## الحالة الحية في 2026-10-09
+NVIDIA GeForce RTX 5070: 12,227 MiB total, 586 MiB used and 11,358 MiB available at observation. Python 3.13.15; PyTorch 2.12.1+cu132; CUDA 13.2; Transformers 5.5.0; Unsloth 2026.9.12; PEFT 0.21.1; TRL 0.24.0; bitsandbytes 0.50.2. These are recorded observations, not a portable installation lockfile or fresh evidence.
 
-- GPU: NVIDIA GeForce RTX 5070.
-- VRAM: 12,227 MiB إجمالي، 586 MiB مستخدم، 11,358 MiB متاح وقت القياس.
-- Python 3.13.15؛ PyTorch 2.12.1+cu132؛ CUDA 13.2.
-- Transformers 5.5.0؛ Unsloth 2026.9.12؛ PEFT 0.21.1؛ TRL 0.24.0؛ bitsandbytes 0.50.2.
+## Approval boundaries
 
-## الموافقات
-
-Safe Dry Run وفحص البيئة مسموحان. بدء Smoke يتطلب موافقة صريحة مستقلة لأنه ينفذ optimizer steps. Full Training يتطلب موافقة أخرى بعد Smoke ناجح، ولا يجيز merge أو GGUF أو Ollama.
-
+Safe Dry Run and environment checks do not authorize optimizer work. Smoke needs explicit approval. Full Training requires separate approval after successful Smoke, and grants no merge, GGUF or Ollama authorization. Existing historical approvals do not apply to a new environment or changed fingerprints.

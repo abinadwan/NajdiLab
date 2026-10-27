@@ -2,18 +2,21 @@
 # -*- coding: utf-8 -*-
 """
 Dataset Influence Audit - Verification Pass
-تحقق حسابي من جميع النتائج دون تعديل البيانات الأصلية
+Verify all computed results without modifying the source data.
 """
 
 import json
 import os
+from pathlib import Path
 from collections import Counter
 
+ROOT = Path(__file__).resolve().parents[1]
+
 # Paths
-SFT_PATH = r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean\sft.jsonl"
-MULTI_TURN_PATH = r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean\multi_turn.jsonl"
-EVAL_PATH = r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean\text_sft_eval.jsonl"
-REPORTS_DIR = r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\reports"
+SFT_PATH = ROOT / 'exports/gold-v006-clean/sft.jsonl'
+MULTI_TURN_PATH = ROOT / 'exports/gold-v006-clean/multi_turn.jsonl'
+EVAL_PATH = ROOT / 'exports/gold-v006-clean/text_sft_eval.jsonl'
+REPORTS_DIR = ROOT / 'reports'
 
 def load_jsonl(path):
     """Load JSONL file and return list of records"""

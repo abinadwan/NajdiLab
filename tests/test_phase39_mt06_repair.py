@@ -1,7 +1,10 @@
 import json, unittest
 from app.phase39_edits import PHASE39, V009
 
+from tests.private_artifacts import requires_private_artifacts
+
 class Mt06RepairTests(unittest.TestCase):
+    @requires_private_artifacts('datasets/gold-v009-remediation-draft/multi_turn.jsonl', 'reports/phase39/edit-audit.json', 'reports/phase39/post-edit-verification.json')
     def test_mt06_targets_turn_four_only_and_queue_is_updated(self):
         row=next(json.loads(x) for x in (V009/'multi_turn.jsonl').read_text(encoding='utf-8').splitlines() if json.loads(x).get('id')=='p38-mt-06')
         self.assertIn(row['messages'][1]['content'], {'تم، برد عليك بالعربي.','تم، برد عليك بالعربي.\n'})

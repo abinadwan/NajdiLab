@@ -1,18 +1,18 @@
-/* Arabic-first RTL layout and Phase 3.8 review workspace. */
-html{direction:rtl}
-body{text-align:right;overflow-x:hidden}
-.shell{direction:rtl;grid-template-columns:240px minmax(0,1fr)}
-.sidebar{grid-column:1;direction:rtl;inset-inline-end:0}
-.main{grid-column:2;direction:rtl}
+/* English LTR layout with isolated bidirectional content and Phase 3.8 review workspace. */
+html{direction:ltr}
+body{text-align:start;overflow-x:hidden}
+.shell{direction:ltr;grid-template-columns:240px minmax(0,1fr)}
+.sidebar{grid-column:1;direction:ltr;inset-inline-start:0}
+.main{grid-column:2;direction:ltr}
 .top-actions{margin-inline-start:auto;margin-inline-end:0}
 .nav-item{width:100%;text-align:start}
 .nav-item b{margin-inline-start:auto;margin-inline-end:0}
 .nav-label{display:flex;flex-direction:column;line-height:1.25}
-.nav-label small{color:#7f9992;font-size:.62rem;direction:ltr;text-align:right}
+.nav-label small{color:#7f9992;font-size:.62rem;direction:ltr;text-align:start}
 .nav-group{display:block;color:#6f8b83;font-size:.64rem;font-weight:800;letter-spacing:.04em;padding:15px 12px 3px}
 .sidebar nav{gap:2px;margin-top:10px;overflow-y:auto;scrollbar-width:thin}
 .toast{inset-inline-end:24px;inset-inline-start:auto}
-.technical-id,code,pre,[dir="ltr"]{direction:ltr;text-align:left;unicode-bidi:isolate}
+.technical-id,code,[dir="ltr"]{direction:ltr;text-align:left;unicode-bidi:isolate}
 :focus-visible{outline:3px solid #d9a83d;outline-offset:2px}
 .phase38-head{padding:20px 22px;display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:14px}
 .phase38-head h2{margin:2px 0}.phase38-head p{margin:5px 0 0;color:var(--muted);font-size:.84rem;max-width:760px}
@@ -39,4 +39,9 @@ body{text-align:right;overflow-x:hidden}
 .coverage-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.coverage-chips span{font-size:.67rem;background:var(--mint-soft);color:#287965;border-radius:14px;padding:3px 8px}
 .sidebar-collapsed .nav-group{display:none}
 @media(max-width:1050px){.phase38-workspace{grid-template-columns:1fr}.phase38-review-panel{position:static}}
-@media(max-width:760px){.shell{display:block}.sidebar{grid-column:auto;position:fixed;inset-inline-end:0;right:auto;left:auto;transform:translateX(105%);width:240px}.sidebar.open{transform:translateX(0)}.main{grid-column:auto}.top-actions{margin-inline-start:auto}.phase38-head{flex-direction:column}.phase38-summary{grid-template-columns:repeat(2,1fr)}.phase38-criteria{grid-template-columns:1fr}.phase38-decisions{grid-template-columns:1fr}.phase38-record,.phase38-review-panel{padding:15px}.phase38-message.user,.phase38-message.assistant{margin-inline:0}.toast{inset-inline:12px}}
+@media(max-width:760px){.shell{display:block}.sidebar{grid-column:auto;position:fixed;inset-inline-end:auto;inset-inline-start:0;transform:translateX(-105%);width:240px}.sidebar.open{transform:translateX(0)}.main{grid-column:auto}.top-actions{margin-inline-start:auto}.phase38-head{flex-direction:column}.phase38-summary{grid-template-columns:repeat(2,1fr)}.phase38-criteria{grid-template-columns:1fr}.phase38-decisions{grid-template-columns:1fr}.phase38-record,.phase38-review-panel{padding:15px}.phase38-message.user,.phase38-message.assistant{margin-inline:0}.toast{inset-inline:12px}}
+
+/* Content direction is determined from stored text, independently of chrome. */
+[dir="auto"],bdi{unicode-bidi:isolate;text-align:start}
+textarea[dir="auto"]{unicode-bidi:plaintext}
+.message p,.phase38-message p,.phase3-compare pre,.full-text{overflow-wrap:anywhere}

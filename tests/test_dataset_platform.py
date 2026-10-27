@@ -21,6 +21,8 @@ def row(record_id: str, conversation: str, target: str, turns: int = 1) -> dict:
     return {"id": record_id, "conversation_id": conversation, "messages": messages, "target_message_index": target_index, "message_loss_mask": [0] * target_index + [1]}
 
 
+from tests.private_artifacts import requires_private_artifacts
+
 class DatasetPlatformTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -101,7 +103,7 @@ class DatasetPlatformTests(unittest.TestCase):
             platform.dataset_health("../data")
 
     def test_missing_dataset_returns_controlled_error(self):
-        with self.assertRaisesRegex(platform.DatasetPlatformError, "غير موجود"):
+        with self.assertRaisesRegex(platform.DatasetPlatformError, "not found"):
             platform.dataset_health("gold-v999")
 
     def test_inventory_keeps_good_version_when_one_manifest_is_unreadable(self):
@@ -194,6 +196,7 @@ class DatasetPlatformTests(unittest.TestCase):
 
 
 class DatasetPlatformHttpIntegrationTests(unittest.TestCase):
+    @requires_private_artifacts('datasets/gold-v009-remediation-draft/manifest.json')
     def test_v009_managed_draft_is_registered_and_readable(self):
         versions = {item["version"]: item for item in platform.list_dataset_versions()}
         item = versions["gold-v009-remediation-draft"]
@@ -211,9 +214,14 @@ class DatasetPlatformHttpIntegrationTests(unittest.TestCase):
                 self.assertEqual(raised.exception.code,"DUPLICATE_DATASET_VERSION")
 
     def test_missing_registered_path_reports_structured_error(self):
-        with self.assertRaises(platform.DatasetPlatformError) as raised: platform.dataset_version_detail("gold-does-not-exist")
-        self.assertEqual(raised.exception.code,"DATASET_NOT_FOUND")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with patch.object(platform, "EXPORTS_ROOT", root), patch.object(platform, "EXPORTS_DIR", root), patch.object(platform, "DATASETS_ROOT", root):
+                with self.assertRaises(platform.DatasetPlatformError) as raised:
+                    platform.dataset_version_detail("gold-does-not-exist")
+                self.assertEqual(raised.exception.code, "DATASET_NOT_FOUND")
 
+    @requires_private_artifacts('exports/gold-v007-balanced/manifest.json')
     def test_real_endpoint_finds_v007_from_different_working_directory(self):
         original_cwd = Path.cwd()
         with tempfile.TemporaryDirectory() as other_cwd:
