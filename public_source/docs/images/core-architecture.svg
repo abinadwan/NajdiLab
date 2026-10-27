@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1000" viewBox="0 0 1200 1000" role="img" aria-labelledby="title desc">
+<title id="title">NajdiLab Core — verified source-only architecture</title>
+<desc id="desc">Local browser and credentialed ingestion enter loopback request checks. Atomic review and read-only dataset diagnostics use SQLite and private version files. Explicit downloads are restricted to verified JSONL. Coherent backup and separate restore are offline. Models and historical extensions are unavailable.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#35647a" stroke-width="1.4"/></marker></defs>
+<style>text{font-family:system-ui,sans-serif;fill:#15394c}.title{font-size:28px;font-weight:700}.subtitle{font-size:15px;fill:#476477}.heading{font-size:18px;font-weight:650}.body{font-size:14px}.zone{font-size:12px;font-weight:700;letter-spacing:1px;fill:#476477}.line{fill:none;stroke:#35647a;stroke-width:2;marker-end:url(#arrow)}</style>
+<rect width="1200" height="1000" fill="#f7fafb"/>
+<text x="48" y="52" class="title">NajdiLab Core</text><text x="48" y="80" class="subtitle">Local conversation review and dataset preparation · no model execution</text>
+<rect x="28" y="204" width="1144" height="560" rx="18" fill="#ffffff" stroke="#b5cbd6"/>
+<text x="48" y="228" class="zone">CANDIDATE-LOCAL APPLICATION AND STORAGE</text>
+<rect x="48" y="108" width="520" height="74" rx="10" fill="#edf5f8" stroke="#b5cbd6"/>
+<text x="66" y="138" class="heading">Local browser</text>
+<text x="66" y="164" class="body">English controls · Arabic content · explicit saved decisions</text>
+<rect x="632" y="108" width="520" height="74" rx="10" fill="#edf5f8" stroke="#b5cbd6"/>
+<text x="650" y="138" class="heading">Authorized native ingestion</text>
+<text x="650" y="164" class="body">Bearer / HMAC · completed turns · no live integration discovery</text>
+<path d="M308 182 V250" class="line"/>
+<path d="M892 182 V250" class="line"/>
+<rect x="48" y="250" width="1104" height="100" rx="10" fill="#edf5f8" stroke="#b5cbd6"/>
+<text x="66" y="280" class="heading">Loopback HTTP and request boundary</text>
+<text x="66" y="306" class="body">Host / Origin / Fetch Metadata · browser CSRF · native credential checks</text>
+<text x="66" y="328" class="body">JSON framing and 2 MiB limit · safe DOM/CSP · candidate server + http_security</text>
+<path d="M308 350 V388" class="line"/>
+<path d="M892 350 V388" class="line"/>
+<rect x="48" y="388" width="520" height="134" rx="10" fill="#e9f4f1" stroke="#b5cbd6"/>
+<text x="66" y="418" class="heading">Contextual review</text>
+<text x="66" y="444" class="body">core_reviews + service + read-only core_views</text>
+<text x="66" y="466" class="body">BEGIN IMMEDIATE · required revision · preserve flags / notes</text>
+<text x="66" y="488" class="body">Immutable originals · separate corrections · explicit eligibility</text>
+<rect x="632" y="388" width="520" height="134" rx="10" fill="#e9f4f1" stroke="#b5cbd6"/>
+<text x="650" y="418" class="heading">Dataset preparation and inspection</text>
+<text x="650" y="444" class="body">core_datasets + snapshot + generic quality helpers</text>
+<text x="650" y="466" class="body">Context privacy · split / dedup / holdout / strict masks</text>
+<text x="650" y="488" class="body">Registered manifest + exact filenames, counts and SHA256</text>
+<path d="M308 522 V560" class="line"/>
+<path d="M892 522 V560" class="line"/>
+<path d="M780 522 V540 H520 V560" class="line"/>
+<rect x="48" y="560" width="520" height="124" rx="10" fill="#edf5f8" stroke="#b5cbd6"/>
+<text x="66" y="590" class="heading">SQLite: local state</text>
+<text x="66" y="616" class="body">Conversations / original messages / review overlays</text>
+<text x="66" y="638" class="body">Eligibility and privacy decisions · registered version metadata</text>
+<text x="66" y="660" class="body">Existing schema 001–004 only · no proposed SQL</text>
+<rect x="632" y="560" width="520" height="124" rx="10" fill="#edf5f8" stroke="#b5cbd6"/>
+<text x="650" y="590" class="heading">Filesystem: local version evidence</text>
+<text x="650" y="616" class="body">JSONL files + manifest + hashes · never a public upload</text>
+<text x="650" y="638" class="body">Private full_archive.json retains recovery evidence</text>
+<text x="650" y="660" class="body">Verified snapshots feed diagnostics and selected downloads</text>
+<text x="408" y="718" class="body">One server per storage root</text><text x="408" y="740" class="body">OS lock + serialized mutations</text>
+<path d="M892 684 V788" class="line"/>
+<path d="M308 684 V788" class="line"/>
+<path d="M892 684 V764 H520 V788" class="line"/>
+<rect x="48" y="788" width="520" height="122" rx="10" fill="#f0f4f7" stroke="#b5cbd6"/>
+<text x="66" y="818" class="heading">Private backup and separate restore</text>
+<text x="66" y="844" class="body">Local CLI · SQLite snapshot + its registered version bytes</text>
+<text x="66" y="866" class="body">ZIP / database / manifest integrity · exclusive new destination</text>
+<text x="66" y="888" class="body">Full archives remain private; no model/runtime recovery</text>
+<rect x="632" y="788" width="520" height="122" rx="10" fill="#f0f4f7" stroke="#b5cbd6"/>
+<text x="650" y="818" class="heading">Explicit artifact access</text>
+<text x="650" y="844" class="body">HTTP attachment · selected manifest-authorized JSONL only</text>
+<text x="650" y="866" class="body">No archive, DB, credentials, model or arbitrary path access</text>
+<text x="650" y="888" class="body">Local file retrieval is not permission to redistribute</text>
+<rect x="48" y="938" width="1104" height="42" rx="8" fill="#fff5ed" stroke="#c2a68c" stroke-dasharray="5 4"/><text x="66" y="965" class="body">Unavailable: private historical research · model acquisition / training / deployment · extensions return structured 503</text></svg>

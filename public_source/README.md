@@ -1,19 +1,143 @@
-# NajdiLab source-only engineering candidate
+# NajdiLab Core
 
-A local reusable core for Arabic conversation review, original-preserving correction overlays and dataset preparation. This candidate intentionally has a smaller API and interface than the private research application. It contains no historical modules, Git history, weights or research artifacts.
+NajdiLab Core is a local-first workspace for collecting authorized conversations, reviewing Arabic/Najdi responses and preparing traceable datasets. It keeps original messages separate from human corrections, privacy flags and eligibility decisions.
 
-**NOT READY — BLOCKERS REMAIN.** No active source license or permission to publish/redistribute is granted. Source ownership, historical Git privacy and exact third-party/data/model rights remain separate gates. This directory is for isolated engineering verification only.
+It is for dataset curators, reviewers and developers who want to understand what entered a dataset and why. The browser workflow connects conversation context → explicit review → readiness and quality checks → a new local dataset version with integrity hashes.
 
-Python 3.11+ and SQLite 3.24+ are required; core operation uses the standard library. Install: `python scripts/install.py` (Windows) or `python3 scripts/install.py` (Linux). Setup creates a no-pip venv and preserves existing state; first launch initializes only this checkout's existing migrations. No blocked SQL is included.
+**NajdiLab Core is a dataset review and preparation platform, not a complete model-training or inference runtime.** It runs without a GPU, Hermes, Ollama, model weights or an ML framework. Training, historical research and deployment remain unavailable.
 
-Optional synthetic setup, **before first launch and only in a fresh disposable candidate**: `python scripts/synthetic_demo.py --confirm-disposable`. Without this explicit flag no data is created; an existing DB is refused. The two library-card examples are independently fictional and are never loaded by startup. Then launch using `python scripts/launch.py`, or this candidate's `.venv` interpreter, and open http://127.0.0.1:8770. Set NAJDILAB_PORT in the launching shell for a separate port. Ctrl+C stops only that instance. Windows: `.venv\Scripts\python.exe scripts\launch.py` or the included `run.ps1`; Linux: `.venv/bin/python scripts/launch.py` or `sh run.sh`.
+**Private engineering candidate — NOT READY — BLOCKERS REMAIN.** Source ownership, license and exact redistribution approval are unresolved. No active source license, public package or permission to publish is supplied. Original project: [NajdiLab](https://github.com/abinadwan/NajdiLab), currently Private and requiring authorized access.
 
-The small UI supports correction overlays and explicit dataset preparation. Native `POST /api/v1/turn` uses a privately configured `NAJDILAB_INGEST_TOKEN` bearer or HMAC credential; browser mutations require the process CSRF token. `.env` is not automatically loaded. The server binds loopback only; this is a trusted local single-operator tool, not shared/public hosting. HMAC has no replay freshness; the original explicit legacy credential compatibility switch is retained in the reused security module and weakens protection if enabled. Default is fail-closed.
+## Explore
 
-Historical and training routes return 503 / EXTENSION_UNAVAILABLE. Missing other routes return a controlled 404. There is no private loader, production directory discovery, runtime probe, model download or training. Original private implementations and their authorization rules are preserved in the engineering repository; enabling any private adapter requires separate reviewed explicit wiring.
+- [Practical user guide](docs/user-guide.md): fictional Arabic review-to-dataset journey.
+- [Core architecture](docs/architecture.md): editable SVG, storage and security boundaries.
+- [Actual interface screenshots](docs/screenshots.md): real application, synthetic data only.
+- [Exact API scope](docs/api.md), [contributor guidance](CONTRIBUTING.md).
+- [Historical initial profile](docs/initial-profile.md): retained evidence, superseded instructions.
 
-Dataset preparation is not training. Mark only verified eligible local examples; privacy, review-integrity, dedup and holdout rules still apply. The two-row quick demo alone is insufficient for the existing evaluation-split gate. The contract independently creates additional numbered fictional cards to satisfy the unchanged split/eligibility rules; it builds a local version and inspects health/quality. It never touches frozen research versions.
+## Included scope
 
-Run `python -m unittest discover -s tests -p test_candidate_contract.py` for the self-contained exact-candidate installation/API/security/Arabic/correction/dataset/backup contract. Optional test tooling: `python -m ensurepip`, `python -m pip install -r requirements-dev.txt`, `python -m pytest -q tests -rs` (use a disposable copy; tests mutate temporary state). Existing reused unit tests cover clean export and quality; the candidate contract covers review overlays. Read skips separately; no historical data checks are claimed here.
+Contextual conversation inspection/search; pending/reviewed/eligible/excluded/evaluation filters; original-preserving corrections, approve/exclude/restore; explicit privacy/eligibility flags; mandatory server-side stale-save protection; read-only readiness/dedup/quality/balance/holdout inspection; version preparation and manifest/hash inspection; selected JSONL downloads; coherent private backup and separate validated restore.
 
-MANIFEST.json contains deterministic source hashes and blocked-component status, not a legal clearance. Verify a **pristine** directory using the original builder's `--verify` command before installation; generated environments, caches and databases intentionally make a used directory fail exact verification. Keep a pristine copy for comparison. SHA256 detects changes; it does not authenticate a maliciously replaced manifest. Back up synthetic/local state with `python scripts/backup.py`; restore into a separate directory and verify integrity/FKs/counts. Never overwrite live evidence. No package is uploaded automatically.
+Deferred: manual direct/preference editing/preparation, bulk management, model configuration, offline model planning, general human model comparison, canonical registry/events and proposed SQL. No runtime probing, model acquisition, training, merge, quantization or deployment. Native tool training requires separate support. The original full application's screens, research records and historical evaluations are not included.
+
+## Requirements and official prerequisites
+
+| Technology | Required / verified evidence | Official source |
+|---|---|---|
+| Python | Minimum: 3.11; local testing: 3.12.14; Windows/Linux CI uses 3.12 | [Python downloads](https://www.python.org/downloads/) |
+| SQLite | Minimum: 3.24 via Python sqlite3; local build: 3.53.1; exact CI versions in verification | [SQLite](https://www.sqlite.org/index.html) |
+| Browser | Current Chromium tested; other modern browsers require independent validation | [Chromium](https://www.chromium.org/) |
+| Git | Only needed for authorized engineering checkout, not a generated candidate | [Git downloads](https://git-scm.com/downloads/) |
+| Windows / Linux | Linux container tested; hosted Windows/Ubuntu acceptance pending Goal 6 | [WSL optional](https://learn.microsoft.com/windows/wsl/install) |
+
+Core uses Python's standard library and HTML/CSS/JavaScript without a frontend build step. No Administrator/sudo is required for an ordinary writable checkout. True minimum CPU/RAM/disk has not been benchmarked. Dataset inspection/backup/restore is bounded to 16 MiB per file and 64 MiB aggregate; this is a safety limit, not a hardware minimum. Keep space for source, venv, DB, each version and separate backups. The optional pytest/Node/browser tools below are development tools, not application dependencies. Python/SQLite versions are distinct from dataset identifiers; no software release number is assigned.
+
+## Build first, then install the exact candidate
+
+These instructions run **inside the generated candidate**, identified by MANIFEST.json with profile source-only-engineering-candidate. The engineering repository's root launcher starts the preserved original application. Do not confuse those profiles.
+
+An authorized developer builds from the reviewed implementation checkout:
+
+```sh
+python public_source/build.py --output ../najdilab-core-candidate
+python public_source/build.py --verify ../najdilab-core-candidate
+cd ../najdilab-core-candidate
+```
+
+Output must be a new separate directory. The builder selects reviewed hash-pinned files, excludes Git/private artifacts and refuses unknown source. This is not publication. Preserve a pristine copy for verification; installation and runtime caches/state intentionally make a used copy fail pristine verification.
+
+### Windows PowerShell
+
+```powershell
+python --version
+Get-Content .\scripts\install.py
+python .\scripts\install.py
+.\.venv\Scripts\python.exe .\scripts\synthetic_demo.py --confirm-disposable --workshop
+.\.venv\Scripts\python.exe .\scripts\launch.py
+```
+
+### Linux / Ubuntu / WSL
+
+```sh
+python3 --version
+cat scripts/install.py
+python3 scripts/install.py
+.venv/bin/python scripts/synthetic_demo.py --confirm-disposable --workshop
+sh run.sh
+```
+
+The synthetic command is **optional** and only works before the first launch on a fresh disposable candidate. It creates 32 independently fictional pending conversations, never approvals. Omit --workshop for the preserved two-row demo; that tiny set cannot satisfy current preparation gates. Existing DBs are refused; startup never seeds examples. No installer downloads models or ML packages.
+
+Open http://127.0.0.1:8770. Ctrl+C stops that instance. Set NAJDILAB_PORT in the launching shell for another free port. A different port does not isolate storage: a second server for the same root is refused by an OS lock. An OS may retain a recently closed port; wait or select another free port. Run each independent test instance in its own checkout/storage.
+
+Setup creates an offline no-pip venv and preserves settings/state; repeated setup does not reset the DB. First launch initializes only existing migrations 001–004. Proposed SQL is absent. .env is a template/reference and is **not automatically loaded**. Native ingestion needs a privately configured NAJDILAB_INGEST_TOKEN bearer/HMAC credential; browser mutation uses a process-local CSRF token. Never commit a real credential.
+
+## Review and prepare
+
+1. Open Conversations and inspect the user question/context and original response. Select Review this response.
+2. Existing correction/type/notes/flags are loaded. Correct or approve deliberately. Editing text preserves omitted flags; enabling privacy/evaluation/exclusion/fact-check restrictions forces training eligibility off.
+3. Select Training eligible only after actual review and rights/privacy assessment. This checkbox is not consent. Save, reopen and inspect the saved state.
+4. A stale save returns409 without writes. Your draft stays visible; reload explicitly and compare. The server requires expected_updated_at on **every** review mutation.
+5. Exclude preserves the original and any correction. Restore preserves restrictions and leaves PENDING/ineligible. A restored retained correction must be resolved explicitly before another exclusion; it is never silently replaced. Complete append-only event history is not implemented.
+6. Open Dataset readiness. Demo inclusion defaults off. Inspect pending, excluded/evaluation records, blockers, duplicate candidates and holdout evidence. Restricted earlier context blocks later targets; it is never silently stripped.
+7. Preparation requires at least 20 final records, three holdout conversations, a 10–15% holdout, valid review/source/mask/privacy/dedup checks and no conflicting targets. Manual direct/preference kinds block before writes. Near-duplicate warnings require human review; no automatic near-match deletion.
+8. Prepare a new local version, then inspect its files, counts, SHA256, quality/balance and holdout. READY means implemented dataset checks passed; it does not authorize model execution or redistribution.
+9. Choose one permitted JSONL download and confirm its private-data warning. Full archives, DBs, credentials, backups and models are never downloadable through this route.
+
+See the [user guide](docs/user-guide.md) and [API](docs/api.md) for details. Generated data stays private by default. The unchanged export algorithm also writes full_archive.json containing all local records, including excluded ones: retain it privately for recovery, never publish the exports directory or backup blindly. Changing a review does not rewrite earlier versions; derive a newly reviewed version rather than altering history.
+
+## Backup and separate restore
+
+From this candidate:
+
+```sh
+python scripts/backup.py
+python scripts/restore_backup.py backups/CHOSEN-BACKUP.zip --output ../core-restored-snapshot --confirm-disposable
+```
+
+Replace CHOSEN-BACKUP.zip with the actual printed filename. The new backup wrapper snapshots SQLite and copies only that snapshot's registered, verified version files; temporary/unregistered files are excluded. It does not bundle models, external runtimes, source/venv/configuration or a full research installation.
+
+Restore requires a new destination outside this candidate, validates ZIP safety/CRC, SQLite integrity/FKs, registry/manifests/file hashes/counts and refuses overwrite. Keep the original backup. A failed IO operation can leave .RESTORE_INCOMPLETE in its newly reserved destination; do not launch or copy from that result. Choose a different new destination after resolving the cause.
+
+To resume, build a **second fresh candidate** and, **before installing**, copy the validated restored data and exports directories only when those destination directories do not already exist. Then run the installer without demo creation and launch the same-schema candidate; installation preserves existing state. Preserve the backup and original candidate. Do not copy over an initialized DB or activate migrations. Do not use this guide to move protected historical research without a separately reviewed compatibility plan. Restore integrity is separate from dataset quality; a semantically blocked version remains blocked.
+
+## Security and limitations
+
+Trusted local single-operator tool on loopback; no public/shared network hosting or multi-user RBAC. Host/Origin/Fetch Metadata, CSRF, JSON framing/2MiB request limit, credentialed native Ingest, safe DOM rendering and filesystem constraints apply. HMAC has no replay freshness. The explicitly inherited legacy Ingest override weakens protection; keep it disabled. Local programs can obtain intent sessions. No protection against an administrator deliberately rewriting the DB/files outside the application is claimed.
+
+One server process per storage root and serialized supported HTTP mutations keep preparation coherent. Backup uses its own SQLite snapshot. Original startup migration-loader debt remains; no proposed event/registry migrations are enabled. Review identity is an assertion, not authenticated user identity. No automatic PII detection, consent verification, linguistic quality certification or model compatibility guarantee. Diagnostics may reveal your local record identifiers/content; do not share them without review.
+
+## Testing and contributing
+
+Run in a disposable copy of the exact candidate:
+
+```sh
+python -m unittest discover -s tests -p test_candidate_contract.py
+python -m ensurepip
+python -m pip install -r requirements-dev.txt
+python -m pytest -q tests -rs
+```
+
+Full developer verification includes separate builder, exact-candidate, browser and preserved-original suites. Browser tests require separately installed Node 22+ and puppeteer-core 25.16.0 plus an explicit Chromium/Chrome executable. No browser/runtime binary is bundled:
+
+```sh
+npm install --prefix ../core-browser-tools puppeteer-core@25.16.0
+NODE_PATH=../core-browser-tools/node_modules node tests/browser.cjs .
+```
+
+Set NAJDILAB_BROWSER_EXECUTABLE for your installed browser. Windows PowerShell: set $env:NODE_PATH and $env:NAJDILAB_BROWSER_EXECUTABLE in the session, then run node. Hosted Windows/Ubuntu acceptance is pending Goal 6; consult the final verification report for actual results. Browser fixtures/demonstrations are synthetic; none is historical research evidence. See [contribution guidance](CONTRIBUTING.md). No training is needed for any acceptance test.
+
+## Troubleshooting and updates
+
+- Missing Python/old SQLite: install an appropriate official Python build; inspect version checks before setup.
+- Port busy: stop only your disposable instance or select a free port; never restart another service automatically.
+- Storage already used: stop the first Core server; changing ports alone is insufficient. The lock is released by the OS on exit; do not delete lock files to bypass it.
+- Existing demo DB: use a new candidate; the fixture refuses overwrite intentionally.
+- 409 conflict: inspect/reload saved review, compare draft and save with the new token.
+- Preparation blocked: read findings; tiny/unresolved/private/conflicting records must not bypass gates.
+- Version integrity failure: preserve evidence and restore/rebuild from a verified backup into another location; do not edit hashes to force PASS.
+- Pristine verification fails after launch: runtime files are expected; compare a clean build instead.
+
+For an update, back up and validate restore first, review the new source manifest and migration compatibility, install into another new candidate and test synthetic acceptance before moving authorized state. Do not overwrite an existing installation or use the original private project's data automatically. License, attribution and publication approvals remain owner decisions.

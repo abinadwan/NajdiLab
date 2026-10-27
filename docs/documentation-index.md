@@ -42,3 +42,7 @@ Owner/product reviewers: [original-versus-candidate feature, UI, module and API 
 ## Public core Phase 5 engineering
 
 Current implementation reviewers/developers: [milestone execution and rollback](public-core-phase5-execution.md), [finding register](public-core-phase5-issue-register.md), [actual verification evidence](public-core-phase5-verification.md). This candidate-only work continues the approved scope without modifying original code or earlier Draft PRs.
+
+## Public Core candidate users
+
+[Candidate onboarding, APIs, architecture and actual screenshots](public-core-user-guide.md). This reduced profile has separate documentation; all original full-platform and historical pages above remain discoverable.

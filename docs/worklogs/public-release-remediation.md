@@ -78,3 +78,7 @@ Stacked Draft PR #3 opened against the unchanged PR #2 documentation branch. Imp
 ## 2026-10-27 — Phase5 Goals0–2
 
 Authorized candidate-only implementation begins at `dc5c82e` on separate branch/Draft PR #4; previous PRs intact. Baseline270 paths/protected136 privately hashed; baseline original277 PASS/24 SKIP/68 subtests and candidate22 PASS/13 subtests. Baseline controls commit `0a95f54`; atomic review commit `fa2170b`. New execution/issue/verification documents maintain RED failures, review findings, fixes, risks and rollback. No protected source changes. Goal2 adds actual contextual UI and read-only inspection, with browser acceptance recorded in the current verification ledger rather than substituting original screenshots.
+
+## 2026-10-27 — Phase5 Goal5
+
+Added candidate-specific onboarding/API/architecture/user/contributor pages and eight real fictional-data captures, preserving the earlier minimal README in initial-profile.md and all full-platform material. Improved scrollable context/review navigation and grouped repeated quality findings without concealing warnings. Browser showed actual33 provenance warnings, no fabricated research metrics. PNG metadata/resource bounds and SVG external-resource checks are explicit. Two independent SVG bypasses reproduced RED then passed; recovery copy-before-install was demonstrated on a separate fresh candidate. Forward revert candidate docs/UI/pins together; retain original assets and all private state. Hosted acceptance follows Goal6.

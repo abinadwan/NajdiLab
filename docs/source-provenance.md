@@ -36,3 +36,7 @@ Confirm original authorship, employer/contractor rights, contributor permission,
 ## Source-only candidate continuation
 
 New server/UI/extension/builder/demo/test code under `public_source/` is AI-assisted engineering work from this task, with reusable original core files copied byte-identically under a reviewed mapping. No copied upstream implementation is asserted. The candidate uses a deliberately smaller interface; original sources and notices remain preserved. Creation method is known; ownership/redistribution authority and an active license still require confirmation. See [boundary](public-private-boundary.md) and [verification](public-source-isolation-report.md).
+
+## Phase5 candidate documentation and visuals
+
+New Core UI/wrappers/tests/docs are AI-assisted engineering additions on the dedicated implementation branch. They do not prove ownership of the unchanged generic original modules. The new editable SVG uses original simple shapes/text and a checked standard-library generator. Eight real browser screenshots use independently fictional Arabic workshop data. No icon pack, model, tokenizer, font binary or external artwork is bundled. [Core entry point](public-core-user-guide.md) and [asset evidence](asset-provenance.md) separate these from original full-platform assets; final exact-manifest ownership/notice decisions remain B07.

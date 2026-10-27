@@ -63,6 +63,7 @@ class BuilderTests(unittest.TestCase):
             clone=Path(temp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
             policy=json.loads((clone/'public_source/policy.json').read_text())
             for name in policy['files']:
+                if name.lower().endswith('.png'):continue
                 p=clone/name;p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n').replace(b'\n',b'\r\n'))
             mod.build(ROOT,Path(temp)/'a');mod.build(clone,Path(temp)/'b')
             self.assertEqual((Path(temp)/'a/MANIFEST.json').read_bytes(),(Path(temp)/'b/MANIFEST.json').read_bytes())
@@ -76,3 +77,24 @@ class BuilderTests(unittest.TestCase):
                        'from runpy import run_path; run_path("private.py")']:
             with self.subTest(source=source),self.assertRaises(ValueError):
                 mod.check_imports({'app/__init__.py':b'', 'app/example.py':source.encode()})
+
+    def test_images_reject_corruption_metadata_and_active_svg(self):
+        import struct,zlib
+        spec=importlib.util.spec_from_file_location('candidate_builder',ROOT/'public_source/build.py');mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        def chunk(kind,body):return struct.pack('>I',len(body))+kind+body+struct.pack('>I',zlib.crc32(kind+body)&0xffffffff)
+        header=chunk(b'IHDR',struct.pack('>IIBBBBB',1,1,8,6,0,0,0));pixels=chunk(b'IDAT',zlib.compress(b'\x00\x20\x40\x60\xff'));end=chunk(b'IEND',b'');clean=b'\x89PNG\r\n\x1a\n'+header+pixels+end
+        with self.assertRaises(ValueError):mod.validate_content({'weights.png':clean})
+        for data in [b'not a PNG',clean[:-3],b'\x89PNG\r\n\x1a\n'+header+chunk(b'pHYs',b'unsupported metadata length')+pixels+end,b'\x89PNG\r\n\x1a\n'+header+chunk(b'tEXt',b'private metadata')+pixels+end]:
+            with self.subTest(case=len(data)),self.assertRaises(ValueError):mod.validate_content({'docs/images/demo.png':data})
+        for svg in [b'<svg xmlns="http://www.w3.org/2000/svg"><style>svg{background-image:image-set("https://example.invalid/a.png" 1x)}</style></svg>',b'<?xml-stylesheet href="https://example.invalid/external.css"?><svg xmlns="http://www.w3.org/2000/svg"/>', b'<svg xmlns="http://www.w3.org/2000/svg" xml:base="https://example.invalid/external.svg"><rect fill="url(#paint)"/></svg>',b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',b'<svg xmlns="http://www.w3.org/2000/svg"><image href="https://untrusted.invalid/a"/></svg>']:
+            with self.subTest(svg=svg),self.assertRaises(ValueError):mod.validate_content({'docs/images/demo.svg':svg})
+
+    def test_safe_png_build_keeps_exact_bytes(self):
+        import struct,zlib
+        spec=importlib.util.spec_from_file_location('candidate_builder',ROOT/'public_source/build.py');mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+        data=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',1,1,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(b'\x00\x20\x40\x60'))+chunk(b'IEND',b'')
+        with tempfile.TemporaryDirectory() as tmp:
+            clone=Path(tmp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
+            image=clone/'public_source/test-screen.png';image.write_bytes(data);p=clone/'public_source/policy.json';policy=json.loads(p.read_text());policy['files']['public_source/test-screen.png']={'destination':'docs/images/demo.png','sha256':hashlib.sha256(data).hexdigest()};p.write_text(json.dumps(policy))
+            mod.build(clone,Path(tmp)/'output');self.assertEqual((Path(tmp)/'output/docs/images/demo.png').read_bytes(),data)

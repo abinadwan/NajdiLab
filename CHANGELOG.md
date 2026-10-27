@@ -47,3 +47,9 @@
 - Authoritative multi-track status, install/developer/API/migration/training/restore handover and contribution templates.
 
 No final license, release, history rewrite, schema migration, download, training, deployment or privacy change. Historical milestones remain in docs/historical-project-status.md. No release version or new trained model is claimed.
+
+## Phase5 Goal5 — candidate onboarding and genuine visuals
+
+- Added separate Core README, fictional user guide, API/architecture/contributor pages and eight actual synthetic browser captures; archived the prior minimal candidate README. Preserved original full-platform guides/assets.
+- Added editable original SVG/generator and bounded, metadata-restricted PNG and external-resource-free SVG validation. Review found XML stylesheet/base bypasses; regression tests now refuse both.
+- Corrected recovery instructions and verified copy-before-install into another fresh source candidate, launch and decision/version readback. No schema, private research, license or production changes.

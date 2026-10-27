@@ -38,3 +38,6 @@ Direct/preference preparation is explicitly deferred to B08 and blocked before v
 | P5-20 | Critical/P0 | Cleanup could delete an unowned colliding incomplete file | Ownership tracking; forced-name preservation PASS and cleanup-mutation expected FAIL; review | VERIFIED_CLOSED |
 | P5-21 | High/P0 | Backup size bounds applied after allocation | Pre-read DB and incremental version budgets; bounded-read RED then PASS; review | VERIFIED_CLOSED |
 | P5-22 | High/P0 | Backup archive/member name shadow broke publication | Separate names; six failures retained, full backup suites now PASS; review | VERIFIED_CLOSED |
+
+| P5-23 | High | SVG stylesheet PI, xml:base and CSS image-set could load external resources | Three RED resource probes; preparse PI/namespaced attribute rejection and restricted fragment-only CSS; passing builder regression and independent recheck | VERIFIED_CLOSED |
+| P5-24 | High | Recovery guide copied data after installer created target dirs | Copy-before-install guide and actual separate-candidate install/launch/readback acceptance PASS | VERIFIED_CLOSED |

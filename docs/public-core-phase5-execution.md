@@ -27,7 +27,7 @@ No original protected modules or original tests are edited. No proposed SQL is m
 | 2 Contextual review | PASS | 37 tests/31 subtests and real Chromium workflow |
 | 3 Dataset inspection | PASS | 53 tests/34 subtests + actual browser readiness/version workflow |
 | 4 Artifacts/backup | PASS | 64 tests/50 subtests + real download/backup/restore |
-| 5 Docs/UI | PENDING | B05 actual candidate presentation |
+| 5 Docs/UI | PASS | 68-file exact candidate64/50; real browser/recovery; editable SVG/Mermaid and eight captures |
 | 6 Cross-platform | PENDING | B06 exact generated candidate |
 | 7 Rights | PENDING | B07 selected manifest review; approvals remain separate |
 | 8 End-to-end acceptance | PENDING | Real browser plus API/backup assertions |
@@ -67,3 +67,13 @@ No original protected modules or original tests are edited. No proposed SQL is m
 - RED: initial artifact/restore operations absent; then independent review found incoherent live-export copying and incomplete restore inventory (two true regressions), plus no-overwrite race. Added ownership/resource tests; an introduced archive/member variable shadow caused six failures and initially masked the collision test. Fixed descriptive names and confirmed a controlled cleanup mutation deletes unowned evidence, while the real ownership guard preserves it. Resource budgets apply before DB reads and incrementally before each version blob. No failure evidence removed.
 - Final52-file profile: **64 passed / 50 subtests**, zero skips, 13.95s, including actual concurrent preparation/backup and restore. Real Chromium PASS includes selected download SHA, archive refusal, online backup, separate restore, all conversation/message/review/tag/version rows and dataset hashes equal, private/training routes unavailable and shutdown. Independent review accepted with no remaining Critical/Important findings.
 - Risks/rollback: backup bounds16MiB/file64MiB total; no model/external-runtime recovery. Deliberate external SQLite/filesystem writers remain outside the single-operator contract. Forward-revert candidate artifact/backup/restore/pins; keep all private backups/data and original script. No active license or publication.
+
+## Goal5 — candidate-specific onboarding and honest visuals
+
+- Goal4 commit8d9b899. Added Core README, guide, API/contribution/architecture pages; preserved minimal README as dated historical initial-profile.md. All original full-platform documentation/media remain unchanged. Added original editable SVG and standard-library generator, with no external icons/fonts/resources.
+- Eight actual Chromium captures use only opt-in fictional Arabic workshop data. Desktop1440px and narrow390px exercised; long Arabic correction, inert HTML, empty/blocked/saved/conflict states are real. Narrow SVG requires zoom/open; no claim of full-width mobile readability. Actual quality WARNING includes33 missing-provenance findings; grouped summary preserves full report.
+- Builder retains raw pinned PNG bytes only under docs/images after bounded decode/chunk/CRC/metadata checks. SVG XML/style/attribute/resource checks reject active content. Independent review discovered stylesheet PI and xml:base bypasses: two RED subtests now pass. Initial diagram file:// renderer was policy-blocked; rendering inline SVG in Chromium succeeded, desktop/narrow visually inspected. Existing media untouched.
+- README restore ordering initially conflicted with installer-created directories. Fixed copy validated restored state into a separate fresh candidate BEFORE installation. Actual browser test verifies installation preserves it, new-port launch, flags/correction/version readback and browser display. Hosted OS evidence is explicitly pending Goal6.
+- Rollback: ordinary forward revert of candidate docs/UI/builder/pins, preserve local backups/versions and original guides. New assets convey no rights clearance.
+
+Goal5 verification completed: exact68-file profile64 passed/50 subtests/zero skips; builder9 passed/16 subtests; original270 retained/protected136 identical; root97 and candidate7 Markdown files resolve. SVG generator matches bytes, Mermaid12 syntax+render PASS; Chromium SVG desktop/narrow rendered and visually inspected. An additional CSS image-set bypass was reproduced RED, then restricted to fragment-only url() functions. All failed attempts retained privately.

@@ -114,6 +114,7 @@
     "docs/public-core-phase5-issue-register.md",
     "docs/public-core-phase5-verification.md",
     "docs/public-core-release-scope.md",
+    "docs/public-core-user-guide.md",
     "docs/public-private-boundary.md",
     "docs/public-release-decision.md",
     "docs/public-source-isolation-report.md",
@@ -308,7 +309,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "d17a0c8b392fcb22d97c4ac55984331c213f7dddf7d3b8b816d90cd111361f02"
+      "sha256": "e34e63fb156d623236f70c17e703aa6c9bbc1ac94d08e7238f177be02998a55c"
     },
     "public_source/extensions.py": {
       "destination": "app/extensions.py",
@@ -320,15 +321,15 @@
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
-      "sha256": "c7bce7a2d2bafe5294f5bedf3272dc8e243eefafed2e1c207ae82a0af0de05f4"
+      "sha256": "2fe00c8f2428be7c86a608030214a88fe7293ece74458212fc3628f8986c92a0"
     },
     "public_source/static/index.html": {
       "destination": "static/index.html",
-      "sha256": "6c16b147d0cc479c5b649f114870863b29a1696ae5172632bc88163f1efbd5b6"
+      "sha256": "a7cae133021c412352f1de3f77554ed0d4e0b1e60fb51f8f7f48e6cfa24385ba"
     },
     "public_source/static/style.css": {
       "destination": "static/style.css",
-      "sha256": "979827680e354d4552e3af03c72b338dd22c3cee9d5597ffcc40db55ed154634"
+      "sha256": "1bd0e885c9e30f1abdeb596a79d236b67005ff614d64986c2646de08ee52c5ae"
     },
     "public_source/synthetic.json": {
       "destination": "synthetic.json",
@@ -404,7 +405,7 @@
     },
     "public_source/tests/browser.cjs": {
       "destination": "tests/browser.cjs",
-      "sha256": "0142dd7971dcb839d3c0010463a5acf53280d30346321e39564e32f12cf0007e"
+      "sha256": "b2924c8d02e62a2b1ea4a7dbe862ead195e60b4cd087ae4680b7856c74cc7df2"
     },
     "public_source/read_views.py": {
       "destination": "app/core_views.py",
@@ -445,6 +446,70 @@
     "public_source/backup.py": {
       "destination": "scripts/backup.py",
       "sha256": "e325c1ea377f8651c734f7c8244abbda20d578e4a25324b3ffa8a39f81799589"
+    },
+    "public_source/CONTRIBUTING.md": {
+      "destination": "CONTRIBUTING.md",
+      "sha256": "e6eb14fd2655c05657c96560a01fa435be784c261c01a790d729e2d366797f99"
+    },
+    "public_source/docs/user-guide.md": {
+      "destination": "docs/user-guide.md",
+      "sha256": "91275427e647af8392f7d2f8a54e0baa8724411268d79419cf73ca36354d8a94"
+    },
+    "public_source/docs/architecture.md": {
+      "destination": "docs/architecture.md",
+      "sha256": "6eb1ff769ba9de664224f288551dc35c3d1457d361997653d3e0ec728767d4ef"
+    },
+    "public_source/docs/api.md": {
+      "destination": "docs/api.md",
+      "sha256": "1e3ce42ee6508883caaa4f53b6a90939e54b17ecf2f00c9ed9c689f5a5543437"
+    },
+    "public_source/docs/initial-profile.md": {
+      "destination": "docs/initial-profile.md",
+      "sha256": "805ae99aed467c62f820fa8361b80ec2e139d62f9b019e5a9a945075010e2230"
+    },
+    "public_source/docs/screenshots.md": {
+      "destination": "docs/screenshots.md",
+      "sha256": "71c4c1df33fbc69df9ae1fe4ebe9e4636e1527afb45471023d7c741633b31361"
+    },
+    "public_source/docs/generate_architecture.py": {
+      "destination": "docs/generate_architecture.py",
+      "sha256": "c8154c5aaf5b5b1e2bf2e14ea3536bbe54c70cb62b46673d17adb9fb2e0b1883"
+    },
+    "public_source/docs/images/core-architecture.svg": {
+      "destination": "docs/images/core-architecture.svg",
+      "sha256": "dc5ed76f2d11a1d8385cde2693da4e73859933a6f738a5128b3486be0aeba256"
+    },
+    "public_source/docs/images/overview.png": {
+      "destination": "docs/images/overview.png",
+      "sha256": "f868af7cc294fe17ba284ceefa9d263ba28460257e8e235a7322c65083f5ff93"
+    },
+    "public_source/docs/images/conversation-review.png": {
+      "destination": "docs/images/conversation-review.png",
+      "sha256": "4982f2ecb60ea94d4f12beefc4ace7678480a74eec1ef179de6b7735def25e89"
+    },
+    "public_source/docs/images/correction-editor.png": {
+      "destination": "docs/images/correction-editor.png",
+      "sha256": "8de5ca5c112f5980b17bc658a6f306cbdc959e3c2ad879c02c4453f9eb81d0b2"
+    },
+    "public_source/docs/images/saved-decision.png": {
+      "destination": "docs/images/saved-decision.png",
+      "sha256": "adb1a9f4125bd81a775e10fd1fe2469a6081eaed6d2c6274c3945db5f905ff3c"
+    },
+    "public_source/docs/images/dataset-readiness.png": {
+      "destination": "docs/images/dataset-readiness.png",
+      "sha256": "d2dbba57008b34611f03b16faae22f808cdcc48a17e32905d255efc619dd77e7"
+    },
+    "public_source/docs/images/dataset-version.png": {
+      "destination": "docs/images/dataset-version.png",
+      "sha256": "4d59082390c00675ade069d2799d6d78d5d017a1cbf4b9af3f0ab1ca482fa9e3"
+    },
+    "public_source/docs/images/quality-findings.png": {
+      "destination": "docs/images/quality-findings.png",
+      "sha256": "6e7de373455ab38eee1239ef768ef2adec9e0451b9caa3da35b5796b5e48ea6a"
+    },
+    "public_source/docs/images/artifact-access.png": {
+      "destination": "docs/images/artifact-access.png",
+      "sha256": "4da591031168a6776a2c3b29e8e869ca8067d71b92c04ea460f97b28140e6c54"
     }
   }
 }
