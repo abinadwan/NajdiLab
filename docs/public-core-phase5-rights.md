@@ -2,6 +2,14 @@
 
 Date: 2026-10-27. **NOT READY — BLOCKERS REMAIN**. This is an inactive decision package, not a license grant. The engineering candidate can work while ownership, attribution, privacy and publication approvals remain open. No model/data rights are inferred from framework terms or successful tests.
 
+## Dated owner decision — 2026-10-28
+
+The owner expressly intends NajdiLab Core to be published in a **new clean public repository in the future** and approves **Apache-2.0 as the TARGET license** for that eventual Core release (owner statements: “NajdiLab Core — عام مستقبلًا” and “Apache-2.0 / ok”, reaffirmed in the current documentation request). This records future intent and target-license approval only. **License NOT ACTIVE**: no LICENSE or NOTICE adoption is authorized or performed.
+
+Third-party and AI-generated source rights review, original/employer/contributor authority, holder/year, exact source scope, notices, assets and contextual privacy remain unresolved. **B07 remains OPEN/BLOCKED**; public verdict remains **NOT READY — BLOCKERS REMAIN**. The existing repository stays Private. No public release, repository creation, publication, merge or exact destination/manifest approval is authorized.
+
+Documentation impact verification: only this report and [release decision](public-release-decision.md) change; both are already excluded by `public_source/policy.json`. All 311 tracked paths remain classified (74 selected, 236 excluded, plus policy); no paths are added/deleted. Policy, builder and all 74 selected Git blobs remain identical to parent `2b53b5d99d78b88dc3e50e5605e529569a194834`, so candidate bytes/selection are unaffected. The prior manifest SHA256 below remains prior verified evidence; no new build/test run or newly licensed manifest is claimed.
+
 ## Exact scope and evidence
 
 Reviewed implementation: `e03a640c08554ee8e171faeed0fb8686f324dbfa`. The source-only profile selects **74 files** (plus generated MANIFEST.json): 28 preserved generic project paths and 46 candidate-specific code/test/document/asset paths. Canonical UTF-8/LF text and exact PNG bytes are pinned; the private original raw hashes are separate. Manifest SHA256: `cc94baf399dd66056d8a64b9150237cf5d14ffe651cd67fd9839547138c94044`. The inventory below records exact source/destination/hash coverage. A changed selected byte requires rebuilding and reviewing this evidence; a root report-only update does not change selected bytes.
@@ -16,7 +24,7 @@ A disposable clean snapshot was built and verified outside the checkout, with on
 | Bounded path/credential scan | PASS: zero candidates for the documented patterns | Owner contextual review; scans cannot prove arbitrary text safe |
 | Embedded real records/private imports | No protected records/modules selected; synthetic fixtures independently fictional | Owner review selected generic source and residual legacy labels |
 | Ownership and contributor authority | AWAITING_OWNER_APPROVAL | Confirm original/employer/contributor/borrowed-code rights for each selected path |
-| Source license / holder / year | AWAITING_OWNER_APPROVAL | Complete inactive fields and approve exact scope/standard license |
+| Source license / holder / year | TARGET Apache-2.0 APPROVED 2026-10-28; NOT ACTIVE | Confirm holder/year/authority and exact scope; clear rights/notice gates before separate adoption |
 | Third-party redistribution | NOT_VERIFIED for any future bundled runtime/binary | Keep runtimes external; inventory exact artifacts and notices if scope expands |
 | Asset redistribution | AWAITING_OWNER_APPROVAL | Approve underlying UI/source and original SVG/capture distribution rights |
 | Existing historical Git privacy | BLOCKED | Keep original repository Private; separately authorize clean-snapshot publication strategy |
@@ -52,10 +60,10 @@ Current stdlib-only application source does not inherit an ML framework's distri
 - Copyright year/range: **[OWNER MUST CONFIRM]**, not inferred from commit or report date.
 - Authorized source scope: **[APPROVE EXACT MANIFEST SHA256 AND ALL SELECTED PATHS]**.
 - Original/employer/contributor/borrowed-source authority: **[EVIDENCE REQUIRED]**.
-- Standard source license: **[APPROVE APACHE-2.0 OR SELECT ALTERNATIVE]**.
+- Target standard source license: **Apache-2.0 — OWNER APPROVED 2026-10-28; NOT ACTIVE**. Exact release scope, rights clearance and adoption remain pending.
 - Third-party/source/asset notice bundle: **[CONFIRM APPLICABLE CONTENT]**.
 - Public attribution identity/repository wording: **[APPROVE]**.
-- History strategy/destination/publication: **[SEPARATE EXPLICIT APPROVAL]**.
+- History strategy: **future new clean public repository — OWNER INTENT RECORDED 2026-10-28**. Exact destination/manifest and publication: **[SEPARATE EXPLICIT APPROVAL STILL REQUIRED]**.
 
 The existing [Apache proposal](proposals/LICENSE-Apache-2.0.txt), [NOTICE proposal](proposals/NOTICE.txt), [approval guidance](proposals/licensing-approval.md) and [MIT/BSD comparison](license-options.md) remain inactive and outside the candidate; no root LICENSE/NOTICE has been activated.
 
