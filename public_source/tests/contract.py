@@ -63,7 +63,7 @@ class CandidateContract(unittest.TestCase):
                 self.assertEqual(request('/api/v1/training/model-acquisition/acquire',{},headers)[0],503)
                 q=request('/api/v1/review-queue')[1]['items'];self.assertTrue(q)
                 rid=q[0]['id'];original=q[0]['original_response'];correction='رقّم البطاقة واكتب عنوانها بخط واضح.'
-                st,_=request(f'/api/v1/reviews/{rid}/correct',{'review_status':'FULL_CORRECTION','corrected_response':correction,'reviewer_identity':'human','training_eligible':True},headers);self.assertEqual(st,200)
+                st,_=request(f'/api/v1/reviews/{rid}/correct',{'expected_updated_at':q[0]['updated_at'],'review_status':'FULL_CORRECTION','corrected_response':correction,'reviewer_identity':'human','training_eligible':True},headers);self.assertEqual(st,200)
                 conn=sqlite3.connect(work/'data/najdilab.db');row=conn.execute('select original_response,corrected_response from reviews where id=?',(rid,)).fetchone();conn.close();self.assertEqual(row,(original,correction))
                 # Independently fictional numbered cards supply enough conversations for the
                 # unchanged 10-15% / >=3-conversation evaluation split, not optimizer training.
@@ -73,7 +73,7 @@ class CandidateContract(unittest.TestCase):
                            'assistant_response':f'اكتب بطاقة تجريبية رقم {number} بخط واضح.'}
                     self.assertEqual(request('/api/v1/turn',extra,{'Content-Type':'application/json','Authorization':'Bearer synthetic-test-only'})[0],201)
                 # Approve remaining synthetic rows so the existing export-integrity gate is satisfied.
-                for row in request('/api/v1/review-queue')[1]['items']:self.assertEqual(request(f"/api/v1/reviews/{row['id']}/approve",{'training_eligible':True},headers)[0],200)
+                for row in request('/api/v1/review-queue')[1]['items']:self.assertEqual(request(f"/api/v1/reviews/{row['id']}/approve",{'expected_updated_at':row['updated_at'],'training_eligible':True},headers)[0],200)
                 self.assertTrue(request('/api/v1/training-dataset?include_demo=1')[1]['reviews'])
                 st,export=request('/api/v1/exports',{'include_demo':True},headers);self.assertEqual(st,201,export)
                 versions=request('/api/v1/dataset-versions')[1]['items'];self.assertTrue(versions)

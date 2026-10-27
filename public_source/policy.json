@@ -315,11 +315,11 @@
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "cedbe6399def4c990829b5dc2f939a0c14b4332255f91c797fd5d9f518079994"
+      "sha256": "1f6357d7e9aed4b11899e06e9d6a233f8e8c579613dbe91563bad765143df812"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
-      "sha256": "41a97d5e6e12b220e55acf1d318cadf7ec578ff23b04f816b7e153f4a8fa5e68"
+      "sha256": "55d0954f72f8f02acb527cf6045d42203cbb65d326fc84adc41d8b21d3c1fe2e"
     },
     "public_source/static/index.html": {
       "destination": "static/index.html",
@@ -339,7 +339,7 @@
     },
     "public_source/tests/contract.py": {
       "destination": "tests/test_candidate_contract.py",
-      "sha256": "84d2a7808e3e1ae20a1bb82834c210abc056adb03dcd30c2d3945e4aaac04a3f"
+      "sha256": "d4af7995192937684bb75ab92c597650d63fc865eccb918a31934d00ba816297"
     },
     "public_source/tests/security.py": {
       "destination": "tests/test_candidate_security.py",
@@ -384,6 +384,22 @@
     "tests/test_dataset_quality.py": {
       "destination": "tests/test_dataset_quality.py",
       "sha256": "7848ca33c4abe7d58ef0a3056435a707baccf7c118a88a671c4d5f00610c1431"
+    },
+    "public_source/tests/support.py": {
+      "destination": "tests/support.py",
+      "sha256": "604d658b8a08256cda10b451fd1ce25ee223e237dd664faefd144973eadf1197"
+    },
+    "public_source/tests/reviews.py": {
+      "destination": "tests/test_candidate_reviews.py",
+      "sha256": "5a2d439a58aa9ae4ed654af466c209d42dbc2519077bde069f441657a209af33"
+    },
+    "public_source/tests/__init__.py": {
+      "destination": "tests/__init__.py",
+      "sha256": "7e22133fb1639284bd74d15745e49ed1a282136eed011467a6ed013b8c12b7cb"
+    },
+    "public_source/reviews.py": {
+      "destination": "app/core_reviews.py",
+      "sha256": "6a0852b54ef3eee6253520dcc83380a2de045aa825f72133f5af0a7778a2bc4d"
     }
   }
 }

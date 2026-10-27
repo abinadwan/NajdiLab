@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from . import service, dataset_platform, dataset_quality, dataset_balancer
 from .db import ROOT, DB_PATH, apply_migrations
 from .extensions import UnavailableExtension
+from .core_reviews import ReviewError, update_review
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_request, validate_ingest
 from .review_integrity import ExportReadinessError, export_readiness
 
@@ -106,14 +107,14 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 elif path=='/api/v1/conversations':result={'ok':True,'conversation':service.create_conversation(data)};status=201
                 elif path=='/api/v1/messages':result={'ok':True,'message':service.add_message(data)};status=201
                 elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)/(approve|correct|exclude|restore|ignore|delete)',path):
-                    handlers={'approve':service.approve_review,'correct':service.correct_review,'exclude':service.exclude_review,'restore':service.restore_review,'ignore':service.ignore_review,'delete':service.delete_review}
-                    result={'ok':True,'review':handlers[m[2]](int(m[1]),data)}
-                elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)',path):result={'ok':True,'review':service.save_review(int(m[1]),data)}
+                    result={'ok':True,'review':update_review(int(m[1]),m[2],data)}
+                elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)',path):result={'ok':True,'review':update_review(int(m[1]),'save',data)}
                 elif path=='/api/v1/exports':result={'ok':True,'export':service.create_export(include_demo=bool(data.get('include_demo')))};status=201
             if result is None:self.respond({'ok':False,'code':'ROUTE_UNAVAILABLE','message':'This route is not part of the source-only core profile.'},404)
             else:self.respond(result,status)
         except RequestSecurityError as exc:
             self.close_connection=True;self.respond({'ok':False,'code':exc.code or 'REQUEST_REJECTED','message':str(exc)},exc.status)
+        except ReviewError as exc:self.respond({'ok':False,'code':exc.code,'message':str(exc)},exc.status)
         except ExportReadinessError as exc:self.respond({'ok':False,'code':'EXPORT_NOT_READY','readiness':exc.readiness},409)
         except (service.ValidationError,ValueError,UnicodeError):
             self.close_connection=True;self.respond({'ok':False,'code':'INVALID_REQUEST','message':'Invalid request or unsupported value.'},400)
