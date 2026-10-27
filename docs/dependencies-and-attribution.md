@@ -1,5 +1,7 @@
 # Dependencies and attribution review
 
+Current release review: [dependency licensing matrix](dependency-licensing-matrix.md) records tagged license-text evidence, distribution obligations, optional AGPL scope and NOT_VERIFIED artifact rights. The earlier inventory below remains background; it is not a clearance.
+
 Status: preliminary source inventory, checked 2026-10-26. The repository has no complete pinned dependency lockfile or final third-party notice bundle. This document identifies evidence and remaining review work; it is not a redistribution clearance or a claim that all dependencies use one license.
 
 ## Local application

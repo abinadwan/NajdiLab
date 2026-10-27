@@ -1,5 +1,7 @@
 # NajdiLab project status
 
+Current publication decision: **NOT READY — BLOCKERS REMAIN**; see [public-release-decision](docs/public-release-decision.md). On 2026-10-27 GitHub inspection found PR #1 already merged at `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2` and its development branch deleted. This remediation starts from the requested `ae0ebb634459a8cadb742143a49f65c755f2b290` locally and does not modify main. Earlier statements below that main remains the original baseline or PR #1 remains a draft are historical and superseded by this observation. No production-state reconciliation is implied.
+
 Last reconciliation: **2026-10-27**. This is the authoritative development handover, not operational approval. Stable source baseline: main at `85c39ac3f4e15db916d46db22e05095cca10a286`. Preparation branch: dev/english-open-source-readiness. Publication: **NOT READY — BLOCKERS REMAIN**. Production has not received this branch.
 
 NajdiLab is a local Arabic/Najdi data-review, immutable dataset and controlled training/evaluation platform. The English interface preserves Arabic content and API/data compatibility. Three independent tracks use overlapping phase numbers; they must not be combined.

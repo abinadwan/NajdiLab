@@ -1,5 +1,7 @@
 # NajdiLab
 
+Public release remains blocked. See the [release decision](docs/public-release-decision.md) for privacy/history, protected data, dependency rights and inactive license proposals. No source license has been activated.
+
 NajdiLab is a local workbench for reviewing conversation data, creating reproducible Gold datasets, checking training/evaluation separation and controlling explicit fine-tuning workflows. It began with Arabic and Saudi/Najdi data; the application interface and operator documentation are in English. Arabic corpus text, linguistic examples and model protocol tokens retain their original meaning.
 
 Original messages stay immutable. Human review creates a separate decision/correction overlay. Eligibility, privacy, quality, holdout and loss-mask gates determine what may enter a new dataset version. Historical datasets and rejected model evidence are preserved.
