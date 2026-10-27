@@ -1,5 +1,11 @@
 # Changelog
 
+## Private research isolation engineering — 2026-10-27
+
+- Added a separate source-only core server/UI, explicit unavailable extension interface, opt-in fictional fixtures and deterministic hash-pinned candidate builder.
+- Preserved all original source/research; documented blocked original-server compatibility edits.
+- Added exact-candidate regression and Windows/Linux CI; legal/history/publication gates remain unresolved.
+
 ## Visual documentation and provenance continuation — 2026-10-27
 
 - Added an editable source-grounded seven-layer SVG and deterministic generator; preserved the owner conceptual JPEG byte-for-byte and every existing Mermaid/media asset.

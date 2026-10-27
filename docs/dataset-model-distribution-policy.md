@@ -32,3 +32,7 @@ The server imports Phase 3.8/3.9 modules directly; freeze/resolution modules and
 This is an exclusion/replacement plan, not an implemented separation or permission to edit frozen evidence. No genuine research evidence was replaced with synthetic content. Current tracked modules still block a public snapshot.
 
 `.gitignore` reduces accidental additions; it cannot remove tracked records, sanitize Git history or enforce a distribution boundary. Review source text as well as file extensions. Do not use `git archive HEAD` as a public package until every included path is cleared.
+
+## Isolated engineering implementation
+
+The [new boundary specification](public-private-boundary.md) and [candidate report](public-source-isolation-report.md) implement a narrower separate core profile without editing the protected files above. Original full-application separation remains gated; the candidate does not establish rights or sanitize repository history.

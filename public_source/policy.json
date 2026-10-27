@@ -1,0 +1,384 @@
+{
+  "excluded": [
+    ".gitattributes",
+    ".github/ISSUE_TEMPLATE/bug_report.md",
+    ".github/ISSUE_TEMPLATE/feature_request.md",
+    ".github/pull_request_template.md",
+    ".github/workflows/checks.yml",
+    ".github/workflows/public-source-candidate.yml",
+    "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "PROJECT_STATUS.md",
+    "README.md",
+    "SECURITY.md",
+    "app/dataset_registry.py",
+    "app/generation_hardening.py",
+    "app/native_tool_data.py",
+    "app/phase310_freeze.py",
+    "app/phase35_analysis.py",
+    "app/phase36_readiness.py",
+    "app/phase37_hardening.py",
+    "app/phase38_dataset.py",
+    "app/phase39_edits.py",
+    "app/phase39a_resolution.py",
+    "app/phase3_review.py",
+    "app/platform_state.py",
+    "app/runtime_control.py",
+    "app/server.py",
+    "app/tool_runtime.py",
+    "app/training_control.py",
+    "config/tool-capabilities.v1.1.json",
+    "config/tool-capabilities.v1.json",
+    "docs/api-reference.md",
+    "docs/api-routes.md",
+    "docs/arabic-localization-exceptions.md",
+    "docs/architecture-diagrams.md",
+    "docs/architecture.md",
+    "docs/asset-provenance.md",
+    "docs/backup-and-restore.md",
+    "docs/codebase-navigation.md",
+    "docs/configuration.md",
+    "docs/corpus-v1.1/01-behavior-spec.md",
+    "docs/corpus-v1.1/02-component-reuse-map.md",
+    "docs/corpus-v1.1/03-review-lifecycle.md",
+    "docs/corpus-v1.1/04-quality-gates.md",
+    "docs/corpus-v1.1/05-security-prerequisites.md",
+    "docs/corpus-v1.1/06-adapter-drift-k2.md",
+    "docs/corpus-v1.1/07-migration-review-005-007.md",
+    "docs/corpus-v1.1/08-risk-register.md",
+    "docs/corpus-v1.1/09-implementation-roadmap.md",
+    "docs/corpus-v1.1/10-test-plan.md",
+    "docs/corpus-v1.1/11-rollback-plan.md",
+    "docs/corpus-v1.1/12-traceability-matrix.md",
+    "docs/corpus-v1.1/13-decision-register.md",
+    "docs/corpus-v1.1/14-git-working-tree-inventory.md",
+    "docs/corpus-v1.1/15-migration-loader-guard.md",
+    "docs/corpus-v1.1/16-ui-first-confirmation.md",
+    "docs/corpus-v1.1/17-phase1-approval-package.md",
+    "docs/corpus-v1.1/README.md",
+    "docs/corpus-v1.1/adr/ADR-001-najdilab-single-source-of-truth.md",
+    "docs/corpus-v1.1/adr/ADR-002-conversational-sft-objective.md",
+    "docs/corpus-v1.1/adr/ADR-003-tiers-as-provenance.md",
+    "docs/corpus-v1.1/adr/ADR-004-human-approval-required-for-eligibility.md",
+    "docs/corpus-v1.1/adr/ADR-005-g2-deterministic-only.md",
+    "docs/corpus-v1.1/adr/ADR-006-security-before-generation.md",
+    "docs/corpus-v1.1/adr/ADR-007-bronze-deferred.md",
+    "docs/corpus-v1.1/adr/ADR-008-corpus-v1-archive-only.md",
+    "docs/corpus-v1.1/adr/ADR-009-adapter-reconciliation-by-verification.md",
+    "docs/corpus-v1.1/adr/ADR-010-migration-loader-guard.md",
+    "docs/corpus-v1.1/adr/ADR-011-naturalness-without-quotas.md",
+    "docs/data-03-04-06-09-review-management.md",
+    "docs/data-07-08-review-integrity-export-readiness.md",
+    "docs/database-and-migrations.md",
+    "docs/database-schema.md",
+    "docs/dataset-and-training.md",
+    "docs/dataset-model-distribution-policy.md",
+    "docs/dependencies-and-attribution.md",
+    "docs/dependency-licensing-matrix.md",
+    "docs/developer-setup.md",
+    "docs/documentation-index.md",
+    "docs/github-presentation.md",
+    "docs/hermes-integration.md",
+    "docs/historical-project-status.md",
+    "docs/images/architecture/generate_architecture.py",
+    "docs/images/architecture/najdilab-system-architecture-preview.png",
+    "docs/images/architecture/najdilab-system-architecture.svg",
+    "docs/images/architecture/owner-conceptual-architecture.jpg",
+    "docs/images/english-ui-arabic-record.jpg",
+    "docs/images/screenshots/conversation-review.png",
+    "docs/images/screenshots/correction-overlay.png",
+    "docs/images/screenshots/dashboard.png",
+    "docs/images/screenshots/dataset-health.png",
+    "docs/images/screenshots/human-review.png",
+    "docs/images/screenshots/training-data.png",
+    "docs/images/screenshots/training-setup.png",
+    "docs/installation-verification.md",
+    "docs/installation.md",
+    "docs/license-options.md",
+    "docs/maintainer-handover.md",
+    "docs/master-execution-board.md",
+    "docs/model-selection-guide.md",
+    "docs/next-training-execution-plan.md",
+    "docs/open-source-readiness.md",
+    "docs/phase-0-audit.md",
+    "docs/phase-1-foundation-backlog.md",
+    "docs/phase-1.3-registry-runbook.md",
+    "docs/phase-2-4-current-state-audit.md",
+    "docs/privacy-history-review.md",
+    "docs/proposals/LICENSE-Apache-2.0.txt",
+    "docs/proposals/NOTICE.txt",
+    "docs/proposals/licensing-approval.md",
+    "docs/public-private-boundary.md",
+    "docs/public-release-decision.md",
+    "docs/public-source-isolation-report.md",
+    "docs/screenshots.md",
+    "docs/shell-commands.md",
+    "docs/source-provenance.md",
+    "docs/superpowers/plans/2026-10-26-english-open-source-readiness.md",
+    "docs/system-requirements.md",
+    "docs/third-party-attributions.md",
+    "docs/tool-runtime-contract.md",
+    "docs/training-export.md",
+    "docs/training-preflight-runbook.md",
+    "docs/training-readiness-sprint-report.md",
+    "docs/troubleshooting.md",
+    "docs/unified-readiness-verification.md",
+    "docs/user-guide.md",
+    "docs/verification-and-readiness-report.md",
+    "docs/visual-documentation-verification.md",
+    "docs/worklogs/english-open-source-readiness.md",
+    "docs/worklogs/public-release-remediation.md",
+    "plans/phase13/005_dataset_registry.sql",
+    "plans/phase2/006_review_events.sql",
+    "plans/training-readiness/007_model_training_registry.rollback.sql",
+    "plans/training-readiness/007_model_training_registry.sql",
+    "public_source/.policy-generation-note.txt",
+    "public_source/__init__.py",
+    "public_source/build.py",
+    "public_source/tests/test_builder.py",
+    "run.cmd",
+    "scripts/NajdiLab_Autostart.ps1",
+    "scripts/acceptance_v11.py",
+    "scripts/audit_v006_metrics.py",
+    "scripts/audit_v006_metrics_v2.py",
+    "scripts/audit_v006_metrics_v3.py",
+    "scripts/backup.ps1",
+    "scripts/backup.sh",
+    "scripts/build_gold_v007_balanced.py",
+    "scripts/build_v007_epoch2_report.py",
+    "scripts/build_v007_eval_report.py",
+    "scripts/check_docs.py",
+    "scripts/collector_client.py",
+    "scripts/complete_review_queue.py",
+    "scripts/create_gold_v005_clean.py",
+    "scripts/create_gold_v006_clean.py",
+    "scripts/dataset_influence_audit.py",
+    "scripts/export_v007_e1_ollama.py",
+    "scripts/generate_api_reference.py",
+    "scripts/gold_v007_balancing.py",
+    "scripts/gold_v007_balancing_new.py",
+    "scripts/ingest_test.py",
+    "scripts/inspect_multi_turn_stats.py",
+    "scripts/inspect_v006_schema.py",
+    "scripts/install.ps1",
+    "scripts/install.sh",
+    "scripts/measure_v006_overlap.py",
+    "scripts/najdilab_training_adapter.py",
+    "scripts/phase13_registry.py",
+    "scripts/phase3_benchmark.py",
+    "scripts/run_gold_v004_controlled.py",
+    "scripts/run_gold_v006_controlled.py",
+    "scripts/run_gold_v007_balanced.py",
+    "scripts/run_gold_v007_epoch2.py",
+    "scripts/smoke_train_najdi_sft.py",
+    "scripts/train_najdi_sft.py",
+    "scripts/validate_training_masks.py",
+    "scripts/verify_audit.py",
+    "static/app.js",
+    "static/favicon.svg",
+    "static/index.html",
+    "static/localization.js",
+    "static/manual-data.css",
+    "static/phase1.css",
+    "static/phase38-review.html",
+    "static/phase38-review.js",
+    "static/review-lifecycle.css",
+    "static/rtl-overhaul.css",
+    "static/styles.css",
+    "static/theme-init.js",
+    "static/theme.css",
+    "static/theme.js",
+    "tests/http_client.py",
+    "tests/private_artifacts.py",
+    "tests/test_arabic_training_ui.py",
+    "tests/test_backend_localization.py",
+    "tests/test_complete_review_queue.py",
+    "tests/test_dataset_balancer.py",
+    "tests/test_dataset_platform.py",
+    "tests/test_dataset_registry.py",
+    "tests/test_english_localization.py",
+    "tests/test_http_security.py",
+    "tests/test_ingest_cli.py",
+    "tests/test_installation.py",
+    "tests/test_model_selection_contract.py",
+    "tests/test_najdilab.py",
+    "tests/test_phase310_gates.py",
+    "tests/test_phase311_training_adapter.py",
+    "tests/test_phase35_analysis.py",
+    "tests/test_phase36_readiness.py",
+    "tests/test_phase37_tool_hardening.py",
+    "tests/test_phase38_dataset.py",
+    "tests/test_phase38_ui.py",
+    "tests/test_phase39_api.py",
+    "tests/test_phase39_edits.py",
+    "tests/test_phase39_mt06_repair.py",
+    "tests/test_phase3_benchmark.py",
+    "tests/test_phase3_review.py",
+    "tests/test_platform_state.py",
+    "tests/test_review_integrity.py",
+    "tests/test_review_lifecycle.py",
+    "tests/test_review_management.py",
+    "tests/test_runtime_control.py",
+    "tests/test_safe_adapter_deployment.py",
+    "tests/test_safe_adapter_deployment_simple.py",
+    "tests/test_script_portability.py",
+    "tests/test_select_v007_windows.py",
+    "tests/test_theme_support.py",
+    "tests/test_training_adapter.py",
+    "tests/test_training_control.py",
+    "tests/test_training_plan_mismatch_regression.py",
+    "tests/test_training_plan_mismatch_unit.py",
+    "tests/test_training_registry_migration.py"
+  ],
+  "files": {
+    ".env.example": {
+      "destination": ".env.example",
+      "sha256": "5644f61c1ba5f91b9e245352b0a0ec2bd1a1afbd58547d52b38d86907055b6b4"
+    },
+    ".gitignore": {
+      "destination": ".gitignore",
+      "sha256": "578ac7650c23f3584956a5129fb88402e2032d757a5c790439774e34d08084eb"
+    },
+    "app/__init__.py": {
+      "destination": "app/__init__.py",
+      "sha256": "8900ed8a83d6e23ce60b5fa26854c3ebf74c2bf90eb23bf628d10b306888ede7"
+    },
+    "app/clean_export.py": {
+      "destination": "app/clean_export.py",
+      "sha256": "db6adb31f9970f58c186407fda8d360e6bb9175afef0f5c765ad8410fe0d1f77"
+    },
+    "app/dataset_balancer.py": {
+      "destination": "app/dataset_balancer.py",
+      "sha256": "27448d307a8706ac5c4ac30723d5b1a497da0a2289cc562793ec40dc24fd84e3"
+    },
+    "app/dataset_platform.py": {
+      "destination": "app/dataset_platform.py",
+      "sha256": "58712351a96b56a0ec631600a6646bf026b1027d7e32474ff234681e72ecf2a2"
+    },
+    "app/dataset_quality.py": {
+      "destination": "app/dataset_quality.py",
+      "sha256": "047cf004dac322fedc039b15e8601fc622e509437b20b0049c4b8652ce4fc187"
+    },
+    "app/db.py": {
+      "destination": "app/db.py",
+      "sha256": "0124721c461f3bf65c68651e15e5a13336cd35ef4bfc013fa43de711ec942bae"
+    },
+    "app/evaluation_guard.py": {
+      "destination": "app/evaluation_guard.py",
+      "sha256": "2f6c3bb6a0e55582f850278fc4e45313afb41a6e150d18e4c4ddf76ccc8629ef"
+    },
+    "app/http_security.py": {
+      "destination": "app/http_security.py",
+      "sha256": "75b729b35c4127ad97996a05b99234338315e9b6a30ac0d7a6c2864eefb0343e"
+    },
+    "app/review_integrity.py": {
+      "destination": "app/review_integrity.py",
+      "sha256": "1a94367c9a9f87b3dc9472f69a1182834199b69fb936078bb3a095700231cd8f"
+    },
+    "app/review_lifecycle.py": {
+      "destination": "app/review_lifecycle.py",
+      "sha256": "eff2930396074b17280c250107a2eaa8e7e53203d1d3ad78ecf328274eb37cad"
+    },
+    "app/service.py": {
+      "destination": "app/service.py",
+      "sha256": "07dabe17178eac419a5c2d6eaeb969fa7c34ccbd5d00dd5db17358be3cac0ec8"
+    },
+    "migrations/001_initial.sql": {
+      "destination": "migrations/001_initial.sql",
+      "sha256": "b42c3dd9059ab2556fb0560d593c9cc0d51f84ebaff361b275e24e37a5d1db7d"
+    },
+    "migrations/002_hermes_idempotency.sql": {
+      "destination": "migrations/002_hermes_idempotency.sql",
+      "sha256": "46197b8ad158ea5df989c0d80cca810285de4186415e6f2b551ec622d4ff1020"
+    },
+    "migrations/003_manual_data_manager.sql": {
+      "destination": "migrations/003_manual_data_manager.sql",
+      "sha256": "8001ab0ac2b76d5bceca50161796fd14dc1d298fd655a1f6984751aa6e9a10b0"
+    },
+    "migrations/004_review_lifecycle.sql": {
+      "destination": "migrations/004_review_lifecycle.sql",
+      "sha256": "92290af7684d75f181a0a489567a75ffb236f3944db03fe2b317cd0d22d6079e"
+    },
+    "public_source/README.md": {
+      "destination": "README.md",
+      "sha256": "d17a0c8b392fcb22d97c4ac55984331c213f7dddf7d3b8b816d90cd111361f02"
+    },
+    "public_source/extensions.py": {
+      "destination": "app/extensions.py",
+      "sha256": "2539f07efe87a6763ce928ea4271603cc7aa6961766eb4a4d4e36e494fc81467"
+    },
+    "public_source/server.py": {
+      "destination": "app/server.py",
+      "sha256": "cedbe6399def4c990829b5dc2f939a0c14b4332255f91c797fd5d9f518079994"
+    },
+    "public_source/static/app.js": {
+      "destination": "static/app.js",
+      "sha256": "41a97d5e6e12b220e55acf1d318cadf7ec578ff23b04f816b7e153f4a8fa5e68"
+    },
+    "public_source/static/index.html": {
+      "destination": "static/index.html",
+      "sha256": "f620e3f8587deeb3dbabcac7d54b6869c0152fd4deb653f06625d5fcff23e513"
+    },
+    "public_source/static/style.css": {
+      "destination": "static/style.css",
+      "sha256": "9c28715078de80e5dc93f9ff4b4084cda776cc8a802d76ab325d92822434f3be"
+    },
+    "public_source/synthetic.json": {
+      "destination": "synthetic.json",
+      "sha256": "21b7807ac2e8762b12ead29d83028c0b258a9f0e360fedc1c9def0e0df60f748"
+    },
+    "public_source/synthetic_demo.py": {
+      "destination": "scripts/synthetic_demo.py",
+      "sha256": "cc19c9e21f419f52993f8444158a0b019771e5b7fdd019b8c53aa8048116aca3"
+    },
+    "public_source/tests/contract.py": {
+      "destination": "tests/test_candidate_contract.py",
+      "sha256": "84d2a7808e3e1ae20a1bb82834c210abc056adb03dcd30c2d3945e4aaac04a3f"
+    },
+    "public_source/tests/security.py": {
+      "destination": "tests/test_candidate_security.py",
+      "sha256": "486028ee55dd50cae5961ba3d3ff830ca75b9ea6a0fefac6d1e6e5ec26e537fc"
+    },
+    "requirements-dev.txt": {
+      "destination": "requirements-dev.txt",
+      "sha256": "b9cbd5f33f08355ee2b812680197cb1eb29c68de0c7ddda85e47b473acc6a213"
+    },
+    "run.ps1": {
+      "destination": "run.ps1",
+      "sha256": "e23b7df25c3b824a7245d1b7a9a311f7bdbadb39f299fe7ff418cd51e7347374"
+    },
+    "run.sh": {
+      "destination": "run.sh",
+      "sha256": "2b800e28d437952bd97bcca7857254e676b8c9c06c6cf28ecd1d167cc38ec663"
+    },
+    "scripts/backup.py": {
+      "destination": "scripts/backup.py",
+      "sha256": "3105167010b396412296ce92ebd2bd0c8f9c5106381855f64cd7caf559ee678d"
+    },
+    "scripts/install.py": {
+      "destination": "scripts/install.py",
+      "sha256": "66e119a2ee999c6dab52b6eb5aaa0e248071d4ea39ebe3c6d2edcc5a29fdb962"
+    },
+    "scripts/launch.py": {
+      "destination": "scripts/launch.py",
+      "sha256": "17177c95b41e55f91e114fa44e897ca252226da20b1665cab293116e4cab2827"
+    },
+    "scripts/local_runtime.py": {
+      "destination": "scripts/local_runtime.py",
+      "sha256": "52058387e3c1fd855cc5745352cdd13f4ee40d48ecd0b31727a09208b8e0c401"
+    },
+    "scripts/select_v007_windows.py": {
+      "destination": "scripts/select_v007_windows.py",
+      "sha256": "7ef2cd50757e4b8be31fa77580e53a1051911f685183672d997cd286c4410df7"
+    },
+    "tests/test_clean_export.py": {
+      "destination": "tests/test_clean_export.py",
+      "sha256": "a80d1e3affa6ca887588e8d78a62bbf475fc56fd0aabd0db39b43c3767d653a1"
+    },
+    "tests/test_dataset_quality.py": {
+      "destination": "tests/test_dataset_quality.py",
+      "sha256": "7848ca33c4abe7d58ef0a3056435a707baccf7c118a88a671c4d5f00610c1431"
+    }
+  }
+}

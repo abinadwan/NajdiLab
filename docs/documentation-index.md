@@ -30,3 +30,7 @@ Historical documents are preserved dated snapshots. PROJECT_STATUS reconciles th
 | License and security reviewers | [Third-party attribution](third-party-attributions.md), [assets](asset-provenance.md), [release decision](public-release-decision.md), [SECURITY](../SECURITY.md) |
 
 These pages extend navigation; they do not replace existing status, technical references, historical reports or ADRs.
+
+## Source-only candidate engineering
+
+Developers/maintainers: [public/private boundary and blocked compatibility patch](public-private-boundary.md), [exact-candidate build/test/release report](public-source-isolation-report.md). These extend, rather than replace, the original architecture/status and PR #2 documentation.

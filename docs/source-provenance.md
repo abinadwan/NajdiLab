@@ -32,3 +32,7 @@ No confirmed copied or modified third-party **application source** was establish
 ## Owner follow-up and maintenance
 
 Confirm original authorship, employer/contractor rights, contributor permission, AI-tool usage/terms, and any borrowed snippets/styles/icons/templates not recorded in Git. Identify exact upstream path/revision/license for each borrowed item. Preserve existing headers and attach applicable notices to the actual distribution; do not remove uncertain code as incidental cleanup. Future provenance changes must update this table, the asset register and distribution decision. The recommended source-only public snapshot remains blocked until protected research separation, history disposition and ownership/licensing gates close.
+
+## Source-only candidate continuation
+
+New server/UI/extension/builder/demo/test code under `public_source/` is AI-assisted engineering work from this task, with reusable original core files copied byte-identically under a reviewed mapping. No copied upstream implementation is asserted. The candidate uses a deliberately smaller interface; original sources and notices remain preserved. Creation method is known; ownership/redistribution authority and an active license still require confirmation. See [boundary](public-private-boundary.md) and [verification](public-source-isolation-report.md).

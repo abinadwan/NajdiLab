@@ -73,3 +73,7 @@ English UI/docs, Arabic direction/data invariants, Host/Origin/CSRF/JSON control
 ## Resume safely
 
 Next task: owner review this branch and license/history/data disposition plus security migration plan. Do not start Corpus Phase 1A or training automatically. Follow [maintainer handover](docs/maintainer-handover.md): clone reviewed revision, install locally, test, identify exact blocked gates, make a scoped branch and update status/worklog. Proposed SQL stays outside migrations. Roll back by ordinary revert plus verified private restore; never restore over live state.
+
+## Public-source isolation engineering track
+
+Separate `dev/public-source-isolation` is stacked on the unmerged documentation PR #2. A narrower candidate profile stages a new server/UI and reuses core logic unchanged; original research/training application remains preserved. Historical/model actions are unavailable in the candidate, not newly authorized. [Specification](docs/public-private-boundary.md) and [exact-candidate report](docs/public-source-isolation-report.md) record implementation and remaining gates. No license or publication approval.
