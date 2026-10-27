@@ -46,3 +46,5 @@ Current implementation reviewers/developers: [milestone execution and rollback](
 ## Public Core candidate users
 
 [Candidate onboarding, APIs, architecture and actual screenshots](public-core-user-guide.md). This reduced profile has separate documentation; all original full-platform and historical pages above remain discoverable.
+
+Owner/license reviewers: [Phase5 exact candidate source inventory, tagged dependency evidence and inactive decisions](public-core-phase5-rights.md). Package/privacy scans and legal/publication approvals remain independent.

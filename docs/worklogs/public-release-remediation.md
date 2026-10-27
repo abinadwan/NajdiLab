@@ -86,3 +86,7 @@ Added candidate-specific onboarding/API/architecture/user/contributor pages and 
 ## 2026-10-27 — Phase5 Goal6 local verification
 
 Added acceptance input guards, controlled unsupported methods, runtime dependency restriction, actual shell installation/unsupported Python/port conflict/HMAC tests and hosted real browser acceptance. Tests exposed missing shell/PowerShell wrappers; included original reviewed bytes without changing them. Failures retained in current ledger. Added no models/private modules or publication permission. Hosted result and final independent review pending; forward revert this candidate/workflow unit for rollback, preserving state.
+
+## 2026-10-27 — Phase5 B07 selected rights review
+
+Prepared exact74-file inventory and separate private clean snapshot, current matching license-text evidence, residual helper-label review and inactive owner decision fields. No source license activated or ownership asserted. Privacy/ownership/history/third-party approvals remain open, independently of technical Windows recovery findings. Rebuild/review changed selected bytes before publication consideration.
