@@ -7,7 +7,7 @@ Statuses require observed regression evidence before VERIFIED_CLOSED. Historical
 | P5-01 | Critical/P0 | Correction UI omits flags; shared service defaults clear privacy/evaluation/exclusion and may enable eligibility | Candidate transaction + preserve omitted fields; regression pending | VERIFIED_CLOSED |
 | P5-02 | Critical/P0 | Optional stale token and timestamp reuse permit silent overwrite | Mandatory token + transaction + fresh revision; two-client regression pending | VERIFIED_CLOSED |
 | P5-03 | High/P0 | Minimal UI lacks context, saved readback and explicit eligibility | Contextual UI + real browser context/save/flag/approval/exclusion/restart acceptance | VERIFIED_CLOSED |
-| P5-04 | High/P0 | Missing actionable readiness/version inspection and constrained artifact handoff | Candidate-only wrappers/UI and adversarial filesystem tests pending | OPEN |
+| P5-04 | High/P0 | Missing actionable readiness/version inspection and constrained artifact handoff | Dataset/artifact suites and actual browser preparation/download/backup acceptance PASS | VERIFIED_CLOSED |
 | P5-05 | Release gate | Historical Git privacy, ownership, license and exact rights remain uncleared | B07 exact manifest/provenance/owner decision package | BLOCKED |
 
 New findings and review outcomes are appended during implementation; no finding is closed merely because code changes.
@@ -32,3 +32,9 @@ Goal1 privacy/staleness closures now include actual browser persistence/conflict
 | P5-17 | High/P0 | Another server process could bypass per-instance mutation lock | OS storage guard, second-server RED then refusal/first-server health PASS; review | VERIFIED_CLOSED |
 
 Direct/preference preparation is explicitly deferred to B08 and blocked before version writes; no false compatible evaluation is claimed. Same-root out-of-band DB/library writers are unsupported. Current candidate does not claim a complete historical review-event log or automatic PII detection.
+
+| P5-18 | High/P0 | Old backup could mix DB snapshot with live/unregistered/linked exports | Candidate snapshot-registered verified-byte backup; staging RED, concurrent preparation/restore PASS | VERIFIED_CLOSED |
+| P5-19 | High/P0 | Restore destination race and incomplete version inventory | Exclusive mkdir + xb copying; shared structural validation, incomplete ZIP RED then PASS | VERIFIED_CLOSED |
+| P5-20 | Critical/P0 | Cleanup could delete an unowned colliding incomplete file | Ownership tracking; forced-name preservation PASS and cleanup-mutation expected FAIL; review | VERIFIED_CLOSED |
+| P5-21 | High/P0 | Backup size bounds applied after allocation | Pre-read DB and incremental version budgets; bounded-read RED then PASS; review | VERIFIED_CLOSED |
+| P5-22 | High/P0 | Backup archive/member name shadow broke publication | Separate names; six failures retained, full backup suites now PASS; review | VERIFIED_CLOSED |

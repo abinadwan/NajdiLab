@@ -9,6 +9,8 @@ class StorageError(RuntimeError):
 
 
 def validate_storage():
+    if (ROOT/'.RESTORE_INCOMPLETE').exists():
+        raise StorageError('Incomplete restore: do not launch or overwrite this directory.')
     for name in ('data','exports','datasets','backups'):
         p = ROOT / name
         if p.resolve() != p or p.is_symlink() or getattr(p, 'is_junction', lambda: False)():

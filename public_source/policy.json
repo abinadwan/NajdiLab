@@ -149,6 +149,7 @@
     "scripts/audit_v006_metrics_v2.py",
     "scripts/audit_v006_metrics_v3.py",
     "scripts/backup.ps1",
+    "scripts/backup.py",
     "scripts/backup.sh",
     "scripts/build_gold_v007_balanced.py",
     "scripts/build_v007_epoch2_report.py",
@@ -315,11 +316,11 @@
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "7487b576c57aadebe20bac8c2ab6815c83834c5282ecf2092b7aa1856584d5ab"
+      "sha256": "ca03f64b4ef3ea354bf32eb9b0a7c7c9d21e7950fa412032f0fe655440091ff3"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
-      "sha256": "39e8f111b585893c1123c1894c5e45081b61a533e6b325fbb07a256dc9d7d6f5"
+      "sha256": "c7bce7a2d2bafe5294f5bedf3272dc8e243eefafed2e1c207ae82a0af0de05f4"
     },
     "public_source/static/index.html": {
       "destination": "static/index.html",
@@ -356,10 +357,6 @@
     "run.sh": {
       "destination": "run.sh",
       "sha256": "2b800e28d437952bd97bcca7857254e676b8c9c06c6cf28ecd1d167cc38ec663"
-    },
-    "scripts/backup.py": {
-      "destination": "scripts/backup.py",
-      "sha256": "3105167010b396412296ce92ebd2bd0c8f9c5106381855f64cd7caf559ee678d"
     },
     "scripts/install.py": {
       "destination": "scripts/install.py",
@@ -407,7 +404,7 @@
     },
     "public_source/tests/browser.cjs": {
       "destination": "tests/browser.cjs",
-      "sha256": "a5f934f15bd9d4f1fa67cee980db5ce82e021a214216a20c592790fdcb07eb18"
+      "sha256": "0142dd7971dcb839d3c0010463a5acf53280d30346321e39564e32f12cf0007e"
     },
     "public_source/read_views.py": {
       "destination": "app/core_views.py",
@@ -419,7 +416,7 @@
     },
     "public_source/datasets.py": {
       "destination": "app/core_datasets.py",
-      "sha256": "d11589e9f74c57393a39ebb8591b548a44d14c3e646af5227e1da3019fc3d2ad"
+      "sha256": "244d054d0bb5ea1cec3612cb5460fc193874102c47d1951ec7926b70a0bb844f"
     },
     "public_source/synthetic_workshop.json": {
       "destination": "synthetic-workshop.json",
@@ -431,7 +428,23 @@
     },
     "public_source/storage.py": {
       "destination": "app/core_storage.py",
-      "sha256": "322190f3f4b5b0e35e87d3324b17314ddb2efb24657a7d2e655f71fcc2da18a4"
+      "sha256": "0d00ef72d0bb7ca11062311d582cf90f0c254a7e1381e77729251ad652b6dc5b"
+    },
+    "public_source/tests/artifacts.py": {
+      "destination": "tests/test_candidate_artifacts.py",
+      "sha256": "0081fd4b1eb5b9946187a05b33fcd95f431f14b2573375cc69b5803b4fdce26a"
+    },
+    "public_source/artifacts.py": {
+      "destination": "app/core_artifacts.py",
+      "sha256": "8e1530921bdf6324bff167f13a09bdc7fbb9d7dc31b69be95c208d42c3e12276"
+    },
+    "public_source/restore_backup.py": {
+      "destination": "scripts/restore_backup.py",
+      "sha256": "88f457d712b89521f4b03e56bd556833b456ead8b8c061bd8185956c2fd90a37"
+    },
+    "public_source/backup.py": {
+      "destination": "scripts/backup.py",
+      "sha256": "e325c1ea377f8651c734f7c8244abbda20d578e4a25324b3ffa8a39f81799589"
     }
   }
 }

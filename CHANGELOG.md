@@ -5,6 +5,7 @@
 - Added mandatory atomic review revisions, preserved omitted flags/notes/tags/reviewer, strict boolean validation and safe lifecycle handling in candidate-only code.
 - Added contextual conversations/review/search/saved-state UI, safe Arabic rendering, explicit decisions and conflict/draft controls. Independent review regressions cover privacy, lifecycle and asynchronous state handling.
 - Added read-only readiness/duplicate/quality/balance/version/holdout inspection, strict contextual privacy and mask gates, explicit workshop fixtures and single-storage-instance protection.
+- Added selected manifest-verified JSONL downloads, coherent snapshot-registered private backup and exclusive separate restore with integrity checks. Preserved original backup implementation unchanged.
 - Original source, research, images and historical reports remain preserved; no training, license activation, publication or production operation.
 
 ## Unreleased — public core scope review (2026-10-27)

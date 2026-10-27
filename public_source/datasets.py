@@ -116,33 +116,37 @@ def prepare(include_demo=False):
     return service.create_export(include_demo=include_demo)
 
 
-def _regular(path):
+def _regular(path, max_bytes=MAX_FILE_BYTES):
     if path.is_symlink() or getattr(path, 'is_junction', lambda: False)() or path.resolve() != path or not path.is_file():
         raise ReviewError('DATASET_PATH_DENIED', 'A dataset path is not a regular candidate-local file.', 403)
-    if path.stat().st_size > MAX_FILE_BYTES or path.stat().st_nlink > 1:
+    if path.stat().st_size > max_bytes or path.stat().st_nlink > 1:
         raise ReviewError('DATASET_FILE_DENIED', 'Dataset file exceeds the size or file-link policy.', 403)
-    raw = path.read_bytes()
-    if len(raw) > MAX_FILE_BYTES:
+    with path.open('rb') as handle:raw = handle.read(max_bytes + 1)
+    if len(raw) > max_bytes:
         raise ReviewError('DATASET_FILE_DENIED', 'Dataset file exceeds the size policy.', 403)
     return raw
 
 
-def checked_version(version):
+def checked_version(version, *, registered_manifest=None, exports_root=None, byte_budget=64*1024*1024):
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,119}', version):
         raise ReviewError('INVALID_VERSION', 'Invalid local version identifier.')
-    root = ROOT / 'exports'; directory = root / version
+    root = Path(exports_root) if exports_root is not None else ROOT / 'exports'; directory = root / version
     if root.resolve() != root or directory.resolve() != directory or root.is_symlink() or directory.is_symlink() or getattr(directory, 'is_junction', lambda: False)():
         raise ReviewError('DATASET_PATH_DENIED', 'Linked dataset directories are not supported.', 403)
-    conn = _connect()
-    try:
-        row = conn.execute('SELECT manifest_json FROM dataset_versions WHERE version=?', (version,)).fetchone()
-    finally:
-        conn.close()
-    if row is None or not directory.is_dir():
+    if registered_manifest is None:
+        conn = _connect()
+        try:
+            row = conn.execute('SELECT manifest_json FROM dataset_versions WHERE version=?', (version,)).fetchone()
+            expected_json = row['manifest_json'] if row is not None else None
+        finally:conn.close()
+    else:expected_json = registered_manifest
+    if expected_json is None or not directory.is_dir():
         raise ReviewError('DATASET_NOT_FOUND', 'Managed local dataset version not found.', 404)
     try:
-        manifest = json.loads(_regular(directory / 'manifest.json'))
-        if manifest != json.loads(row['manifest_json']) or manifest.get('version') != version:
+        manifest_bytes = _regular(directory / 'manifest.json', min(MAX_FILE_BYTES, byte_budget))
+        remaining = byte_budget - len(manifest_bytes)
+        manifest = json.loads(manifest_bytes)
+        if manifest != json.loads(expected_json) or manifest.get('version') != version:
             raise ValueError('registry manifest mismatch')
         checksums, counts = manifest['sha256'], manifest['files']
         if not isinstance(checksums, dict) or not isinstance(counts, dict) or set(checksums) - INTERNAL_FILES or set(counts) != DATA_FILES:
@@ -152,14 +156,18 @@ def checked_version(version):
         blobs = {}
         for name, digest in checksums.items():
             if not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest):raise ValueError('invalid digest')
-            raw = _regular(directory / name)
+            raw = _regular(directory / name, min(MAX_FILE_BYTES, remaining))
+            remaining -= len(raw)
             if hashlib.sha256(raw).hexdigest() != digest:raise ValueError('changed bytes')
             blobs[name] = raw
         if sum(map(len, blobs.values())) > 64 * 1024 * 1024:raise ValueError('aggregate size')
         for name in DATA_FILES:
             records = [json.loads(line) for line in blobs[name].decode('utf-8').splitlines() if line.strip()]
             if type(counts[name]) is not int or counts[name] != len(records) or any(not isinstance(x, dict) for x in records):raise ValueError('count/record mismatch')
+        blobs['manifest.json'] = manifest_bytes
         return directory, manifest, blobs
+    except ReviewError:
+        raise
     except (ValueError, TypeError, KeyError, UnicodeError, OSError):
         raise ReviewError('DATASET_INTEGRITY_FAILED', 'Version files or manifest do not match registered preparation evidence. Do not use or share this version.', 409) from None
 

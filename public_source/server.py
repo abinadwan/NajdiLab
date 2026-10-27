@@ -18,6 +18,7 @@ from .core_reviews import ReviewError, update_review
 from .core_views import list_reviews, get_review
 from . import core_datasets
 from .core_storage import StorageError, instance_guard
+from .core_artifacts import read_artifact
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_request, validate_ingest
 from .review_integrity import ExportReadinessError, export_readiness
 
@@ -51,12 +52,13 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             return False
         return True
 
-    def headers_for(self, status, kind, size):
+    def headers_for(self, status, kind, size, extra=None):
         self.send_response(status)
         for key,value in {'Content-Type':kind,'Content-Length':str(size),'Cache-Control':'no-store',
                           'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer',
                           'Content-Security-Policy':"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self'; connect-src 'self'"}.items():
             self.send_header(key,value)
+        for key,value in (extra or {}).items():self.send_header(key,value)
         self.end_headers()
 
     def respond(self, value, status=200):
@@ -107,6 +109,10 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 elif path=='/api/v1/exports/readiness':result=core_datasets.readiness(demo)
                 elif path=='/api/v1/exports/dedup-report':result=core_datasets.readiness(demo).get('dedup',{})
                 elif path=='/api/v1/dataset-versions':result=core_datasets.list_versions()
+                elif '/files/' in path and path.startswith('/api/v1/dataset-versions/'):
+                    parts=path.split('/')
+                    if len(parts)!=7:raise ReviewError('ARTIFACT_DENIED','Choose a listed dataset file.',403)
+                    raw=read_artifact(parts[4],parts[6]);self.headers_for(200,'application/octet-stream',len(raw),{'Content-Disposition':f'attachment; filename="{parts[6]}"'});self.wfile.write(raw);return
                 elif m:=re.fullmatch(r'/api/v1/dataset-versions/([A-Za-z0-9._-]+)/(health|quality-findings|balance|eval-sets|release-validation)',path):result=core_datasets.version_detail(m[1],m[2])
                 elif m:=re.fullmatch(r'/api/v1/dataset-versions/([A-Za-z0-9._-]+)',path):result=core_datasets.version_detail(m[1])
             else:
