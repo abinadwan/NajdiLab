@@ -59,3 +59,7 @@ No final license, release, history rewrite, schema migration, download, training
 - Require manifest/hash-selected copies before candidate test startup; refuse original/non-candidate input and never copy unlisted local state.
 - Controlled unsupported HTTP methods, strict test-only pytest import allowance, actual installer/port/runtime/native HMAC regressions.
 - Include reviewed unchanged Windows/Linux install wrappers; add hosted real browser acceptance without model/runtime installs or artifact upload.
+
+### Windows recovery corrective evidence
+
+Retained first hosted candidate failure5 and diagnostic failure2. Explicit UTF-8 fixture IO fixed three test defects. A new real-filesystem staging-alias regression reproduced valid restore refusal; normalize only the newly created owned staging directory while preserving all link/containment/exclusive-write checks. Hosted acceptance must pass before closing this finding.

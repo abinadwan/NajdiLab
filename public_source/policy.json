@@ -308,7 +308,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "49b95b31149348fb07113b63569a5e353eae8ed32147f48c988917fe32303ea4"
+      "sha256": "2b8d27ffb4c9aca99afa4cd43d3f574719646263a97550d65284471605ab7402"
     },
     "public_source/extensions.py": {
       "destination": "app/extensions.py",
@@ -432,7 +432,7 @@
     },
     "public_source/tests/artifacts.py": {
       "destination": "tests/test_candidate_artifacts.py",
-      "sha256": "05e9ccc1ee8a974116ff1f5115072a16f39d2e3f3849fa1864196f247ae86a50"
+      "sha256": "37d0889800164a1d0a148427ea9d14f624d03783c292207fd028b54b1f669590"
     },
     "public_source/artifacts.py": {
       "destination": "app/core_artifacts.py",
@@ -440,7 +440,7 @@
     },
     "public_source/restore_backup.py": {
       "destination": "scripts/restore_backup.py",
-      "sha256": "88f457d712b89521f4b03e56bd556833b456ead8b8c061bd8185956c2fd90a37"
+      "sha256": "c801b0465bf458cdd8ed04703efa4dbe98b69e4bf0671b3d8baf6b7c65550bdc"
     },
     "public_source/backup.py": {
       "destination": "scripts/backup.py",

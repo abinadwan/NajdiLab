@@ -26,11 +26,11 @@ Deferred: manual direct/preference editing/preparation, bulk management, model c
 
 | Technology | Required / verified evidence | Official source |
 |---|---|---|
-| Python | Minimum: 3.11; local testing: 3.12.14; Windows/Linux CI uses 3.12 | [Python downloads](https://www.python.org/downloads/) |
-| SQLite | Minimum: 3.24 via Python sqlite3; local build: 3.53.1; exact CI versions in verification | [SQLite](https://www.sqlite.org/index.html) |
+| Python | Minimum: 3.11; observed local 3.12.14, hosted Windows 3.12.10 / Ubuntu 3.12.15; acceptance status below | [Python downloads](https://www.python.org/downloads/) |
+| SQLite | Minimum: 3.24 via Python sqlite3; observed local 3.53.1, hosted Windows 3.49.1 / Ubuntu 3.45.1 | [SQLite](https://www.sqlite.org/index.html) |
 | Browser | Current Chromium tested; other modern browsers require independent validation | [Chromium](https://www.chromium.org/) |
 | Git | Only needed for authorized engineering checkout, not a generated candidate | [Git downloads](https://git-scm.com/downloads/) |
-| Windows / Linux | Linux container tested; hosted Windows/Ubuntu acceptance pending Goal 6 | [WSL optional](https://learn.microsoft.com/windows/wsl/install) |
+| Windows / Linux | Local Linux exercised; Windows/Ubuntu hosted outcomes are recorded separately in verification | [WSL optional](https://learn.microsoft.com/windows/wsl/install) |
 
 Core uses Python's standard library and HTML/CSS/JavaScript without a frontend build step. No Administrator/sudo is required for an ordinary writable checkout. True minimum CPU/RAM/disk has not been benchmarked. Dataset inspection/backup/restore is bounded to 16 MiB per file and 64 MiB aggregate; this is a safety limit, not a hardware minimum. Keep space for source, venv, DB, each version and separate backups. The optional pytest/Node/browser tools below are development tools, not application dependencies. Python/SQLite versions are distinct from dataset identifiers; no software release number is assigned.
 
@@ -128,7 +128,7 @@ NODE_PATH=../core-browser-tools/node_modules node tests/harness.cjs
 node tests/browser.cjs .
 ```
 
-Set NAJDILAB_BROWSER_EXECUTABLE for your installed browser. Windows PowerShell: set $env:NODE_PATH and $env:NAJDILAB_BROWSER_EXECUTABLE in the session, then run node. Hosted Windows/Ubuntu acceptance is pending Goal 6; consult the final verification report for actual results. Browser fixtures/demonstrations are synthetic; none is historical research evidence. See [contribution guidance](CONTRIBUTING.md). No training is needed for any acceptance test.
+Set NAJDILAB_BROWSER_EXECUTABLE for your installed browser. Windows PowerShell: set $env:NODE_PATH and $env:NAJDILAB_BROWSER_EXECUTABLE in the session, then run node. Consult the [Phase5 engineering verification](https://github.com/abinadwan/NajdiLab/blob/dev/public-core-workflow-completion/docs/public-core-phase5-verification.md) for actual hosted Windows/Ubuntu outcomes, failures, counts and exact tested commits; observed versions alone are not full acceptance. Browser fixtures/demonstrations are synthetic; none is historical research evidence. See [contribution guidance](CONTRIBUTING.md). No training is needed for any acceptance test.
 
 ## Troubleshooting and updates
 

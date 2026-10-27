@@ -47,5 +47,5 @@ Direct/preference preparation is explicitly deferred to B08 and blocked before v
 | P5-27 | High | Runtime import checker allowed separately installed pytest outside tests | Two RED runtime-import probes; test-only dependency allowlist now PASS; independent review | VERIFIED_CLOSED |
 | P5-28 | High/P0 | Shell/PowerShell install wrappers absent from candidate | Actual shell installation test failed; reviewed unchanged wrapper bytes explicitly included; repeat/state-preservation PASS; independent selection review | VERIFIED_CLOSED |
 
-| P5-29 | High/P0 | Windows candidate restore refused valid synthetic snapshot; cause under investigation | Two real hosted failures; direct-function diagnostics pending, CLI containment retained | OPEN |
-| P5-30 | High | Test fixture Arabic reads/writes used platform default cp1252 | Three real Windows failures; explicit UTF-8 test fixture IO, hosted recheck pending | IN_PROGRESS |
+| P5-29 | High/P0 | Valid Windows restore staging alias failed strict canonical path comparison | Two hosted failures + direct-function trace; nonlinked staging alias RED, normalize only newly owned stage; full recheck pending | IN_PROGRESS |
+| P5-30 | High | Test fixture Arabic reads/writes used platform default cp1252 | Three real Windows failures; explicit UTF-8 test fixture IO; hosted recheck68PASS/2 unrelated restore failures, all three encoding failures closed | VERIFIED_CLOSED |

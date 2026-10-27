@@ -123,3 +123,25 @@ class ArtifactAccess(CandidateCase):
         self.assertEqual(result.returncode,0,result.stderr.decode());c=sqlite3.connect(output/'data/najdilab.db')
         try:self.assertGreaterEqual(c.execute('SELECT COUNT(*) FROM dataset_versions').fetchone()[0],1)
         finally:c.close()
+
+    def test_restore_canonicalizes_only_its_new_owned_staging_directory(self):
+        subprocess.run([sys.executable,'scripts/backup.py'],cwd=self.work,env=self.env,check=True,capture_output=True)
+        archive=next((self.work/'backups').glob('*.zip'));output=self.work.parent/'alias-restored'
+        # Real filesystem alias without a symlink: reproduces canonical-name
+        # mismatch independently of Windows short-name availability.
+        code="""import sys
+from pathlib import Path
+from unittest.mock import patch
+import scripts.restore_backup as recovery
+real=recovery.tempfile.mkdtemp
+def alias(**kwargs):
+    created=Path(real(**kwargs))
+    return str(created/'..'/created.name)
+with patch.object(recovery.tempfile,'mkdtemp',side_effect=alias):
+    recovery.restore(sys.argv[1],sys.argv[2])
+"""
+        result=subprocess.run([sys.executable,'-c',code,str(archive),str(output)],cwd=self.work,env=self.env,capture_output=True)
+        self.assertEqual(result.returncode,0,result.stderr.decode('utf-8',errors='replace'))
+        conn=sqlite3.connect(output/'data/najdilab.db')
+        try:self.assertEqual(conn.execute('pragma integrity_check').fetchone()[0],'ok')
+        finally:conn.close()

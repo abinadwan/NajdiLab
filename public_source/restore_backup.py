@@ -34,7 +34,10 @@ def restore(backup, output):
             if len(p.parts)!=3 or p.parts[0]!='exports' or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,119}',p.parts[1]) or p.parts[2] not in ALLOWED:raise ValueError('Unexpected backup entry')
         if 'data/najdilab.db' not in names:raise ValueError('Database snapshot missing')
         output.parent.mkdir(parents=True,exist_ok=True)
-        stage=Path(tempfile.mkdtemp(prefix='.core-restore-',dir=output.parent))
+        # Normalize only our newly created staging directory (e.g. Windows
+        # short-name aliases). Output-parent symlink/junction rejection above
+        # remains unchanged; managed file checks still reject linked paths.
+        stage=Path(tempfile.mkdtemp(prefix='.core-restore-',dir=output.parent)).resolve()
         try:
             for info in infos:
                 data=archive.read(info)
