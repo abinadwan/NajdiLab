@@ -20,3 +20,13 @@ Documentation check: **PASS, 81 Markdown files**, links/API inventory resolve. R
 ## Delivery and rollback
 
 Remote branch restoration/new draft is pending owner direction because PR #1 was already merged. Local changes remain reviewable. Rollback is an ordinary revert of the documentation commit; protected implementation/history and private originals are preserved. Do not reset main or erase research evidence.
+
+## Unified task continuation
+
+The subsequent unified task explicitly authorizes the new branch/push/Draft PR, superseding the earlier delivery pause. Current main remains `2015a085`; the original `5ac0f2b` was preserved and its exact diff incorporated as `5d9fde8` on `dev/open-source-final-readiness`. No open PR existed at reconciliation.
+
+README introduction/order, technology matrix, official links, installation, source tree, architecture/workflow diagrams and current status were consolidated without changing application code. Architecture, installation, developer/maintainer setup, requirements, index and changelog were extended; prior dated reports were retained with supersession notes. Reason: stale deleted-branch instructions and an introductory legal warning obstructed developer onboarding. Expected behavior/data/security remain unchanged.
+
+Fresh suite: 277 passed / 24 skipped / 68 subtests, existing warning. New isolated POSIX setup/reinstall/health/conflict/authenticated synthetic Arabic/backup-restore/shutdown passed. All 132 protected source hashes unchanged. 82 Markdown files, 18 contents anchors and 19 external HTTPS links passed. Both Mermaid 12.2.0 diagrams parsed/rendered and were visually inspected on desktop; mobile/GitHub rendering is not independently certified. Exact commands, failures/retries and platform limits: [unified verification](../unified-readiness-verification.md). Private originals, current Windows/WSL and optional ML execution remain unavailable/not performed.
+
+Publication verdict remains NOT READY — BLOCKERS REMAIN. History/public snapshot, protected research separation, ownership/license and exact artifact/provenance decisions still need owner approval. Rollback is an ordinary revert of documentation commits; no source/data/runtime rollback is required. No history rewrite, main change, production work or license activation.

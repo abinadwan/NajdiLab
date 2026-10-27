@@ -4,9 +4,9 @@ Date: **2026-10-27**. Verdict: **NOT READY — BLOCKERS REMAIN**.
 
 ## 1. Executive summary and baseline
 
-This review continues the source at `ae0ebb634459a8cadb742143a49f65c755f2b290`. GitHub inspection found [PR #1](https://github.com/abinadwan/NajdiLab/pull/1) already merged at `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`, no longer draft, and its development branch deleted. The repository remains Private. The merged PR cannot be updated as an open draft. A local `dev/english-open-source-readiness` branch was created at the requested source revision; restoring the remote branch/new draft review is pending owner direction. Main is untouched by this remediation. Earlier documentation describing unchanged original main and an open draft is historical, not current state.
+This combined review is on `dev/open-source-final-readiness`, based on current remote main `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`. GitHub reconciliation found PR #1 already merged, the former branch deleted and no open PR. The prior local package `5ac0f2b99bef445e119e4bdb7fb5289464947de9` was found, its diff reviewed and incorporated as `5d9fde8` after confirming its parent tree matched main. One new coordinated Draft PR is authorized by the unified task. The old commit remains preserved. Main and Private visibility are unchanged; no speculation about the prior merge's authorization is made.
 
-The initial real clone was clean, `git fsck --full` succeeded, and 224 tracked files received SHA256 baselines outside the repository. No local concurrent edits existed in that clone. This says nothing about uncommitted production work; the historical live-tree reconciliation remains open. Initial snapshot retrieval through the connector was superseded by the successful full clone after sandbox network access was granted.
+At reconciliation the real clone was clean, `git fsck --full` succeeded, and 224 tracked files received SHA256 baselines outside the repository. No local concurrent edits existed in that clone. This says nothing about uncommitted production work; the historical live-tree reconciliation remains open. Initial snapshot retrieval through the connector was superseded by the successful full clone after sandbox network access was granted.
 
 The application/security implementation is preserved. Research-bearing source remains private and unchanged. The safely resolved work is a concrete, evidence-backed owner decision package, more precise rights inventory, distribution boundary and inactive licensing drafts. No claim of completed private-data separation or permission to redistribute is made.
 
@@ -15,11 +15,11 @@ The application/security implementation is preserved. Research-bearing source re
 | Privacy | BLOCKED | PRIV-03/06/07/09 in [audit](privacy-history-review.md) | Clear identities, operational context and every candidate public file |
 | Git history | BLOCKED | 7 reachable commits / 328 blobs; 26 personal Windows-path matches | Approve a publication strategy; keep current repo private |
 | Real-data separation | BLOCKED | Protected modules imported by application; [policy](dataset-model-distribution-policy.md) | Implement isolated public interfaces/replacements; preserve private originals |
-| Security | PASS WITH LIMITS for tested loopback source; deployment BLOCKED | Clean-clone full suite and source review; section 12 | Retain local single-operator scope; separately approve/test Ingest transition |
-| Third-party rights | PARTIAL / NOT_VERIFIED | [Dependency matrix](dependency-licensing-matrix.md) | Exact distribution manifest, provenance and matching notices |
+| Security | COMPLETE within tested local scope; deployment BLOCKED | Clean-clone full suite and source review; section 12 | Retain local single-operator scope; separately approve/test Ingest transition |
+| Third-party rights | NOT_VERIFIED | [Dependency matrix](dependency-licensing-matrix.md) | Exact distribution manifest, provenance and matching notices |
 | Source license | AWAITING_OWNER_APPROVAL | Inactive [approval package](proposals/licensing-approval.md) | Confirm ownership/holder/year/scope and select license |
-| Attribution | PROPOSAL ONLY | [NOTICE draft](proposals/NOTICE.txt) and README wording | Approve public attribution and contributor authority |
-| Test coverage | PASS for available source; private/Windows checks SKIP | 277 passed, 24 skipped, 68 subtests; section 13 | Run absent historical checks privately and Windows checks on Windows |
+| Attribution | AWAITING_APPROVAL | [NOTICE draft](proposals/NOTICE.txt) and README wording | Approve public attribution and contributor authority |
+| Test coverage | COMPLETE for available source; private/Windows coverage NOT_VERIFIED | 277 passed, 24 skipped, 68 subtests; section 13 | Run absent historical checks privately and Windows checks on Windows |
 | Publication | BLOCKED | Unclosed privacy/data/rights/license gates above | No public conversion, release, merge or history rewrite |
 
 ## 2. Resolved publication preparation gaps
@@ -83,7 +83,7 @@ Recommended visible README/About credit is distinct from mandatory notices. Apac
 
 ## 11. Required owner decisions
 
-1. Confirm whether to restore the deleted development branch from the specified source and open a new draft PR; merged PR #1 cannot become the requested draft.
+1. Review the single combined Draft PR from current main; merged PR #1 remains historical.
 2. Approve strategy B or select another history strategy; decide public attribution versus personal metadata and operational disclosures. Keep current repository private pending closure.
 3. Approve exact public file scope and a separately reviewed implementation of protected-source separation; retain every original research asset privately.
 4. Confirm copyright holder/year, authority over contributions and source license. Review third-party provenance and actual shipped notices before activation.
@@ -98,17 +98,19 @@ Trust model remains **single trusted local operator on loopback**. No multi-user
 
 ## 13. Test results and preservation evidence
 
+Current combined-branch execution and diagram/installation details supersede earlier local delivery assumptions: [unified verification](unified-readiness-verification.md).
+
 Environment: Linux, Python 3.12.14, SQLite 3.53.1; pytest 9.1.1 installed into an isolated tools directory. Commands run from the real source-only clone; private historical fixtures were not supplied.
 
 | Check | Result | Evidence / limit |
 |---|---|---|
 | Clean-clone baseline: `PYTHONPATH=/workspace/test-tools python -m pytest -q tests -p no:cacheprovider -rs` | PASS: **277 passed, 24 skipped, 68 subtests**, one existing warning | 23 historical-artifact skips plus one Windows-only skip; no historical proof inferred |
-| Complete final available suite | PASS: **277 passed, 24 skipped, 68 subtests**, one existing warning | Same command plus private JUnit output; 5.06 seconds; no model workload |
+| Complete final available suite | PASS: **277 passed, 24 skipped, 68 subtests**, one existing warning | Same command plus private JUnit output; 4.84 seconds; no model workload |
 | Security, Arabic preservation, installation regressions | PASS as included in full suite | No independent live production/browser recertification claimed |
 | `python scripts/install.py --check` | PASS | Read-only Python/SQLite/source-layout smoke; no application startup or database initialization |
 | `python -m compileall -q app scripts tests` | PASS | Syntax only; does not execute training |
 | `sh -n run.sh scripts/install.sh` | PASS | Shell syntax; no native Windows smoke in this task |
-| `python scripts/check_docs.py` | PASS: **81 Markdown files** | Local links and generated API inventory |
+| `python scripts/check_docs.py` | See [fresh documentation evidence](unified-readiness-verification.md) | Local links and generated API inventory |
 | `git fsck --full` | PASS | Full real clone; no history mutation |
 | Tracked operational-artifact filename check | PASS: zero matched | Databases/JSONL/weights/archives/caches excluded; real data in Python still blocks release |
 | Current/history privacy review | COMPLETE WITH BLOCKERS | PRIV-01–09; limited secret patterns are not exhaustive clearance |
@@ -130,9 +132,17 @@ No production rollback is needed because nothing was deployed. Any future state/
 
 ## 16. Exact recommended next actions
 
-1. Review this package while the repository remains private; resolve the deleted-branch/new-draft delivery question.
+1. Review this package while the repository remains private; review the combined Draft PR and its fresh verification.
 2. Approve copyright/license/attribution fields and obtain the contribution/provenance declarations; proposals remain inactive until then.
 3. Review the protected-source replacement plan, implement it in isolation, and prove public imports/routes/tests with synthetic Arabic fixtures while verifying private hashes separately.
 4. Build an explicit allowlisted source manifest; review every included source, fixture, document and asset. Collect exact third-party notices only for components actually shipped. Keep models/runtimes/data external by default.
 5. Approve strategy B and prepare a separate clean snapshot without `.git`, private audit evidence or excluded assets. Test the exact snapshot from scratch, including Arabic/security/installation checks; privately run historical checks with authorized originals.
 6. Obtain a final owner publication decision after every gate closes. Only a separately authorized action may create a public repository/release or activate the license. Do not merge, rewrite history, train, migrate databases or deploy production Ingest as part of this review.
+
+## 17. Unified README, architecture and handover acceptance
+
+The README now opens with an evergreen introduction, idea/problem and intended users before contents/status. It includes a source-grounded architecture diagram and lifecycle diagram, technology/version table, official downloads, distinct Windows/POSIX commands, system requirements, source tree, environment variables, security limits, status/roadmap and maintainer links. No software release number was invented. SQLite's enforced floor is 3.24; current tested build is 3.53.1, with historical Windows 3.49.1 / WSL 3.45.1 distinguished.
+
+Architecture, setup, installation, requirements, documentation index, status, changelog and maintainer handover were updated by extension rather than redundant replacement. Read-only setup and disposable POSIX install/reinstall/health/conflict/Arabic Ingest/backup/restore/shutdown were freshly exercised. Current Windows/WSL execution is unavailable; earlier results remain historical. Exact commands, diagram/link validation, warning/skip counts and CI evidence are in [unified verification](unified-readiness-verification.md). A polished README does not close private-data, history, ownership/license or redistribution gates.
+
+No safe edit was established that could remove real historical research from imported source without affecting protected evidence or functionality. The precise public-replacement plan therefore remains BLOCKED for owner approval and separate implementation. The smallest next action is review of rights/history/copyright decisions and that isolation plan, not training or deployment.

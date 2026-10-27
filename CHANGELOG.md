@@ -1,5 +1,13 @@
 # Changelog
 
+## Unified readiness preparation — 2026-10-27
+
+- Recovered the prior local rights/privacy decision package onto a branch from current main.
+- Reworked the README around the project concept, verified version distinctions, official prerequisites, installation and two source-grounded Mermaid diagrams.
+- Reconciled stale branch/PR references and expanded architecture/developer handover cross-links.
+- Recorded fresh isolated source/installation/documentation checks with explicit historical-fixture limits.
+- Preserved application behavior and research-bearing source; privacy/history, ownership/license and exact distribution-rights gates remain open. No active license or deployment.
+
 ## Unreleased — private preparation branch
 
 - English UI/docs and LTR shell, retaining Arabic/RTL content and compatibility values.

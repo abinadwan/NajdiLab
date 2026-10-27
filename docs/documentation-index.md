@@ -1,5 +1,7 @@
 # Documentation inventory
 
+Current combined work: [unified verification](unified-readiness-verification.md), [release decision](public-release-decision.md), [history review](privacy-history-review.md), [rights matrix](dependency-licensing-matrix.md) and [source-only asset policy](dataset-model-distribution-policy.md).
+
 | Audience | Current English entry points |
 |---|---|
 | New user | [README](../README.md), [installation](installation.md), [requirements](system-requirements.md), [shell commands](shell-commands.md), [configuration](configuration.md), [troubleshooting](troubleshooting.md) |
