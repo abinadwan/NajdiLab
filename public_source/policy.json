@@ -315,11 +315,11 @@
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "4b996a2e4c203a8a767fc0cc40f432e87e652e68f11ea6f9b397bbf43f2fe16c"
+      "sha256": "7487b576c57aadebe20bac8c2ab6815c83834c5282ecf2092b7aa1856584d5ab"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
-      "sha256": "7f2e80d752fc756e6733b441155198042092eb192a13c5c8f94c02885be9b92e"
+      "sha256": "39e8f111b585893c1123c1894c5e45081b61a533e6b325fbb07a256dc9d7d6f5"
     },
     "public_source/static/index.html": {
       "destination": "static/index.html",
@@ -335,7 +335,7 @@
     },
     "public_source/synthetic_demo.py": {
       "destination": "scripts/synthetic_demo.py",
-      "sha256": "cc19c9e21f419f52993f8444158a0b019771e5b7fdd019b8c53aa8048116aca3"
+      "sha256": "48148460b1acd28eba8dc41b48b88aed8dc3c72097a0c214c001d4d667aef442"
     },
     "public_source/tests/contract.py": {
       "destination": "tests/test_candidate_contract.py",
@@ -403,15 +403,35 @@
     },
     "public_source/tests/context.py": {
       "destination": "tests/test_candidate_context.py",
-      "sha256": "2cf573bae032619f5885cf37625d2c2cb5ef0b3e329466926d56da3a85abeb41"
+      "sha256": "2f17a14acdaf8caffa19aa9e6f2c907793cd46482172d3d33f38a33ab017fa0b"
     },
     "public_source/tests/browser.cjs": {
       "destination": "tests/browser.cjs",
-      "sha256": "13093a700d82f3ecb62cd169bdae501882a20747d5a84648a7bf6335221baafa"
+      "sha256": "a5f934f15bd9d4f1fa67cee980db5ce82e021a214216a20c592790fdcb07eb18"
     },
     "public_source/read_views.py": {
       "destination": "app/core_views.py",
       "sha256": "8bcd67410b4e3fdd45d41100ae6297e0cd2847c99cf136f0905d084d565d9d55"
+    },
+    "public_source/tests/datasets.py": {
+      "destination": "tests/test_candidate_datasets.py",
+      "sha256": "98141ff24f6a310bc059fac5f248d154b6952e4b6ff97d414f0e8bd402edff24"
+    },
+    "public_source/datasets.py": {
+      "destination": "app/core_datasets.py",
+      "sha256": "d11589e9f74c57393a39ebb8591b548a44d14c3e646af5227e1da3019fc3d2ad"
+    },
+    "public_source/synthetic_workshop.json": {
+      "destination": "synthetic-workshop.json",
+      "sha256": "dba18fecc6dd731b889e8be3190523ea1e84a59ff6988e974b9deb5da3863305"
+    },
+    "public_source/snapshot.py": {
+      "destination": "app/core_snapshot.py",
+      "sha256": "eb0a8bd53df885bba87621375f6e806398cbc14c8b9504ba0a82eda2f4878fbb"
+    },
+    "public_source/storage.py": {
+      "destination": "app/core_storage.py",
+      "sha256": "322190f3f4b5b0e35e87d3324b17314ddb2efb24657a7d2e655f71fcc2da18a4"
     }
   }
 }

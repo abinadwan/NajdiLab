@@ -23,3 +23,12 @@ Goal1 backend defects P5-01/P5-02 are FIXED with passing privacy/race tests; com
 | P5-11 | High | New review-detail GET opened writable DB/create path | Missing-DB HTTP RED; mode=ro wrapper + unchanged rows/no-created-state PASS + review | VERIFIED_CLOSED |
 
 Goal1 privacy/staleness closures now include actual browser persistence/conflict evidence. Candidate current-state schema still does not supply a full append-only event audit; no proposed migration is activated.
+
+| P5-12 | Critical/P0 | Later eligible targets could copy restricted earlier context | Context-aware fail-closed gate; real API RED and independent memory reproduction, regression PASS/review | VERIFIED_CLOSED |
+| P5-13 | High/P0 | Manual source privacy omitted from readiness | All selected manual-table privacy gates; corrected-fixture RED then PASS/review | VERIFIED_CLOSED |
+| P5-14 | High/P0 | Legacy diagnostics ignored/misclassified actual holdout | Verified in-memory alias + actual-format balance; format/mask tests PASS/review | VERIFIED_CLOSED |
+| P5-15 | Critical/P0 | Linked exports root could redirect archive writes | Check write root before export; linked-root RED then denial/no-writes PASS/review | VERIFIED_CLOSED |
+| P5-16 | High/P0 | Weak masks/empty holdout could receive READY | Strict assistant-target validation and actual minimum/diversity/fraction/count checks; RED then PASS/review | VERIFIED_CLOSED |
+| P5-17 | High/P0 | Another server process could bypass per-instance mutation lock | OS storage guard, second-server RED then refusal/first-server health PASS; review | VERIFIED_CLOSED |
+
+Direct/preference preparation is explicitly deferred to B08 and blocked before version writes; no false compatible evaluation is claimed. Same-root out-of-band DB/library writers are unsupported. Current candidate does not claim a complete historical review-event log or automatic PII detection.

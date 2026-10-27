@@ -22,10 +22,16 @@ class ContextualReview(CandidateCase):
 
     def test_missing_database_detail_does_not_create_state(self):
         import shutil
-        data=self.work/'data';saved=self.work/'preserved-synthetic-data';data.rename(saved)
+        data=self.work/'data/najdilab.db';saved=self.work/'preserved-synthetic.db';data.rename(saved)
         try:
             self.assertEqual(self.request('/api/v1/reviews/1')[0],503)
             self.assertFalse(data.exists(),'GET must not initialize database storage')
         finally:
-            if data.exists():shutil.rmtree(data)
+            if data.exists():data.unlink()
             saved.rename(data)
+
+    def test_second_server_cannot_open_same_storage_on_another_port(self):
+        import socket,subprocess,sys
+        with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
+        attempt=subprocess.run([sys.executable,'-m','app.server'],cwd=self.work,env={**self.env,'NAJDILAB_PORT':str(port)},capture_output=True,timeout=3)
+        self.assertNotEqual(attempt.returncode,0);self.assertEqual(self.request('/api/v1/health')[0],200)

@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import socket
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -15,6 +16,8 @@ from .db import ROOT, DB_PATH, apply_migrations
 from .extensions import UnavailableExtension
 from .core_reviews import ReviewError, update_review
 from .core_views import list_reviews, get_review
+from . import core_datasets
+from .core_storage import StorageError, instance_guard
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_request, validate_ingest
 from .review_integrity import ExportReadinessError, export_readiness
 
@@ -25,6 +28,7 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
     def __init__(self, address, handler, *, extension=None):
         self.extension = extension if extension is not None else UnavailableExtension()
+        self.mutation_lock = threading.RLock()
         super().__init__(address, handler)
 
     def server_bind(self):
@@ -100,10 +104,11 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 elif path=='/api/v1/training-dataset':result=service.training_dataset(include_demo=demo)
                 elif path=='/api/v1/analytics':result=service.analytics()
                 elif path=='/api/v1/exports':result={'items':service.list_exports()}
-                elif path=='/api/v1/exports/readiness':result=export_readiness(DB_PATH,include_demo=demo)
-                elif path=='/api/v1/dataset-versions':result={'items':dataset_platform.list_dataset_versions()}
-                elif m:=re.fullmatch(r'/api/v1/dataset-versions/([A-Za-z0-9._-]+)/(health|quality-findings|balance)',path):
-                    result={'health':dataset_platform.dataset_health,'quality-findings':dataset_quality.dataset_quality,'balance':dataset_balancer.analyze_dataset_balance}[m[2]](m[1])
+                elif path=='/api/v1/exports/readiness':result=core_datasets.readiness(demo)
+                elif path=='/api/v1/exports/dedup-report':result=core_datasets.readiness(demo).get('dedup',{})
+                elif path=='/api/v1/dataset-versions':result=core_datasets.list_versions()
+                elif m:=re.fullmatch(r'/api/v1/dataset-versions/([A-Za-z0-9._-]+)/(health|quality-findings|balance|eval-sets|release-validation)',path):result=core_datasets.version_detail(m[1],m[2])
+                elif m:=re.fullmatch(r'/api/v1/dataset-versions/([A-Za-z0-9._-]+)',path):result=core_datasets.version_detail(m[1])
             else:
                 if path=='/api/v1/turn':result={'ok':True,**service.ingest_turn(data)};status=201
                 elif path=='/api/v1/hermes-hook':result={'ok':True,**service.ingest_hermes_hook(data)};status=201
@@ -112,7 +117,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)/(approve|correct|exclude|restore|ignore|delete)',path):
                     result={'ok':True,'review':update_review(int(m[1]),m[2],data)}
                 elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)',path):result={'ok':True,'review':update_review(int(m[1]),'save',data)}
-                elif path=='/api/v1/exports':result={'ok':True,'export':service.create_export(include_demo=bool(data.get('include_demo')))};status=201
+                elif path=='/api/v1/exports':
+                    if set(data)-{'include_demo'} or type(data.get('include_demo',False)) is not bool:raise service.ValidationError('Explicit boolean demo choice required')
+                    result={'ok':True,'export':core_datasets.prepare(data.get('include_demo',False))};status=201
             if result is None:self.respond({'ok':False,'code':'ROUTE_UNAVAILABLE','message':'This route is not part of the source-only core profile.'},404)
             else:self.respond(result,status)
         except RequestSecurityError as exc:
@@ -125,7 +132,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         except Exception:self.respond({'ok':False,'code':'INTERNAL_ERROR','message':'Local candidate operation failed.'},500)
 
     def do_GET(self):self.dispatch('GET')
-    def do_POST(self):self.dispatch('POST')
+    def do_POST(self):
+        with self.server.mutation_lock:self.dispatch('POST')
 
 
 def main():
@@ -133,10 +141,13 @@ def main():
     port=int(os.environ.get('NAJDILAB_PORT','8770'))
     if not 1<=port<=65535:raise SystemExit('Invalid port')
     with NajdiLabHTTPServer(('127.0.0.1',port),NajdiLabHandler) as http:
-        apply_migrations()
-        for name in ['exports','datasets']: (ROOT/name).mkdir(exist_ok=True)
-        print('NajdiLab source-only candidate on loopback; no private extensions loaded.',flush=True)
-        try:http.serve_forever()
-        except KeyboardInterrupt:pass
+        try:
+            with instance_guard():
+                apply_migrations()
+                for name in ['exports','datasets']: (ROOT/name).mkdir(exist_ok=True)
+                print('NajdiLab Core on loopback; no private extensions loaded.',flush=True)
+                try:http.serve_forever()
+                except KeyboardInterrupt:pass
+        except StorageError as exc:raise SystemExit(str(exc)) from None
 
 if __name__=='__main__':main()

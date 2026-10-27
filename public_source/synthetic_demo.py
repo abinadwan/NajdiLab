@@ -9,6 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--confirm-disposable',action='store_true')
+    parser.add_argument('--workshop',action='store_true',help='Create 32 independently fictional pending conversations; no automatic approvals.')
     args=parser.parse_args()
     if not args.confirm_disposable:raise SystemExit('Explicit --confirm-disposable required; no state changed.')
     marker=ROOT/'MANIFEST.json'
@@ -17,7 +18,7 @@ def main():
     sys.path.insert(0,str(ROOT))
     from app.db import apply_migrations
     from app.service import ingest_turn
-    fixture=json.loads((ROOT/'synthetic.json').read_text(encoding='utf-8'))
+    fixture=json.loads((ROOT/('synthetic-workshop.json' if args.workshop else 'synthetic.json')).read_text(encoding='utf-8'))
     if fixture.get('synthetic') is not True:raise SystemExit('Synthetic fixture marker required.')
     apply_migrations()
     for turn in fixture['turns']:ingest_turn(turn)
