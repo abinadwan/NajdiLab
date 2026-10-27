@@ -14,6 +14,8 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from tests.package import copy_candidate
+
 ROOT = Path(__file__).resolve().parents[1]
 
 class CandidateCase(unittest.TestCase):
@@ -21,7 +23,7 @@ class CandidateCase(unittest.TestCase):
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory(prefix='core acceptance ')
         cls.work = Path(cls.temp.name) / 'candidate'
-        shutil.copytree(ROOT, cls.work, ignore=shutil.ignore_patterns('.venv', '__pycache__', '.pytest_cache', 'data', 'exports', 'datasets', 'backups'))
+        copy_candidate(ROOT, cls.work)
         cls.env = {k:v for k,v in os.environ.items() if k not in {'PYTHONPATH','NAJDILAB_PYTHON','NAJDILAB_ALLOW_LEGACY_INGEST','NAJDILAB_INGEST_TOKEN'}}
         cls.env['NAJDILAB_INGEST_TOKEN'] = 'fictional-acceptance-only'
         cls.start()

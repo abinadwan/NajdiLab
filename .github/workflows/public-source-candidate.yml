@@ -17,10 +17,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -c "import sys,sqlite3,platform; print(platform.system(),sys.version.split()[0],sqlite3.sqlite_version)"
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q public_source/tests/test_builder.py
       - run: python public_source/build.py --output ../candidate
       - run: python public_source/build.py --verify ../candidate
       - run: python -m pytest -q tests -rs
+        working-directory: ../candidate
+      - run: npm install --prefix ../core-browser-tools --ignore-scripts --no-audit --no-fund puppeteer-core@25.16.0
+      - name: Locate hosted browser without installing models or runtimes
+        shell: python
+        run: |
+          import os, shutil
+          from pathlib import Path
+          browser = shutil.which('google-chrome') or shutil.which('chromium')
+          if not browser:
+              candidate = Path(os.environ.get('PROGRAMFILES', '')) / 'Google/Chrome/Application/chrome.exe'
+              if candidate.is_file(): browser = str(candidate)
+          if not browser: raise SystemExit('A real hosted browser is required; no critical visual SKIP')
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as stream:
+              stream.write('NAJDILAB_BROWSER_EXECUTABLE=' + browser + '\n')
+              stream.write('NODE_PATH=' + str(Path(os.environ['GITHUB_WORKSPACE']).parent / 'core-browser-tools/node_modules') + '\n')
+      - run: node tests/harness.cjs
+        working-directory: ../candidate
+      - run: node tests/browser.cjs .
         working-directory: ../candidate
       - run: python scripts/check_docs.py

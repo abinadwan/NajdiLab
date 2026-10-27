@@ -50,6 +50,10 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             self.close_connection = True
             self.respond({'ok':False,'code':exc.code or 'REQUEST_REJECTED','message':str(exc)},exc.status)
             return False
+        if self.command not in {'GET','POST'}:
+            self.close_connection=True
+            self.respond({'ok':False,'code':'METHOD_UNAVAILABLE','message':'Core supports GET and POST only.'},405,{'Allow':'GET, POST'})
+            return False
         return True
 
     def headers_for(self, status, kind, size, extra=None):
@@ -61,9 +65,10 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         for key,value in (extra or {}).items():self.send_header(key,value)
         self.end_headers()
 
-    def respond(self, value, status=200):
+    def respond(self, value, status=200, extra=None):
         raw=json.dumps(value,ensure_ascii=False).encode()
-        self.headers_for(status,'application/json; charset=utf-8',len(raw));self.wfile.write(raw)
+        self.headers_for(status,'application/json; charset=utf-8',len(raw),extra)
+        if self.command!='HEAD':self.wfile.write(raw)
 
     def body(self):
         size=int(self.headers.get('Content-Length','0'))

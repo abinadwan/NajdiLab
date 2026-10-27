@@ -27,3 +27,5 @@ Saved overlays cannot be discarded through approval. Exclude keeps an existing c
 Missing revision: 428. Stale revision: 409 REVIEW_CONFLICT with zero writes. Invalid fields/JSON: 400; wrong media type: 415; path/file denied: 403; unknown core routes/IDs: 404; integrity mismatch: 409. Private/historical /phase*, /training/* and /evaluation/* remain 503 EXTENSION_UNAVAILABLE. Unsupported methods perform no mutation. No auto-loaded extensions or model execution.
 
 Version source is managed candidate-local exports only. Registered manifest equality, exact filename inventory, size/count/SHA and regular-file checks apply before diagnosis/delivery. Only selected JSONL files download; full_archive.json, dedup reports, manifest downloads, DBs, backups, secrets and model files are denied. Data is private by default regardless of these checks.
+
+Only GET and POST are supported. Other methods return405 METHOD_UNAVAILABLE with Allow: GET, POST after request-boundary checks; HEAD has no response body. A forbidden Host/Origin or invalid mutation CSRF is still rejected before routing.

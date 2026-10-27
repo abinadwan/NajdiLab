@@ -102,7 +102,7 @@ def check_imports(files):
     modules={p[:-3].replace('/','.') for p in files if p.endswith('.py')}
     modules|={p[:-12].replace('/','.') for p in files if p.endswith('/__init__.py')}
     packages={m.rsplit('.',1)[0] for m in modules if '.' in m}
-    allowed_std=sys.stdlib_module_names|{'pytest'}  # pytest is test-only, installed separately.
+    allowed_std=sys.stdlib_module_names  # pytest is test-only, installed separately.
     for name,data in files.items():
         if not name.endswith('.py'):continue
         tree=ast.parse(data,filename=name)
@@ -135,7 +135,7 @@ def check_imports(files):
             for target in targets:
                 if not target:raise ValueError('Unresolved import')
                 top=target.split('.')[0]
-                if top in allowed_std:continue
+                if top in allowed_std or top=='pytest' and name.startswith('tests/'):continue
                 # Existing wrappers import local_runtime / generate_api_reference as top-level scripts.
                 if target in modules or 'scripts.'+target in modules:continue
                 raise ValueError('Unresolved candidate import: '+target)

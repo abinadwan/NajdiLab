@@ -52,18 +52,18 @@ Output must be a new separate directory. The builder selects reviewed hash-pinne
 
 ```powershell
 python --version
-Get-Content .\scripts\install.py
-python .\scripts\install.py
+Get-Content .\scripts\install.ps1, .\scripts\install.py
+.\scripts\install.ps1
 .\.venv\Scripts\python.exe .\scripts\synthetic_demo.py --confirm-disposable --workshop
-.\.venv\Scripts\python.exe .\scripts\launch.py
+.\run.ps1
 ```
 
 ### Linux / Ubuntu / WSL
 
 ```sh
 python3 --version
-cat scripts/install.py
-python3 scripts/install.py
+cat scripts/install.sh scripts/install.py
+sh scripts/install.sh
 .venv/bin/python scripts/synthetic_demo.py --confirm-disposable --workshop
 sh run.sh
 ```
@@ -124,7 +124,8 @@ Full developer verification includes separate builder, exact-candidate, browser 
 
 ```sh
 npm install --prefix ../core-browser-tools puppeteer-core@25.16.0
-NODE_PATH=../core-browser-tools/node_modules node tests/browser.cjs .
+NODE_PATH=../core-browser-tools/node_modules node tests/harness.cjs
+node tests/browser.cjs .
 ```
 
 Set NAJDILAB_BROWSER_EXECUTABLE for your installed browser. Windows PowerShell: set $env:NODE_PATH and $env:NAJDILAB_BROWSER_EXECUTABLE in the session, then run node. Hosted Windows/Ubuntu acceptance is pending Goal 6; consult the final verification report for actual results. Browser fixtures/demonstrations are synthetic; none is historical research evidence. See [contribution guidance](CONTRIBUTING.md). No training is needed for any acceptance test.
@@ -141,3 +142,5 @@ Set NAJDILAB_BROWSER_EXECUTABLE for your installed browser. Windows PowerShell: 
 - Pristine verification fails after launch: runtime files are expected; compare a clean build instead.
 
 For an update, back up and validate restore first, review the new source manifest and migration compatibility, install into another new candidate and test synthetic acceptance before moving authorized state. Do not overwrite an existing installation or use the original private project's data automatically. License, attribution and publication approvals remain owner decisions.
+
+The Python and browser acceptance harnesses require a hash-verified candidate manifest and copy only its selected source into new disposable storage. They refuse a missing/invalid manifest or changed selected file before running setup. Unlisted local state is never copied. This integrity check is not a signature or redistribution approval. Unsupported HTTP methods return controlled405 (HEAD has no body) after Host/Origin/CSRF checks.

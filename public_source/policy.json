@@ -168,8 +168,6 @@
     "scripts/ingest_test.py",
     "scripts/inspect_multi_turn_stats.py",
     "scripts/inspect_v006_schema.py",
-    "scripts/install.ps1",
-    "scripts/install.sh",
     "scripts/measure_v006_overlap.py",
     "scripts/najdilab_training_adapter.py",
     "scripts/phase13_registry.py",
@@ -309,7 +307,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "e34e63fb156d623236f70c17e703aa6c9bbc1ac94d08e7238f177be02998a55c"
+      "sha256": "49b95b31149348fb07113b63569a5e353eae8ed32147f48c988917fe32303ea4"
     },
     "public_source/extensions.py": {
       "destination": "app/extensions.py",
@@ -317,7 +315,7 @@
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "ca03f64b4ef3ea354bf32eb9b0a7c7c9d21e7950fa412032f0fe655440091ff3"
+      "sha256": "84f496a38c43e5104a4f585a3afbaaf24d1e4c985fb56dca300e67c2d34ac84d"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
@@ -341,11 +339,11 @@
     },
     "public_source/tests/contract.py": {
       "destination": "tests/test_candidate_contract.py",
-      "sha256": "d4af7995192937684bb75ab92c597650d63fc865eccb918a31934d00ba816297"
+      "sha256": "45b9cfc8c8c01a36ba9279267ae3be170a18a9096d9e5f7cc8e50765c8d9d2eb"
     },
     "public_source/tests/security.py": {
       "destination": "tests/test_candidate_security.py",
-      "sha256": "486028ee55dd50cae5961ba3d3ff830ca75b9ea6a0fefac6d1e6e5ec26e537fc"
+      "sha256": "ca8aaeec688435df55f1628838dbcceb3fb76fea5e95ed628917be4918b3cc76"
     },
     "requirements-dev.txt": {
       "destination": "requirements-dev.txt",
@@ -385,11 +383,11 @@
     },
     "public_source/tests/support.py": {
       "destination": "tests/support.py",
-      "sha256": "604d658b8a08256cda10b451fd1ce25ee223e237dd664faefd144973eadf1197"
+      "sha256": "0bf97c3ab398fb6d51a2d3d2a64c66c7590463336a3bf1c4647164d6e60d977f"
     },
     "public_source/tests/reviews.py": {
       "destination": "tests/test_candidate_reviews.py",
-      "sha256": "5a2d439a58aa9ae4ed654af466c209d42dbc2519077bde069f441657a209af33"
+      "sha256": "df4483be2b32453d5c703f686316b52c4f6639cd12aaa1bddbf7aae81f80e127"
     },
     "public_source/tests/__init__.py": {
       "destination": "tests/__init__.py",
@@ -405,7 +403,7 @@
     },
     "public_source/tests/browser.cjs": {
       "destination": "tests/browser.cjs",
-      "sha256": "b2924c8d02e62a2b1ea4a7dbe862ead195e60b4cd087ae4680b7856c74cc7df2"
+      "sha256": "1fc85f7f293e215d4c171651ae09c4118e14e5d7e462eb1f5072dd791929c099"
     },
     "public_source/read_views.py": {
       "destination": "app/core_views.py",
@@ -461,7 +459,7 @@
     },
     "public_source/docs/api.md": {
       "destination": "docs/api.md",
-      "sha256": "1e3ce42ee6508883caaa4f53b6a90939e54b17ecf2f00c9ed9c689f5a5543437"
+      "sha256": "6a2e84fbf59efd0884bd184a4ccb30d9c4f978965240dda78aa83b0327717aab"
     },
     "public_source/docs/initial-profile.md": {
       "destination": "docs/initial-profile.md",
@@ -510,6 +508,30 @@
     "public_source/docs/images/artifact-access.png": {
       "destination": "docs/images/artifact-access.png",
       "sha256": "4da591031168a6776a2c3b29e8e869ca8067d71b92c04ea460f97b28140e6c54"
+    },
+    "public_source/tests/package.py": {
+      "destination": "tests/package.py",
+      "sha256": "3045dd8817605edca1624f39ecf9639e89fa15c7d7a9fb4be7b7220e33a16df9"
+    },
+    "public_source/tests/candidate-copy.cjs": {
+      "destination": "tests/candidate-copy.cjs",
+      "sha256": "84907962385f4e9a6d9384721740a0b13e1b0b3ab4f45402f11567f62ecec58d"
+    },
+    "public_source/tests/harness.cjs": {
+      "destination": "tests/harness.cjs",
+      "sha256": "4416c675a6c4005f36929372b09f193ec9fed226319eb6aae8fc3c3db8c900a0"
+    },
+    "public_source/tests/install.py": {
+      "destination": "tests/test_candidate_installation.py",
+      "sha256": "1e9020922a3e5e5826adc431fa920945038d089f32f1d0af022aa07b3c1dc7eb"
+    },
+    "scripts/install.sh": {
+      "destination": "scripts/install.sh",
+      "sha256": "fb1ffb3c77e1666dfae823f2d63146550405d0a7c08a9529b7fc5b60b053449f"
+    },
+    "scripts/install.ps1": {
+      "destination": "scripts/install.ps1",
+      "sha256": "d46aabd4584650c8a23aa46ac360aad961b4664b4d7da64ae12e53a7563db8a0"
     }
   }
 }

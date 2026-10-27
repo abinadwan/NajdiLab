@@ -82,3 +82,7 @@ Authorized candidate-only implementation begins at `dc5c82e` on separate branch/
 ## 2026-10-27 — Phase5 Goal5
 
 Added candidate-specific onboarding/API/architecture/user/contributor pages and eight real fictional-data captures, preserving the earlier minimal README in initial-profile.md and all full-platform material. Improved scrollable context/review navigation and grouped repeated quality findings without concealing warnings. Browser showed actual33 provenance warnings, no fabricated research metrics. PNG metadata/resource bounds and SVG external-resource checks are explicit. Two independent SVG bypasses reproduced RED then passed; recovery copy-before-install was demonstrated on a separate fresh candidate. Forward revert candidate docs/UI/pins together; retain original assets and all private state. Hosted acceptance follows Goal6.
+
+## 2026-10-27 — Phase5 Goal6 local verification
+
+Added acceptance input guards, controlled unsupported methods, runtime dependency restriction, actual shell installation/unsupported Python/port conflict/HMAC tests and hosted real browser acceptance. Tests exposed missing shell/PowerShell wrappers; included original reviewed bytes without changing them. Failures retained in current ledger. Added no models/private modules or publication permission. Hosted result and final independent review pending; forward revert this candidate/workflow unit for rollback, preserving state.

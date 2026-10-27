@@ -98,3 +98,32 @@ class BuilderTests(unittest.TestCase):
             clone=Path(tmp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
             image=clone/'public_source/test-screen.png';image.write_bytes(data);p=clone/'public_source/policy.json';policy=json.loads(p.read_text());policy['files']['public_source/test-screen.png']={'destination':'docs/images/demo.png','sha256':hashlib.sha256(data).hexdigest()};p.write_text(json.dumps(policy))
             mod.build(clone,Path(tmp)/'output');self.assertEqual((Path(tmp)/'output/docs/images/demo.png').read_bytes(),data)
+
+    def test_pytest_is_only_a_separately_installed_test_dependency(self):
+        spec=importlib.util.spec_from_file_location('candidate_builder',ROOT/'public_source/build.py');mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        mod.check_imports({'tests/example.py':b'import pytest'})
+        for name in ['app/example.py','scripts/example.py']:
+            with self.subTest(name=name),self.assertRaises(ValueError):mod.check_imports({name:b'import pytest'})
+
+    def test_acceptance_harness_requires_hash_verified_candidate_before_copy(self):
+        source=ROOT/'public_source/tests/package.py'
+        spec=importlib.util.spec_from_file_location('candidate_package',source);mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        with tempfile.TemporaryDirectory() as tmp:
+            fake=Path(tmp)/'fake';fake.mkdir();dest=Path(tmp)/'out'
+            # Never execute a real original app as a negative test.
+            (fake/'production-looking.txt').write_text('fictional guard fixture')
+            with self.assertRaises((ValueError,OSError)):mod.copy_candidate(fake,dest)
+            self.assertFalse(dest.exists())
+            manifest={'profile':'source-only-engineering-candidate','publication_approved':False,'files':{'../escape.py':'0'*64}}
+            (fake/'MANIFEST.json').write_text(json.dumps(manifest))
+            with self.assertRaises(ValueError):mod.copy_candidate(fake,dest)
+            self.assertFalse(dest.exists())
+            builder=importlib.util.spec_from_file_location('candidate_builder',ROOT/'public_source/build.py');b=importlib.util.module_from_spec(builder);builder.loader.exec_module(b)
+            pristine=Path(tmp)/'pristine';b.build(ROOT,pristine);mod.copy_candidate(pristine,dest)
+            self.assertEqual((pristine/'MANIFEST.json').read_bytes(),(dest/'MANIFEST.json').read_bytes())
+            # Unlisted local data is never copied; altered selected source fails before output.
+            (pristine/'unlisted-private-fixture.txt').write_text('fictional-not-public')
+            mod.copy_candidate(pristine,Path(tmp)/'selected');self.assertFalse((Path(tmp)/'selected/unlisted-private-fixture.txt').exists())
+            (pristine/'app/server.py').write_text('tampered')
+            with self.assertRaises(ValueError):mod.copy_candidate(pristine,Path(tmp)/'blocked')
+            self.assertFalse((Path(tmp)/'blocked').exists())

@@ -89,3 +89,19 @@ class ReviewWrites(CandidateCase):
         self.assertEqual(code,400);self.assertEqual(self.snapshot(r['id']),r)
         self.assertEqual(self.correct(r,exclude_from_training=True)[0],200)
         self.assertEqual(self.snapshot(r['id'])['training_eligible'],0)
+
+    def test_native_hmac_ingestion_and_browser_csrf_are_independent(self):
+        import hashlib,hmac,http.client,json
+        raw=json.dumps({'conversation_id':'fictional-hmac','source':'import','user_message':'وين البطاقة الخيالية؟','assistant_response':'على الرف التجريبي.','demo':True,'metadata':{'synthetic':True}},ensure_ascii=False).encode()
+        signature='sha256='+hmac.new(b'fictional-acceptance-only',raw,hashlib.sha256).hexdigest()
+        def send(headers):
+            c=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
+            try:
+                c.request('POST','/api/v1/turn',raw,{'Content-Type':'application/json',**headers});r=c.getresponse();r.read();return r.status
+            finally:c.close()
+        before=self.rows('select count(*) n from conversations')[0]['n']
+        self.assertEqual(send({'X-Hermes-Signature-256':signature+'bad'}),401)
+        self.assertEqual(send({'X-Hermes-Signature-256':signature,'Authorization':'Bearer fictional-acceptance-only'}),401)
+        self.assertEqual(send({'X-Hermes-Signature-256':signature,'Origin':self.base}),403)
+        self.assertEqual(self.rows('select count(*) n from conversations')[0]['n'],before)
+        self.assertEqual(send({'X-Hermes-Signature-256':signature}),201)

@@ -2,10 +2,11 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=require('node:net');
 const {spawn,spawnSync}=require('node:child_process');
 const puppeteer=require('puppeteer-core');
+const {copyCandidate}=require('./candidate-copy.cjs');
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
  const source=path.resolve(process.argv[2]||'.'),temp=fs.mkdtempSync(path.join(os.tmpdir(),'core-browser-')),work=path.join(temp,'candidate');
- fs.cpSync(source,work,{recursive:true,filter:p=>!['.venv','__pycache__','.pytest_cache','data','exports','datasets','backups'].includes(path.basename(p))});
+ copyCandidate(source,work);
  const env={...process.env,NAJDILAB_INGEST_TOKEN:'fictional-browser-only'};delete env.PYTHONPATH;delete env.NAJDILAB_ALLOW_LEGACY_INGEST;delete env.NAJDILAB_PYTHON;
  const py=process.env.NAJDILAB_TEST_PYTHON||(process.platform==='win32'?'python':'python3');
  assert.equal(spawnSync(py,['scripts/install.py'],{cwd:work,env,encoding:'utf8'}).status,0,'fresh install');assert(!fs.existsSync(path.join(work,'data/najdilab.db')));
@@ -46,7 +47,7 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
   assert.equal(spawnSync(vp,['scripts/backup.py'],{cwd:work,env,encoding:'utf8'}).status,0);const zip=path.join(work,'backups',fs.readdirSync(path.join(work,'backups')).find(x=>x.endsWith('.zip'))),restored=path.join(temp,'restored');assert.equal(spawnSync(vp,['scripts/restore_backup.py',zip,'--output',restored,'--confirm-disposable'],{cwd:work,env,encoding:'utf8'}).status,0);
   const compare="import sqlite3,sys,hashlib; from pathlib import Path; a,b=map(Path,sys.argv[1:]); x=sqlite3.connect(a/'data/najdilab.db'); y=sqlite3.connect(b/'data/najdilab.db'); assert y.execute('pragma integrity_check').fetchone()[0]=='ok'; assert not y.execute('pragma foreign_key_check').fetchall(); [None for t in ('conversations','messages','reviews','review_tags','dataset_versions') if x.execute('select * from '+t+' order by 1').fetchall()==y.execute('select * from '+t+' order by 1').fetchall() or (_ for _ in ()).throw(AssertionError(t))]; [None for p in (a/'exports').rglob('*') if not p.is_file() or hashlib.sha256(p.read_bytes()).digest()==hashlib.sha256((b/p.relative_to(a)).read_bytes()).digest() or (_ for _ in ()).throw(AssertionError('file'))]; x.close(); y.close()";assert.equal(spawnSync(vp,['-c',compare,work,restored],{cwd:work,env,encoding:'utf8'}).status,0,'backup/restore rows and all version hashes');assert.equal((await api('/api/v1/training/models')).status,503);assert.equal((await api('/api/v1/training/model-acquisition/acquire',{})).status,503);console.log('PASS browser artifacts/backup: real selected download hash, private archive denial, online backup, separate restore, original/overlay/flags/manifest equality, private routes unavailable');
   // Resume only in another fresh source candidate: copy restored state BEFORE install.
-  await stop();const resumed=path.join(temp,'resumed');fs.cpSync(source,resumed,{recursive:true,filter:p=>!['.venv','__pycache__','.pytest_cache','data','exports','datasets','backups'].includes(path.basename(p))});
+  await stop();const resumed=path.join(temp,'resumed');copyCandidate(source,resumed);
   for(const dir of ['data','exports']){assert(!fs.existsSync(path.join(resumed,dir)));fs.cpSync(path.join(restored,dir),path.join(resumed,dir),{recursive:true});}
   assert.equal(spawnSync(py,['scripts/install.py'],{cwd:resumed,env,encoding:'utf8'}).status,0,'install preserves restored state');
   const recoveryPort=net.createServer();await new Promise(r=>recoveryPort.listen(0,'127.0.0.1',r));env.NAJDILAB_PORT=String(recoveryPort.address().port);base=`http://127.0.0.1:${env.NAJDILAB_PORT}`;await new Promise(r=>recoveryPort.close(r));

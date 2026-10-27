@@ -41,3 +41,8 @@ Direct/preference preparation is explicitly deferred to B08 and blocked before v
 
 | P5-23 | High | SVG stylesheet PI, xml:base and CSS image-set could load external resources | Three RED resource probes; preparse PI/namespaced attribute rejection and restricted fragment-only CSS; passing builder regression and independent recheck | VERIFIED_CLOSED |
 | P5-24 | High | Recovery guide copied data after installer created target dirs | Copy-before-install guide and actual separate-candidate install/launch/readback acceptance PASS | VERIFIED_CLOSED |
+
+| P5-25 | High/P0 | Acceptance helpers copied a whole checkout, risking accidental original-app execution | Manifest/profile/selected hash guard before setup, Python+Node fake-source negative tests; unlisted state never copied; independent review PASS | VERIFIED_CLOSED |
+| P5-26 | High | Unsupported methods used generic HTML501/error body including HEAD | Boundary-first structured405/Allow and empty HEAD; seven RED subtests now PASS; independent review | VERIFIED_CLOSED |
+| P5-27 | High | Runtime import checker allowed separately installed pytest outside tests | Two RED runtime-import probes; test-only dependency allowlist now PASS; independent review | VERIFIED_CLOSED |
+| P5-28 | High/P0 | Shell/PowerShell install wrappers absent from candidate | Actual shell installation test failed; reviewed unchanged wrapper bytes explicitly included; repeat/state-preservation PASS; independent selection review | VERIFIED_CLOSED |

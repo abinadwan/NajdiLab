@@ -38,3 +38,24 @@ class CandidateSecurity(unittest.TestCase):
         status,headers=self.request(headers=[('Host',self.host)])
         self.assertEqual(status,200);self.assertEqual(headers['Cache-Control'],'no-store');self.assertEqual(headers['X-Frame-Options'],'DENY');self.assertNotIn('Access-Control-Allow-Origin',headers)
         self.assertEqual(self.request(headers=[('Host',self.host),('Content-Length','-1')])[0],400)
+
+    def test_unsupported_methods_are_controlled_and_head_has_no_body(self):
+        import json
+        from app.http_security import CSRF_TOKEN
+        for method in ['PUT','PATCH','DELETE','OPTIONS','HEAD','TRACE','UNRECOGNIZED']:
+            with self.subTest(method=method):
+                c=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
+                c.request(method,'/api/v1/health',headers={'Content-Type':'application/json','X-NajdiLab-CSRF':CSRF_TOKEN})
+                r=c.getresponse();raw=r.read();c.close()
+                self.assertEqual(r.status,405);self.assertEqual(r.getheader('Allow'),'GET, POST')
+                if method=='HEAD':self.assertEqual(raw,b'')
+                else:self.assertEqual(json.loads(raw)['code'],'METHOD_UNAVAILABLE')
+
+    def test_malformed_json_and_declared_size_reject_before_ingestion(self):
+        import json
+        from app.http_security import CSRF_TOKEN
+        for raw in [b'{broken',b'[]',b'null',b'"text"',b'\xff']:
+            with self.subTest(raw=raw):
+                self.assertEqual(self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length',str(len(raw))),('X-NajdiLab-CSRF',CSRF_TOKEN)],raw,'/api/v1/conversations')[0],400)
+        # Send headers only: size guard must return without waiting/allocating the body.
+        self.assertEqual(self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length',str(2*1024*1024+1)),('X-NajdiLab-CSRF',CSRF_TOKEN)],None,'/api/v1/conversations')[0],400)

@@ -16,6 +16,8 @@ import zipfile
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from tests.package import copy_candidate
+
 ROOT = Path(__file__).resolve().parents[1]
 
 class CandidateContract(unittest.TestCase):
@@ -23,7 +25,7 @@ class CandidateContract(unittest.TestCase):
         # Copy a pristine candidate; no imports/paths from its parent checkout.
         import shutil
         with tempfile.TemporaryDirectory(prefix='najdilab isolated ') as tmp:
-            work=Path(tmp)/'app';shutil.copytree(ROOT,work,ignore=shutil.ignore_patterns('__pycache__','.pytest_cache','.venv'))
+            work=Path(tmp)/'app';copy_candidate(ROOT,work)
             env={k:v for k,v in os.environ.items() if k not in {'PYTHONPATH','NAJDILAB_PYTHON','NAJDILAB_ALLOW_LEGACY_INGEST','NAJDILAB_INGEST_TOKEN'}}
             def run(*args,check=True):return subprocess.run([sys.executable,*args],cwd=work,env=env,capture_output=True,check=check,timeout=30)
             run('scripts/install.py','--check');run('scripts/install.py');run('scripts/install.py')
@@ -32,7 +34,7 @@ class CandidateContract(unittest.TestCase):
             run('scripts/synthetic_demo.py','--confirm-disposable')
             self.assertNotEqual(run('scripts/synthetic_demo.py','--confirm-disposable',check=False).returncode,0)
             s=socket.socket();s.bind(('127.0.0.1',0));port=s.getsockname()[1];s.close();env.update(NAJDILAB_PORT=str(port),NAJDILAB_INGEST_TOKEN='synthetic-test-only')
-            launch=[str(work/'.venv/Scripts/python.exe'),'scripts/launch.py'] if os.name=='nt' else ['sh','run.sh']
+            launch=['powershell','-NoProfile','-File','run.ps1'] if os.name=='nt' else ['sh','run.sh']
             p=subprocess.Popen(launch,cwd=work,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             url=f'http://127.0.0.1:{port}'
             def request(path,body=None,headers=None):
@@ -83,7 +85,7 @@ class CandidateContract(unittest.TestCase):
                 with zipfile.ZipFile(archive) as z:self.assertIsNone(z.testzip());z.extractall(Path(tmp)/'restore')
                 c=sqlite3.connect(Path(tmp)/'restore/data/najdilab.db');self.assertEqual(c.execute('pragma integrity_check').fetchone()[0],'ok');self.assertFalse(c.execute('pragma foreign_key_check').fetchall());c.close()
             finally:
-                if os.name=='nt':p.terminate()
+                if os.name=='nt':subprocess.run(['taskkill','/PID',str(p.pid),'/T','/F'],capture_output=True,timeout=10)
                 else:p.send_signal(signal.SIGINT)
                 p.wait(timeout=10)
             # A fresh isolated import must never touch historical modules.
