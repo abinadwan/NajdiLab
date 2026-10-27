@@ -45,3 +45,8 @@ Ruling: setup creates an isolated standard-library venv without pip or network i
 
 ## GitHub CI portability failures — root causes and fixes
 First hosted run exposed two test-harness assumptions that did not fail on local Windows: Windows temp paths can have 8.3 aliases while production path resolution returns canonical long names; the portability assertion now compares resolved paths. Newer Linux Python shutil.copy2 passes follow_symlinks to the injected chmod stub; that fault-injection wrapper now forwards standard-library arguments while preserving all intentional failure/rollback checks. No production deployment code changed. Hosted failures are retained as RED evidence. Workflow now runs branch work through pull_request and main through push to avoid duplicate jobs.
+
+## Remote delivery verification
+Ordinary push created the development review branch; Draft PR #1 opened and attached. Real GitHub clone passed fsck, setup, 278 source-only tests (23 historical skips), docs/API verification and actual cloned launcher/health/shutdown. Corrected hosted CI run 40451855276 passed Windows (278 / 23 skips) and Ubuntu (277 / 24 skips), both 68 subtests and one existing warning. No production code changes were needed for the two test-harness corrections. Private visibility and unchanged main confirmed.
+
+Ruling: hosted native-Linux source checks add evidence without claiming broad native deployment support. Public release stays blocked by license/copyright, historical privacy/actual-data and exact rights decisions. Rollback remains ordinary revert/continued unchanged main; backup and production untouched.

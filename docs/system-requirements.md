@@ -12,7 +12,7 @@
 | RAM/disk | No measured universal minimum. Provide writable space for SQLite WAL, exports, full private backup and restore copy. Dataset/model sizes dominate |
 | Network | Loopback IPv4 only; default 127.0.0.1:8770 or NAJDILAB_PORT. Git/package acquisition needs separate access. No public-network server support |
 | Permissions | Read source, write installation-local state; no Administrator/sudo needed for normal setup/run |
-| OS | Windows 11 tested. Ubuntu 24.04 under WSL2 only to scope recorded in installation-verification; native Linux, macOS and other distributions/versions not certified |
+| OS | Windows 11 tested. Ubuntu 24.04 under WSL2 only to scope recorded in installation-verification; hosted native Ubuntu source tests passed separately; native deployment, macOS and other distributions/versions not certified |
 
 Each checkout owns its data/registry paths. Keep SQLite and writers on the same OS filesystem; do not share a live DB between Windows/WSL. Setup checks runtime/source only; first launch applies existing migrations and initializes state.
 
