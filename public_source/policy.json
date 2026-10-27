@@ -315,19 +315,19 @@
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "1f6357d7e9aed4b11899e06e9d6a233f8e8c579613dbe91563bad765143df812"
+      "sha256": "4b996a2e4c203a8a767fc0cc40f432e87e652e68f11ea6f9b397bbf43f2fe16c"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
-      "sha256": "55d0954f72f8f02acb527cf6045d42203cbb65d326fc84adc41d8b21d3c1fe2e"
+      "sha256": "7f2e80d752fc756e6733b441155198042092eb192a13c5c8f94c02885be9b92e"
     },
     "public_source/static/index.html": {
       "destination": "static/index.html",
-      "sha256": "f620e3f8587deeb3dbabcac7d54b6869c0152fd4deb653f06625d5fcff23e513"
+      "sha256": "6c16b147d0cc479c5b649f114870863b29a1696ae5172632bc88163f1efbd5b6"
     },
     "public_source/static/style.css": {
       "destination": "static/style.css",
-      "sha256": "9c28715078de80e5dc93f9ff4b4084cda776cc8a802d76ab325d92822434f3be"
+      "sha256": "979827680e354d4552e3af03c72b338dd22c3cee9d5597ffcc40db55ed154634"
     },
     "public_source/synthetic.json": {
       "destination": "synthetic.json",
@@ -400,6 +400,18 @@
     "public_source/reviews.py": {
       "destination": "app/core_reviews.py",
       "sha256": "6a0852b54ef3eee6253520dcc83380a2de045aa825f72133f5af0a7778a2bc4d"
+    },
+    "public_source/tests/context.py": {
+      "destination": "tests/test_candidate_context.py",
+      "sha256": "2cf573bae032619f5885cf37625d2c2cb5ef0b3e329466926d56da3a85abeb41"
+    },
+    "public_source/tests/browser.cjs": {
+      "destination": "tests/browser.cjs",
+      "sha256": "13093a700d82f3ecb62cd169bdae501882a20747d5a84648a7bf6335221baafa"
+    },
+    "public_source/read_views.py": {
+      "destination": "app/core_views.py",
+      "sha256": "8bcd67410b4e3fdd45d41100ae6297e0cd2847c99cf136f0905d084d565d9d55"
     }
   }
 }

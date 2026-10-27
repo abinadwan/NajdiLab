@@ -4,9 +4,9 @@ Statuses require observed regression evidence before VERIFIED_CLOSED. Historical
 
 | ID | Severity | Finding / root cause | Fix / regression / evidence | Status |
 |---|---|---|---|---|
-| P5-01 | Critical/P0 | Correction UI omits flags; shared service defaults clear privacy/evaluation/exclusion and may enable eligibility | Candidate transaction + preserve omitted fields; regression pending | FIXED |
-| P5-02 | Critical/P0 | Optional stale token and timestamp reuse permit silent overwrite | Mandatory token + transaction + fresh revision; two-client regression pending | FIXED |
-| P5-03 | High/P0 | Minimal UI lacks context, saved readback and explicit eligibility | Contextual candidate UI and real browser acceptance pending | OPEN |
+| P5-01 | Critical/P0 | Correction UI omits flags; shared service defaults clear privacy/evaluation/exclusion and may enable eligibility | Candidate transaction + preserve omitted fields; regression pending | VERIFIED_CLOSED |
+| P5-02 | Critical/P0 | Optional stale token and timestamp reuse permit silent overwrite | Mandatory token + transaction + fresh revision; two-client regression pending | VERIFIED_CLOSED |
+| P5-03 | High/P0 | Minimal UI lacks context, saved readback and explicit eligibility | Contextual UI + real browser context/save/flag/approval/exclusion/restart acceptance | VERIFIED_CLOSED |
 | P5-04 | High/P0 | Missing actionable readiness/version inspection and constrained artifact handoff | Candidate-only wrappers/UI and adversarial filesystem tests pending | OPEN |
 | P5-05 | Release gate | Historical Git privacy, ownership, license and exact rights remain uncleared | B07 exact manifest/provenance/owner decision package | BLOCKED |
 
@@ -17,3 +17,9 @@ New findings and review outcomes are appended during implementation; no finding 
 | P5-08 | Critical/P0 | Generic save/approval could discard retained correction | All-action no-discard regression RED then PASS; independent recheck | VERIFIED_CLOSED |
 
 Goal1 backend defects P5-01/P5-02 are FIXED with passing privacy/race tests; complete UI closure awaits Goal2 browser evidence. Same-status edits use existing schema without unapproved review-event migrations. Ordinary-decision reason is a lifecycle-only API field, not a complete event-history guarantee.
+
+| P5-09 | High/P0 | Same-page/confirmed navigation could abandon dirty protection | Browser RED exclusion probe; preserve same-page dirty and clear accepted discard; real browser PASS + review | VERIFIED_CLOSED |
+| P5-10 | High/P0 | In-flight saves/detail reads could replace drafts or selection | Freeze controls and serialize selection; delayed real-request browser assertions PASS + review | VERIFIED_CLOSED |
+| P5-11 | High | New review-detail GET opened writable DB/create path | Missing-DB HTTP RED; mode=ro wrapper + unchanged rows/no-created-state PASS + review | VERIFIED_CLOSED |
+
+Goal1 privacy/staleness closures now include actual browser persistence/conflict evidence. Candidate current-state schema still does not supply a full append-only event audit; no proposed migration is activated.

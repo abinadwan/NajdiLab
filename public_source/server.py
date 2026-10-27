@@ -14,6 +14,7 @@ from . import service, dataset_platform, dataset_quality, dataset_balancer
 from .db import ROOT, DB_PATH, apply_migrations
 from .extensions import UnavailableExtension
 from .core_reviews import ReviewError, update_review
+from .core_views import list_reviews, get_review
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_request, validate_ingest
 from .review_integrity import ExportReadinessError, export_readiness
 
@@ -90,7 +91,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 if path=='/api/v1/session':result={'ok':True,'csrf_token':CSRF_TOKEN}
                 elif path=='/api/v1/health':result={'ok':True,'service':'NajdiLab','profile':'source-only','storage_scope':'checkout-local'}
                 elif path=='/api/v1/config':result={'local_only':True,'training_actions':False,'error_tags':sorted(service.ERROR_TAGS),'review_statuses':sorted(service.TRAINING_REVIEW_STATUSES)}
-                elif path=='/api/v1/conversations':result={'items':service.list_conversations(search=query.get('search',''))}
+                elif path=='/api/v1/conversations':result={'items':service.list_conversations(search=query.get('search',''),model=query.get('model',''),channel=query.get('channel',''))}
+                elif path=='/api/v1/reviews':result=list_reviews(query.get('scope','all'),query.get('search',''))
+                elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)',path):result=get_review(int(m[1]))
                 elif m:=re.fullmatch(r'/api/v1/conversations/(\d+)',path):result=service.get_conversation(int(m[1]))
                 elif path=='/api/v1/review-queue':result={'items':service.list_review_queue(include_demo=query.get('include_demo','1')!='0')}
                 elif path=='/api/v1/reviewed':result={'items':service.list_reviewed(query)}

@@ -38,3 +38,7 @@ Developers/maintainers: [public/private boundary and blocked compatibility patch
 ## Public core scope review
 
 Owner/product reviewers: [original-versus-candidate feature, UI, module and API matrices](public-core-feature-parity.md), [recommended first-release scope, approval gates and prioritized backlog](public-core-release-scope.md). Developers should use the proposed B02–B06 next phase only after scope approval. This analysis does not migrate features or change the two existing Draft PRs. Original-interface guides/screenshots/architecture above describe the private full application; the mapped candidate has a smaller interface.
+
+## Public core Phase 5 engineering
+
+Current implementation reviewers/developers: [milestone execution and rollback](public-core-phase5-execution.md), [finding register](public-core-phase5-issue-register.md), [actual verification evidence](public-core-phase5-verification.md). This candidate-only work continues the approved scope without modifying original code or earlier Draft PRs.

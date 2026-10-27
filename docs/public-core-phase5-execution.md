@@ -23,8 +23,8 @@ No original protected modules or original tests are edited. No proposed SQL is m
 | Goal | Status | Evidence / commit |
 |---|---|---|
 | 0 Baseline | PASS | Reconciled refs; 270-path / 136 protected hashes; baseline tests below |
-| 1 Privacy/staleness | IN_PROGRESS | Regression reproduction next; issue P5-01/P5-02 |
-| 2 Contextual review | PENDING | B02 candidate-only UI |
+| 1 Privacy/staleness | PASS | fa2170b backend + Goal2 real browser closure |
+| 2 Contextual review | PASS | 37 tests/31 subtests and real Chromium workflow |
 | 3 Dataset inspection | PENDING | B03 read-only wrappers |
 | 4 Artifacts/backup | PENDING | B04 containment and restore |
 | 5 Docs/UI | PENDING | B05 actual candidate presentation |
@@ -39,3 +39,11 @@ No original protected modules or original tests are edited. No proposed SQL is m
 - All direct mutation routes use the wrapper. Approve/generic save cannot discard a saved overlay. Exclude preserves corrected text and decision and sets exclusion; restore preserves restrictions and is PENDING/ineligible. A restored pending overlay must be explicitly resolved with exclusion selected before re-excluding; controlled400 has zero writes. Existing schemas only; unexpected review_events fails closed instead of activating it. Complete event history is not claimed.
 - RED evidence: initial five failing cases plus four malformed subtests; three approval-bypass failures; four independent-review lifecycle/provenance failures; restored-overlay refusal test failed on prior code. Final exact candidate: **33 passed / 31 subtests**, zero skips. Independent reviewer exercised lifecycle, future-clock revision, no-discard and no-write rejection and found no remaining Critical/Important backend issue. Visual acceptance remains pending Goal2; initial UI already sends revision and changed fields only.
 - Risks/rollback: current-state SQLite schema has no full audit sequence. Forward revert this candidate unit/pins together, preserve DB/overlay data. Original history/modules unaffected.
+
+## Goal 2 — contextual review acceptance
+
+- New read-only list/detail view (core_views), contextual candidate UI and browser/HTTP tests; original UI/assets remain unchanged. Conversation search/detail, user/context/original, saved correction/type/notes/reviewer/flags, filters, approve/correct/exclude/restore and explicit saved/unsaved state are operational.
+- RED: three missing-view cases; new missing-database detail probe failed because writable shared connect created state; candidate mode=ro wrapper fixed it. Independent review exposed same-page draft-loss and in-flight overwrite hazards. Browser regression reproduced the dirty-loss exclusion, then confirmed same-page preservation, explicit discard reset and frozen editor/reload during delayed real HTTP writes. Serialized selection prevents out-of-order detail rendering.
+- Exact candidate: **37 passed / 31 subtests**, zero skips. Real Chromium acceptance PASS: fresh offline install, conversations/context, Arabic and HTML-like inert text, correction/privacy persistence, concurrent stale conflict retains draft, safe reload, exclude, approve, restart and browser readback, 390px no-overflow, shutdown. Independent reviewer found no remaining Critical/Important issues in this boundary. Goals1–2 accepted.
+- Retained intermediate browser failures: initial missing UI, selector visibility/row-load/list-refresh synchronization, and reusing a just-closed port during OS TIME_WAIT. Tests now await actual row/save readiness and restart with persisted storage on an explicitly chosen new free port. No port/authentication protection weakened. This does not claim immediate same-port reuse on every OS.
+- Rollback: revert candidate UI/views/routes/tests/pins together; retain stored decisions and private artifacts. No schema change; no full event-history guarantee.
