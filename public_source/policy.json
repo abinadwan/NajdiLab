@@ -468,7 +468,7 @@
     },
     "public_source/docs/screenshots.md": {
       "destination": "docs/screenshots.md",
-      "sha256": "71c4c1df33fbc69df9ae1fe4ebe9e4636e1527afb45471023d7c741633b31361"
+      "sha256": "832b8e5c617efd69bf68422a7e02dea9813803cfd20152ee998b7060d2d4b8ed"
     },
     "public_source/docs/generate_architecture.py": {
       "destination": "docs/generate_architecture.py",
