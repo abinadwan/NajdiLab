@@ -105,7 +105,7 @@ To resume, build a **second fresh candidate** and, **before installing**, copy t
 
 ## Security and limitations
 
-Trusted local single-operator tool on loopback; no public/shared network hosting or multi-user RBAC. Host/Origin/Fetch Metadata, CSRF, JSON framing/2MiB request limit, credentialed native Ingest, safe DOM rendering and filesystem constraints apply. HMAC has no replay freshness. The explicitly inherited legacy Ingest override weakens protection; keep it disabled. Local programs can obtain intent sessions. No protection against an administrator deliberately rewriting the DB/files outside the application is claimed.
+Trusted local single-operator tool on loopback; no public/shared network hosting or multi-user RBAC. Host/Origin/Fetch Metadata, CSRF, JSON framing/2MiB request limit, credentialed native Ingest, safe DOM rendering and filesystem constraints apply. HMAC has no replay freshness. Core refuses native ingestion with503 when the legacy unauthenticated override is inherited; remove it and configure credentials. Local programs can obtain intent sessions. No protection against an administrator deliberately rewriting the DB/files outside the application is claimed.
 
 One server process per storage root and serialized supported HTTP mutations keep preparation coherent. Backup uses its own SQLite snapshot. Original startup migration-loader debt remains; no proposed event/registry migrations are enabled. Review identity is an assertion, not authenticated user identity. No automatic PII detection, consent verification, linguistic quality certification or model compatibility guarantee. Diagnostics may reveal your local record identifiers/content; do not share them without review.
 
