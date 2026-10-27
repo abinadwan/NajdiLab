@@ -29,3 +29,5 @@ Missing revision: 428. Stale revision: 409 REVIEW_CONFLICT with zero writes. Inv
 Version source is managed candidate-local exports only. Registered manifest equality, exact filename inventory, size/count/SHA and regular-file checks apply before diagnosis/delivery. Only selected JSONL files download; full_archive.json, dedup reports, manifest downloads, DBs, backups, secrets and model files are denied. Data is private by default regardless of these checks.
 
 Only GET and POST are supported. Other methods return405 METHOD_UNAVAILABLE with Allow: GET, POST after request-boundary checks; HEAD has no response body. A forbidden Host/Origin or invalid mutation CSRF is still rejected before routing.
+
+Candidate-only native ingestion fails closed with503 LEGACY_INGEST_DISABLED when NAJDILAB_ALLOW_LEGACY_INGEST=1 is inherited, with or without credentials and before parsing/DB writes. Remove that override and use the documented credential contract. Shared original compatibility code/production settings are unchanged.

@@ -51,3 +51,48 @@ Commit ea2347f: [candidate run40527390859](https://github.com/abinadwan/NajdiLab
 ### Hosted attempt2 and recovery root cause
 
 [Run40528604620](https://github.com/abinadwan/NajdiLab/actions/runs/40528604620), commit78dcedd: Ubuntu candidate/browser PASS; Windows68PASS/2FAIL/62subtests,104.31s. Explicit UTF-8 fixed all three encoding failures. Direct restore API diagnostic traced rejection to checked_version's strict canonical path comparison on its newly allocated temporary staging path; no malformed archive or privacy gate failure. A real nonlinked filesystem alias regression reproduces DATASET_PATH_DENIED on Linux (RED), independently of availability of Windows short names. Normalize only the program's newly owned staging root after creation; retain output-parent symlink/junction checks, exclusive destination claiming, byte/manifest checks and all link denials. Full hosted acceptance remains pending the fix run.
+
+## Goal8 — first-time-user acceptance observations
+
+Exact final runtime/source profile:74 files + MANIFEST, SHA256 e6a80cf092d5a6ad519af318f21a0c744930bed712e36f00c396f57b45b52083, selected source commit4513686. Local fresh tests71PASS/62subtests/zeroSKIP,19.50s; real browser/harness PASS. Four browser acceptance groups cover the following22 required steps; these are assertion mappings, not22 separately counted pytest tests. Batch fixture approvals use real authenticated API requests after individual browser approval is proven. No fake UI/API response, original research or training result is used.
+
+| Step | Actual observation/assertion | Local result |
+|---|---|---|
+| 1 Fresh install | Manifest-selected copy, offline installer success, no DB before opt-in/launch | PASS |
+| 2 Launch without private data | Candidate-local loopback health/session, no private modules | PASS |
+| 3 Explicit synthetic examples | --confirm-disposable --workshop,32 pending fictional conversations;3 independent browser fixtures | PASS |
+| 4 Real browser | Chromium navigates actual server and Overview | PASS |
+| 5 Conversation/context | Conversations detail and review context show fictional user question and original | PASS |
+| 6 Correction | Real Arabic editor and Save correction request | PASS |
+| 7 Original unchanged | Browser original equality, review source hash regression and DB-row comparison | PASS |
+| 8 Explicit flag | Browser selects personal-information flag; correction edit itself changes no unrelated flag | PASS |
+| 9 Flag persistence | API/UI readback and restart confirm flag1/training0 | PASS |
+| 10 Stale update | Second client real save, stale browser409 retains draft; atomic/no-write unit integration regressions | PASS |
+| 11 Approval | Individual real browser approval; remaining independent workshop fixtures explicitly approved via real API | PASS |
+| 12 Exclusion | Browser excludes fictional shelfB with reason; persisted after restart | PASS |
+| 13 Readiness | Initial blocked state, explicit demo inclusion, actual readiness/dedup/diagnostics | PASS |
+| 14 Prepare | Real UI preparation after sufficient final eligible records and unchanged split gates | PASS |
+| 15 Version evidence | Actual manifest SHA/counts, quality warnings, balance/holdout API inspection | PASS |
+| 16 Selected retrieval | Browser-selected sft.jsonl bytes match manifest; full archive403 | PASS |
+| 17 Backup | Candidate CLI creates coherent online snapshot of synthetic current state | PASS |
+| 18 Separate restore | CLI restores into new directory; exclusive/no-overwrite/link/ZIP checks tested separately | PASS |
+| 19 Integrity | SQLite integrity/FKs, conversation/message/review/tag/version rows and every dataset file hash equal; fresh source resumes restored state | PASS |
+| 20 Private/training unavailable | Actual training/models/acquire requests503; historical routes/imports excluded | PASS |
+| 21 Shutdown | Only owned disposable server process exits, temporary state cleaned | PASS |
+| 22 Preservation boundary | Manifest-selected source, new temporary storage, original baseline/protected/media hashes unchanged; production never accessed | PASS within accessible scope |
+
+Unobservable original private datasets/checkpoints/frozen versions remain NOT_VERIFIED. No production-integrity comparison is claimed. Browser tested desktop1440×1000,390px no horizontal page overflow, long Arabic editing, inert HTML, empty/blocked/conflict/saved states and actual restart/recovery. Diagram/long technical tables can require zoom or scrolling. Not every browser/OS combination is certified; no public-network hosting/RBAC or automatic PII detection.
+
+## Final verification commands
+
+From engineering checkout: python public_source/build.py --output NEW-SEPARATE-DIR; python public_source/build.py --verify PRISTINE-DIR; python -m pytest -q public_source/tests/test_builder.py; python scripts/check_docs.py. In the exact built candidate: python -m pytest -q tests -rs; node tests/harness.cjs; node tests/browser.cjs . with separately installed puppeteer-core and a real browser (NODE_PATH/NAJDILAB_BROWSER_EXECUTABLE). Original suite runs independently from engineering root: python -m pytest -q tests -rs. Never run candidate browser acceptance against the original checkout; guards refuse it.
+
+## Remaining verification limits
+
+Python3.11/SQLite3.24 are enforced floors, not freshly tested combinations. WSL2/macOS and other browsers are NOT_VERIFIED. Original-source private artifacts remain explicit SKIP; Linux-only PowerShell skip is covered by the actual Windows job. No model training/runtime/export/deployment, live Ingest transition, proposed migration or multi-user/public-network hardening was exercised. HMAC has no freshness/replay protection; review identity is asserted, not authenticated RBAC. No complete append-only event log or signed build authenticity is claimed. Advisory lock protects supported same-root server instances, not arbitrary external writers. Source-only privacy patterns and manifest checks do not certify ownership or rights.
+
+### Goal9 additional native-auth finding — do not conceal late failures
+
+Independent final review agreed that inherited NAJDILAB_ALLOW_LEGACY_INGEST=1 is an Important candidate-contract gap, although it is not a remote privilege escalation under local operator trust. Harnesses removed that environment flag, so defaults alone did not exercise it. Raw malformed-JSON requests produced2RED subtests (400instead of503); actual disposable API requests with/without credentials produced4RED subtests plus changed-row failure, proving a real unauthenticated fictional write. Candidate-only body guard now refuses the configuration with503 LEGACY_INGEST_DISABLED before shared auth/JSON/DB, without mutating os.environ in request threads or editing the protected helper. Both native paths and unchanged conversation/message/review counts are tested. Final profile acceptance must be rerun; prior71-pass Windows/Ubuntu result remains historical for4513686, not current final acceptance.
+
+Legacy-refusal fix local exact74-file profile: **73 passed /68 subtests /zero skips**,19.54s; builder11PASS/18subtests. Real-count assertions prove no native conversation/message/review writes with override1, whether unauthenticated or correctly credentialed. Hosted retest and independent review follow before closure.

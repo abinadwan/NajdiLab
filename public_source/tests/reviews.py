@@ -105,3 +105,17 @@ class ReviewWrites(CandidateCase):
         self.assertEqual(send({'X-Hermes-Signature-256':signature,'Origin':self.base}),403)
         self.assertEqual(self.rows('select count(*) n from conversations')[0]['n'],before)
         self.assertEqual(send({'X-Hermes-Signature-256':signature}),201)
+
+    def test_legacy_override_cannot_bypass_native_auth_or_write_rows(self):
+        before={t:self.rows('select count(*) n from '+t)[0]['n'] for t in ('conversations','messages','reviews')}
+        self.stop();self.env['NAJDILAB_ALLOW_LEGACY_INGEST']='1';self.start()
+        try:
+            payload={'conversation_id':'fictional-legacy-refusal','source':'import','user_message':'وين البطاقة الخيالية؟','assistant_response':'على الرف التجريبي.','demo':True}
+            for path in ['/api/v1/turn','/api/v1/hermes-hook']:
+                for headers in [{},{'Authorization':'Bearer fictional-acceptance-only'}]:
+                    with self.subTest(path=path,credential=bool(headers)):
+                        status,data=self.request(path,payload,headers)
+                        self.assertEqual(status,503);self.assertEqual(data['code'],'LEGACY_INGEST_DISABLED')
+            self.assertEqual({t:self.rows('select count(*) n from '+t)[0]['n'] for t in before},before)
+        finally:
+            self.stop();self.env.pop('NAJDILAB_ALLOW_LEGACY_INGEST',None);self.start()

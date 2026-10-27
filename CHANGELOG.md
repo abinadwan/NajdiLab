@@ -63,3 +63,7 @@ No final license, release, history rewrite, schema migration, download, training
 ### Windows recovery corrective evidence
 
 Retained first hosted candidate failure5 and diagnostic failure2. Explicit UTF-8 fixture IO fixed three test defects. A new real-filesystem staging-alias regression reproduced valid restore refusal; normalize only the newly created owned staging directory while preserving all link/containment/exclusive-write checks. Hosted acceptance must pass before closing this finding.
+
+### Final-review native-ingestion refusal
+
+Candidate-only request boundary now refuses inherited legacy unauthenticated-ingest override with explicit503, preserving original helper/production. Real fictional unauthorized writes and negative raw requests were reproduced before fix; current no-write/credential/path regressions pass locally, with hosted retest required.

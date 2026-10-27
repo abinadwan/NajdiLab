@@ -308,7 +308,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "2b8d27ffb4c9aca99afa4cd43d3f574719646263a97550d65284471605ab7402"
+      "sha256": "a449f8359feaa57f8eec34182b5b411199a2bd7ca56d04353aca94477ab95e59"
     },
     "public_source/extensions.py": {
       "destination": "app/extensions.py",
@@ -316,7 +316,7 @@
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "84f496a38c43e5104a4f585a3afbaaf24d1e4c985fb56dca300e67c2d34ac84d"
+      "sha256": "484af942dd03967b63bd67ac524c1f9d5caf1314825eae9e975f46da81bd3391"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
@@ -344,7 +344,7 @@
     },
     "public_source/tests/security.py": {
       "destination": "tests/test_candidate_security.py",
-      "sha256": "ca8aaeec688435df55f1628838dbcceb3fb76fea5e95ed628917be4918b3cc76"
+      "sha256": "5bc10f77fcbde885a37cb5fed277c2124821d5c6b94cdca5c4b75ba5c237d6ec"
     },
     "requirements-dev.txt": {
       "destination": "requirements-dev.txt",
@@ -388,7 +388,7 @@
     },
     "public_source/tests/reviews.py": {
       "destination": "tests/test_candidate_reviews.py",
-      "sha256": "df4483be2b32453d5c703f686316b52c4f6639cd12aaa1bddbf7aae81f80e127"
+      "sha256": "9188ff27b1b457f69fc5cf466a41aa3b809b469b6cb5ae17509123b96a163bf5"
     },
     "public_source/tests/__init__.py": {
       "destination": "tests/__init__.py",
@@ -460,7 +460,7 @@
     },
     "public_source/docs/api.md": {
       "destination": "docs/api.md",
-      "sha256": "6a2e84fbf59efd0884bd184a4ccb30d9c4f978965240dda78aa83b0327717aab"
+      "sha256": "801740dc343678a0828161df7671e885b2b69dced6cfe95f525f6abf955730c1"
     },
     "public_source/docs/initial-profile.md": {
       "destination": "docs/initial-profile.md",

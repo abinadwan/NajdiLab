@@ -59,3 +59,12 @@ class CandidateSecurity(unittest.TestCase):
                 self.assertEqual(self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length',str(len(raw))),('X-NajdiLab-CSRF',CSRF_TOKEN)],raw,'/api/v1/conversations')[0],400)
         # Send headers only: size guard must return without waiting/allocating the body.
         self.assertEqual(self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length',str(2*1024*1024+1)),('X-NajdiLab-CSRF',CSRF_TOKEN)],None,'/api/v1/conversations')[0],400)
+
+    def test_candidate_refuses_legacy_ingest_override_before_parsing(self):
+        import os
+        from unittest.mock import patch
+        # Invalid JSON avoids any DB operation even on the old unsafe bypass.
+        with patch.dict(os.environ,{'NAJDILAB_ALLOW_LEGACY_INGEST':'1','NAJDILAB_INGEST_TOKEN':'fictional-boundary-only'}):
+            for path in ['/api/v1/turn','/api/v1/hermes-hook']:
+                with self.subTest(path=path):
+                    self.assertEqual(self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length','7')],b'{broken',path)[0],503)

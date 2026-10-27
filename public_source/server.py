@@ -74,7 +74,12 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         size=int(self.headers.get('Content-Length','0'))
         if size>2*1024*1024: raise service.ValidationError('Request body exceeds limit')
         raw=self.rfile.read(size)
-        if urlparse(self.path).path in INGEST_PATHS: validate_ingest(self.headers,raw)
+        if urlparse(self.path).path in INGEST_PATHS:
+            # Never let an inherited compatibility flag bypass Core credentials.
+            # Refuse the configuration; never mutate process environment in threads.
+            if os.environ.get('NAJDILAB_ALLOW_LEGACY_INGEST')=='1':
+                raise RequestSecurityError('Legacy unauthenticated ingestion is unavailable in Core. Remove the legacy override and configure a credential.',503,'LEGACY_INGEST_DISABLED')
+            validate_ingest(self.headers,raw)
         try: data=json.loads(raw.decode('utf-8')) if raw else {}
         except (ValueError,UnicodeError): raise service.ValidationError('Invalid JSON') from None
         if not isinstance(data,dict):raise service.ValidationError('Request body must be an object')
