@@ -34,7 +34,8 @@ class ScriptPortabilityTests(unittest.TestCase):
                     namespace = {"__file__": str(checkout / "scripts" / name)}
                     exec(compile(ast.fix_missing_locations(ast.Module(body=statements, type_ignores=[])), name, "exec"), namespace)
                     for variable, relative in expected.items():
-                        self.assertEqual(Path(namespace[variable]), checkout / relative)
+                        # Canonicalize Windows short-name aliases and symlinked temp roots.
+                        self.assertEqual(Path(namespace[variable]).resolve(), (checkout / relative).resolve())
 
     def test_windows_launchers_have_no_fixed_developer_profile(self):
         for relative in ("run.ps1", "scripts/backup.ps1", "scripts/NajdiLab_Autostart.ps1"):

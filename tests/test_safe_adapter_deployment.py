@@ -71,10 +71,10 @@ def deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any
                 target_handle.write(b"corrupt")
                 return None
             return real_copyfileobj(source_handle, target_handle, *args, **kwargs)
-        def injected_chmod(path, mode):
+        def injected_chmod(path, mode, *args, **kwargs):
             if failure_stage == "after_replace" and Path(path) == Path(payload["destination"]):
                 raise OSError("injected post-replace permission failure")
-            return real_chmod(path, mode)
+            return real_chmod(path, mode, *args, **kwargs)
         try:
             sys.argv = [sys.executable, *command[index + 2:]]
             os.replace = sandbox_replace
