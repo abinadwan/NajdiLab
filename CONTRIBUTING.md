@@ -22,6 +22,8 @@ Prefer fixture databases and temporary directories. Do not point tests at produc
 
 ## Rights and attribution
 
+Read the [inactive contributor/license approval package](docs/proposals/licensing-approval.md) and [source-only data/model policy](docs/dataset-model-distribution-policy.md). No inbound license, DCO or CLA is activated by those proposals.
+
 Identify new dependency versions, upstream licenses and required notices. Confirm rights for code, examples and any dataset; a source license does not license model weights or training data. See [license options](docs/license-options.md) and [dependencies](docs/dependencies-and-attribution.md). Security reports should follow [SECURITY.md](SECURITY.md), with sensitive details withheld from public issues.
 
 ## Development standards

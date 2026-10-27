@@ -58,3 +58,9 @@ Initial Mermaid CLI setup failed because its default cache directory was unavail
 ## Final results and delivery
 
 Local final documentation, diagram, hash, syntax and installation checks passed as recorded above. Hosted CI will be inspected on the Draft PR; no historical CI pass is claimed for a new commit. No automatic merge, public conversion, source license activation or deployment follows. Ordinary source revert is the rollback; private-state recovery remains a separate verified restore, not a reason to rewrite history.
+
+### Remote clean-clone proof and coordinated delivery
+
+[Draft PR #2](https://github.com/abinadwan/NajdiLab/pull/2) targets unchanged main on the single branch. An independent GitHub clone of pushed head `f91007bcb4d94d110e47d674dd8cecb7de650af4` passed the same 82-file documentation check and full suite: **277 passed, 24 skipped, 68 subtests**, one existing warning (5.14 seconds). The first chained follow-up command accidentally ran outside the new clone and reported “not a git repository”; rerunning with the explicit clone working directory passed. No source edit was needed.
+
+[Hosted CI run 40462193781](https://github.com/abinadwan/NajdiLab/actions/runs/40462193781) tests this pushed implementation/docs revision on Ubuntu and Windows. Both jobs completed successfully: **Ubuntu 277 passed / 24 skipped / 68 subtests** (7.23 seconds); **Windows 278 passed / 23 skipped / 68 subtests** (27.30 seconds). Both have one existing warning. These are fresh hosted source/installation-regression results, not a new manual Windows desktop/WSL installation rehearsal. Later delivery-only documentation edits rerun local documentation checks; exact-head CI is reported in the PR checks. The earlier audit's requirement to seek permission to restore the deleted branch is superseded by the unified task's explicit new-branch/Draft PR authorization.
