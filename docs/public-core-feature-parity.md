@@ -275,3 +275,7 @@ Final documentation-link, matrix-coverage and preservation results are recorded 
 ## Conclusion for scope review
 
 The isolated core is a working engineering foundation, not original-feature parity. The useful first public product can be a trusted-local **conversation review and dataset preparation platform** once the small UI, actionable quality/version inspection and artifact handoff are completed. Generic model configuration, offline planning and evaluation are reusable future work, not reasons to ship historical records or enable execution now. See [scope, approvals and backlog](public-core-release-scope.md). Publication remains **NOT READY — BLOCKERS REMAIN**.
+
+## Phase5 implementation continuation
+
+The matrices above are the preserved Phase4 analysis baseline atdc5c82e. Approved B02–B06 have now been implemented and independently tested in the candidate, including contextual review/atomic flags and conflicts, strict readiness/version diagnostics, constrained artifacts and coherent private recovery. [Current Core API/UI/guide](public-core-user-guide.md), [source-grounded Core architecture](../public_source/docs/architecture.md) and [actual73-test/browser evidence](public-core-phase5-verification.md) record current behavior. Original full-platform screenshots and101-route inventory are retained; they are not relabeled as candidate parity. B08–B12, original historical implementations, actual model training/runtime and publication remain separately gated.

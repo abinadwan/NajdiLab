@@ -48,3 +48,5 @@ Current implementation reviewers/developers: [milestone execution and rollback](
 [Candidate onboarding, APIs, architecture and actual screenshots](public-core-user-guide.md). This reduced profile has separate documentation; all original full-platform and historical pages above remain discoverable.
 
 Owner/license reviewers: [Phase5 exact candidate source inventory, tagged dependency evidence and inactive decisions](public-core-phase5-rights.md). Package/privacy scans and legal/publication approvals remain independent.
+
+Phase5 current acceptance: [engineering scorecard/rollback](public-core-phase5-execution.md), [31-finding register](public-core-phase5-issue-register.md), [fresh Windows/Ubuntu counts and22-step acceptance](public-core-phase5-verification.md), [exact74-file owner/rights package](public-core-phase5-rights.md). All earlier full-platform/historical material remains discoverable and distinct from Core. Publication gates remain open.

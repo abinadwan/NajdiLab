@@ -90,3 +90,7 @@ Final local profile: **37 files**. Exact reviewed-candidate suite: **22 passed, 
 - [Preserved-source run 40479629227](https://github.com/abinadwan/NajdiLab/actions/runs/40479629227): Ubuntu **277 passed / 24 skipped / 68 subtests**; Windows **278 passed / 23 skipped / 68 subtests**, each with the existing warning. These are original-source regression checks, distinct from the candidate suite.
 
 Subsequent evidence-only document updates do not alter candidate-selected bytes or manifest. Exact-head check status remains visible in PR checks. Repository remains Private; no generated package is published, no PR is merged, no license activated. Owner rights/history decisions and original-protected-source compatibility patches remain blocked as documented.
+
+## Phase5 superseding candidate implementation checkpoint
+
+The original37-file profile and its evidence above remain historical. The approved implementation now selects74 source files plus MANIFEST, providing full scoped review/readiness/version/artifact/recovery workflows. Both hosted OSes pass73tests/68subtests, builder11/18 and actual browser acceptance. [Current execution](public-core-phase5-execution.md), [exact API/guide](public-core-user-guide.md), [verification](public-core-phase5-verification.md) and [rights inventory](public-core-phase5-rights.md) describe the current candidate; protected originals remain unchanged. No full-app parity, model runtime, original private records, active license or publication clearance is implied. Earlier failures remain visible.

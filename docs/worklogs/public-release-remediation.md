@@ -90,3 +90,13 @@ Added acceptance input guards, controlled unsupported methods, runtime dependenc
 ## 2026-10-27 — Phase5 B07 selected rights review
 
 Prepared exact74-file inventory and separate private clean snapshot, current matching license-text evidence, residual helper-label review and inactive owner decision fields. No source license activated or ownership asserted. Privacy/ownership/history/third-party approvals remain open, independently of technical Windows recovery findings. Rebuild/review changed selected bytes before publication consideration.
+
+## 2026-10-27 — Phase5 final acceptance and continuity
+
+Candidate milestones: baseline0a95f54; atomic privacyfa2170b; contextual UI826896c; dataset gates35863c9; constrained artifacts/coherent recovery8d9b899; separate onboarding/real visuals7f199d3; cross-platform tests/guards ea2347f; rights packet aec3950; explicit UTF8/diagnostics78dcedd; canonical owned-stage restore4513686; late native-override refusalb9a3071 with guide10907b1; measured screenshot captione03a640. Historical failures remain in the execution/verification ledger.
+
+Final selected profile74files plus manifestcc94baf399dd66056d8a64b9150237cf5d14ffe651cd67fd9839547138c94044. Actual Windows/Ubuntu73PASS/68subtests, builder11/18 and real browser/harness4groups/22mapped steps; separate original suite277/24SKIP and278/23SKIP/68subtests, existing warning. Independent code/isolation/rights review accepted;31 findings,30 verified engineering closures and1 blocked rights/history group. No protected originals changed;270 retained/136 protected/12 original media verified. Original private data/frozen artifacts inaccessible, NOT_VERIFIED.
+
+Engineering verdict PASS with release gates remaining. Reviewable Draft#4 stays stacked on analysisdc5c82e; earlier PRs/main/private visibility preserved. Next owner decisions: rights authority/holder/year/standard license/notices/assets/legacy helper labels and exact future clean-publication manifest/destination. No approvals inferred. Forward-revert reviewed candidate/policy units for rollback, retain all data/backups, restore only into another new same-schema candidate before installation. No merge/license/publication/model/production action.
+
+Delivery note: an initial plain Git push failed because no credential helper was selected; nothing was reset or force-pushed. Normal push through the existing gh credential helper succeeded. No credential value was printed, committed or placed in command arguments.

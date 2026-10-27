@@ -28,10 +28,10 @@ No original protected modules or original tests are edited. No proposed SQL is m
 | 3 Dataset inspection | PASS | 53 tests/34 subtests + actual browser readiness/version workflow |
 | 4 Artifacts/backup | PASS | 64 tests/50 subtests + real download/backup/restore |
 | 5 Docs/UI | PASS | 68-file exact candidate64/50; real browser/recovery; editable SVG/Mermaid and eight captures |
-| 6 Cross-platform | PENDING | B06 exact generated candidate |
-| 7 Rights | PENDING | B07 selected manifest review; approvals remain separate |
-| 8 End-to-end acceptance | PENDING | Real browser plus API/backup assertions |
-| 9 Independent review | PENDING | Review affected behavior, not code changes alone |
+| 6 Cross-platform | PASS | Final74-file source e03a640: Windows/Ubuntu73PASS/68subtests, builder11/18 and real browser/recovery PASS |
+| 7 Rights | PASS — decision package | aec3950 plus exact selected inventory refresh; ownership/license/history remain blocked |
+| 8 End-to-end acceptance | PASS |22-step assertion mapping; actual browser/API/original/backup/restore evidence on both hosted OSes |
+| 9 Independent review | PASS | Late legacy bypass reproduced/fixed/reviewed;30 engineering closures; legal gateP5-05 remains blocked |
 
 ## Goal 1 — atomic review safety boundary
 
@@ -97,3 +97,107 @@ Hosted ea2347f failed5/65PASS: three fixture encoding defects, two valid-restore
 ### Goal9 reopened acceptance boundary: legacy native-ingest override
 
 Final review found the inherited compatibility environment flag can violate Core's credential-required contract; preserved helper intentionally supports it for the original application. Raw negative requests and actual valid fictional ingestion reproduced the bypass before DB-row assertions. Added candidate-only503 configuration refusal, with/without credentials on both native paths, prior to shared validation/parse/DB; no global environment mutation or protected-source change. NewP5-31 remains IN_PROGRESS until exact local/Windows/Ubuntu acceptance passes; earlier successful4513686 evidence is retained. Roll back this wrapper/tests/docs/pin unit only; never deploy a credential transition to production.
+
+## Final Phase5 engineering verdict
+
+**ENGINEERING PASS — RELEASE GATES REMAIN**. Goals0–9 completed within the authorized local Core boundary. Publication remains **NOT READY — BLOCKERS REMAIN**. No protected source/data, production, main/earlier PR, license or visibility action is authorized or performed by this verdict.
+
+| Goal | Accepted result / evidence | Implementation/evidence commit |
+|---|---|---|
+|0 Baseline |270 retained paths; actual136 protected hashes; baseline original277/24SKIP and Core22/13subtests |0a95f54 |
+|1 Correction/privacy |Atomic mandatory revision, flags/notes/reviewer preservation, immutable originals; regression + browser |fa2170b |
+|2 Contextual review |Conversations/context/search/editor/approve/exclude/restore, safe draft/conflict/Arabic rendering |826896c |
+|3 Readiness/version |Strict privacy/context/split/mask/dedup, read-only verified-byte quality/balance/holdout |35863c9 |
+|4 Artifact/recovery |Fixed JSONL download, coherent backup, separate restore, exclusive bounded containment |8d9b899; Windows owned-stage fix4513686 |
+|5 Docs/UI |Separate Core guides/API/architecture,8 real screenshots and editable SVG; originals retained |7f199d3; measured capture captione03a640 |
+|6 Cross-platform |Exact final73tests/68subtests, builder11/18, actual browser/harness on Windows and Ubuntu |ea2347f; UTF8 diagnostics78dcedd;4513686; finalb9a3071/10907b1/e03a640 |
+|7 Rights |Exact74-source inventory, tagged dependency evidence, clean snapshot and inactive owner package |aec3950; final inventory in this evidence continuation |
+|8 User acceptance |All22 scenario steps observed/asserted in exact candidate; same-schema fresh-source restore resume |e03a640 tested source; final verification ledger |
+|9 Review |Independent code/isolation/rights reviews; late legacy bypass reproduced, fixed and rechecked; no open P0 |b9a3071/10907b1; final finding/verification ledger |
+
+Current source profile: **e03a640c08554ee8e171faeed0fb8686f324dbfa**,74 selected files plus MANIFEST.json, SHA256 **cc94baf399dd66056d8a64b9150237cf5d14ffe651cd67fd9839547138c94044**. Final evidence/workflow-only commits preserve this package byte-for-byte. Earlier profiles/counts/failures above are historical checkpoints, not current unresolved engineering status.
+
+Final source acceptance: [candidate Windows/Ubuntu40532489241](https://github.com/abinadwan/NajdiLab/actions/runs/40532489241), [separate preserved-source40532489260](https://github.com/abinadwan/NajdiLab/actions/runs/40532489260). Reports identify actual PASS/FAIL/SKIP and runtime versions. Final metadata-head checks repeat the same profile on PR#4; no generated package is uploaded.
+
+### Preservation, risk and rollback
+
+All270 starting paths retained; all136 original protected worktree hashes and12 original documentation-media hashes unchanged. Starting CRLF PowerShell worktree bytes were preserved; comparisons against canonical Git text are not substituted for the private starting-byte baseline. Frozen original datasets/checkpoints/private databases are inaccessible and NOT_VERIFIED, never modified or claimed verified. Source-only snapshot omits Git and private assets; historical repository exposure remains uncleared.
+
+Retain local single-operator trust, explicit flags/consent,20-final-record/holdout gates,16MiB/file64MiB inspection/recovery budgets and all authentication checks. No append-only event log, signed build authenticity, HMAC replay freshness, public-network service, RBAC or compatibility with arbitrary old private databases is claimed. Proposed migrations and production Ingest transition remain excluded.
+
+Rollback each candidate commit/pins/tests/docs as a reviewed unit with ordinary forward reverts; keep all originals, private state and backups. A used installation is not a pristine package. Restore only to a new separate destination, copy validated state into a fresh same-schema candidate before installation, and never overwrite live data. Do not reset/force-push, merge, change visibility, publish, activate licensing or train.
+
+Smallest next approved action: owner review of the completed Draft#4 and [exact rights package](public-core-phase5-rights.md), deciding ownership/holder/year/notices/residual helper labels and future clean-snapshot scope/destination. B08–B12 remain separate proposed work; no model/training action starts automatically.
+
+## Final changed-file inventory
+
+66 paths relative to analysisdc5c82e; no deleted paths and no protected-original code changes. Full review: [Draft#4 files](https://github.com/abinadwan/NajdiLab/pull/4/files). A=addition,M=authorized candidate/doc/workflow update. Source manifest inventory is separate from this implementation diff.
+
+```text
+M	.github/workflows/public-source-candidate.yml
+M	CHANGELOG.md
+M	PROJECT_STATUS.md
+M	SECURITY.md
+M	docs/asset-provenance.md
+M	docs/dependencies-and-attribution.md
+M	docs/documentation-index.md
+M	docs/public-core-feature-parity.md
+A	docs/public-core-phase5-execution.md
+A	docs/public-core-phase5-issue-register.md
+A	docs/public-core-phase5-rights.md
+A	docs/public-core-phase5-verification.md
+M	docs/public-core-release-scope.md
+A	docs/public-core-user-guide.md
+M	docs/public-private-boundary.md
+M	docs/public-release-decision.md
+M	docs/public-source-isolation-report.md
+M	docs/source-provenance.md
+M	docs/worklogs/public-release-remediation.md
+A	public_source/CONTRIBUTING.md
+M	public_source/README.md
+A	public_source/artifacts.py
+A	public_source/backup.py
+M	public_source/build.py
+A	public_source/datasets.py
+A	public_source/docs/api.md
+A	public_source/docs/architecture.md
+A	public_source/docs/generate_architecture.py
+A	public_source/docs/images/artifact-access.png
+A	public_source/docs/images/conversation-review.png
+A	public_source/docs/images/core-architecture.svg
+A	public_source/docs/images/correction-editor.png
+A	public_source/docs/images/dataset-readiness.png
+A	public_source/docs/images/dataset-version.png
+A	public_source/docs/images/overview.png
+A	public_source/docs/images/quality-findings.png
+A	public_source/docs/images/saved-decision.png
+A	public_source/docs/initial-profile.md
+A	public_source/docs/screenshots.md
+A	public_source/docs/user-guide.md
+M	public_source/policy.json
+A	public_source/read_views.py
+A	public_source/restore_backup.py
+A	public_source/reviews.py
+M	public_source/server.py
+A	public_source/snapshot.py
+M	public_source/static/app.js
+M	public_source/static/index.html
+M	public_source/static/style.css
+A	public_source/storage.py
+M	public_source/synthetic_demo.py
+A	public_source/synthetic_workshop.json
+A	public_source/tests/__init__.py
+A	public_source/tests/artifacts.py
+A	public_source/tests/browser.cjs
+A	public_source/tests/candidate-copy.cjs
+A	public_source/tests/context.py
+M	public_source/tests/contract.py
+A	public_source/tests/datasets.py
+A	public_source/tests/harness.cjs
+A	public_source/tests/install.py
+A	public_source/tests/package.py
+A	public_source/tests/reviews.py
+M	public_source/tests/security.py
+A	public_source/tests/support.py
+M	public_source/tests/test_builder.py
+```

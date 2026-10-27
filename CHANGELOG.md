@@ -67,3 +67,11 @@ Retained first hosted candidate failure5 and diagnostic failure2. Explicit UTF-8
 ### Final-review native-ingestion refusal
 
 Candidate-only request boundary now refuses inherited legacy unauthenticated-ingest override with explicit503, preserving original helper/production. Real fictional unauthorized writes and negative raw requests were reproduced before fix; current no-write/credential/path regressions pass locally, with hosted retest required.
+
+## Phase5 final accepted local Core scope
+
+- Completed B02–B06 candidate workflows, exact Windows/Ubuntu73tests/68subtests, builder11/18 and real browser review-to-version/download/backup/restore/resume. Late native legacy override is refused; final raw/no-write cases pass.
+- Retained Windows5FAIL then2FAIL, REDs and all earlier evidence; fixed only candidate code/tests/docs and explicit reviewed selections.
+- Prepared exact74-file rights inventory, owner decisions and private clean snapshot; no license/publication clearance.
+- Verified270 baseline files retained,136 original protected hashes and12 original media hashes unchanged; inaccessible original private artifacts remain NOT_VERIFIED. Original PR#2/#3/main and Private visibility unchanged.
+- Final reports, rollback and next owner decisions are linked from PROJECT_STATUS and documentation index. No models/training/production/migration/history/merge/publication action.

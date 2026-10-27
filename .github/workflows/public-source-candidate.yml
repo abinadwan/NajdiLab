@@ -25,6 +25,7 @@ jobs:
       - run: python -m pytest -q public_source/tests/test_builder.py
       - run: python public_source/build.py --output ../candidate
       - run: python public_source/build.py --verify ../candidate
+      - run: python -c "from pathlib import Path; import hashlib,json; p=Path('../candidate/MANIFEST.json'); print('MANIFEST_SHA256='+hashlib.sha256(p.read_bytes()).hexdigest()); print('SELECTED_FILES='+str(len(json.loads(p.read_bytes())['files'])))"
       - run: python -m pytest -q tests -rs
         working-directory: ../candidate
       - run: npm install --prefix ../core-browser-tools --ignore-scripts --no-audit --no-fund puppeteer-core@25.16.0

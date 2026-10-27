@@ -151,3 +151,9 @@ Recommended original attribution remains **NajdiLab — original source https://
 **Verdict: NOT READY — BLOCKERS REMAIN.** The smallest safe next decision is approval of the reduced scope and candidate-only B02–B06 implementation. B07 rights/history work proceeds independently. This phase creates no new feature, model/runtime access, license grant, publication, merge or existing-PR change.
 
 Rollback for this analysis is a normal forward revert of its documentation commit, leaving source/candidate pins, both Draft PR heads, original records and assets intact. Future feature rollback must preserve any new user-created local records, and must never reset shared history, erase failed evidence or overwrite a live database.
+
+## Phase5 accepted engineering scope
+
+Owner-authorized B02–B06 are complete for local Core: review/correction/explicit flags/conflict handling, contextual privacy/eligibility/dedup/holdout, conversational SFT preparation, version/manifests/quality/balance inspection, selected verified JSONL retrieval, private coherent backup/separate restore and candidate-specific guides/visuals. Exact Windows/Ubuntu candidate73tests/68subtests plus builder11/18 and real browser PASS. The initial proposal/backlog above remains historical decision evidence. [Milestones/commits/rollback](public-core-phase5-execution.md) and [verification](public-core-phase5-verification.md) are authoritative.
+
+B07 rights package is complete as a decision aid, not cleared for publication. B08 manual/direct/preference workflow, generic model configuration/offline plans/evaluation, full event audit/migration improvements and broader trust models remain deferred B08–B12. Actual training/acquisition/export/deployment and private research never enter the first release automatically. Owner's next review is exact rights/holder/year/notices/history/snapshot disposition, not an automatic migration or training approval. Publication remains blocked.

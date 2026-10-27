@@ -61,9 +61,13 @@ Direct/preference preparation is explicitly deferred to B08 and blocked before v
 
 | ID | Severity | Finding / root cause | Fix / regression / evidence | Status |
 |---|---|---|---|---|
-| P5-29 | High/P0 | Valid Windows restore staging alias failed strict canonical path comparison | Two hosted failures + direct-function trace; nonlinked staging alias RED, normalize only newly owned stage; full recheck pending | IN_PROGRESS |
+| P5-29 | High/P0 | Valid Windows restore staging alias failed strict canonical path comparison | Two hosted failures + direct-function trace; nonlinked staging alias RED, normalize only newly owned stage; exact Windows/Ubuntu restore and real-browser recovery PASS4513686/10907b1 + independent review | VERIFIED_CLOSED |
 | P5-30 | High | Test fixture Arabic reads/writes used platform default cp1252 | Three real Windows failures; explicit UTF-8 test fixture IO; hosted recheck68PASS/2 unrelated restore failures, all three encoding failures closed | VERIFIED_CLOSED |
 
 | ID | Severity | Finding / root cause | Fix / regression / evidence | Status |
 |---|---|---|---|---|
-| P5-31 | High/P0 | Inherited legacy-ingest override bypassed the Core credential contract | Raw invalid-JSON2RED subtests; actual unauthenticated write plus four credential/path failures and row-count failure; candidate503 before shared auth/parse/DB; final recheck pending | IN_PROGRESS |
+| P5-31 | High/P0 | Inherited legacy-ingest override bypassed the Core credential contract | Raw invalid-JSON2RED subtests; actual unauthenticated write plus four credential/path failures and row-count failure; candidate503 before shared auth/parse/DB; exact73-test Windows/Ubuntu runs10907b1, real no-write assertions and independent guard review PASS | VERIFIED_CLOSED |
+
+## Final closure assessment
+
+31 findings: **6 Critical/P0,24 High and1 release-gate group**. All30 engineering findings are VERIFIED_CLOSED after regression and independent review; P5-05 remains BLOCKED for owner/privacy/ownership/license/history/publication decisions. Open/in-progress engineering findings0; deferred findings0; reopened findings0. Acceptance was deliberately rerun after late P5-31; it was a newly found inherited mode, not a reintroduced fixed issue. Deferred B08–B12 capabilities are scope decisions, not hidden defect closures. Exact test evidence and retained failures: [verification](public-core-phase5-verification.md). Any changed behavior that invalidates these regressions must reopen the relevant finding.

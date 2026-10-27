@@ -1,5 +1,7 @@
 # Phase 5 verification evidence
 
+Current result: **ENGINEERING PASS — RELEASE GATES REMAIN**. Final exact sourcee03a640:74 selected files, manifestcc94baf399dd66056d8a64b9150237cf5d14ffe651cd67fd9839547138c94044; hosted Windows/Ubuntu73PASS/68subtests, builder11/18 and actual browser/harness PASS. [Authoritative final table](#final-exact-profile-acceptance--authoritative-current-results). Earlier intermediate/pending/failing statements below are chronological historical checkpoints, retained for traceability. Publication remains blocked.
+
 This is a current execution ledger, distinct from historical reports. Test environments are disposable/private; source and original evidence remain preserved. Final results supersede milestone counts without erasing failures.
 
 ## Baseline
@@ -52,7 +54,7 @@ Commit ea2347f: [candidate run40527390859](https://github.com/abinadwan/NajdiLab
 
 [Run40528604620](https://github.com/abinadwan/NajdiLab/actions/runs/40528604620), commit78dcedd: Ubuntu candidate/browser PASS; Windows68PASS/2FAIL/62subtests,104.31s. Explicit UTF-8 fixed all three encoding failures. Direct restore API diagnostic traced rejection to checked_version's strict canonical path comparison on its newly allocated temporary staging path; no malformed archive or privacy gate failure. A real nonlinked filesystem alias regression reproduces DATASET_PATH_DENIED on Linux (RED), independently of availability of Windows short names. Normalize only the program's newly owned staging root after creation; retain output-parent symlink/junction checks, exclusive destination claiming, byte/manifest checks and all link denials. Full hosted acceptance remains pending the fix run.
 
-## Goal8 — first-time-user acceptance observations
+## Goal8 — first-time-user acceptance observations (pre-final-review checkpoint)
 
 Exact final runtime/source profile:74 files + MANIFEST, SHA256 e6a80cf092d5a6ad519af318f21a0c744930bed712e36f00c396f57b45b52083, selected source commit4513686. Local fresh tests71PASS/62subtests/zeroSKIP,19.50s; real browser/harness PASS. Four browser acceptance groups cover the following22 required steps; these are assertion mappings, not22 separately counted pytest tests. Batch fixture approvals use real authenticated API requests after individual browser approval is proven. No fake UI/API response, original research or training result is used.
 
@@ -96,3 +98,29 @@ Python3.11/SQLite3.24 are enforced floors, not freshly tested combinations. WSL2
 Independent final review agreed that inherited NAJDILAB_ALLOW_LEGACY_INGEST=1 is an Important candidate-contract gap, although it is not a remote privilege escalation under local operator trust. Harnesses removed that environment flag, so defaults alone did not exercise it. Raw malformed-JSON requests produced2RED subtests (400instead of503); actual disposable API requests with/without credentials produced4RED subtests plus changed-row failure, proving a real unauthenticated fictional write. Candidate-only body guard now refuses the configuration with503 LEGACY_INGEST_DISABLED before shared auth/JSON/DB, without mutating os.environ in request threads or editing the protected helper. Both native paths and unchanged conversation/message/review counts are tested. Final profile acceptance must be rerun; prior71-pass Windows/Ubuntu result remains historical for4513686, not current final acceptance.
 
 Legacy-refusal fix local exact74-file profile: **73 passed /68 subtests /zero skips**,19.54s; builder11PASS/18subtests. Real-count assertions prove no native conversation/message/review writes with override1, whether unauthenticated or correctly credentialed. Hosted retest and independent review follow before closure.
+
+## Final exact-profile acceptance — authoritative current results
+
+Selected source **e03a640c08554ee8e171faeed0fb8686f324dbfa**, manifest **cc94baf399dd66056d8a64b9150237cf5d14ffe651cd67fd9839547138c94044**,74 selected files plus generated MANIFEST.json. Only the final measured screenshot caption differs from10907b1; runtime/UI images are unchanged, and the exact final profile was rerun below. Prior failed/partial checkpoints above remain historical evidence. Current verdict: **ENGINEERING PASS — RELEASE GATES REMAIN**.
+
+| Layer / actual command | Environment | PASS | FAIL | SKIP | Evidence |
+|---|---|---|---|---|---|
+| Exact candidate pytest tests | ubuntu-latest;Python3.12.15/SQLite3.45.1 |73 +68subtests |0 |0 |[Run40532489241](https://github.com/abinadwan/NajdiLab/actions/runs/40532489241);21.34s |
+| Exact candidate pytest tests | windows-latest;Python3.12.10/SQLite3.49.1 |73 +68subtests |0 |0 |[Same run](https://github.com/abinadwan/NajdiLab/actions/runs/40532489241);84.01s |
+| Builder pytest test_builder.py | Ubuntu |11 +18subtests |0 |0 |Same run;4.37s |
+| Builder pytest test_builder.py | Windows |11 +18subtests |0 |0 |Same run;9.22s |
+| Node harness + real browser.cjs | Windows and Ubuntu separately |4 workflow groups each; all22 mapped steps |0 |0 |Same run: actual review/dataset/download/backup/restore/resume/shutdown |
+| Original-source pytest tests | Ubuntu |277 +68subtests |0 |24 |[Source40532489260](https://github.com/abinadwan/NajdiLab/actions/runs/40532489260); existing return-value warning |
+| Original-source pytest tests | Windows |278 +68subtests |0 |23 |Same source run; existing return-value warning |
+| Final local code profile pytest | Linux container;Python3.12.14/SQLite3.53.1 |73 +68subtests |0 |0 |18.68s; Chromium154.0.8037.57/Node24.19.0 browser+harness PASS on10907b1 |
+| Documentation | Engineering root / exact Core |98 /7 Markdown files |0 |0 |Local links/API inventory; final SVG generator/XML/Mermaid parse+render, actual screenshots |
+| Isolation/privacy/determinism | Final74-file snapshot |PASS |0 |0 within defined scan |Pristine verify, exact hashes/imports,2 identical builds, tamper/private-path negative tests |
+| Protected preservation | Starting270 paths, protected136, original media12 |PASS |0 |0 accessible hashes |Private starting-byte baseline; original private artifact content NOT_VERIFIED |
+
+Candidate Python breakdown (disjoint73):18 pure clean-export/quality tests;55 HTTP/process/filesystem/install acceptance tests. Per-file counts: artifacts12,context5,contract1,datasets15,installation3,reviews13,security6,clean-export15,dataset-quality3. Security boundary6/review13/artifact12 are overlapping security-focused subsets of the73, not31 additional tests. Subtests are reported separately, not added to pytest case counts. Browser groups are assertion-driven workflows, not a fabricated pytest count.
+
+The23 absent-private-artifact skips in the original suite are not passes; Linux's additional Windows PowerShell check is skipped only there and executed by the actual Windows original/candidate jobs. No candidate P0 gate is skipped. WSL2/production/original private datasets are NOT_VERIFIED, not tested by hosted Windows or Ubuntu. Historical runs40527390859 (Windows5FAIL),40528604620 (Windows2FAIL), initial REDs and successful pre-final-review4513686 remain retained.
+
+Late P5-31 native-auth guard is independently reviewed and passes real no-write integration on both OSes; P5-29 restore alias is verified through real CLI/browser recovery on both. No Critical/High engineering finding remains open. P5-05 ownership/privacy/history/license/publication remains BLOCKED. [Rights/inventory](public-core-phase5-rights.md) separates technical/privacy scan success from legal approval.
+
+Pristine inspection snapshot remains private/outside source. Its source/hash inventory matches the current policy and rights table; original Git is absent. No binary/model/archive package is uploaded, active license created, private source edited or training performed. Evidence-only commits do not alter selected bytes; PR#4 checks repeat the same final manifest and log its safe SHA256/count. Final delivery links reference the actual metadata-head run as well.

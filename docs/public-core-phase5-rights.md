@@ -4,7 +4,7 @@ Date: 2026-10-27. **NOT READY — BLOCKERS REMAIN**. This is an inactive decisio
 
 ## Exact scope and evidence
 
-Reviewed implementation: `ea2347ffb6fd0cf2ed0549a87e854a4609450104`. The source-only profile selects **74 files** (plus generated MANIFEST.json): 28 preserved generic project paths and 46 candidate-specific code/test/document/asset paths. Canonical UTF-8/LF text and exact PNG bytes are pinned; the private original raw hashes are separate. Manifest SHA256: `eabd5ba88e8a516c11b5e1d1fe384f7fd56f4b01d6413ed85af74aeb970c637e`. The inventory below records exact source/destination/hash coverage. A changed selected byte requires rebuilding and reviewing this evidence; a root report-only update does not change selected bytes.
+Reviewed implementation: `e03a640c08554ee8e171faeed0fb8686f324dbfa`. The source-only profile selects **74 files** (plus generated MANIFEST.json): 28 preserved generic project paths and 46 candidate-specific code/test/document/asset paths. Canonical UTF-8/LF text and exact PNG bytes are pinned; the private original raw hashes are separate. Manifest SHA256: `cc94baf399dd66056d8a64b9150237cf5d14ffe651cd67fd9839547138c94044`. The inventory below records exact source/destination/hash coverage. A changed selected byte requires rebuilding and reviewing this evidence; a root report-only update does not change selected bytes.
 
 A disposable clean snapshot was built and verified outside the checkout, with only selected files and manifest, no Git history, private evidence, DB, generated dataset, model, adapter, checkpoint, archive or active LICENSE. Two-build byte determinism and tamper/import/path checks pass. No package was uploaded. This demonstrates a technically inspectable snapshot; it is not permission to distribute it.
 
@@ -59,7 +59,7 @@ Current stdlib-only application source does not inherit an ML framework's distri
 
 The existing [Apache proposal](proposals/LICENSE-Apache-2.0.txt), [NOTICE proposal](proposals/NOTICE.txt), [approval guidance](proposals/licensing-approval.md) and [MIT/BSD comparison](license-options.md) remain inactive and outside the candidate; no root LICENSE/NOTICE has been activated.
 
-Apache-2.0 is recommended: free/commercial use, modification and redistribution subject to its conditions; express limited contributor patent grant with specified litigation termination; no warranty/liability provisions. Derivative distributions include the license (§4(a)), identify changed files (§4(b)), retain relevant source notices (§4(c)), and reproduce applicable NOTICE attribution in one of §4(d)'s allowed locations. A NOTICE cannot add restrictions or grant trademark endorsement. MIT preserves copyright/permission notices; BSD-3-Clause adds source/binary notice and non-endorsement terms; neither has Apache's express contributor patent grant. Compatibility must be checked for the actual combined work, especially GPLv2-only/AGPL and vendor/model terms.
+Apache-2.0 is recommended: free/commercial use, modification and redistribution subject to its conditions; express limited contributor patent grant with specified litigation termination; warranty disclaimer and limitation of liability. Derivative distributions include the license (§4(a)), identify changed files (§4(b)), retain relevant source notices (§4(c)), and reproduce applicable NOTICE attribution in one of §4(d)'s allowed locations. A NOTICE cannot add restrictions or grant trademark endorsement. MIT preserves copyright/permission notices; BSD-3-Clause adds source/binary notice and non-endorsement terms; neither has Apache's express contributor patent grant. Compatibility must be checked for the actual combined work, especially GPLv2-only/AGPL and vendor/model terms.
 
 Proposed attribution, **only after approval**:
 
@@ -101,11 +101,11 @@ Origin categories: **O** = preserved original-project source, authorship/rights 
 | migrations/003_manual_data_manager.sql | migrations/003_manual_data_manager.sql | O | `8001ab0ac2b76d5bceca50161796fd14dc1d298fd655a1f6984751aa6e9a10b0` |
 | migrations/004_review_lifecycle.sql | migrations/004_review_lifecycle.sql | O | `92290af7684d75f181a0a489567a75ffb236f3944db03fe2b317cd0d22d6079e` |
 | public_source/CONTRIBUTING.md | CONTRIBUTING.md | C | `e6eb14fd2655c05657c96560a01fa435be784c261c01a790d729e2d366797f99` |
-| public_source/README.md | README.md | C | `49b95b31149348fb07113b63569a5e353eae8ed32147f48c988917fe32303ea4` |
+| public_source/README.md | README.md | C | `9175f77078e903f6f68c88934d96302b1dc88daaefaa753dcebf8566ab73de64` |
 | public_source/artifacts.py | app/core_artifacts.py | C | `8e1530921bdf6324bff167f13a09bdc7fbb9d7dc31b69be95c208d42c3e12276` |
 | public_source/backup.py | scripts/backup.py | C | `e325c1ea377f8651c734f7c8244abbda20d578e4a25324b3ffa8a39f81799589` |
 | public_source/datasets.py | app/core_datasets.py | C | `244d054d0bb5ea1cec3612cb5460fc193874102c47d1951ec7926b70a0bb844f` |
-| public_source/docs/api.md | docs/api.md | C | `6a2e84fbf59efd0884bd184a4ccb30d9c4f978965240dda78aa83b0327717aab` |
+| public_source/docs/api.md | docs/api.md | C | `801740dc343678a0828161df7671e885b2b69dced6cfe95f525f6abf955730c1` |
 | public_source/docs/architecture.md | docs/architecture.md | C | `6eb1ff769ba9de664224f288551dc35c3d1457d361997653d3e0ec728767d4ef` |
 | public_source/docs/generate_architecture.py | docs/generate_architecture.py | C | `c8154c5aaf5b5b1e2bf2e14ea3536bbe54c70cb62b46673d17adb9fb2e0b1883` |
 | public_source/docs/images/artifact-access.png | docs/images/artifact-access.png | C | `4da591031168a6776a2c3b29e8e869ca8067d71b92c04ea460f97b28140e6c54` |
@@ -118,13 +118,13 @@ Origin categories: **O** = preserved original-project source, authorship/rights 
 | public_source/docs/images/quality-findings.png | docs/images/quality-findings.png | C | `6e7de373455ab38eee1239ef768ef2adec9e0451b9caa3da35b5796b5e48ea6a` |
 | public_source/docs/images/saved-decision.png | docs/images/saved-decision.png | C | `adb1a9f4125bd81a775e10fd1fe2469a6081eaed6d2c6274c3945db5f905ff3c` |
 | public_source/docs/initial-profile.md | docs/initial-profile.md | C | `805ae99aed467c62f820fa8361b80ec2e139d62f9b019e5a9a945075010e2230` |
-| public_source/docs/screenshots.md | docs/screenshots.md | C | `71c4c1df33fbc69df9ae1fe4ebe9e4636e1527afb45471023d7c741633b31361` |
+| public_source/docs/screenshots.md | docs/screenshots.md | C | `832b8e5c617efd69bf68422a7e02dea9813803cfd20152ee998b7060d2d4b8ed` |
 | public_source/docs/user-guide.md | docs/user-guide.md | C | `91275427e647af8392f7d2f8a54e0baa8724411268d79419cf73ca36354d8a94` |
 | public_source/extensions.py | app/extensions.py | C | `2539f07efe87a6763ce928ea4271603cc7aa6961766eb4a4d4e36e494fc81467` |
 | public_source/read_views.py | app/core_views.py | C | `8bcd67410b4e3fdd45d41100ae6297e0cd2847c99cf136f0905d084d565d9d55` |
-| public_source/restore_backup.py | scripts/restore_backup.py | C | `88f457d712b89521f4b03e56bd556833b456ead8b8c061bd8185956c2fd90a37` |
+| public_source/restore_backup.py | scripts/restore_backup.py | C | `c801b0465bf458cdd8ed04703efa4dbe98b69e4bf0671b3d8baf6b7c65550bdc` |
 | public_source/reviews.py | app/core_reviews.py | C | `6a0852b54ef3eee6253520dcc83380a2de045aa825f72133f5af0a7778a2bc4d` |
-| public_source/server.py | app/server.py | C | `84f496a38c43e5104a4f585a3afbaaf24d1e4c985fb56dca300e67c2d34ac84d` |
+| public_source/server.py | app/server.py | C | `484af942dd03967b63bd67ac524c1f9d5caf1314825eae9e975f46da81bd3391` |
 | public_source/snapshot.py | app/core_snapshot.py | C | `eb0a8bd53df885bba87621375f6e806398cbc14c8b9504ba0a82eda2f4878fbb` |
 | public_source/static/app.js | static/app.js | C | `2fe00c8f2428be7c86a608030214a88fe7293ece74458212fc3628f8986c92a0` |
 | public_source/static/index.html | static/index.html | C | `a7cae133021c412352f1de3f77554ed0d4e0b1e60fb51f8f7f48e6cfa24385ba` |
@@ -134,17 +134,17 @@ Origin categories: **O** = preserved original-project source, authorship/rights 
 | public_source/synthetic_demo.py | scripts/synthetic_demo.py | C | `48148460b1acd28eba8dc41b48b88aed8dc3c72097a0c214c001d4d667aef442` |
 | public_source/synthetic_workshop.json | synthetic-workshop.json | C | `dba18fecc6dd731b889e8be3190523ea1e84a59ff6988e974b9deb5da3863305` |
 | public_source/tests/__init__.py | tests/__init__.py | C | `7e22133fb1639284bd74d15745e49ed1a282136eed011467a6ed013b8c12b7cb` |
-| public_source/tests/artifacts.py | tests/test_candidate_artifacts.py | C | `0081fd4b1eb5b9946187a05b33fcd95f431f14b2573375cc69b5803b4fdce26a` |
+| public_source/tests/artifacts.py | tests/test_candidate_artifacts.py | C | `37d0889800164a1d0a148427ea9d14f624d03783c292207fd028b54b1f669590` |
 | public_source/tests/browser.cjs | tests/browser.cjs | C | `1fc85f7f293e215d4c171651ae09c4118e14e5d7e462eb1f5072dd791929c099` |
 | public_source/tests/candidate-copy.cjs | tests/candidate-copy.cjs | C | `84907962385f4e9a6d9384721740a0b13e1b0b3ab4f45402f11567f62ecec58d` |
 | public_source/tests/context.py | tests/test_candidate_context.py | C | `2f17a14acdaf8caffa19aa9e6f2c907793cd46482172d3d33f38a33ab017fa0b` |
 | public_source/tests/contract.py | tests/test_candidate_contract.py | C | `45b9cfc8c8c01a36ba9279267ae3be170a18a9096d9e5f7cc8e50765c8d9d2eb` |
-| public_source/tests/datasets.py | tests/test_candidate_datasets.py | C | `98141ff24f6a310bc059fac5f248d154b6952e4b6ff97d414f0e8bd402edff24` |
+| public_source/tests/datasets.py | tests/test_candidate_datasets.py | C | `1dba2853d4fccdac08b0f09b8531d7da25fbf5b7004ca688b072bcc6a501968a` |
 | public_source/tests/harness.cjs | tests/harness.cjs | C | `4416c675a6c4005f36929372b09f193ec9fed226319eb6aae8fc3c3db8c900a0` |
 | public_source/tests/install.py | tests/test_candidate_installation.py | C | `1e9020922a3e5e5826adc431fa920945038d089f32f1d0af022aa07b3c1dc7eb` |
 | public_source/tests/package.py | tests/package.py | C | `3045dd8817605edca1624f39ecf9639e89fa15c7d7a9fb4be7b7220e33a16df9` |
-| public_source/tests/reviews.py | tests/test_candidate_reviews.py | C | `df4483be2b32453d5c703f686316b52c4f6639cd12aaa1bddbf7aae81f80e127` |
-| public_source/tests/security.py | tests/test_candidate_security.py | C | `ca8aaeec688435df55f1628838dbcceb3fb76fea5e95ed628917be4918b3cc76` |
+| public_source/tests/reviews.py | tests/test_candidate_reviews.py | C | `9188ff27b1b457f69fc5cf466a41aa3b809b469b6cb5ae17509123b96a163bf5` |
+| public_source/tests/security.py | tests/test_candidate_security.py | C | `5bc10f77fcbde885a37cb5fed277c2124821d5c6b94cdca5c4b75ba5c237d6ec` |
 | public_source/tests/support.py | tests/support.py | C | `0bf97c3ab398fb6d51a2d3d2a64c66c7590463336a3bf1c4647164d6e60d977f` |
 | requirements-dev.txt | requirements-dev.txt | O | `b9cbd5f33f08355ee2b812680197cb1eb29c68de0c7ddda85e47b473acc6a213` |
 | run.ps1 | run.ps1 | O | `e23b7df25c3b824a7245d1b7a9a311f7bdbadb39f299fe7ff418cd51e7347374` |
@@ -157,3 +157,7 @@ Origin categories: **O** = preserved original-project source, authorship/rights 
 | scripts/select_v007_windows.py | scripts/select_v007_windows.py | O | `7ef2cd50757e4b8be31fa77580e53a1051911f685183672d997cd286c4410df7` |
 | tests/test_clean_export.py | tests/test_clean_export.py | O | `a80d1e3affa6ca887588e8d78a62bbf475fc56fd0aabd0db39b43c3767d653a1` |
 | tests/test_dataset_quality.py | tests/test_dataset_quality.py | O | `7848ca33c4abe7d58ef0a3056435a707baccf7c118a88a671c4d5f00610c1431` |
+
+Historical inventories remain in Git/evidence: ea2347f/aec3950 manifest eabd5ba88e8a516c11b5e1d1fe384f7fd56f4b01d6413ed85af74aeb970c637e;4513686 manifest e6a80cf092d5a6ad519af318f21a0c744930bed712e36f00c396f57b45b52083;10907b1 manifest14566da8db093d1791238339b475fe94040290f45b0e78b83d0c3b76dfed2c7d. Changes cover explicit UTF-8/alias regression, owned staging normalization, inherited-legacy-ingest refusal and documentation accuracy. The last selected edit corrects an actual screenshot table dimension to1218×256; images/runtime are unchanged. Original compatibility helper remains unchanged; only the candidate server refuses legacy bypass.
+
+If license/NOTICE approval occurs later, add only the exact approved texts to a newly reviewed distribution manifest and rerun verification. This74-file unlicensed candidate is not the eventual legally approved distribution. No approval is inferred.

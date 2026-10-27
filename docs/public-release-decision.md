@@ -4,6 +4,8 @@ Date: **2026-10-27**. Verdict: **NOT READY — BLOCKERS REMAIN**.
 
 Current scope-review continuation: [public core parity](public-core-feature-parity.md) and [proposed release scope/backlog](public-core-release-scope.md) compare PR #2's original application with PR #3's narrower candidate. Earlier numbered findings below retain their historical baseline; appended engineering outcomes remain separate. The analysis does not implement parity, clear rights/history, or change either Draft PR.
 
+Current Phase5 engineering outcome and publication gates: [section21](#21-phase5-final-public-core-candidate-decision). Earlier numbered baselines below are historical; they are preserved rather than relabeled as current candidate behavior.
+
 ## 1. Executive summary and baseline
 
 This combined review is on `dev/open-source-final-readiness`, based on current remote main `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`. GitHub reconciliation found PR #1 already merged, the former branch deleted and no open PR. The prior local package `5ac0f2b99bef445e119e4bdb7fb5289464947de9` was found, its diff reviewed and incorporated as `5d9fde8` after confirming its parent tree matched main. One new coordinated Draft PR is authorized by the unified task. The old commit remains preserved. Main and Private visibility are unchanged; no speculation about the prior merge's authorization is made.
@@ -162,3 +164,23 @@ Fresh available tests: 277 passed / 24 skipped / 68 subtests; 89 Markdown checks
 ## 20. Isolated source-only candidate engineering
 
 A separate stacked branch implements a deterministic allowlisted core profile without changing historical application sources. [Boundary](public-private-boundary.md) and [candidate report](public-source-isolation-report.md) specify the reduced API/UI, explicit unavailable private interface, synthetic data, exact-candidate tests and original-source approval gate. Technical operation does not clear history privacy, ownership, source license or third-party/data/model rights. Publication remains **NOT READY — BLOCKERS REMAIN**. PR #2 remains intact.
+
+## 21. Phase5 final Public Core candidate decision
+
+Current authorized source-only engineering: **ENGINEERING PASS — RELEASE GATES REMAIN**. Public verdict remains **NOT READY — BLOCKERS REMAIN**. The original full application/history is preserved; this does not retroactively clear earlier numbered historical findings. [Exact Core execution](public-core-phase5-execution.md), [actual verification](public-core-phase5-verification.md), [30 engineering closures/remaining blocked group](public-core-phase5-issue-register.md) and [74-file rights package](public-core-phase5-rights.md) are authoritative for the reduced profile.
+
+| Gate | Status | Evidence | Required action |
+|---|---|---|---|
+| Privacy | AWAITING_OWNER_APPROVAL | Bounded exact-package path/token scan has zero candidates; residual generic legacy labels/contextual rights remain | Owner contextual review of every selected source/doc/asset; no automatic PII certification |
+| Git history | BLOCKED for existing repository | Historical identities/private-path/research exposure retained privately | Keep repository Private; separately approve future clean-snapshot destination/manifest |
+| Real-data separation | COMPLETE technically for Core |74 selected files, no protected research/runtime/Git; unavailable private routes | Preserve originals; re-review any future manifest expansion |
+| Security | COMPLETE within verified local Core scope | Atomic/no-write conflicts, native credential/legacy refusal, read-only diagnostics, link/traversal/recovery/browser regressions | Retain single-operator scope; no public-network/RBAC claim or production transition |
+| Third-party rights | NOT_VERIFIED beyond matched source-license texts | Exact source inventory; no external runtime/binary bundled | Confirm ownership/borrowed source/assets; exact notices for anything later bundled |
+| Source license | AWAITING_OWNER_APPROVAL | Apache/MIT/BSD assessment and inactive proposals; no active LICENSE | Confirm holder/year/authority/scope and approve standard license |
+| Attribution | AWAITING_OWNER_APPROVAL | Original-project wording and applicable NOTICE obligations prepared | Approve exact notices; no mandatory universal homepage-link claim |
+| Test coverage | COMPLETE for approved Core |73tests/68subtests +builder11/18 and actual browser on Windows/Ubuntu; original277/24SKIP and278/23SKIP | Preserve explicit private-artifact skips; original data content remains NOT_VERIFIED |
+| Publication | BLOCKED | Technical package is unlicensed/unpublished; owner decisions remain | Approve all independent gates and exact future licensed manifest before any public action |
+
+Recommended history strategyB: retain this restricted repository unchanged, later publish a separately approved clean source snapshot only after rights/license/privacy/notice decisions. A local no-Git snapshot was built and tested privately; no public repository/release/package was created. Inactive licensing/NOTICE proposals remain outside the candidate. Private datasets, models, adapters, original evaluations and their redistribution rights remain excluded/NOT_VERIFIED.
+
+Rollback uses reviewed forward reverts of candidate/policy/docs units and validated restore into a new location, never overwriting live data or resetting shared history. Smallest next steps: owner review Draft#4; confirm original/employer/contributor/borrowed-source and asset rights, holder/year/license/NOTICE and residual helper-label disposition; approve an exact future manifest and public destination separately. No merge, visibility change, active license or publication is authorized by the engineering pass.
