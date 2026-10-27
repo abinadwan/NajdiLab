@@ -1,8 +1,11 @@
 import json, threading, unittest
 from unittest.mock import patch
-from urllib.request import Request, urlopen
+from urllib.request import Request
+from tests.http_client import urlopen
 
 from app import server as server_module
+
+from tests.private_artifacts import requires_private_artifacts
 
 class Phase39ApiTests(unittest.TestCase):
     def test_post_edit_verification_route_accepts_all_decisions_and_reload(self):
@@ -20,6 +23,7 @@ class Phase39ApiTests(unittest.TestCase):
                 self.assertEqual(get()["records"][0]["reviewer_note"],"اختبار")
         finally: http.shutdown(); http.server_close()
 
+    @requires_private_artifacts('reports/phase39/post-edit-verification.json')
     def test_invalid_record_id_is_structured_not_found(self):
         http=server_module.ThreadingHTTPServer(("127.0.0.1",0),server_module.NajdiLabHandler); t=threading.Thread(target=http.serve_forever,daemon=True); t.start()
         try:

@@ -149,14 +149,14 @@ def _finding(code: str, severity: str, samples: list[str], evidence: str) -> dic
 
 
 _AR = {
-    "MALFORMED_FILE": "ملف البيانات غير صالح أو غير قابل للقراءة.", "MESSAGES_MISSING": "السجل لا يحتوي رسائل صالحة.",
-    "DIRECT_TEXT_EMPTY": "نص اللغة المباشر فارغ.", "PREFERENCE_PAIR_INVALID": "زوج التفضيل ناقص أو متطابق.",
-    "ROLE_STRUCTURE_INVALID": "ترتيب أو أدوار الرسائل غير صالحة للتدريب.", "ASSISTANT_TARGET_EMPTY": "هدف المساعد فارغ أو مفقود.",
-    "PROVENANCE_MISSING": "مصدر السجل غير موثق ويحتاج مراجعة.", "REVIEW_STATE_INCONSISTENT": "حالة المراجعة تجمع بين التدريب والتقييم.",
-    "SUSPICIOUS_FORMATTING": "يوجد تنسيق مريب يحتاج مراجعة بشرية.", "EXACT_DUPLICATE": "السجل مكرر حرفيًا.",
-    "TURN_ORDER_INVALID": "ترتيب الأدوار لا يبدأ بطلب مستخدم صالح.", "REPEATED_INSTRUCTIONS": "تعليمات النظام مكررة داخل السجل.",
-    "CONTRADICTORY_TARGETS": "المطالبة نفسها مرتبطة بإجابات متعارضة.", "TRAIN_EVAL_CONVERSATION_LEAKAGE": "المحادثة نفسها موجودة في التدريب والتقييم.",
-    "TRAIN_EVAL_TARGET_LEAKAGE": "إجابة مطابقة موجودة في التدريب والتقييم.", "NEAR_DUPLICATE_PROMPT": "مطالبتان متشابهتان جدًا وتحتاجان مراجعة.",
+    "MALFORMED_FILE": "The data file is invalid or unreadable.", "MESSAGES_MISSING": "The record has no valid messages.",
+    "DIRECT_TEXT_EMPTY": "The direct-language text is empty.", "PREFERENCE_PAIR_INVALID": "The preference pair is incomplete or identical.",
+    "ROLE_STRUCTURE_INVALID": "Message order or roles are invalid for training.", "ASSISTANT_TARGET_EMPTY": "The assistant target is empty or missing.",
+    "PROVENANCE_MISSING": "Record provenance is undocumented and requires review.", "REVIEW_STATE_INCONSISTENT": "The review state combines training and evaluation.",
+    "SUSPICIOUS_FORMATTING": "Suspicious formatting requires human review.", "EXACT_DUPLICATE": "The record is an exact duplicate.",
+    "TURN_ORDER_INVALID": "The turn sequence does not start with a valid user request.", "REPEATED_INSTRUCTIONS": "System instructions are repeated within the record.",
+    "CONTRADICTORY_TARGETS": "The same prompt has contradictory targets.", "TRAIN_EVAL_CONVERSATION_LEAKAGE": "The same conversation appears in training and evaluation.",
+    "TRAIN_EVAL_TARGET_LEAKAGE": "An identical response appears in training and evaluation.", "NEAR_DUPLICATE_PROMPT": "Two highly similar prompts require review.",
 }
 
 

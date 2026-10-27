@@ -2,9 +2,11 @@ import json, re, statistics, os
 from pathlib import Path
 from collections import Counter, defaultdict
 
+ROOT = Path(__file__).resolve().parents[1]
+
 # config
-SRC_DIR = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v006-clean")
-DST_DIR = Path(r"C:\Users\Admin\AppData\Local\hermes\NajdiLab\exports\gold-v007-balanced")
+SRC_DIR = ROOT / 'exports/gold-v006-clean'
+DST_DIR = ROOT / 'exports/gold-v007-balanced'
 
 # helper
 

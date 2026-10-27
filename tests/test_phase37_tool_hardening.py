@@ -15,6 +15,8 @@ from scripts.train_najdi_sft import IGNORE_INDEX, encode_masked_native_tool_reco
 from app import phase37_hardening
 
 
+from tests.private_artifacts import requires_private_artifacts
+
 class CharTokenizer:
     chat_template="[AVAILABLE_TOOLS][TOOL_CALLS][ARGS][TOOL_RESULTS]"
     def apply_chat_template(self,messages,tools=None,tokenize=False,add_generation_prompt=False,return_tensors=None,**kwargs):
@@ -110,6 +112,7 @@ class Phase37Tests(unittest.TestCase):
         self.assertFalse(repetition_diagnostic("نعم نعم، تم المطلوب.")["flagged"])
         report=diagnostic_experiment([{"id":"dev","source":"development","prompt":"قل تم"}],{"candidate":RECOMMENDED_FUTURE},lambda p,c:"تم")
         self.assertEqual(report["candidates"]["candidate"]["severe_repetition"],0)
+    @requires_private_artifacts('reports/phase3-train-20261006-001/human-review.json')
     def test_report_generation_preserves_historical_phase3_artifacts(self):
         root=phase37_hardening.REPORTS_ROOT/"phase3-train-20261006-001"; paths=[root/x for x in ("base-benchmark.jsonl","base-benchmark.meta.json","adapter-benchmark.jsonl","adapter-benchmark.meta.json","comparison.json","human-review.json")]
         before={p.name:p.read_bytes() for p in paths}; report=phase37_hardening.build_report("phase3-train-20261006-001")

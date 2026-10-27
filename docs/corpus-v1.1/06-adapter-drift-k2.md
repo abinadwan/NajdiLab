@@ -10,7 +10,7 @@ Status: **DOCUMENTED; reconciliation plan APPROVED AS DESIGN (2026-10-23). Execu
 | `6885fe30…` | WSL `scripts/najdilab_training_adapter.py.bak` | — | Same as the baseline |
 | `6885fe30…` | `training/runtime/najditrain-wsl/latest-check.json` (script hash at last runtime check) | 2026-10-09 16:16Z | What the runtime last verified |
 | `6885fe30…` | `training/jobs/train-20261009-001/execution-manifest.json` and `attempt-001` | 2026-10-09 16:17Z | Bound into that job's evidence |
-| `c35e8832…` | **WSL active** `/home/najdi/najdi-training/scripts/najdilab_training_adapter.py` | mtime 2026-10-09 20:15 +03 | Changed after the last runtime check. **Not recorded in any manifest** |
+| `c35e8832…` | **WSL active** `<runtime-root>/scripts/najdilab_training_adapter.py` | mtime 2026-10-09 20:15 +03 | Changed after the last runtime check. **Not recorded in any manifest** |
 | `b14c7c23…` | **NajdiLab working tree** `scripts/najdilab_training_adapter.py` (uncommitted) | mtime 2026-10-10 01:10 +03 | Newer repo edit. Never deployed |
 | `9c3aaae1…` | NajdiLab `scripts/najdilab_training_adapter.py.tmp` (untracked) | 2026-10-09 | Scratch copy |
 | `8c0de8ad…` | WSL `najdilab_training_adapter.phase310-8c0de8ad.py`; `train-20261006-001` manifests (the completed, **rejected** production run) | 2026-10-06 | Historical, preserved |

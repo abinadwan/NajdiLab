@@ -67,7 +67,7 @@ def initialize_training_control() -> None:
             "quantization": "bnb-4bit", "context_length": None, "runtime": "wsl:NajdiTrain",
             "enabled": True, "model_size_gb": None, "source_type": "local", "revision": None,
             "validation_status": "VALID", "availability": "AVAILABLE", "last_verified_at": _now(),
-            "notes": "مسار مرجعي من سكربتات المشروع؛ يتطلب Check Runtime صريحًا قبل التنفيذ.", "created_at": _now(),
+            "notes": "Reference path from project scripts; an explicit Runtime Check is required before execution.", "created_at": _now(),
         }]})
 
 
@@ -109,11 +109,11 @@ def model_acquisition_catalog() -> dict[str, Any]:
 def prepare_model_acquisition(data: dict[str, Any]) -> dict[str, Any]:
     candidate_id = str(data.get("candidate_id") or "")
     candidate = next((dict(item) for item in OFFICIAL_MODEL_CATALOG if item["id"] == candidate_id), None)
-    if candidate is None: raise TrainingControlError("MODEL_CANDIDATE_NOT_FOUND", "مرشح النموذج الرسمي غير موجود", status=404)
+    if candidate is None: raise TrainingControlError("MODEL_CANDIDATE_NOT_FOUND", "Official model candidate not found", status=404)
     live = _model_acquisition_probe(candidate)
     return {"status": "AWAITING_EXPLICIT_DOWNLOAD_AUTHORIZATION", "candidate": candidate,
         "download_started": False, "training_started": False,
-        "approval_text": f"أوافق على تنزيل {candidate['repository_id']} بحجم تقريبي {candidate['download_size_gb']} GB",
+        "approval_text": f"I agree to download {candidate['repository_id']} with an approximate size of {candidate['download_size_gb']} GB",
         "checks_required": ["Hugging Face access", "free storage", "revision integrity", "local tokenizer and weights validation"],
         "pre_download_checks": live}
 
@@ -127,14 +127,14 @@ def _wsl_python(candidate: dict[str, Any], code: str, *, timeout: int) -> dict[s
             capture_output=True, text=True, timeout=timeout, check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise TrainingControlError("MODEL_ACQUISITION_RUNTIME_FAILED", f"تعذر تشغيل فحص الاقتناء: {exc}", status=503) from exc
+        raise TrainingControlError("MODEL_ACQUISITION_RUNTIME_FAILED", f"Unable to run the acquisition check: {exc}", status=503) from exc
     if completed.returncode != 0:
         detail = (completed.stderr or completed.stdout or "unknown failure")[-3000:]
-        raise TrainingControlError("MODEL_ACQUISITION_RUNTIME_FAILED", f"فشل فحص الاقتناء داخل NajdiTrain: {detail}", status=503)
+        raise TrainingControlError("MODEL_ACQUISITION_RUNTIME_FAILED", f"The acquisition check failed in NajdiTrain: {detail}", status=503)
     try:
         return json.loads(completed.stdout.strip().splitlines()[-1])
     except (json.JSONDecodeError, IndexError) as exc:
-        raise TrainingControlError("MODEL_ACQUISITION_RESULT_INVALID", "لم يُرجع عامل الاقتناء نتيجة JSON صالحة", status=503) from exc
+        raise TrainingControlError("MODEL_ACQUISITION_RESULT_INVALID", "The acquisition worker did not return valid JSON", status=503) from exc
 
 
 def _model_acquisition_probe(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -149,11 +149,11 @@ free=shutil.disk_usage(c["target_path"].rsplit("/", 1)[0]).free
 print(json.dumps({{"repository_id":c["repository_id"],"requested_revision":c["revision"],"resolved_revision":info.sha,"license":license_value,"actual_download_bytes":size,"actual_download_gb":round(size/10**9,3),"actual_download_gib":round(size/1024**3,3),"free_storage_bytes":free,"free_storage_gib":round(free/1024**3,2),"required_free_storage_gb":c["required_free_storage_gb"],"access":"PUBLIC" if not info.gated else "GATED","private":bool(info.private),"revision_matches":info.sha==c["revision"],"license_matches":str(license_value).lower()==str(c["license"]).lower(),"storage_ok":free>=int(c["required_free_storage_gb"]*10**9)}}))'''
     result = _wsl_python(candidate, code, timeout=60)
     if not result.get("revision_matches"):
-        raise TrainingControlError("MODEL_REVISION_MISMATCH", "الـrevision المحلول لا يطابق الإصدار المثبّت", status=409)
+        raise TrainingControlError("MODEL_REVISION_MISMATCH", "The resolved revision does not match the pinned revision", status=409)
     if not result.get("license_matches"):
-        raise TrainingControlError("MODEL_LICENSE_MISMATCH", "الترخيص الفعلي لا يطابق الترخيص المعتمد", status=409)
+        raise TrainingControlError("MODEL_LICENSE_MISMATCH", "The actual license does not match the approved license", status=409)
     if not result.get("storage_ok"):
-        raise TrainingControlError("MODEL_STORAGE_INSUFFICIENT", "المساحة الحرة أقل من الحد الآمن 20.6 GB", status=409)
+        raise TrainingControlError("MODEL_STORAGE_INSUFFICIENT", "Free storage is below the safe minimum of 20.6 GB", status=409)
     return result
 
 
@@ -161,10 +161,10 @@ def acquire_model(data: dict[str, Any]) -> dict[str, Any]:
     candidate_id = str(data.get("candidate_id") or "")
     candidate = next((dict(item) for item in OFFICIAL_MODEL_CATALOG if item["id"] == candidate_id), None)
     if candidate is None:
-        raise TrainingControlError("MODEL_CANDIDATE_NOT_FOUND", "مرشح النموذج الرسمي غير موجود", status=404)
-    expected_approval = f"أوافق على تنزيل {candidate['repository_id']} بحجم تقريبي {candidate['download_size_gb']} GB"
+        raise TrainingControlError("MODEL_CANDIDATE_NOT_FOUND", "Official model candidate not found", status=404)
+    expected_approval = f"I agree to download {candidate['repository_id']} with an approximate size of {candidate['download_size_gb']} GB"
     if data.get("approval_text") != expected_approval:
-        raise TrainingControlError("DOWNLOAD_AUTHORIZATION_MISMATCH", "نص موافقة التنزيل لا يطابق المرشح المثبّت", status=409)
+        raise TrainingControlError("DOWNLOAD_AUTHORIZATION_MISMATCH", "The download approval text does not match the pinned candidate", status=409)
     live = _model_acquisition_probe(candidate)
     payload = json.dumps(candidate, ensure_ascii=True)
     code = f'''import hashlib, json, os
@@ -194,11 +194,11 @@ size=sum(p.stat().st_size for p in target.rglob("*") if p.is_file())
 print(json.dumps({{"status":"VERIFIED","repository_id":c["repository_id"],"revision":info.sha,"target_path":str(target),"architecture":arch,"tokenizer_available":tokenizer,"chat_template_available":template,"weight_files":weights,"verified_lfs_files":len(expected),"hash_mismatches":bad,"local_size_bytes":size,"local_size_gib":round(size/1024**3,3)}}))'''
     verified = _wsl_python(candidate, code, timeout=7200)
     if verified.get("revision") != candidate["revision"] or verified.get("architecture") != candidate["architecture"]:
-        raise TrainingControlError("MODEL_IDENTITY_MISMATCH", "هوية checkpoint المحلية لا تطابق المرشح المعتمد", status=409)
+        raise TrainingControlError("MODEL_IDENTITY_MISMATCH", "The local checkpoint identity does not match the approved candidate", status=409)
     if not verified.get("tokenizer_available") or not verified.get("chat_template_available") or not verified.get("weight_files"):
-        raise TrainingControlError("MODEL_ARTIFACTS_INCOMPLETE", "ملفات tokenizer أو chat template أو الأوزان غير مكتملة", status=409)
+        raise TrainingControlError("MODEL_ARTIFACTS_INCOMPLETE", "Tokenizer, chat template or weight files are incomplete", status=409)
     if verified.get("hash_mismatches"):
-        raise TrainingControlError("MODEL_INTEGRITY_FAILED", "فشل تحقق SHA-256 لملفات النموذج", status=409)
+        raise TrainingControlError("MODEL_INTEGRITY_FAILED", "SHA-256 verification failed for model files", status=409)
     models = _models(); index = next((i for i,item in enumerate(models) if item.get("id") == candidate["id"]), None)
     local = {"id": candidate["id"], "display_name": candidate["display_name"], "path": candidate["target_path"],
         "source_type": "local", "provider": "huggingface", "repository_id": candidate["repository_id"], "revision": candidate["revision"],
@@ -220,30 +220,30 @@ print(json.dumps({{"status":"VERIFIED","repository_id":c["repository_id"],"revis
 
 
 def get_model(model_id: str) -> dict[str, Any]:
-    if not SAFE_ID.fullmatch(model_id): raise TrainingControlError("MODEL_NOT_FOUND", "معرّف النموذج غير صالح", status=404)
+    if not SAFE_ID.fullmatch(model_id): raise TrainingControlError("MODEL_NOT_FOUND", "Invalid model identifier", status=404)
     model = next((item for item in _models() if item.get("id") == model_id), None)
-    if not model: raise TrainingControlError("MODEL_NOT_FOUND", "النموذج غير مسجل", status=404)
+    if not model: raise TrainingControlError("MODEL_NOT_FOUND", "Model is not registered", status=404)
     return _enrich_model(model)
 
 
 def register_model(data: dict[str, Any]) -> dict[str, Any]:
     model_id, path = str(data.get("id") or ""), str(data.get("path") or "")
-    if not SAFE_ID.fullmatch(model_id): raise TrainingControlError("MODEL_UNAVAILABLE", "معرّف النموذج غير صالح")
+    if not SAFE_ID.fullmatch(model_id): raise TrainingControlError("MODEL_UNAVAILABLE", "Invalid model identifier")
     runtime = str(data.get("runtime") or "")
     source_type = str(data.get("source_type") or ("local" if path else "huggingface"))
-    if source_type not in {"local", "huggingface", "ollama"}: raise TrainingControlError("MODEL_UNAVAILABLE", "مصدر النموذج غير مدعوم")
+    if source_type not in {"local", "huggingface", "ollama"}: raise TrainingControlError("MODEL_UNAVAILABLE", "Unsupported model source")
     repository_id = str(data.get("repository_id") or "") or None
     if source_type == "huggingface" and (not repository_id or not re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", repository_id)):
-        raise TrainingControlError("MODEL_UNAVAILABLE", "معرّف مستودع Hugging Face غير صالح")
+        raise TrainingControlError("MODEL_UNAVAILABLE", "Invalid Hugging Face repository identifier")
     if source_type == "ollama" and not repository_id: repository_id = path or model_id
     if source_type == "local" and runtime.startswith("wsl:"):
         pure = PurePosixPath(path)
-        if not pure.is_absolute() or ".." in pure.parts: raise TrainingControlError("MODEL_UNAVAILABLE", "مسار WSL غير صالح")
+        if not pure.is_absolute() or ".." in pure.parts: raise TrainingControlError("MODEL_UNAVAILABLE", "Invalid WSL path")
     elif source_type == "local":
         candidate = Path(path)
-        if not candidate.is_absolute() or ".." in candidate.parts: raise TrainingControlError("MODEL_UNAVAILABLE", "مسار النموذج غير صالح")
+        if not candidate.is_absolute() or ".." in candidate.parts: raise TrainingControlError("MODEL_UNAVAILABLE", "Invalid model path")
     models = _models()
-    if any(item.get("id") == model_id for item in models): raise TrainingControlError("MODEL_UNAVAILABLE", "معرّف النموذج مستخدم بالفعل", status=409)
+    if any(item.get("id") == model_id for item in models): raise TrainingControlError("MODEL_UNAVAILABLE", "Model identifier is already in use", status=409)
     model = {"id": model_id, "display_name": str(data.get("display_name") or model_id), "path": path or repository_id,
         "source_type": source_type, "provider": data.get("provider") or source_type, "repository_id": repository_id, "revision": data.get("revision"),
         "architecture": data.get("architecture"), "tokenizer_path": data.get("tokenizer_path"),
@@ -256,28 +256,28 @@ def register_model(data: dict[str, Any]) -> dict[str, Any]:
 
 def validate_model(model_id: str) -> dict[str, Any]:
     models = _models(); index = next((i for i, item in enumerate(models) if item.get("id") == model_id), None)
-    if index is None: raise TrainingControlError("MODEL_NOT_FOUND", "النموذج غير مسجل", status=404)
+    if index is None: raise TrainingControlError("MODEL_NOT_FOUND", "Model is not registered", status=404)
     model = _enrich_model(models[index]); blockers, warnings = [], []
-    if model["source_type"] == "ollama": blockers.append({"code": "INFERENCE_ONLY", "message": "نموذج Ollama/GGUF للاستدلال فقط."})
+    if model["source_type"] == "ollama": blockers.append({"code": "INFERENCE_ONLY", "message": "Ollama/GGUF models are for inference only."})
     elif model["source_type"] == "huggingface":
-        blockers.append({"code": "REMOTE_WEIGHTS_UNAVAILABLE", "message": "لم تُنزّل الأوزان؛ يلزم staging مصرح به والتحقق المحلي قبل التدريب."})
+        blockers.append({"code": "REMOTE_WEIGHTS_UNAVAILABLE", "message": "Weights have not been downloaded; authorized staging and local verification are required before training."})
     elif str(model.get("runtime") or "").startswith("wsl:"):
-        warnings.append({"code": "RUNTIME_PATH_REQUIRES_LIVE_CHECK", "message": "يتطلب المسار تحققًا حيًا داخل WSL."})
+        warnings.append({"code": "RUNTIME_PATH_REQUIRES_LIVE_CHECK", "message": "The path requires live verification inside WSL."})
     else:
         root = Path(str(model.get("path") or "")); config = root / "config.json"
         tokenizer = any((root / name).is_file() for name in ("tokenizer.json", "tokenizer.model", "tokenizer_config.json"))
         weights = list(root.glob("*.safetensors"))[:2] + list(root.glob("*.bin"))[:2]
-        if not root.is_dir(): blockers.append({"code": "MODEL_PATH_NOT_ACCESSIBLE", "message": "مسار النموذج غير متاح."})
-        if root.is_dir() and not config.is_file(): blockers.append({"code": "MODEL_CONFIG_MISSING", "message": "config.json مفقود."})
-        if root.is_dir() and not tokenizer: blockers.append({"code": "TOKENIZER_NOT_AVAILABLE", "message": "ملفات tokenizer مفقودة."})
-        if root.is_dir() and not weights: blockers.append({"code": "TRAINABLE_WEIGHTS_MISSING", "message": "لا توجد أوزان تدريب قابلة للاستخدام."})
+        if not root.is_dir(): blockers.append({"code": "MODEL_PATH_NOT_ACCESSIBLE", "message": "The model path is unavailable."})
+        if root.is_dir() and not config.is_file(): blockers.append({"code": "MODEL_CONFIG_MISSING", "message": "config.json is missing."})
+        if root.is_dir() and not tokenizer: blockers.append({"code": "TOKENIZER_NOT_AVAILABLE", "message": "Tokenizer files are missing."})
+        if root.is_dir() and not weights: blockers.append({"code": "TRAINABLE_WEIGHTS_MISSING", "message": "No usable training weights were found."})
         if config.is_file():
             try:
                 model_config = json.loads(config.read_text(encoding="utf-8"))
                 architectures = model_config.get("architectures") or []
                 if architectures and not model.get("architecture"): model["architecture"] = architectures[0]
             except (OSError, json.JSONDecodeError):
-                blockers.append({"code": "MODEL_CONFIG_INVALID", "message": "config.json غير صالح."})
+                blockers.append({"code": "MODEL_CONFIG_INVALID", "message": "config.json is invalid."})
         if model.get("architecture") == "Gemma4ForConditionalGeneration" and (root / "chat_template.jinja").is_file():
             model["native_tool_template"] = "gemma4"
         model["tokenizer_available"] = tokenizer
@@ -290,7 +290,7 @@ def validate_model(model_id: str) -> dict[str, Any]:
 
 def discover_models(data: dict[str, Any]) -> dict[str, Any]:
     roots = data.get("roots") or []; candidates = []
-    if not isinstance(roots, list) or len(roots) > 10: raise TrainingControlError("INVALID_DISCOVERY_SCOPE", "نطاق الاكتشاف غير صالح")
+    if not isinstance(roots, list) or len(roots) > 10: raise TrainingControlError("INVALID_DISCOVERY_SCOPE", "Invalid discovery scope")
     for raw in roots:
         root = Path(str(raw))
         if not root.is_absolute() or not root.is_dir(): continue
@@ -336,7 +336,7 @@ def quality_gate(version: str) -> dict[str, Any]:
         return {"dataset": version, "status": "UNAVAILABLE", "blocking_issues": [{"code": exc.code, "message": str(exc)}], "warnings": [], "checks": {}, "dataset_fingerprint": None, "checked_at": checked_at}
     blockers, warnings, checks = [], [], {}
     state = _state(manifest, version); checks["frozen"] = state == "Frozen"
-    if state != "Frozen": blockers.append({"code": "DATASET_NOT_FROZEN", "message": "Dataset يجب أن يكون Frozen."})
+    if state != "Frozen": blockers.append({"code": "DATASET_NOT_FROZEN", "message": "The dataset must be Frozen."})
     native=native_tool_preflight(directory); checks["native_tool_use"]=native; blockers.extend(native["blocking_issues"])
     deterministic_quality = dataset_quality(version)
     checks["deterministic_quality"] = {
@@ -352,27 +352,27 @@ def quality_gate(version: str) -> dict[str, Any]:
     required = {}
     for name in TRAIN_FILES:
         path = directory / name; rows = _jsonl(path); required[name] = len(rows)
-        if not path.is_file() or not rows: blockers.append({"code": "TRAINING_FILE_INVALID", "message": f"ملف التدريب {name} مفقود أو فارغ."})
+        if not path.is_file() or not rows: blockers.append({"code": "TRAINING_FILE_INVALID", "message": f"Training file {name} is missing or empty."})
     expected = manifest.get("sha256") or {}; checksum_failures = []
     for name, digest in expected.items():
         path = directory / name
         if not path.is_file() or _sha256(path) != digest: checksum_failures.append(name)
     checks["checksums"] = not checksum_failures
-    if checksum_failures: blockers.append({"code": "STALE_CHECKSUM", "message": "Checksums غير مطابقة: " + ", ".join(checksum_failures)})
+    if checksum_failures: blockers.append({"code": "STALE_CHECKSUM", "message": "Checksum mismatches: " + ", ".join(checksum_failures)})
     diagnostics_valid, diagnostics_error = _diagnostics_status(directory, manifest); checks["diagnostics"] = diagnostics_valid
-    if not diagnostics_valid: blockers.append({"code": "STALE_DIAGNOSTICS", "message": diagnostics_error or "Diagnostics غير صالحة."})
+    if not diagnostics_valid: blockers.append({"code": "STALE_DIAGNOSTICS", "message": diagnostics_error or "Diagnostics are invalid."})
     health = dataset_health(version); loss = health.get("loss_mask_validation") or {}; training_count = health["training_count"]
     checks.update({"training_readiness": health["training_readiness"]["status"], "evaluation_integrity": health["evaluation_integrity"]["status"],
         "conversation_leakage": health["evaluation_integrity"]["conversation_overlap_count"], "exact_target_overlap": health["evaluation_integrity"]["exact_target_overlap_count"],
         "exact_duplicates": health["exact_duplicate_extra"], "loss_mask_total": loss.get("total"), "loss_mask_failures": len(loss.get("failures") or []), "training_files": required})
     conditions = [
-        (health["training_readiness"]["status"] != "READY", "TRAINING_READINESS_BLOCKED", "Training Readiness ليست READY."),
-        (health["evaluation_integrity"]["status"] != "CLEAN", "EVALUATION_INTEGRITY_BLOCKED", "Evaluation Integrity ليست CLEAN."),
-        (checks["conversation_leakage"] > 0, "CONVERSATION_LEAKAGE", "يوجد conversation leakage."),
-        (checks["exact_target_overlap"] > 0, "EXACT_TARGET_OVERLAP", "يوجد exact target overlap."),
-        (checks["exact_duplicates"] > 0, "EXACT_TRAINING_DUPLICATES", "يوجد exact duplicate في التدريب."),
-        (checks["loss_mask_failures"] > 0, "LOSS_MASK_FAILURE", "توجد failures في loss masks."),
-        (loss.get("total") != training_count or loss.get("passed") != training_count, "LOSS_MASK_COUNT_MISMATCH", "Loss-mask count لا يطابق Training count."),
+        (health["training_readiness"]["status"] != "READY", "TRAINING_READINESS_BLOCKED", "Training Readiness is not READY."),
+        (health["evaluation_integrity"]["status"] != "CLEAN", "EVALUATION_INTEGRITY_BLOCKED", "Evaluation Integrity is not CLEAN."),
+        (checks["conversation_leakage"] > 0, "CONVERSATION_LEAKAGE", "Conversation leakage was found."),
+        (checks["exact_target_overlap"] > 0, "EXACT_TARGET_OVERLAP", "Exact target overlap was found."),
+        (checks["exact_duplicates"] > 0, "EXACT_TRAINING_DUPLICATES", "Exact duplicates were found in training."),
+        (checks["loss_mask_failures"] > 0, "LOSS_MASK_FAILURE", "Loss-mask validation failures were found."),
+        (loss.get("total") != training_count or loss.get("passed") != training_count, "LOSS_MASK_COUNT_MISMATCH", "The loss-mask count does not match the training count."),
     ]
     seen = {item["code"] for item in blockers}
     for failed, code, message in conditions:
@@ -406,11 +406,11 @@ def validate_training_config(data: dict[str, Any]) -> dict[str, Any]:
         raw_max_steps = config.get("max_steps")
         if raw_max_steps not in (None, 0, "0") and int(raw_max_steps) <= 0: raise ValueError
         if int(config["save_steps"]) < 0 or float(config["warmup_ratio"]) < 0 or float(config["warmup_ratio"]) >= 1: raise ValueError
-    except (TypeError, ValueError, KeyError) as exc: raise TrainingControlError("INVALID_TRAINING_CONFIG", "قيم إعدادات التدريب غير صالحة") from exc
-    if config["method"] not in ALLOWED_METHODS or config["lr_scheduler"] not in ALLOWED_SCHEDULERS or config["optimizer"] not in ALLOWED_OPTIMIZERS: raise TrainingControlError("INVALID_TRAINING_CONFIG", "إعداد غير مدعوم في stack الحالي")
+    except (TypeError, ValueError, KeyError) as exc: raise TrainingControlError("INVALID_TRAINING_CONFIG", "Invalid training configuration values") from exc
+    if config["method"] not in ALLOWED_METHODS or config["lr_scheduler"] not in ALLOWED_SCHEDULERS or config["optimizer"] not in ALLOWED_OPTIMIZERS: raise TrainingControlError("INVALID_TRAINING_CONFIG", "This setting is not supported by the current stack")
     modules = config.get("target_modules")
-    if not isinstance(modules, list) or not modules or not set(modules) <= ALLOWED_TARGET_MODULES: raise TrainingControlError("INVALID_TRAINING_CONFIG", "LoRA target modules غير صالحة")
-    if bool(config["bf16"]) and bool(config["fp16"]): raise TrainingControlError("INVALID_TRAINING_CONFIG", "اختر bf16 أو fp16 وليس كليهما")
+    if not isinstance(modules, list) or not modules or not set(modules) <= ALLOWED_TARGET_MODULES: raise TrainingControlError("INVALID_TRAINING_CONFIG", "Invalid LoRA target modules")
+    if bool(config["bf16"]) and bool(config["fp16"]): raise TrainingControlError("INVALID_TRAINING_CONFIG", "Choose either bf16 or fp16, not both")
     for key in ("batch_size", "gradient_accumulation_steps", "max_seq_length", "seed", "lora_rank", "lora_alpha", "save_steps"): config[key] = int(config[key])
     config["max_steps"] = None if config.get("max_steps") in (None, 0, "0") else int(config["max_steps"])
     config["epochs"] = float(config["epochs"]); config["learning_rate"] = float(config["learning_rate"]); config["warmup_ratio"] = float(config["warmup_ratio"]); config["weight_decay"] = float(config["weight_decay"]); config["lora_dropout"] = float(config["lora_dropout"])
@@ -418,7 +418,7 @@ def validate_training_config(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def calculate_plan(records: int, config: dict[str, Any]) -> dict[str, Any]:
-    if records <= 0: raise TrainingControlError("INVALID_TRAINING_CONFIG", "Training records يجب أن تكون أكبر من صفر")
+    if records <= 0: raise TrainingControlError("INVALID_TRAINING_CONFIG", "The training record count must be greater than zero")
     cfg = validate_training_config(config); batches = math.ceil(records / cfg["batch_size"]); steps_epoch = math.ceil(batches / cfg["gradient_accumulation_steps"])
     total_steps = cfg["max_steps"] if cfg["max_steps"] is not None else math.ceil(steps_epoch * cfg["epochs"])
     checkpoints = math.ceil(total_steps / cfg["save_steps"]) if cfg["save_steps"] else 0
@@ -462,16 +462,16 @@ def training_preflight(data: dict[str, Any]) -> dict[str, Any]:
     gate.setdefault("checks",{})["native_tool_trainer"]={"supported":True,"template_supported":template_supported,"will_consume":bool(native.get("count"))}
     plan = calculate_plan(int((gate.get("dataset_counts") or {}).get("training") or 0), config) if gate["status"] not in {"BLOCKED", "UNAVAILABLE"} else None
     model_blockers = []
-    if model.get("excluded"): model_blockers.append({"code": "MODEL_EXCLUDED", "message": model.get("exclusion_reason") or "النموذج مستبعد."})
-    if model.get("validation_status") != "VALID": model_blockers.append({"code": "MODEL_NOT_VALIDATED", "message": "يجب اجتياز تحقق توافق النموذج قبل READY."})
+    if model.get("excluded"): model_blockers.append({"code": "MODEL_EXCLUDED", "message": model.get("exclusion_reason") or "The model is excluded."})
+    if model.get("validation_status") != "VALID": model_blockers.append({"code": "MODEL_NOT_VALIDATED", "message": "Model compatibility verification must pass before READY."})
     return {"dataset": gate, "model": model, "model_validation": {"status": "BLOCKED" if model_blockers else "PASS", "blocking_issues": model_blockers}, "training_config": config, "runtime_target": data.get("runtime_target") or {"type": "wsl", "distro": "NajdiTrain"},
-        "runtime_check": {"status": "NOT_RUN", "message": "Check Runtime لا يعمل تلقائيًا."}, "training_plan": plan,
+        "runtime_check": {"status": "NOT_RUN", "message": "Runtime Check does not run automatically."}, "training_plan": plan,
         "vram_estimate": estimate_vram(model, config), "can_create_draft": bool(model.get("enabled")) and model.get("source_type") != "ollama", "can_mark_ready": gate["status"] in {"PASS", "PASS_WITH_WARNINGS"} and not model_blockers}
 
 
 def check_runtime(data: dict[str, Any]) -> dict[str, Any]:
     distro = str(data.get("distro") or "NajdiTrain")
-    if not SAFE_ID.fullmatch(distro): raise TrainingControlError("INVALID_RUNTIME", "اسم WSL distro غير صالح")
+    if not SAFE_ID.fullmatch(distro): raise TrainingControlError("INVALID_RUNTIME", "Invalid WSL distribution name")
     try:
         listed = subprocess.run(["wsl.exe", "--list", "--quiet"], capture_output=True, text=True, timeout=10, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc: return {"status": "UNAVAILABLE", "wsl_available": False, "error": str(exc), "checked_at": _now()}
@@ -487,17 +487,17 @@ def _next_job_id() -> str:
     for number in range(1, 1000):
         candidate = f"{prefix}{number:03d}"
         if candidate not in used: return candidate
-    raise TrainingControlError("JOB_ID_EXHAUSTED", "تعذر تخصيص Job ID", status=500)
+    raise TrainingControlError("JOB_ID_EXHAUSTED", "Unable to allocate a job ID", status=500)
 
 
 def _job_path(job_id: str) -> Path:
-    if not JOB_ID.fullmatch(job_id): raise TrainingControlError("JOB_NOT_FOUND", "Job ID غير صالح", status=404)
+    if not JOB_ID.fullmatch(job_id): raise TrainingControlError("JOB_NOT_FOUND", "Invalid job ID", status=404)
     return JOBS_ROOT / job_id / "job.json"
 
 
 def get_job(job_id: str) -> dict[str, Any]:
     path = _job_path(job_id)
-    if not path.is_file(): raise TrainingControlError("JOB_NOT_FOUND", "Training Job غير موجود", status=404)
+    if not path.is_file(): raise TrainingControlError("JOB_NOT_FOUND", "Training job not found", status=404)
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -511,10 +511,10 @@ def list_jobs() -> list[dict[str, Any]]:
 
 def create_job(data: dict[str, Any]) -> dict[str, Any]:
     preflight = training_preflight(data)
-    if not preflight["can_create_draft"]: raise TrainingControlError("MODEL_UNAVAILABLE", "النموذج غير مفعّل")
+    if not preflight["can_create_draft"]: raise TrainingControlError("MODEL_UNAVAILABLE", "The model is not enabled")
     initialize_training_control(); job_id = _next_job_id(); now = _now(); job_dir = JOBS_ROOT / job_id
     try: job_dir.mkdir(parents=False, exist_ok=False)
-    except FileExistsError as exc: raise TrainingControlError("JOB_ALREADY_EXISTS", "Job ID مستخدم", status=409) from exc
+    except FileExistsError as exc: raise TrainingControlError("JOB_ALREADY_EXISTS", "Job ID is already in use", status=409) from exc
     job = {"job_id": job_id, "created_at": now, "updated_at": now, "status": "DRAFT", "dataset_version": preflight["dataset"]["dataset"],
         "dataset_fingerprint": preflight["dataset"].get("dataset_fingerprint"), "dataset_counts": preflight["dataset"].get("dataset_counts"),
         "quality_gate_result": preflight["dataset"], "model_config": preflight["model"], "training_config": preflight["training_config"],
@@ -538,11 +538,11 @@ def create_production_job(source_job_id: str) -> dict[str, Any]:
 
 def update_job(job_id: str, data: dict[str, Any]) -> dict[str, Any]:
     job = get_job(job_id)
-    if job["status"] != "DRAFT": raise TrainingControlError("JOB_NOT_EDITABLE", "يمكن تعديل DRAFT فقط", status=409)
+    if job["status"] != "DRAFT": raise TrainingControlError("JOB_NOT_EDITABLE", "Only DRAFT jobs can be edited", status=409)
     allowed = {"dataset_version", "model_id", "training_config", "runtime_target"}
     merged = {"dataset_version": data.get("dataset_version", job["dataset_version"]), "model_id": data.get("model_id", job["model_config"]["id"]),
         "training_config": data.get("training_config", job["training_config"]), "runtime_target": data.get("runtime_target", job["runtime_target"])}
-    if not set(data) <= allowed: raise TrainingControlError("INVALID_TRAINING_CONFIG", "حقول تحديث غير مسموحة")
+    if not set(data) <= allowed: raise TrainingControlError("INVALID_TRAINING_CONFIG", "The update contains disallowed fields")
     fresh = create_job_snapshot(merged, job_id, job["created_at"]); _atomic_json(_job_path(job_id), fresh); return fresh
 
 
@@ -558,17 +558,17 @@ def create_job_snapshot(data: dict[str, Any], job_id: str, created_at: str) -> d
 
 def mark_job_ready(job_id: str, data: dict[str, Any]) -> dict[str, Any]:
     job = get_job(job_id)
-    if job["status"] != "DRAFT": raise TrainingControlError("JOB_NOT_EDITABLE", "Job ليس DRAFT", status=409)
+    if job["status"] != "DRAFT": raise TrainingControlError("JOB_NOT_EDITABLE", "The job is not DRAFT", status=409)
     gate = quality_gate(job["dataset_version"])
-    if gate["status"] in {"BLOCKED", "UNAVAILABLE"}: raise TrainingControlError("QUALITY_GATE_BLOCKED", "Quality Gate يمنع READY", status=409)
-    if gate["dataset_fingerprint"] != job["dataset_fingerprint"]: raise TrainingControlError("STALE_DATASET_FINGERPRINT", "Dataset تغير منذ إنشاء Job", status=409)
+    if gate["status"] in {"BLOCKED", "UNAVAILABLE"}: raise TrainingControlError("QUALITY_GATE_BLOCKED", "The Quality Gate blocks READY", status=409)
+    if gate["dataset_fingerprint"] != job["dataset_fingerprint"]: raise TrainingControlError("STALE_DATASET_FINGERPRINT", "The dataset changed after job creation", status=409)
     current_model = get_model(str((job.get("model_config") or {}).get("id") or ""))
     if current_model.get("validation_status") != "VALID" or current_model.get("excluded"):
-        raise TrainingControlError("MODEL_NOT_VALIDATED", "تحقق توافق النموذج غير ناجح", status=409)
+        raise TrainingControlError("MODEL_NOT_VALIDATED", "Model compatibility verification has not passed", status=409)
     if current_model.get("fingerprint") != (job.get("model_config") or {}).get("fingerprint"):
-        raise TrainingControlError("STALE_MODEL_VALIDATION", "تغير تعريف النموذج منذ إنشاء المهمة", status=409)
+        raise TrainingControlError("STALE_MODEL_VALIDATION", "The model definition changed after job creation", status=409)
     acknowledged = bool(data.get("acknowledge_warnings"))
-    if gate["warnings"] and not acknowledged: raise TrainingControlError("WARNING_ACK_REQUIRED", "يجب الإقرار بالتحذيرات قبل READY", status=409)
+    if gate["warnings"] and not acknowledged: raise TrainingControlError("WARNING_ACK_REQUIRED", "Warnings must be acknowledged before READY", status=409)
     job["status"] = "READY"; job["updated_at"] = _now(); job["quality_gate_result"] = gate; job["model_config"] = current_model
     job["acknowledged_warnings"] = {"acknowledged": acknowledged, "timestamp": job["updated_at"], "codes": [item.get("code") for item in gate["warnings"]]} if acknowledged else None
     _atomic_json(_job_path(job_id), job); return job
@@ -576,5 +576,5 @@ def mark_job_ready(job_id: str, data: dict[str, Any]) -> dict[str, Any]:
 
 def cancel_job(job_id: str) -> dict[str, Any]:
     job = get_job(job_id)
-    if job["status"] not in {"DRAFT", "READY"}: raise TrainingControlError("JOB_NOT_EDITABLE", "لا يمكن إلغاء Job بهذه الحالة", status=409)
+    if job["status"] not in {"DRAFT", "READY"}: raise TrainingControlError("JOB_NOT_EDITABLE", "The job cannot be cancelled in this state", status=409)
     job["status"] = "CANCELLED"; job["updated_at"] = _now(); _atomic_json(_job_path(job_id), job); return job

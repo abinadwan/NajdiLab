@@ -1,22 +1,23 @@
-# خطة التنفيذ التالية للتدريب
+# Next training execution plan
 
-## الحالة الحالية
+Historical planning snapshot: 2026-10-09. This is not current authorization.
 
-الحكم: `PARTIALLY_READY`.
+## Recorded state
 
-- `gold-v009-remediation-draft`: بوابة الإصدار `VALID`، بلا blockers مؤكدة، مع 26 تحذيرًا للمراجعة.
-- `gold-v008-split-clean`: `BLOCKED` بسبب مجموعتين من الأهداف المتعارضة؛ لا تُعدّل النسخة المجمدة.
-- النموذج المحلي الوحيد المكتشف هو Ministral التاريخي المرفوض، وهو مستبعد وغير قابل للاختيار.
+Verdict: `PARTIALLY_READY`.
 
-## الحد الأدنى للوصول إلى Smoke
+- `gold-v009-remediation-draft`: release gate `VALID`, zero confirmed blockers and 26 review warnings.
+- `gold-v008-split-clean`: `BLOCKED` by two conflicting-target groups; do not modify the frozen version.
+- The only model discovered during this sprint was historical rejected Ministral; excluded and unselectable. Later acquisition evidence is described separately in the dated corpus design inventory.
 
-1. يختار المستخدم Base model بديلًا موجودًا محليًا أو يزوّد repository ID وrevision.
-2. عند الحاجة لتنزيل الأوزان، تؤخذ موافقة تنزيل منفصلة وتوضع في مجلد جديد.
-3. يسجل النموذج من الواجهة ثم يجتاز التحقق الحي.
-4. يختار `gold-v009-remediation-draft` مؤقتًا، أو ينشئ إصدارًا مرشحًا جديدًا من pipeline؛ لا يعدّل v008/v009.
-5. ينفذ Preflight حي وSafe Dry Run، ويراجع VRAM والإعدادات.
-6. يطلب موافقة Smoke صريحة: نموذج محدد، Dataset fingerprint محددة، `max_steps=2`، ومجلد output منفصل.
-7. بعد Smoke ناجح وتقييم عدم الانحدار، يطلب Full Training بموافقة مستقلة.
+## Minimum path to Smoke
 
-تبقى migrations 005/006/007، تنزيل الأوزان، Smoke، Full Training، merge، GGUF، وOllama إجراءات منفصلة لا ينفذها هذا السبرنت.
+1. Select an alternative locally available base, or supply repository ID and revision.
+2. If weights are missing, obtain separate download approval and use a new directory.
+3. Register the model in the UI and pass live validation.
+4. Select v009 provisionally or build a new candidate through the pipeline; preserve v008/v009.
+5. Run fresh Preflight and Safe Dry Run; review VRAM and configuration.
+6. Obtain explicit Smoke approval bound to the model, dataset fingerprint, `max_steps=2` and isolated output directory.
+7. After successful Smoke and regression evaluation, obtain separate Full Training approval.
 
+Migrations 005/006/007, downloading weights, Smoke, Full Training, merge, GGUF and Ollama remain distinct actions. This sprint performed none of them.

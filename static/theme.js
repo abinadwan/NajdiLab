@@ -8,7 +8,7 @@
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     document.querySelectorAll('#theme-select,#theme-select-settings').forEach(select => { select.value = safe; });
     const status = document.querySelector('#theme-status');
-    if (status) status.textContent = `المظهر الحالي: ${dark ? 'داكن' : 'فاتح'}`;
+    if (status) status.textContent = `Current theme: ${dark ? 'Dark' : 'Light'}`;
   };
   document.addEventListener('DOMContentLoaded', () => {
     apply(localStorage.getItem(key) || 'system');

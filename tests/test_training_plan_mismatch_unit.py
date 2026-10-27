@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 # Import the adapter script logic
-sys.path.insert(0, str(Path("C:/Users/Admin/AppData/Local/hermes/NajdiLab/scripts")))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from najdilab_training_adapter import resolve_plan
 
 

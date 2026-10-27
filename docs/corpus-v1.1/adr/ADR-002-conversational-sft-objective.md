@@ -1,4 +1,4 @@
-# ADR-002 — The training objective is conversational SFT for AbuAdwan
+# ADR-002 — The training objective is conversational SFT for the Najdi assistant
 
 - Status: Accepted (Phase 1, owner approval 2026-10-23) · Date: 2026-10-23
 

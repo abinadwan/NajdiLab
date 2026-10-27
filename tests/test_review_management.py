@@ -5,7 +5,8 @@ import json
 import threading
 from pathlib import Path
 from unittest.mock import patch
-from urllib.request import Request, urlopen
+from urllib.request import Request
+from tests.http_client import urlopen
 
 import pytest
 

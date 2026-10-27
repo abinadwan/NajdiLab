@@ -1,0 +1,2 @@
+# Core application requires no pip packages. Verified test runner:
+pytest==9.1.1

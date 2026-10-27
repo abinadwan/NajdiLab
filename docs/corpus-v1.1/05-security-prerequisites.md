@@ -1,5 +1,6 @@
 # 05 — Security Prerequisites (CSRF/Origin, server-side authorization, reviewer identity)
 
+> Historical design baseline from 2026-10-23. The English-readiness branch adds request/ingest protections; see [current security behavior](../../SECURITY.md). The tables below preserve the original observations and proposed S1–S8 scope, not a current implementation claim.
 Status: **APPROVED DESIGN (Phase 1, owner approval 2026-10-23). To be implemented, under separate approval, in Phase 1A (S1–S5) and Phase 2 (S6–S8). Nothing has been changed.**
 
 ## 1. Current state (verified 2026-10-23)

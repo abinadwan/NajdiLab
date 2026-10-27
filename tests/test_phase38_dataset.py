@@ -25,6 +25,11 @@ class CharTokenizer:
     def __call__(self,text,**kwargs): return {"input_ids":[ord(c) for c in text],"offset_mapping":[(i,i+1) for i in range(len(text))]}
     def decode(self,ids,**kwargs): return "".join(chr(i) for i in ids)
 
+from tests.private_artifacts import requires_private_artifacts
+
+@requires_private_artifacts('datasets/eval/fresh-remediation-holdout-v001/manifest.json',
+                            'datasets/gold-v009-remediation-draft/manifest.json',
+                            'exports/gold-v008-split-clean/manifest.json')
 class Phase38Tests(unittest.TestCase):
     def setUp(self):
         self.hmanifest=json.loads((p38.HOLDOUT/"manifest.json").read_text(encoding="utf-8")); self.vmanifest=json.loads((p38.V009/"manifest.json").read_text(encoding="utf-8")); self.registry=load_registry(p38.V009/"capability-registry.json")

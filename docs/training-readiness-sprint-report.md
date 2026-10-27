@@ -1,63 +1,54 @@
-# تقرير سبرنت جاهزية التدريب
+# Training readiness sprint report
 
-التاريخ: 2026-10-09 (Asia/Riyadh)
+Date: 2026-10-09 (Asia/Riyadh). Historical results are preserved below; they are not fresh-clone verification or current training authorization.
 
-## 1. الملخص التنفيذي
+## Outcome
 
-أزيل القفل البرمجي على نموذج واحد، وأضيف سجل نماذج ديناميكي، اختيار صريح، تحقق مغلق عند الفشل، وتمرير هوية النموذج وrevision إلى loader. أضيف تحليل جودة حتمي، تحقق إصدار قابل لإعادة الإنتاج، فحص runtime/VRAM، سجل مهام آمن، وحارس تقييم يمنع fallback إلى Base. أصبحت واجهة التدريب عربية RTL مع حالات تشغيل حقيقية.
+The single-model software lock was removed. The platform gained a dynamic registry, explicit selection, fail-closed validation and exact model/revision propagation to the loader. Deterministic quality analysis, reproducible release checks, runtime/VRAM evidence, safe job records and an evaluation guard preventing silent Base fallback were added. At the time, the training interface used Arabic RTL with live states.
 
-الجاهزية العامة `PARTIALLY_READY`: البيئة الحية صالحة للفحص، وv009 يمر من بوابة الإصدار، لكن لا يوجد Base model بديل متحقق ومختار، وv008 محظور بجودة البيانات الجديدة.
+Overall readiness was `PARTIALLY_READY`: live checks were available and v009 passed release validation, but no alternative validated base was selected, and the newer quality checks blocked v008.
 
-## 2. مصفوفة التنفيذ
+## Implementation matrix
 
-| المهمة | النتيجة | الحالة | الدليل |
+| Work | Result | Status | Evidence |
 |---|---|---|---|
-| TRAIN-13/14 | سجل/اكتشاف/اختيار وتمرير النموذج | DONE | `training_control.py`, `runtime_control.py`, loader contract tests |
-| QUAL-02–07 | كواشف الجودة ومعرّفات ثابتة | DONE | `dataset_quality.py`, quality API/tests |
-| VER-02–08/12 | بصمة Release وفحص masks وفشل مغلق | DONE | release-validation API؛ اختبار التكرار |
-| TRAIN-01–12 | runtime، VRAM، config، jobs وdry-run | DONE | فحص WSL حي واختبارات runtime |
-| EVAL-01–03 | منع fallback والتحقق من Adapter | DONE | `evaluation_guard.py` |
-| EVAL-04–15 | التقييم الموسع والربط الكامل | PARTIAL | التاريخ محفوظ؛ التوسعة بعد تدريب مصرح |
-| UX-12 | تعريب مركزي وRTL وحالات | DONE | `localization.js` واختبارات/متصفح |
-| DB preparation | SQL 005/006/007 + rollback/tests | DONE | ملفات `plans/` فقط؛ لم تطبق إنتاجيًا |
+| TRAIN-13/14 | Registry, discovery, selection, loader identity | DONE | training/runtime control and contract tests |
+| QUAL-02–07 | Deterministic detectors and stable IDs | DONE | `dataset_quality.py`, API/tests |
+| VER-02–08/12 | Release fingerprint, masks, fail-closed behavior | DONE | Release-validation API and repeatability tests |
+| TRAIN-01–12 | Runtime, VRAM, configuration, jobs, dry run | DONE | Live WSL checks and runtime tests |
+| EVAL-01–03 | Adapter validation and no silent fallback | DONE | `evaluation_guard.py` |
+| EVAL-04–15 | Expanded evaluation and full linkage | PARTIAL | History preserved; expansion after authorized training |
+| UX-12 | Central Arabic localization, RTL, real states | DONE | localization, tests and browser evidence |
+| DB preparation | SQL 005/006/007, rollback and tests | DONE | `plans/` only; not applied to production |
 
-## 3. اختيار النموذج
+## Model selection
 
-المصادر المدعومة: Local HF، repository ID، وOllama معلوماتي فقط. الاكتشاف الحي وجد Ministral واحدًا، لكنه `EXCLUDED/HISTORICAL` بسبب قرار الرفض السابق. لا يوجد نموذج trainable حاليًا. اختيار المرشح يتم من شاشة إعداد التدريب، ويصل `id/path/revision` إلى loader دون fallback.
+Sources were local HF, repository ID and informational Ollama. Live discovery found only rejected historical Ministral (`EXCLUDED/HISTORICAL`), so no trainable model was selected. The setup screen passes `id/path/revision` to the loader without fallback. Later acquisition state belongs to the separate dated corpus inventory.
 
-## 4. جاهزية البيانات
+## Data readiness
 
-- v008: 76 سجلًا محللًا؛ 2 blockers و52 تحذيرًا؛ Release `BLOCKED`.
-- v009: 88 سجلًا محللًا؛ 0 blockers و26 تحذيرًا؛ Release `VALID`؛ البصمة `f86e83620522f99bafb3102697a92bfaf5d1c478f968fe779db6e16f48da1488`.
-- لا حذف تلقائي لشبه المكرر ولا تعديل لتصحيحات البشر.
+- v008: 76 analyzed records, 2 blockers, 52 warnings; release `BLOCKED`.
+- v009: 88 analyzed records, 0 blockers, 26 warnings; release `VALID`; fingerprint `f86e83620522f99bafb3102697a92bfaf5d1c478f968fe779db6e16f48da1488`.
+- No automatic near-duplicate deletion or change to human corrections.
 
-## 5. Runtime وGPU
+## Runtime and GPU
 
-RTX 5070، إجمالي 12,227 MiB، متاح 11,358 MiB وقت القياس. CUDA متاح مع الإصدارات المسجلة في runbook. VRAM يعرض كقياس حي أو تقدير مصرح النوع؛ لا يَعِد بأن التدريب سيلائم الذاكرة.
+RTX 5070 had 12,227 MiB total and 11,358 MiB available at measurement. CUDA and package versions are recorded in the [preflight runbook](training-preflight-runbook.md). VRAM values identify live evidence or estimates; neither predicts all training memory behavior.
 
-## 6. الاختبارات
+## Historical verification
 
-`230 passed, 8 subtests passed in 12.10s`. فحوص JavaScript ناجحة، والاختبارات المركزة النهائية `12 passed`. تحقق المتصفح الحقيقي أكد RTL، شاشة التسجيل، حظر v008، وحالة النموذج غير المُعدّ. أعيد تشغيل الخدمة بشكل مضبوط وأعاد `/api/v1/health` استجابة ناجحة.
+Recorded run: `230 passed, 8 subtests passed in 12.10s`; JavaScript checks passed; final focused checks: `12 passed`. A real desktop browser verified RTL, registry setup, v008 blocking and the unconfigured-model state. A controlled restart returned a successful `/api/v1/health` response. The mobile visual matrix remained partial.
 
-## 7. سلامة البيانات
+## Integrity
 
-بصمات v008 وv009 وPhase 3 تطابقت قبل/بعد. بقيت مراجعة Phase 3: 24/24 و`REJECT`، وPhase 4 `BLOCKED`. SQLite: WAL، `integrity_check=ok`، و0 أخطاء FK، والمigrations الإنتاجية 001–004 فقط. تغير hash الحاوية الفيزيائية لملف SQLite بعد إعادة تشغيل الخدمة (checkpoint/metadata)، لذلك لا يُدّعى تطابق byte-for-byte للملف؛ لم تتغير schema migrations أو قرارات Phase 3، ولم يطبق migration إنتاجي.
+Protected v008/v009/Phase 3 hashes matched before and after. Phase 3 review stayed 24/24 with `REJECT`; model-release Phase 4 stayed `BLOCKED`. SQLite remained WAL, integrity `ok`, zero FK errors and applied migrations 001–004 only. The physical SQLite file hash changed after restart/checkpoint metadata: no byte-identical database claim is made. Schema migration state and review decisions did not change.
 
-## 8. تحسينات الواجهة
+## Interface work
 
-طبقة ترجمة مركزية عربية، RTL، تعريب الحالات والنماذج والجودة والـpreflight والمهام، تحسين التباين والتركيز والمعرّفات الطويلة، وحالة **غير مُعدّ** عند غياب نموذج صالح. تحقق سطح المكتب فعليًا؛ مصفوفة mobile البصرية بقيت جزئية.
+Central Arabic localization covered states, models, quality, preflight and jobs, with better focus/contrast/long identifiers and **Not configured** when no valid model existed. These statements describe the historical interface, before English-readiness work.
 
-## 9. العوائق والموافقات
+## Remaining gates and next action
 
-- Production migrations 005/006/007: تحتاج موافقة؛ بدونها تبقى persistence الإنتاجية الجديدة قائمة على الملفات/معلقة التفعيل في DB.
-- تنزيل نموذج بديل: يحتاج موافقة تنزيل؛ بدونه لا يوجد Base trainable.
-- Smoke: يحتاج موافقة صريحة لتنفيذ خطوتين optimizer في output معزول.
-- Full Training: يحتاج موافقة مستقلة بعد Smoke؛ merge/GGUF/Ollama ليست ضمنها.
+Production migrations 005/006/007 need separate approval; new persistence remains filesystem-backed or inactive in SQLite. Alternative weights require download approval if absent. Smoke requires approval for two optimizer steps and isolated output. Full Training follows successful Smoke under a separate approval and does not include merge/GGUF/Ollama.
 
-## 10. الحكم النهائي
-
-`PARTIALLY_READY` — المسار البرمجي والبيئة والاختبارات جاهزة، لكن شرط Base model صالح ومحدد غير متحقق بعد، وv008 محظور.
-
-## 11. الإجراء التالي الدقيق
-
-سجّل Base model بديلًا من شاشة **إعداد التدريب** (مسار محلي أو repository ID + revision)، وافق على تنزيله فقط إن لم يكن محليًا، نفّذ التحقق وPreflight مع v009، ثم امنح موافقة Smoke محددة للمهمة الناتجة.
+The precise proposed next action was to register an alternative base from Training Setup (local path or repository ID + revision), approve download only if needed, validate and run v009 preflight, then authorize the resulting Smoke job. Final sprint verdict: `PARTIALLY_READY`.

@@ -70,10 +70,4 @@ Before any consumers use the new tables, rollback is additive and can be perform
 
 If any consumer has written to or depended on the new tables, do not use table-drop rollback. Stop NajdiLab only with explicit operational approval, restore the verified SQLite snapshot, re-run integrity/FK checks, and then restart only the NajdiLab process. Hermes, Ollama, and OpenClaw must not be stopped or restarted.
 
-Current verified snapshot:
-
-- `backups/phase13-pre-migration-20261008-213159.db`
-- Restore proof: `backups/phase13-pre-migration-20261008-213159-restore-proof.db`
-- Backup SHA-256: `8895cdeeea3da0e76bc2dae6e5292a3de73f6f98647f79b855d40c48746d6906`
-- Restore integrity: `ok`; foreign-key errors: 0.
-
+Historical restore verification recorded `integrity_check=ok` and zero foreign-key errors. Exact snapshot filenames, storage paths and backup hashes are kept in private operator evidence. Before execution, create and verify a new snapshot and use its actual path; historical verification is not a substitute.

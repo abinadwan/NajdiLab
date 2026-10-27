@@ -1,36 +1,37 @@
-# مخطط قاعدة البيانات
+# Database schema
 
-قاعدة البيانات: `data/najdilab.db`. عند كل اتصال: `foreign_keys=ON` و`journal_mode=WAL` و`busy_timeout=15000`.
+The database is `data/najdilab.db`. Connections enable `foreign_keys=ON`, `journal_mode=WAL`, `synchronous=NORMAL` and `busy_timeout=15000`.
 
-| الجدول | الغرض | أهم القيود |
+| Table | Purpose | Key constraints |
 |---|---|---|
-| `schema_migrations` | تتبع migrations المطبقة | نسخة فريدة |
-| `conversations` | رأس محادثة مستقل عن المودل | `external_conversation_id` فريد، `demo` صريح |
-| `messages` | كل turn كسجل | role محدد، ترتيب فريد داخل المحادثة، FK |
-| `reviews` | قرار وتصحيح منفصلان | review واحد لكل assistant message، original immutable بالتطبيق |
-| `review_tags` | وسوم متعددة | قائمة مقيدة ومفتاح مركب |
-| `manual_sft_items` | حوارات يدوية | provenance + privacy/training gates |
-| `direct_language_texts` | نص بلا user/assistant | طبقة لغة ونوع مصدر |
-| `preference_pairs` | rejected/preferred | سياق JSON وأصل محفوظ |
-| `manual_data_versions` | snapshots لكل تعديل يدوي | `(item_type, item_id, version_number)` فريد و`changed_by` مقيد |
-| `manual_data_export_history` | ربط العنصر بنسخ Gold التي ظهر فيها | ربط فريد بكل Dataset Version |
-| `comparison_records` | مقارنة مودلين مستقبلًا | candidate group وjudge result |
-| `dataset_versions` | سجل النسخ المصدرة | اسم النسخة فريد وmanifest محفوظ |
-| `settings` | إعدادات محلية مستقبلية | key/value JSON |
+| `schema_migrations` | Applied migration ledger | Unique version |
+| `conversations` | Model-independent conversation header | Unique `external_conversation_id`; explicit `demo` |
+| `messages` | Individual turns | Allowed roles; unique conversation ordering; foreign keys |
+| `reviews` | Separate decision/correction overlay | One per assistant message; source preserved by service rules |
+| `review_tags` | Multiple error tags | Controlled vocabulary and composite key |
+| `manual_sft_items` | Manually authored dialogues | Provenance and privacy/training gates |
+| `direct_language_texts` | Text without user/assistant roles | Language layer and source type |
+| `preference_pairs` | Rejected/preferred responses | JSON context and preserved provenance |
+| `manual_data_versions` | Snapshot for each manual edit | Unique `(item_type, item_id, version_number)`; restricted `changed_by` |
+| `manual_data_export_history` | Manual-item membership in Gold versions | Unique item/version relationship |
+| `comparison_records` | Future model comparisons | Candidate group and judge result |
+| `dataset_versions` | Export registry | Unique version name and stored manifest |
+| `settings` | Local settings foundation | JSON key/value |
 
-## ثبات البيانات الأصلية
+This describes the foundation schema. Proposed registry and immutable event tables under `plans/` are not evidence of production activation; see [the migration review](corpus-v1.1/07-migration-review-005-007.md).
 
-`messages.content` هو النص الأصلي. عند إنشاء review يُنسخ الرد إلى `reviews.original_response`. المراجعة تحدّث `corrected_response` فقط؛ `APPROVED` يفرض أن يكون التصحيح `NULL`، بينما حالات التصحيح تفرض وجود نسخة مصححة كاملة.
+## Original content
 
-## حالة التدريب والخصوصية
+`messages.content` holds the source text. Review creation copies the response into `reviews.original_response`. Review edits change only `corrected_response`; `APPROVED` requires a null correction, while correction states require the complete replacement response.
 
-توجد flags مستقلة: `training_eligible`, `archived`, `exclude_from_training`, `evaluation_only`, `contains_sensitive_data`, `contains_personal_data`, و`needs_fact_check`. لا يدخل سجل تدريب إلا بقرار `training_eligible=1`. الأرشفة أو الاستبعاد أو التقييم تمنع التصدير، من دون حذف السجل. عناصر البيانات اليدوية تحمل أيضًا `version_number`, `parent_item_id`, و`updated_at`.
+## Training and privacy
 
-## نسخ البيانات اليدوية
+Independent flags include `training_eligible`, `archived`, `exclude_from_training`, `evaluation_only`, `contains_sensitive_data`, `contains_personal_data` and `needs_fact_check`. Training requires explicit eligibility. Archival, exclusion and evaluation flags block training export without deleting the row. Manual items also carry `version_number`, `parent_item_id` and `updated_at`.
 
-كل تعديل على SFT أو النص المباشر أو DPO يزيد `version_number` ويكتب snapshot كاملًا في `manual_data_versions` مع الحقول المتغيرة وملاحظة التعديل والفاعل. الاستنساخ ينشئ سجلًا مستقلًا ويربطه بالأصل عبر `parent_item_id`.
+## Manual versions
 
-## إعادة بناء السياق
+Each SFT, direct-language or preference edit increments `version_number` and stores a complete snapshot, changed fields, note and actor in `manual_data_versions`. Cloning makes a separate item linked through `parent_item_id`.
 
-عند تصدير review، تُقرأ كل رسائل المحادثة مرتبة حتى `turn_index` للرد المراجع. يستبدل محتوى آخر assistant في نسخة التصدير فقط بالنص المصحح إن وُجد، بينما تظل قاعدة البيانات الأصلية كما هي.
+## Context reconstruction
 
+Export reads the conversation in order through the reviewed response's `turn_index`. Only the export copy substitutes the final assistant content with its correction, if present. The original database text stays unchanged.

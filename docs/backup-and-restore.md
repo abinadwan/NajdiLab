@@ -1,74 +1,28 @@
-# Backup and restore before reinstalling Hermes
+# Backup and restore
 
-Backup date: 2026-10-26 (Asia/Riyadh). Existing private repository:
-https://github.com/abinadwan/NajdiLab, branch `main`.
-The starting commit was `bcdf4a77f5c8f474530f089ab1f06f0be1c01259`.
-This backup preserves that history and the current Windows source changes.
+Source history and private operational state are separate recovery requirements. A source-only clone does not contain the database, Gold/holdout datasets, runtime/model registry, weights, adapters, checkpoints or audit reports. Keep backups and their manifests private; do not publish installation identities, archive names, credentials or storage locations.
 
-## Two required parts
+## Built-in data backup
 
-1. GitHub contains source, tests, static assets, SQL migrations, configuration schemas,
-   documentation and secret-free example launch variables.
-2. The independent local backup contains private data and runtime artifacts.
-   GitHub alone cannot restore an operational instance.
+From the intended local checkout:
 
-The local backup directory is `C:\Users\Admin\NajdiLab-Backups\2026-10-26-pre-reinstall`.
-Treat the entire directory as private. Its ACL restricts access to the Windows owner,
-SYSTEM and Administrators. Do not upload its archives or reports.
-Archive SHA256 values, member hashes, database table counts, test logs, source inventory,
-restore-test results and the final commit URL are in the local backup report and manifests.
+```bash
+python scripts/backup.py
+```
 
-## Git exclusions
+The Windows and shell wrappers are `scripts/backup.ps1` and `scripts/backup.sh`. The script writes a new timestamped ZIP under local `backups/`. It uses SQLite's online backup API for a consistent database snapshot and includes files under `exports/`. **It does not back up the entire application or ML environment:** `datasets/`, `training/`, `reports/`, checkpoints, model weights, external scripts, interpreter installations and credentials require a separately planned private backup. Exports copied during concurrent mutation are not a globally atomic archive; frozen exports must remain immutable and be hash-verified.
 
-Excluded from Git: `data/`, `datasets/`, `exports/`, `backups/`, `reports/`,
-`training/`, `checkpoints/`, generated caches/test output, logs, model binaries,
-credentials and messaging sessions. The scratch fragment
-`scripts/najdilab_training_adapter.py.tmp` is retained only in the local archive.
-No LFS or large model upload is used. Existing test sentinels are dummy values.
-The original author email remains in historical commit metadata to preserve history.
-No Hermes/Router development files are added to this repository.
+For full recovery, preserve an authorized source revision plus separate inventories of all required state. Record per-file SHA-256 hashes, database table counts, schema migration state, selected model revisions, package versions and restore-test results in a private manifest. Verify scope rather than assuming every directory is included. Restrict archive access and protect any credentials separately in authorized secret storage.
 
-## Restore procedure
+## Isolated restore rehearsal
 
-1. Verify `SHA256SUMS.txt` and all archive verification JSON files first.
-   Clone this repository into a new empty directory and compare its HEAD to the final
-   commit in the local report. Never overwrite an existing installation as a test.
-2. Extract `archives/windows-project.tar` into a separate private recovery directory.
-   Restore `data`, `datasets`, `exports`, `training`, `reports`, `checkpoints`, and
-   historical `backups` into the new clone only after comparing existing files.
-   The archive contains a consistent SQLite online snapshot; do not combine it with
-   live database WAL/SHM files from another instance.
-3. Check the recovered database using `PRAGMA integrity_check` and
-   `PRAGMA foreign_key_check`; compare table counts to the manifest. Verify Gold
-   files and adapters against the per-file SHA256 manifests before use.
-4. The separate WSL archive preserves `/home/najdi/najdi-training`, including data,
-   models, checkpoints, runs, evaluations, scripts and `.venv`. Extract it on a Linux
-   filesystem using tar so symlinks and executable modes survive. Preserve the
-   registered `NajdiTrain` distribution if it still exists; do not overwrite it.
-   To rebuild on another machine, install the recorded Linux/Python/CUDA prerequisites
-   and reproduce package versions from the local environment inventory. A copied venv
-   requires compatible system libraries and interpreter paths. The backup is not a
-   complete WSL operating-system image. A third archive, `wsl-python-runtime.tar`,
-   preserves the external uv Python 3.13.15 interpreter used by the venv. Its manifest
-   records the resolved installation prefix. Restore that prefix and recreate the
-   original alias `cpython-3.13-linux-x86_64-gnu` before using the venv.
-5. Preserve the Windows/WSL adapter versions independently. A pre-existing drift is
-   documented in `corpus-v1.1/06-adapter-drift-k2.md`; saving this backup does not
-   authorize reconciliation or deployment. Existing READY jobs, runtime checks and
-   training authorization evidence must not be treated as fresh after restoration.
-6. Use Python 3.11+ for the web application. Set `NAJDILAB_NO_DEMO=1` before the first
-   normal launch against restored data. `.env.example` documents shell variables;
-   the application does not automatically load `.env`. No API key is required by
-   the local web application. Recreate external credentials from their authorized
-   stores; no Hermes-wide credentials or messaging sessions are included here.
-7. Review `integration-local-only/najdilab-outbound-hook.json` to reapply the passive
-   hook in the new Hermes. Source files there are reference evidence only. Update
-   absolute paths/autostart configuration if the installation location changes.
-8. Run isolated tests before a normal launch. Some historical tests require local
-   Gold/holdout/report data, so a code-only clone does not pass the entire suite.
-   Consult the local verification report for exact results and existing failures.
+1. Verify archive and member hashes against the private manifest. Clone the recorded source revision into a new empty directory; never test restoration by overwriting a live installation.
+2. Inspect archive member paths and reject absolute paths or traversal before extraction. Restore the database snapshot and immutable export files into the new private recovery checkout. Restore additional datasets, reports and runtime artifacts from their separately verified sources only after comparing existing files.
+3. Do not mix a consistent database snapshot with WAL/SHM files from another running instance. Run `PRAGMA integrity_check` (must return `ok`) and `PRAGMA foreign_key_check` (must return no rows) on the restored copy, and compare counts/schema state with the manifest.
+4. Verify every declared Gold, holdout, model and adapter hash. Missing files or mismatched fingerprints block use. Preserve Windows and WSL adapter versions independently; an archive does not authorize reconciliation of known adapter drift.
+5. Recover Linux artifacts onto a Linux filesystem with tools that preserve permissions and symlinks. A copied virtual environment may depend on an external interpreter, system libraries and original paths. Record those requirements or recreate an isolated environment from verified versions; a project archive is not a full WSL operating-system image.
+6. Recreate authorized secrets from secret storage; rotate/reconfigure the ingest secret through [the integration guide](hermes-integration.md). Do not restore transient session/CSRF values as credentials. Runtime checks, READY evidence and training authorizations must be regenerated after restore.
+7. Before launch, compare source migrations to the restored schema and set `NAJDILAB_NO_DEMO=1`. Startup automatically applies SQL already in `migrations/`; planned migrations remain separately gated. Reconfigure local paths and external collector/autostart references for the new installation.
+8. Run appropriate tests in isolation and record missing private fixtures separately. Start only the restored local instance after review, check health and read-only catalog state, and verify no workload begins automatically.
 
-Do not delete Hermes based only on a successful push. Both the GitHub verification
-and the private archive/restore verification must succeed. This backup task neither
-deletes Hermes nor stops/restarts services or authorizes training, migration, model
-export, adapter deployment, or automatic execution of restored jobs.
+A successful push or valid ZIP alone does not prove recovery. Require verified source, complete private artifact inventory and a successful isolated restore rehearsal before decommissioning an installation. Preserve existing instances until recovery is proved. This guide grants no migration, training, deployment, export, service-control or deletion approval.

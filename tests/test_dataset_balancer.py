@@ -22,6 +22,8 @@ def conversation(record_id: str, turns: int = 1, **metadata) -> dict:
     return {"id": record_id, "conversation_id": metadata.pop("conversation_id", record_id), "messages": messages, "target_message_index": len(messages) - 1, "message_loss_mask": [0] * (len(messages) - 1) + [1], **metadata}
 
 
+from tests.private_artifacts import requires_private_artifacts
+
 class DatasetBalancerTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -127,6 +129,7 @@ class DatasetBalancerTests(unittest.TestCase):
 
 
 class DatasetBalancerHttpTests(unittest.TestCase):
+    @requires_private_artifacts('exports/gold-v007-balanced/manifest.json')
     def test_balance_endpoint_200_and_structured_404(self):
         server = server_module.NajdiLabHTTPServer(("127.0.0.1", 0), server_module.NajdiLabHandler)
         thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()

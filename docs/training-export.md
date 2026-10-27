@@ -1,56 +1,45 @@
-# Training Export
+# Training export
 
-## الأهلية
+## Eligibility
 
-ملفات التدريب تقبل فقط سجلات `training_eligible=true` مع `archived=false` و`evaluation_only=false` و`exclude_from_training=false`. بيانات Demo مستبعدة افتراضيًا ما لم يختر المستخدم تضمينها صراحة. عينات `evaluation_only` غير المؤرشفة وغير المستبعدة تذهب فقط إلى `evaluation_holdout.jsonl` ولا تظهر في SFT أو direct language أو preference.
+Training files accept only `training_eligible=true` records with `archived=false`, `evaluation_only=false` and `exclude_from_training=false`, subject to privacy and review-integrity gates. Demo records are excluded unless explicitly included. Non-archived, non-excluded evaluation-only samples go only to `evaluation_holdout.jsonl`, never SFT, direct language or preference files.
 
-## هدف SFT وـmulti-turn
+## SFT and multi-turn supervision
 
-يصدّر كل سجل SFT معلومات صريحة لا تعتمد على تخمين المستهلك:
+Each SFT record declares `target_message_index` (the final Gold assistant response), `train_on_last_assistant_only: true`, and a `message_loss_mask` that is zero for context and one for the final target. Earlier assistant responses remain context.
 
-- `target_message_index`: موضع آخر رد assistant الذهبي.
-- `train_on_last_assistant_only: true`.
-- `message_loss_mask`: صفر لكل رسائل السياق وواحد للرد الذهبي الأخير فقط.
+`scripts/train_najdi_sft.py` consumes these masks, sets context-token labels to `-100`, and retains labels only on the final Gold assistant response. It uses the tokenizer's actual chat template and refuses templates whose target boundary cannot be proved, rather than guessing. Model-specific native tool records follow the [tool runtime contract](tool-runtime-contract.md); authoritative tool outputs are masked.
 
-تبقى ردود assistant السابقة داخل `messages` كسياق. يقرأ `scripts/train_najdi_sft.py` القناع فعليًا، ويبني `labels=-100` لكل tokens السياق، ثم يترك labels آخر رد assistant الذهبي فقط. يستخدم loader قالب المحادثة الخاص بالـtokenizer، ويرفض التدريب إذا لم يكن القالب prefix-stable بدل تخمين حد الهدف.
+## Training/evaluation separation
 
-## فصل التدريب عن التقييم
+Conversation-level splitting uses seed `42`. No evaluation conversation enters training. Each evaluation conversation contributes at most 8 representative records; additional conversations are selected deterministically toward approximately 12% holdout (10–15%), preferring domain/review-status diversity. With at least three available conversations, export fails unless the holdout spans at least three.
 
-يُنفّذ التقسيم على مستوى `conversation_id` ببذرة ثابتة `42`. لا تظهر أي محادثة مختارة للتقييم في التدريب. يُحفظ بحد أقصى 8 سجلات ممثلة من كل محادثة evaluation ويُختار المزيد من المحادثات deterministically حتى قرابة 12% (ضمن 10–15%)، مع تفضيل تنوع `domain` و`review_status`. إذا توفرت ثلاث محادثات أو أكثر، يفشل التصدير إن لم يتوزع holdout على ثلاث منها على الأقل.
+## Multi-turn balancing
 
-## موازنة multi-turn
+Gold export keeps at most 10 multi-turn records per `conversation_id`. When over limit, a deterministic seed-42 subset preserves review-status diversity where possible. This changes the export selection only, never database rows.
 
-يُطبق حد أقصى deterministic قدره 10 سجلات multi-turn لكل `conversation_id`. عند تجاوز الحد، يختار المصدر subset ثابتًا ببذرة 42 مع الحفاظ على تنوع حالات المراجعة قدر الإمكان. هذه الموازنة تخص ملفات Gold فقط ولا تعدّل قاعدة البيانات.
+## Duplicates
 
-## فحص التكرار
+The pre-export report uses SHA-256 of normalized targets (`casefold` and whitespace normalization) for exact duplicates and standard-library `SequenceMatcher` at 0.90 or above for near duplicates. Exact duplicates are removed only from Gold files, keeping priority `APPROVED`, `FULL_CORRECTION`, `DIALECT_CORRECTION`, `CONTENT_CORRECTION`, then stable insertion order. No database record is deleted. Near duplicates remain report-only and are never silently removed.
 
-قبل التصدير تعرض الواجهة report:
-
-- exact: SHA-256 للنص المطبّع (casefold + توحيد الفراغات).
-- near: `SequenceMatcher` بنسبة 0.90 فأعلى، من دون package إضافي.
-
-يُزال الـexact duplicate من ملفات Gold فقط، بناءً على النص المستهدف للتدريب بعد التطبيع. أولوية الاحتفاظ هي: `APPROVED` ثم `FULL_CORRECTION` ثم `DIALECT_CORRECTION` ثم `CONTENT_CORRECTION` ثم ترتيب الإدخال الثابت. لا تُحذف أي سجلات من قاعدة البيانات. الـnear duplicates لا تزال تقريرًا فقط ولا تُحذف تلقائيًا.
-
-## بنية النسخة
+## Version layout
 
 ```text
 exports/gold-v001/
-├── manifest.json
-├── sft.jsonl
-├── multi_turn.jsonl
-├── direct_language.jsonl
-├── preference_pairs.jsonl
-├── evaluation_holdout.jsonl
-├── full_archive.json
-└── dedup_report.json
+  manifest.json
+  sft.jsonl
+  multi_turn.jsonl
+  direct_language.jsonl
+  preference_pairs.jsonl
+  evaluation_holdout.jsonl
+  full_archive.json
+  dedup_report.json
 ```
 
-`sft.jsonl` يحتوي سجلات قصيرة (رسالتان)، و`multi_turn.jsonl` يحتوي السياق الكامل ذي أكثر من رسالتين. لا تختلط النصوص المباشرة أو أزواج التفضيل مع ملفات SFT. `full_archive.json` أرشيف تدقيق فقط وليس ملف تدريب.
+`sft.jsonl` holds two-message records; `multi_turn.jsonl` holds longer context. Direct-language text and preference pairs do not mix with SFT. `full_archive.json` is an audit archive, not training input. Later native-tool-aware managed datasets can include additional contract files.
 
-## Manifest
+## Manifest and history
 
-يحافظ الـmanifest على الحقول السابقة، ويضيف أعداد سجلات ومحادثات التدريب والتقييم، `split_seed`, `exact_duplicates_removed`, `near_duplicate_count`, `demo_records_included`, وخلاصة الـvalidation. قيمة `sha256` خريطة checksum لكل ملف بيانات وأرشيف وتقرير؛ manifest لا يحسب نفسه لتجنب مرجع دائري.
+The manifest includes training/evaluation record and conversation counts, `split_seed`, `exact_duplicates_removed`, `near_duplicate_count`, `demo_records_included` and validation summaries. `sha256` maps data/archive/report files to hashes; it excludes the manifest itself to avoid a circular reference. Each export creates a new version, writes to a temporary directory and atomically renames it without changing an older version.
 
-كل تصدير ينشئ رقمًا جديدًا ولا يعدّل مجلد نسخة سابقة. الكتابة تتم في مجلد مؤقت ثم rename ذري.
-
-يسجل `manual_data_export_history` العناصر اليدوية التي ظهرت فعليًا في ملفات JSONL لكل نسخة. عند فهرسة نسخة قديمة تُقرأ ملفات JSONL فقط ولا يُعدّل أي ملف أو manifest قديم.
+`manual_data_export_history` records manual items actually present in each version's JSONL files. Indexing a historical version reads JSONL only; it never rewrites old files or manifests. Dataset inclusion does not establish legal rights to publish or train on the underlying content.

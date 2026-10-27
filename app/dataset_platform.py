@@ -52,16 +52,16 @@ def path_diagnostics(dataset: str | None = None) -> dict[str, Any]:
 
 def _exports_root() -> Path:
     if not PROJECT_ROOT.is_dir():
-        raise DatasetPlatformError("PROJECT_ROOT_NOT_FOUND", "تعذر تحديد جذر مشروع NajdiLab", path=PROJECT_ROOT)
+        raise DatasetPlatformError("PROJECT_ROOT_NOT_FOUND", "Unable to locate the NajdiLab project root", path=PROJECT_ROOT)
     root = Path(EXPORTS_DIR).resolve()
     try:
         exists = root.is_dir()
     except PermissionError as exc:
-        raise DatasetPlatformError("ACCESS_DENIED", "لا توجد صلاحية لقراءة مجلد الإصدارات", path=root) from exc
+        raise DatasetPlatformError("ACCESS_DENIED", "Permission denied when reading the dataset versions directory", path=root) from exc
     except OSError as exc:
-        raise DatasetPlatformError("IO_ERROR", f"تعذر فحص مجلد الإصدارات: {exc}", path=root) from exc
+        raise DatasetPlatformError("IO_ERROR", f"Unable to inspect the dataset versions directory: {exc}", path=root) from exc
     if not exists:
-        raise DatasetPlatformError("EXPORTS_ROOT_NOT_FOUND", "مجلد إصدارات البيانات غير موجود", path=root)
+        raise DatasetPlatformError("EXPORTS_ROOT_NOT_FOUND", "The dataset versions directory does not exist", path=root)
     return root
 
 
@@ -75,7 +75,7 @@ def _registry_roots() -> tuple[Path, ...]:
 
 def _version_dir(version: str) -> Path:
     if not SAFE_VERSION.fullmatch(version):
-        raise DatasetPlatformError("DATASET_NOT_FOUND", "اسم إصدار غير صالح", dataset=version)
+        raise DatasetPlatformError("DATASET_NOT_FOUND", "Invalid version name", dataset=version)
     roots = _registry_roots()
     matches = []
     for root in roots:
@@ -85,13 +85,13 @@ def _version_dir(version: str) -> Path:
         try:
             if path.is_dir(): matches.append(path)
         except PermissionError as exc:
-            raise DatasetPlatformError("ACCESS_DENIED", "لا توجد صلاحية لقراءة إصدار البيانات", dataset=version, path=path) from exc
+            raise DatasetPlatformError("ACCESS_DENIED", "Permission denied when reading the dataset version", dataset=version, path=path) from exc
         except OSError as exc:
-            raise DatasetPlatformError("IO_ERROR", f"تعذر فحص إصدار البيانات: {exc}", dataset=version, path=path) from exc
+            raise DatasetPlatformError("IO_ERROR", f"Unable to inspect the dataset version: {exc}", dataset=version, path=path) from exc
     if len(matches) > 1:
-        raise DatasetPlatformError("DUPLICATE_DATASET_VERSION", "معرّف إصدار البيانات مكرر بين جذور التسجيل", dataset=version)
+        raise DatasetPlatformError("DUPLICATE_DATASET_VERSION", "Duplicate dataset version identifier across registered roots", dataset=version)
     if not matches:
-        raise DatasetPlatformError("DATASET_NOT_FOUND", "إصدار البيانات غير موجود", dataset=version)
+        raise DatasetPlatformError("DATASET_NOT_FOUND", "Dataset version not found", dataset=version)
     return matches[0]
 
 
@@ -99,20 +99,20 @@ def _json(path: Path, fallback: Any, *, dataset: str | None = None, required: bo
     try:
         if not path.is_file():
             if required:
-                raise DatasetPlatformError("MANIFEST_NOT_FOUND", "ملف manifest غير موجود", dataset=dataset, path=path)
+                raise DatasetPlatformError("MANIFEST_NOT_FOUND", "Manifest file not found", dataset=dataset, path=path)
             return fallback
         value = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(value, type(fallback)):
-            raise DatasetPlatformError("INVALID_MANIFEST", "بنية manifest غير صالحة", dataset=dataset, path=path)
+            raise DatasetPlatformError("INVALID_MANIFEST", "Invalid manifest structure", dataset=dataset, path=path)
         return value
     except DatasetPlatformError:
         raise
     except PermissionError as exc:
-        raise DatasetPlatformError("ACCESS_DENIED", "لا توجد صلاحية لقراءة الملف", dataset=dataset, path=path) from exc
+        raise DatasetPlatformError("ACCESS_DENIED", "Permission denied when reading the file", dataset=dataset, path=path) from exc
     except json.JSONDecodeError as exc:
-        raise DatasetPlatformError("INVALID_MANIFEST", f"JSON غير صالح: {exc.msg}", dataset=dataset, path=path) from exc
+        raise DatasetPlatformError("INVALID_MANIFEST", f"Invalid JSON: {exc.msg}", dataset=dataset, path=path) from exc
     except OSError as exc:
-        raise DatasetPlatformError("IO_ERROR", f"تعذر قراءة الملف: {exc}", dataset=dataset, path=path) from exc
+        raise DatasetPlatformError("IO_ERROR", f"Unable to read the file: {exc}", dataset=dataset, path=path) from exc
 
 
 def _jsonl(path: Path) -> list[dict[str, Any]]:
@@ -120,7 +120,7 @@ def _jsonl(path: Path) -> list[dict[str, Any]]:
         if not path.is_file():
             return []
     except OSError as exc:
-        raise DatasetPlatformError("ACCESS_DENIED", f"تعذر قراءة {path.name}: صلاحيات الملف تمنع الفحص", path=path) from exc
+        raise DatasetPlatformError("ACCESS_DENIED", f"Unable to read {path.name}: file permissions prevent inspection", path=path) from exc
     rows = []
     with path.open(encoding="utf-8") as handle:
         for number, line in enumerate(handle, 1):
@@ -129,9 +129,9 @@ def _jsonl(path: Path) -> list[dict[str, Any]]:
             try:
                 value = json.loads(line)
             except json.JSONDecodeError as exc:
-                raise DatasetPlatformError("IO_ERROR", f"{path.name}:{number} JSON غير صالح", path=path) from exc
+                raise DatasetPlatformError("IO_ERROR", f"{path.name}:{number} contains invalid JSON", path=path) from exc
             if not isinstance(value, dict):
-                raise DatasetPlatformError("IO_ERROR", f"{path.name}:{number} يجب أن يكون object", path=path)
+                raise DatasetPlatformError("IO_ERROR", f"{path.name}:{number} must be an object", path=path)
             rows.append(value)
     return rows
 
@@ -279,7 +279,7 @@ def _diagnostics_status(directory: Path, manifest: dict[str, Any]) -> tuple[bool
 def regenerate_training_diagnostics(version: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":
-        raise DatasetPlatformError("TARGET_NOT_DRAFT", "إعادة توليد diagnostics مسموحة لإصدار Draft فقط", dataset=version)
+        raise DatasetPlatformError("TARGET_NOT_DRAFT", "Diagnostics can only be regenerated for a Draft version", dataset=version)
     _generate_training_diagnostics(directory, manifest)
     manifest.setdefault("provenance", {})["diagnostics_regenerated_at"] = manifest["diagnostics"]["generated_at"]
     temp = directory / ".manifest.json.tmp"
@@ -287,22 +287,22 @@ def regenerate_training_diagnostics(version: str) -> dict[str, Any]:
         _write_json(temp, manifest); os.replace(temp, directory / "manifest.json")
     except OSError as exc:
         temp.unlink(missing_ok=True)
-        raise DatasetPlatformError("APPLY_FAILED", f"تعذر حفظ diagnostics: {exc}", dataset=version) from exc
+        raise DatasetPlatformError("APPLY_FAILED", f"Unable to save diagnostics: {exc}", dataset=version) from exc
     return dataset_health(version)
 
 
 def create_derived_version(source_version: str, target_version: str) -> dict[str, Any]:
     if not SAFE_VERSION.fullmatch(target_version):
-        raise DatasetPlatformError("INVALID_VERSION_NAME", "اسم الإصدار الجديد غير صالح", dataset=target_version)
+        raise DatasetPlatformError("INVALID_VERSION_NAME", "Invalid new version name", dataset=target_version)
     source = _version_dir(source_version)
     source_manifest = _json(source / "manifest.json", {}, dataset=source_version, required=True)
     if _state(source_manifest, source_version) != "Frozen":
-        raise DatasetPlatformError("SOURCE_NOT_FROZEN", "لا يمكن الاشتقاق إلا من إصدار Frozen", dataset=source_version)
+        raise DatasetPlatformError("SOURCE_NOT_FROZEN", "A version can only be derived from a Frozen source", dataset=source_version)
     root = _exports_root(); target = (root / target_version).resolve()
     if target.parent != root:
-        raise DatasetPlatformError("INVALID_VERSION_NAME", "اسم الإصدار الجديد غير صالح", dataset=target_version)
+        raise DatasetPlatformError("INVALID_VERSION_NAME", "Invalid new version name", dataset=target_version)
     if target.exists():
-        raise DatasetPlatformError("VERSION_ALREADY_EXISTS", "اسم الإصدار مستخدم بالفعل", dataset=target_version, path=target)
+        raise DatasetPlatformError("VERSION_ALREADY_EXISTS", "Version name is already in use", dataset=target_version, path=target)
     source_fingerprint = _dataset_fingerprint(source)
     temp = Path(tempfile.mkdtemp(prefix=f".{target_version}-", dir=root))
     try:
@@ -320,7 +320,7 @@ def create_derived_version(source_version: str, target_version: str) -> dict[str
         shutil.rmtree(temp, ignore_errors=True); raise
     except (OSError, PermissionError) as exc:
         shutil.rmtree(temp, ignore_errors=True)
-        raise DatasetPlatformError("APPLY_FAILED", f"تعذر إنشاء الإصدار المشتق: {exc}", dataset=target_version) from exc
+        raise DatasetPlatformError("APPLY_FAILED", f"Unable to create the derived version: {exc}", dataset=target_version) from exc
     return dataset_version_detail(target_version)
 
 
@@ -345,7 +345,7 @@ def conversation_overlap_analysis(version: str) -> dict[str, Any]:
             "message_count": sum(len(row.get("messages") or []) for _, row in train_rows + eval_rows),
             "turn_count": sum(1 for _, row in train_rows + eval_rows for message in (row.get("messages") or []) if message.get("role") == "user"),
             "proposed_destination": destination, "records_to_move": moved,
-            "reason": "إبقاء المحادثة في Evaluation يمنع إنشاء exact duplicate داخل التدريب." if would_duplicate_target else f"نقل {moved} سجل فقط بدل {len(train_rows) + len(eval_rows) - moved} مع إبقاء المحادثة كاملة في جهة واحدة."})
+            "reason": "Keeping the conversation in evaluation prevents an exact duplicate in training." if would_duplicate_target else f"Move only {moved} records instead of {len(train_rows) + len(eval_rows) - moved} while keeping the complete conversation on one side."})
     # Select destinations globally because targets can repeat across different conversations.
     # The integrity constraints outrank the number of moved records.
     if overlaps and len(overlaps) <= 20:
@@ -371,7 +371,7 @@ def conversation_overlap_analysis(version: str) -> dict[str, Any]:
         for item, destination in zip(overlaps, choices):
             item["proposed_destination"] = destination
             item["records_to_move"] = item["eval_records"] if destination == "Training" else item["train_records"]
-            item["reason"] = f"قرار الخطة العالمية يحافظ على exact duplicates={duplicate_extra} وexact target overlaps={target_overlap} بأقل نقل متاح."
+            item["reason"] = f"The global plan preserves exact duplicates={duplicate_extra} and exact target overlaps={target_overlap} with the fewest possible moves."
     return {"version": version, "state": _state(manifest, version), "overlap_conversations": len(overlaps), "overlap_records": sum(x["eval_records"] for x in overlaps), "items": overlaps}
 
 
@@ -397,10 +397,10 @@ def eval_leakage_on_path(directory: Path) -> dict[str, Any]:
 def apply_overlap_plan(version: str, plan_token: str, dataset_fingerprint: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":
-        raise DatasetPlatformError("TARGET_NOT_DRAFT", "يمكن تطبيق الخطة على إصدار Draft فقط", dataset=version)
+        raise DatasetPlatformError("TARGET_NOT_DRAFT", "The plan can only be applied to a Draft version", dataset=version)
     current = create_overlap_plan(version)
     if not plan_token or plan_token != current["plan_token"] or dataset_fingerprint != current["dataset_fingerprint"]:
-        raise DatasetPlatformError("OVERLAP_PLAN_STALE", "تغيّر الإصدار منذ إنشاء الخطة؛ أنشئ Dry Run جديدًا", dataset=version)
+        raise DatasetPlatformError("OVERLAP_PLAN_STALE", "The version changed after the plan was created; create a new Dry Run", dataset=version)
     root = _exports_root(); staged = Path(tempfile.mkdtemp(prefix=f".{version}-apply-", dir=root)); backup = root / f".{version}-rollback"
     try:
         shutil.rmtree(staged); shutil.copytree(directory, staged)
@@ -431,7 +431,7 @@ def apply_overlap_plan(version: str, plan_token: str, dataset_fingerprint: str) 
         updated.pop("diagnostics", None); updated.pop("loss_mask_validation", None)
         _refresh_manifest(staged, updated); _generate_training_diagnostics(staged, updated); _write_json(staged / "manifest.json", updated)
         if eval_leakage_on_path(staged)["conversation_overlap_count"]:
-            raise DatasetPlatformError("APPLY_FAILED", "لم تحقق الخطة فصل المحادثات بالكامل", dataset=version)
+            raise DatasetPlatformError("APPLY_FAILED", "The plan did not fully separate conversations", dataset=version)
         if backup.exists(): shutil.rmtree(backup)
         os.replace(directory, backup); os.replace(staged, directory); shutil.rmtree(backup)
     except DatasetPlatformError:
@@ -441,34 +441,34 @@ def apply_overlap_plan(version: str, plan_token: str, dataset_fingerprint: str) 
     except Exception as exc:
         shutil.rmtree(staged, ignore_errors=True)
         if backup.exists() and not directory.exists(): os.replace(backup, directory)
-        raise DatasetPlatformError("APPLY_FAILED", f"فشل تطبيق الخطة بأمان: {exc}", dataset=version) from exc
+        raise DatasetPlatformError("APPLY_FAILED", f"Unable to apply the plan safely: {exc}", dataset=version) from exc
     return {"ok": True, "applied": True, "version": version, "plan": current, "detail": dataset_version_detail(version)}
 
 
 def freeze_dataset_version(version: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":
-        raise DatasetPlatformError("TARGET_NOT_DRAFT", "الإصدار ليس Draft", dataset=version)
+        raise DatasetPlatformError("TARGET_NOT_DRAFT", "The version is not a Draft", dataset=version)
     diagnostics_valid, diagnostics_error = _diagnostics_status(directory, manifest)
     training_count = sum(len(_jsonl(directory / name)) for name in TRAIN_FILES) + len(_jsonl(directory / NATIVE_TRAIN_FILE))
     loss = manifest.get("loss_mask_validation") or {}
     if not diagnostics_valid or loss.get("version") != version or loss.get("training_fingerprint") != _training_fingerprint(directory) or loss.get("total") != training_count or loss.get("passed") != training_count or loss.get("failures"):
-        raise DatasetPlatformError("INVALID_MANIFEST", f"لا يمكن التجميد: diagnostics غير صالحة ({diagnostics_error or 'loss-mask mismatch'})", dataset=version)
+        raise DatasetPlatformError("INVALID_MANIFEST", f"Cannot freeze: invalid diagnostics ({diagnostics_error or 'loss-mask mismatch'})", dataset=version)
     health = dataset_health(version)
     if health["training_readiness"]["status"] != "READY" or health["evaluation_integrity"]["status"] != "CLEAN":
-        raise DatasetPlatformError("INVALID_MANIFEST", "لا يمكن التجميد قبل نجاح Health وسلامة Evaluation", dataset=version)
+        raise DatasetPlatformError("INVALID_MANIFEST", "Cannot freeze until Health and Evaluation Integrity checks pass", dataset=version)
     expected = manifest.get("sha256") or {}
     for name, digest in expected.items():
         path = directory / name
         if not path.is_file() or _sha256(path) != digest:
-            raise DatasetPlatformError("INVALID_MANIFEST", f"فشل checksum للملف {name}", dataset=version, path=path)
+            raise DatasetPlatformError("INVALID_MANIFEST", f"Checksum failed for file {name}", dataset=version, path=path)
     manifest["state"] = "Frozen"; manifest["frozen_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     temp = directory / ".manifest.json.tmp"
     try:
         _write_json(temp, manifest); os.replace(temp, directory / "manifest.json")
     except OSError as exc:
         temp.unlink(missing_ok=True)
-        raise DatasetPlatformError("APPLY_FAILED", f"تعذر تجميد الإصدار: {exc}", dataset=version) from exc
+        raise DatasetPlatformError("APPLY_FAILED", f"Unable to freeze the version: {exc}", dataset=version) from exc
     return dataset_version_detail(version)
 
 
@@ -541,19 +541,19 @@ def dataset_health(version: str) -> dict[str, Any]:
     warnings = []
     balance = balancing.get("conversation_balance", {})
     if balance.get("highest_record_share", [None, {}])[1].get("record_share", 0) > .15:
-        warnings.append({"level": "warning", "code": "conversation_concentration", "message": "محادثة واحدة تتجاوز 15% من سجلات التدريب."})
+        warnings.append({"level": "warning", "code": "conversation_concentration", "message": "A single conversation exceeds 15% of training records."})
     if balance.get("highest_context_word_share", [None, {}])[1].get("context_word_share", 0) > .30:
-        warnings.append({"level": "warning", "code": "context_concentration", "message": "سياق محادثة واحدة يتجاوز 30% من كلمات السياق."})
+        warnings.append({"level": "warning", "code": "context_concentration", "message": "A single conversation context exceeds 30% of context words."})
     if duplicate_extra:
-        warnings.append({"level": "error", "code": "exact_duplicates", "message": f"يوجد {duplicate_extra} هدف تدريب مطابق زائد."})
+        warnings.append({"level": "error", "code": "exact_duplicates", "message": f"There are {duplicate_extra} extra duplicate training targets."})
     if not leakage["leakage_free"]:
-        warnings.append({"level": "warning", "scope": "evaluation", "code": "eval_leakage", "message": f"تم اكتشاف {leakage['conversation_overlap_count']} حالات تداخل محادثات في مجموعات التقييم."})
+        warnings.append({"level": "warning", "scope": "evaluation", "code": "eval_leakage", "message": f"Detected {leakage['conversation_overlap_count']} conversation overlaps in evaluation sets."})
     loss = manifest.get("loss_mask_validation", {}) if diagnostics_valid or not strict_diagnostics else {}
     loss_count_mismatch = bool(strict_diagnostics and (loss.get("version") != version or loss.get("training_fingerprint") != _training_fingerprint(directory) or loss.get("total") != gradient_count or loss.get("passed") != gradient_count))
     if strict_diagnostics and (not diagnostics_valid or loss_count_mismatch):
-        warnings.append({"level": "error", "code": "stale_diagnostics", "message": f"Diagnostics لا تطابق ملفات التدريب الحالية: {diagnostics_error or 'loss-mask total mismatch'}."})
+        warnings.append({"level": "error", "code": "stale_diagnostics", "message": f"Diagnostics do not match the current training files: {diagnostics_error or 'loss-mask total mismatch'}."})
     if loss and loss.get("failures"):
-        warnings.append({"level": "error", "code": "loss_mask", "message": "فشل تحقق loss mask لبعض السجلات."})
+        warnings.append({"level": "error", "code": "loss_mask", "message": "Loss-mask validation failed for some records."})
     training_errors = duplicate_extra + invalid_targets + invalid_masks + len(loss.get("failures", [])) + int(strict_diagnostics and (not diagnostics_valid or loss_count_mismatch))
     readiness = "NOT_READY" if training_errors else "READY"
     target_analysis = balancing.get("target_analysis", {})
@@ -614,7 +614,7 @@ def dataset_version_detail(version: str) -> dict[str, Any]:
         "state": _state(manifest, version),
         "path": str(directory),
         "manifest": manifest,
-        "provenance": manifest.get("provenance") or manifest.get("source_version") or manifest.get("source") or "غير موثق",
+        "provenance": manifest.get("provenance") or manifest.get("source_version") or manifest.get("source") or "Undocumented",
         "files": files,
         "health": dataset_health(version),
         "eval": eval_leakage(version),
@@ -627,9 +627,9 @@ def list_dataset_versions() -> list[dict[str, Any]]:
     try:
         candidates = sorted((p for root in roots if root.is_dir() for p in root.iterdir() if p.name.startswith("gold-")), key=lambda p: p.name, reverse=True)
     except PermissionError as exc:
-        raise DatasetPlatformError("ACCESS_DENIED", "لا توجد صلاحية لفهرسة مجلد الإصدارات", path=root) from exc
+        raise DatasetPlatformError("ACCESS_DENIED", "Permission denied when indexing the dataset versions directory", path=root) from exc
     except OSError as exc:
-        raise DatasetPlatformError("IO_ERROR", f"تعذر فهرسة مجلد الإصدارات: {exc}", path=root) from exc
+        raise DatasetPlatformError("IO_ERROR", f"Unable to index the dataset versions directory: {exc}", path=root) from exc
     counts = Counter(path.name for path in candidates if path.is_dir())
     for path in candidates:
         try:
@@ -637,7 +637,7 @@ def list_dataset_versions() -> list[dict[str, Any]]:
                 continue
             if counts[path.name] > 1:
                 if any(item["version"] == path.name for item in result): continue
-                raise DatasetPlatformError("DUPLICATE_DATASET_VERSION", "معرّف إصدار البيانات مكرر بين جذور التسجيل", dataset=path.name)
+                raise DatasetPlatformError("DUPLICATE_DATASET_VERSION", "Duplicate dataset version identifier across registered roots", dataset=path.name)
             manifest = _json(path / "manifest.json", {}, dataset=path.name, required=True)
             result.append({"version": path.name, "name": path.name, "created_at": manifest.get("created_at"), "counts": manifest.get("files", {}), "state": _state(manifest, path.name), "readable": True, "manifest_status": "valid", "health_available": True, "error": None})
         except DatasetPlatformError as exc:

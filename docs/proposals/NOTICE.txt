@@ -1,0 +1,11 @@
+PROPOSAL ONLY — not an active NOTICE or license grant.
+Requires owner approval of Apache-2.0, copyright-holder identity,
+third-party notices and actual distribution scope.
+
+Proposed project attribution:
+NajdiLab
+Original project: NajdiLab
+Source repository: https://github.com/abinadwan/NajdiLab
+
+Preserve applicable upstream copyright, license and attribution notices.
+No endorsement of derivatives by the original project is implied.

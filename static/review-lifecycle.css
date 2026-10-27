@@ -48,7 +48,7 @@
   padding: 0;
   box-shadow: 0 28px 90px rgba(12, 28, 24, .3);
   color: var(--ink);
-  direction: rtl;
+  direction:ltr;
 }
 
 .confirmation-dialog::backdrop {

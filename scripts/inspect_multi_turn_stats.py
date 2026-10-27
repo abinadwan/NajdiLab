@@ -1,6 +1,8 @@
 import json, sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+
 def read_all_jsonl(path):
     records = []
     with open(path, 'r', encoding='utf-8') as f:
@@ -11,7 +13,7 @@ def read_all_jsonl(path):
     return records
 
 if __name__ == "__main__":
-    path = Path(r"C:\\Users\\Admin\\AppData\\Local\\hermes\\NajdiLab\\exports\\gold-v006-clean\\multi_turn.jsonl")
+    path = ROOT / 'exports/gold-v006-clean/multi_turn.jsonl'
     records = read_all_jsonl(path)
     total = len(records)
     print(f"Total records: {total}")
@@ -61,9 +63,9 @@ if __name__ == "__main__":
     # Output
     print("1. counts:")
     print(f"   conversation_id = None: {conv_id_none}")
-    print(f"   conversation_id موجود: {conv_id_exists}")
+    print(f"   conversation_id present: {conv_id_exists}")
     print(f"   messages contain message_id: {msgs_with_msg_id}")
-    print(f"   messages لا تحتوي message_id: {msgs_without_msg_id}")
+    print(f"   Messages without message_id: {msgs_without_msg_id}")
     print("2. source_type counts:")
     for k,v in source_type_counts.items():
         print(f"   {k}: {v}")

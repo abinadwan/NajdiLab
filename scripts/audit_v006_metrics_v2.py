@@ -2,12 +2,14 @@ import statistics
 from pathlib import Path
 from collections import Counter, defaultdict
 
-DATA_DIR = Path(r"C:\\Users\\Admin\\AppData\\Local\\hermes\\NajdiLab\\exports\\gold-v006-clean")
+ROOT = Path(__file__).resolve().parents[1]
+
+DATA_DIR = ROOT / 'exports/gold-v006-clean'
 SFT_PATH = DATA_DIR / "sft.jsonl"
 MULTI_PATH = DATA_DIR / "multi_turn.jsonl"
 EVAL_PATH = DATA_DIR / "text_sft_eval.jsonl"
 
-REPORT_DIR = Path(r"C:\\Users\\Admin\\AppData\\Local\\hermes\\NajdiLab\\reports")
+REPORT_DIR = ROOT / 'reports'
 REPORT_JSON = REPORT_DIR / "gold-v006-metrics-v2.json"
 REPORT_MD = REPORT_DIR / "gold-v006-metrics-v2.md"
 
@@ -80,6 +82,7 @@ for cid,info in conv_info.items():
 
 # 6. Multi-turn overlap (real)
 from difflib import SequenceMatcher
+
 multi_overlap = []
 for cid,info in conv_info.items():
     # Only multi-turn where original source was in multi_records
