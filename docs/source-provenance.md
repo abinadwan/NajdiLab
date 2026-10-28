@@ -52,6 +52,16 @@ Recorded 2026-10-28 with the owner's express approval. The owner reports conceiv
 This is owner-reported provenance, not independent legal proof of authorship, exclusive ownership, absence of copied code, copyright eligibility or redistribution permission. Existing findings, verification statuses and release-rights blockers (including B07) remain unchanged; no license, publication approval or rights clearance is granted by this note.
 
 
+## New owner-reported personal-project and account attestation — 2026-10-28
+
+With express authorization to record this new statement, the owner reports: “NajdiLab is a personal project, and the accounts used for its development are the owner's personal accounts.” Arabic owner statement: “حساباتي الشخصية ومشروع شخصي”.
+
+This project-level report supplements the [earlier owner-directed Codex/Claude Code development account](#owner-reported-project-conception-and-staged-development). It is recorded as **R1** for all R01–R74 entries in the [existing B07 rights ledger](public-core-phase5-rights.md#private-rights-evidence-ledger--2026-10-28), alongside R0, without changing any per-file evidence or rights status. The branch head verified before this documentation update was `39d128d3c412e6e7afd4e5ca9b72c33c6bd942cb`.
+
+The owner has not yet expressly confirmed that no employers, contributors, customers, contractors, third-party IP or external prompts are implicated. Personal-project and personal-account status does not establish legal ownership, exclusive title, input/output rights, applicable AI-tool terms or redistribution clearance. These remain subject to the ledger's outstanding authority, origin, notice, asset/privacy, holder/year and exact release-manifest/destination checks.
+
+**B07 remains OPEN/BLOCKED; P5-05 remains BLOCKED.** This attestation grants no license adoption or publication approval; Apache-2.0 remains the inactive TARGET. Repository privacy and PR state remain unchanged.
+
 ## Private per-file rights ledger — 2026-10-28
 
 The [complete 74-row ledger](public-core-phase5-rights.md#private-rights-evidence-ledger--2026-10-28) supersedes aggregate provenance claims as the private decision aid for the exact policy mapping at `e9dbc9a83e0029b6801a29daf76b34905d4f82f2`. It records each source/destination, canonical SHA256, raw Git blob/mode, O/C packaging lineage, reported owner-directed Codex/Claude Code development, creation/input limitations, material/license and asset/privacy/v007 profiles, reviewer and outstanding action. All 74 overall rights statuses remain OWNER ATTESTATION REQUIRED; the 28/46 split does not identify human versus AI authorship. No exact per-file AI sessions, employer/contributor authority or input-rights records were independently examined.
