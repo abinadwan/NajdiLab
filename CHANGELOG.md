@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — README technology badges (2026-10-30)
+
+- Added nine centered, linked Shields.io technology/status badges to the main README: enforced Python/SQLite minimums, vanilla JavaScript, HTML5/CSS3, local-first design, optional Hermes integration, private repository status and future-only Apache-2.0 license target.
+- Badge labels reflect verified source capabilities and the documented licensing boundary. No Go, React, TypeScript, Tailwind, Docker-ready or active source-license claims were added. Links point to authoritative project guides/status rather than undocumented features.
+- Presentation-only change: no application code, dependencies, project visibility, licensing, package, model, training, private data or deployment changes. External badge rendering requires access to img.shields.io; documentation content remains readable without it.
+
 ## Unreleased — private post-merge documentation correction (2026-10-30)
 
 - Integrated the four stacked development branches into private `main` via [PR #5](https://github.com/abinadwan/NajdiLab/pull/5), merge commit `fdebe50aaf1a20d2f2478eed8fc979cac8372347`; deleted the four merged branch refs. PRs #2–#4 are closed. This item records the earlier GitHub operation, not a new merge in this documentation task.
