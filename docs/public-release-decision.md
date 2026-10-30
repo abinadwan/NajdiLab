@@ -1,8 +1,10 @@
 # NajdiLab public release decision
 
-Date: **2026-10-27**. Verdict: **NOT READY — BLOCKERS REMAIN**.
+Date of original review: **2026-10-27**. Verdict: **NOT READY — BLOCKERS REMAIN**.
 
-Current scope-review continuation: [public core parity](public-core-feature-parity.md) and [proposed release scope/backlog](public-core-release-scope.md) compare PR #2's original application with PR #3's narrower candidate. Earlier numbered findings below retain their historical baseline; appended engineering outcomes remain separate. The analysis does not implement parity, clear rights/history, or change either Draft PR.
+**Repository update — 2026-10-30:** The four stacked engineering branches were integrated into private `main` via [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5), merge commit `fdebe50aaf1a20d2f2478eed8fc979cac8372347`, and their branch refs were deleted. PRs #2–#4 are now closed. See [current project status](../PROJECT_STATUS.md) and [section 22](#22-private-github-integration--2026-10-30). This GitHub operation is **not** a public release, active Apache-2.0 license, privacy/rights approval or production deployment; the historical baselines below are preserved.
+
+Dated scope-review continuation (2026-10-27): [public core parity](public-core-feature-parity.md) and [proposed release scope/backlog](public-core-release-scope.md) compare PR #2's original application with PR #3's narrower candidate. Earlier numbered findings below retain their historical baseline; appended engineering outcomes remain separate. The analysis does not implement parity, clear rights/history, or change either Draft PR.
 
 Current Phase5 engineering outcome and publication gates: [section21](#21-phase5-final-public-core-candidate-decision). Owner intent and target-license approval recorded **2026-10-28**: [dated rights decision and impact verification](public-core-phase5-rights.md#dated-owner-decision--2026-10-28). Earlier numbered baselines below are historical; they are preserved rather than relabeled as current candidate behavior.
 
@@ -184,3 +186,9 @@ Current authorized source-only engineering: **ENGINEERING PASS — RELEASE GATES
 Owner intent recorded 2026-10-28: future NajdiLab Core publication in a new clean public repository (strategyB), with Apache-2.0 approved as the TARGET license only. Retain this restricted repository Private; exact destination/manifest and public release remain unauthorized pending all rights/license/privacy/notice gates, including B07. A local no-Git snapshot was built and tested privately; no public repository/release/package was created. Inactive licensing/NOTICE proposals remain outside the candidate. Private datasets, models, adapters, original evaluations and their redistribution rights remain excluded/NOT_VERIFIED.
 
 Rollback uses reviewed forward reverts of candidate/policy/docs units and validated restore into a new location, never overwriting live data or resetting shared history. Smallest next steps: owner review Draft#4; confirm original/employer/contributor/borrowed-source and asset rights, holder/year/license/NOTICE and residual helper-label disposition; approve an exact future manifest and public destination separately. No merge, visibility change, active license or publication is authorized by the engineering pass.
+
+## 22. Private GitHub integration — 2026-10-30
+
+As a separately requested repository housekeeping action, the four stacked `dev/*` branches were integrated into the existing **private** `main` through [PR #5](https://github.com/abinadwan/NajdiLab/pull/5), producing merge commit `fdebe50aaf1a20d2f2478eed8fc979cac8372347`. The four development branch refs were subsequently deleted; PRs #2, #3 and #4 are closed. No branch rewrite, repository visibility change, public repository, release, active LICENSE/NOTICE, production deployment, data migration, model download or training is implied.
+
+Earlier passages describing an unmerged Draft PR, a frozen main SHA or a next review of Draft PR #4 remain **dated evidence of the earlier preparation and acceptance stages**, not current checkout instructions. The authoritative live repository summary is [PROJECT_STATUS](../PROJECT_STATUS.md); installation uses [main](installation.md). The exact Core candidate evidence, owner-approved **target-only** Apache-2.0 choice (2026-10-28), and unresolved legal/history/privacy/third-party rights gates remain unchanged. A future clean public snapshot still requires its own approvals.

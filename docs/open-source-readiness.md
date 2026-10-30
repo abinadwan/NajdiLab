@@ -2,14 +2,14 @@
 
 Current decision package: [public release decision](public-release-decision.md), [privacy/history audit](privacy-history-review.md), [distribution policy](dataset-model-distribution-policy.md) and [dependency matrix](dependency-licensing-matrix.md). PR #1 was already merged before the current audit; references below to preparation as an unmerged draft describe the earlier state, not the current repository. Publication is still blocked.
 
-Decision: **NOT READY — BLOCKERS REMAIN.** English-readiness work is a reviewable preparation branch, not publication, merge, deployment, a history rewrite or a license grant. Private production and backup state remain outside this work.
+Decision: **NOT READY — BLOCKERS REMAIN.** The earlier English-readiness preparation branch has now been privately integrated into `main` through [PR #5](https://github.com/abinadwan/NajdiLab/pull/5) (2026-10-30). This is **not** publication, production deployment, a history rewrite or a license grant. Private production and backup state remain outside the documentation integration; earlier branch-scoped evidence is historical.
 
 ## Publication gates
 
 | Gate | State | Required closure |
 |---|---|---|
 | English application/documentation | Verified in development; publication gates remain | See verification-and-readiness-report.md and the Arabic exception inventory |
-| Source license | BLOCKED | Owner selects license and copyright attribution; confirms authority over contributions |
+| Source license | TARGET Apache-2.0 APPROVED FOR FUTURE CORE; NOT ACTIVE | Confirm holder/year/scope, contributor/third-party rights and exact LICENSE/NOTICE adoption; target approval is not a grant |
 | Reachable Git history | BLOCKED | Owner explicitly decides how to handle historical personal identifiers, machine paths and operational/backup disclosures; document review of all publishable refs |
 | Tracked data-bearing source | BLOCKED | Determine rights/privacy disposition of historical corpus/review corrections embedded in source; preserve their content pending owner decision |
 | Data/model/dependency rights | OPEN | Exact artifact/version review, data consent/provenance and distribution notices |
@@ -29,6 +29,6 @@ Dated audits, ADRs, approval packages and the [historical project record](histor
 
 Review [license choices](license-options.md), [dependencies](dependencies-and-attribution.md), [contributing](../CONTRIBUTING.md) and the branch worklog before any owner publication decision. Sensitive audit details belong in private evidence, not public documentation.
 
-Current branch evidence: [verification report](verification-and-readiness-report.md) and [Arabic exceptions](arabic-localization-exceptions.md).
+Dated branch evidence (2026-10-27): [verification report](verification-and-readiness-report.md) and [Arabic exceptions](arabic-localization-exceptions.md).
 
 Current multi-track state: [PROJECT_STATUS](../PROJECT_STATUS.md). Full installation/handover package: [documentation index](documentation-index.md). Conduct/security reporting contacts and exact distribution notices require owner designation before public launch.

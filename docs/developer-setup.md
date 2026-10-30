@@ -1,6 +1,6 @@
 # Developer setup and first change
 
-Clone the authorized source, select the preparation branch while unmerged and read [PROJECT_STATUS](../PROJECT_STATUS.md). Use a disposable checkout; no tests/tools may target production. Follow [installation](installation.md). There is no frontend build or core package installation.
+Clone the authorized private repository on the default `main` branch and read [PROJECT_STATUS](../PROJECT_STATUS.md). The earlier preparation branches have been merged and deleted; do not select them. Use a disposable checkout; no tests/tools may target production. Follow [installation](installation.md). The preserved original application has no frontend build or core package installation. For the separate reduced source-only candidate, use [Core onboarding](public-core-user-guide.md).
 
 ## Test tooling
 

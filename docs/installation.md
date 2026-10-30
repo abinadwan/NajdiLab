@@ -9,7 +9,7 @@ git clone https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
 ```
 
-For this unmerged preparation select `git switch dev/open-source-final-readiness`. PR #1 is already merged; this combined branch remains unmerged until separate approval. A clone downloads code; it does not install dependencies or restore data.
+The default `main` branch already contains the private preparation changes through [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5). The deleted `dev/*` branches are not installation targets. A clone downloads code; it does not install dependencies or restore data. These commands operate the preserved original application, **not** the separately built [reduced Core candidate](public-core-user-guide.md). The repository remains private, and public release is not authorized.
 
 ## Windows PowerShell
 

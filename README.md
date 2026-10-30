@@ -72,7 +72,7 @@ The [owner-supplied conceptual illustration](docs/architecture-diagrams.md#b-ori
 
 **NOT READY — BLOCKERS REMAIN.** The repository is Private and requires authorized access. No software release number or active source license has been approved. Do not redistribute source or research artifacts based on this preparation.
 
-[PROJECT_STATUS.md](PROJECT_STATUS.md) is the authoritative multi-track status reference. The [release decision](docs/public-release-decision.md) records current evidence and owner decisions. PR #1 was previously merged; this combined preparation uses `dev/open-source-final-readiness` and a separate Draft PR. Historical draft/main statements in dated reports describe the earlier work.
+[PROJECT_STATUS.md](PROJECT_STATUS.md) is the authoritative multi-track status reference. The [release decision](docs/public-release-decision.md) records the publication gates. The private `main` branch includes the four stacked development branches through [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5) (2026-10-30); their branch refs were subsequently deleted. Earlier branch/PR states in dated reports are historical evidence, not current checkout instructions. This integration does **not** authorize publication, license activation, training or production deployment.
 
 ## Interface preview
 
@@ -141,7 +141,6 @@ Use a fresh disposable checkout first. Review [installation](docs/installation.m
 ```powershell
 git clone https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
-git switch dev/open-source-final-readiness
 python --version
 Get-Content .\scripts\install.ps1
 .\scripts\install.ps1
@@ -155,14 +154,13 @@ If local script policy blocks a reviewed script, use `python .\scripts\install.p
 ```bash
 git clone https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
-git switch dev/open-source-final-readiness
 python3 --version
 cat scripts/install.sh
 sh ./scripts/install.sh
 sh ./run.sh
 ```
 
-Open **http://127.0.0.1:8770**. Ctrl+C stops the instance in that terminal. The branch-selection step applies while this Draft PR is unmerged. Do not use the deleted former preparation branch.
+Open **http://127.0.0.1:8770**. Ctrl+C stops the instance in that terminal. These commands use the default `main` branch and launch the preserved original application. The separate reduced Core candidate must be built and installed independently; see [Core onboarding](docs/public-core-user-guide.md).
 
 Setup creates an isolated `.venv` without downloading pip packages, verifies the interpreter and creates local state directories. It copies `.env.example` only when `.env` is absent; existing settings/databases and complete environments are preserved. An incomplete environment fails rather than being silently replaced. Re-running setup is supported; it does not initialize the database.
 
@@ -330,7 +328,7 @@ Start with [developer setup](docs/developer-setup.md), [code navigation](docs/co
 
 ## Licensing and attribution
 
-**Actual status: no active source license; owner approval is pending.** Apache-2.0 is recommended subject to ownership and compatibility checks; MIT and BSD-3-Clause alternatives are assessed in [license options](docs/license-options.md). The [license/NOTICE/copyright/contributor proposals](docs/proposals/licensing-approval.md) are inactive. No permission to redistribute is asserted here.
+**Actual status: no active source license.** On 2026-10-28 the owner approved Apache-2.0 as the **target license for a future, separate clean Public Core repository only**; this does not activate a LICENSE, NOTICE or redistribution permission. Copyright holder/year/authority, source scope, third-party compatibility, privacy and required notices still need approval. Historical MIT/BSD-3-Clause alternatives remain documented in [license options](docs/license-options.md), and the [license/NOTICE/copyright/contributor proposals](docs/proposals/licensing-approval.md) are inactive.
 
 Original project: **NajdiLab**. Original repository: https://github.com/abinadwan/NajdiLab . Preserve legally required notices once applicable terms are approved. Visible README/About credit is recommended; Apache-2.0 does not universally mandate a homepage backlink. Data, weights, adapters, templates and third-party components have separate rights. Current source cleanup does not remove historical disclosures; the [history review](docs/privacy-history-review.md) recommends a separately approved clean snapshot after all other gates close.
 

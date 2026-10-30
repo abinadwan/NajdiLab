@@ -1,5 +1,7 @@
 # Unified readiness verification — 2026-10-27
 
+**Historical verification snapshot (2026-10-27):** Branch names, main commit IDs, PR status and exact test commands below describe the original verification run; the four development branches were later integrated into private `main` via [PR #5](https://github.com/abinadwan/NajdiLab/pull/5) and deleted (2026-10-30). For current installation use [main setup](installation.md). Preserving these dated commands does not claim they work verbatim after branch deletion.
+
 Scope: `dev/open-source-final-readiness`, based on remote main `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`. PR #1 was already merged and the old branch deleted before this task. No open PR existed at reconciliation. The local commit `5ac0f2b99bef445e119e4bdb7fb5289464947de9` was present; its parent tree exactly matched main. Its 14-file documentation diff was reviewed and incorporated as `5d9fde8`; the old branch/commit remain preserved. The initial working tree was clean and there was one local worktree. No governance conclusion about who authorized the earlier merge is inferred.
 
 ## Environment and reproducible checks

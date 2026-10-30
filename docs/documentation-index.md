@@ -1,6 +1,8 @@
 # Documentation inventory
 
-Current combined work: [unified verification](unified-readiness-verification.md), [release decision](public-release-decision.md), [history review](privacy-history-review.md), [rights matrix](dependency-licensing-matrix.md) and [source-only asset policy](dataset-model-distribution-policy.md).
+**Current entry points (2026-10-30):** [README](../README.md) → [install the private original application from `main`](installation.md) → [developer setup](developer-setup.md) or [optional Hermes integration](hermes-integration.md). The reduced, separately built [Public Core engineering candidate](public-core-user-guide.md) has a different install and feature scope. For current GitHub/PR/release status use [PROJECT_STATUS](../PROJECT_STATUS.md); [PR #5](https://github.com/abinadwan/NajdiLab/pull/5) integrated the prior branches into private `main` and those branch refs were deleted. This is not permission to publish.
+
+Supporting historical evidence: [unified verification](unified-readiness-verification.md), [release decision](public-release-decision.md), [history review](privacy-history-review.md), [rights matrix](dependency-licensing-matrix.md) and [source-only asset policy](dataset-model-distribution-policy.md). Dated PR/branch references in those reports reflect their original review periods.
 
 | Audience | Current English entry points |
 |---|---|
@@ -37,11 +39,11 @@ Developers/maintainers: [public/private boundary and blocked compatibility patch
 
 ## Public core scope review
 
-Owner/product reviewers: [original-versus-candidate feature, UI, module and API matrices](public-core-feature-parity.md), [recommended first-release scope, approval gates and prioritized backlog](public-core-release-scope.md). Developers should use the proposed B02–B06 next phase only after scope approval. This analysis does not migrate features or change the two existing Draft PRs. Original-interface guides/screenshots/architecture above describe the private full application; the mapped candidate has a smaller interface.
+Owner/product reviewers: [original-versus-candidate feature, UI, module and API matrices](public-core-feature-parity.md), [recommended first-release scope, approval gates and prioritized backlog](public-core-release-scope.md). Developers should use the proposed B02–B06 next phase only after scope approval. This dated analysis did not migrate features; the related development branches were subsequently integrated via PR #5 and deleted. Original-interface guides/screenshots/architecture above describe the private full application; the mapped candidate has a smaller interface.
 
 ## Public core Phase 5 engineering
 
-Current implementation reviewers/developers: [milestone execution and rollback](public-core-phase5-execution.md), [finding register](public-core-phase5-issue-register.md), [actual verification evidence](public-core-phase5-verification.md). This candidate-only work continues the approved scope without modifying original code or earlier Draft PRs.
+Current implementation reviewers/developers: [milestone execution and rollback](public-core-phase5-execution.md), [finding register](public-core-phase5-issue-register.md), [actual verification evidence](public-core-phase5-verification.md). This dated candidate-only work preserved original source and the earlier PR evidence; the resulting changes were later integrated into private `main`.
 
 ## Public Core candidate users
 
