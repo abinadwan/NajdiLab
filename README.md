@@ -72,7 +72,7 @@ The [owner-supplied conceptual illustration](docs/architecture-diagrams.md#b-ori
 
 **NOT READY — BLOCKERS REMAIN.** The repository is Private and requires authorized access. No software release number or active source license has been approved. Do not redistribute source or research artifacts based on this preparation.
 
-[PROJECT_STATUS.md](PROJECT_STATUS.md) is the authoritative multi-track status reference. The [release decision](docs/public-release-decision.md) records current evidence and owner decisions. PR #1 was previously merged; this combined preparation uses `dev/open-source-final-readiness` and a separate Draft PR. Historical draft/main statements in dated reports describe the earlier work.
+[PROJECT_STATUS.md](PROJECT_STATUS.md) is the authoritative multi-track status reference. The [release decision](docs/public-release-decision.md) records the publication gates. The private `main` branch includes the four stacked development branches through [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5) (2026-10-30); their branch refs were subsequently deleted. Earlier branch/PR states in dated reports are historical evidence, not current checkout instructions. This integration does **not** authorize publication, license activation, training or production deployment.
 
 ## Interface preview
 
@@ -141,7 +141,6 @@ Use a fresh disposable checkout first. Review [installation](docs/installation.m
 ```powershell
 git clone https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
-git switch dev/open-source-final-readiness
 python --version
 Get-Content .\scripts\install.ps1
 .\scripts\install.ps1
@@ -155,14 +154,13 @@ If local script policy blocks a reviewed script, use `python .\scripts\install.p
 ```bash
 git clone https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
-git switch dev/open-source-final-readiness
 python3 --version
 cat scripts/install.sh
 sh ./scripts/install.sh
 sh ./run.sh
 ```
 
-Open **http://127.0.0.1:8770**. Ctrl+C stops the instance in that terminal. The branch-selection step applies while this Draft PR is unmerged. Do not use the deleted former preparation branch.
+Open **http://127.0.0.1:8770**. Ctrl+C stops the instance in that terminal. These commands use the default `main` branch and launch the preserved original application. The separate reduced Core candidate must be built and installed independently; see [Core onboarding](docs/public-core-user-guide.md).
 
 Setup creates an isolated `.venv` without downloading pip packages, verifies the interpreter and creates local state directories. It copies `.env.example` only when `.env` is absent; existing settings/databases and complete environments are preserved. An incomplete environment fails rather than being silently replaced. Re-running setup is supported; it does not initialize the database.
 
