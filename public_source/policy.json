@@ -308,7 +308,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "9175f77078e903f6f68c88934d96302b1dc88daaefaa753dcebf8566ab73de64"
+      "sha256": "63edbc9573de1505880c78e4072d5ddff3293d06183c73b4325bf97f79106a3f"
     },
     "public_source/extensions.py": {
       "destination": "app/extensions.py",

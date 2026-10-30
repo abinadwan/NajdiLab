@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Core verification link repair (2026-10-31)
+
+- Replaced the deleted `dev/public-core-workflow-completion` verification link in `public_source/README.md` with the existing `main` documentation path.
+- Updated the Core builder SHA-256 pin for the changed README; no runtime behavior, private data, publication status, or licensing changes.
+- Verified the new destination exists in `main` and the original README pin matched before modification. Full candidate build and CI tests require a post-commit run.
+
 ## Unreleased — README technology badges (2026-10-30)
 
 - Added ten centered, linked Shields.io technology/status badges to the main README: enforced Python/SQLite minimums, vanilla JavaScript, HTML5/CSS3, local-first design, dated Core CI verification, optional Hermes integration, private repository status and future-only Apache-2.0 license target.

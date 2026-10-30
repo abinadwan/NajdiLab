@@ -128,7 +128,7 @@ NODE_PATH=../core-browser-tools/node_modules node tests/harness.cjs
 node tests/browser.cjs .
 ```
 
-Set NAJDILAB_BROWSER_EXECUTABLE for your installed browser. Windows PowerShell: set $env:NODE_PATH and $env:NAJDILAB_BROWSER_EXECUTABLE in the session, then run node. Consult the [Phase5 engineering verification](https://github.com/abinadwan/NajdiLab/blob/dev/public-core-workflow-completion/docs/public-core-phase5-verification.md) for actual hosted Windows/Ubuntu outcomes, failures, counts and exact tested commits; observed versions alone are not full acceptance. Browser fixtures/demonstrations are synthetic; none is historical research evidence. See [contribution guidance](CONTRIBUTING.md). No training is needed for any acceptance test.
+Set NAJDILAB_BROWSER_EXECUTABLE for your installed browser. Windows PowerShell: set $env:NODE_PATH and $env:NAJDILAB_BROWSER_EXECUTABLE in the session, then run node. Consult the [Phase5 engineering verification](https://github.com/abinadwan/NajdiLab/blob/main/docs/public-core-phase5-verification.md) for actual hosted Windows/Ubuntu outcomes, failures, counts and exact tested commits; observed versions alone are not full acceptance. Browser fixtures/demonstrations are synthetic; none is historical research evidence. See [contribution guidance](CONTRIBUTING.md). No training is needed for any acceptance test.
 
 ## Troubleshooting and updates
 
