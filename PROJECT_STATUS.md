@@ -63,7 +63,7 @@ Sources: [engineering record](docs/historical-project-status.md), [readiness spr
 
 English UI/docs, Arabic direction/data invariants, Host/Origin/CSRF/JSON controls, authenticated Ingest and escaped export-readiness rendering are implemented in this development branch. Setup/launch and handover additions are in [worklog](docs/worklogs/english-open-source-readiness.md). Exact final counts/commands: [verification](docs/verification-and-readiness-report.md), [installation matrix](docs/installation-verification.md). No production migration, training, history rewrite or backup-volume change occurred.
 
-- AWAITING_APPROVAL: source license/copyright-holder identity; Apache-2.0 recommended, no final LICENSE.
+- TARGET APPROVED / NOT ACTIVE: owner approved Apache-2.0 only as the target for a future clean Core release (2026-10-28); copyright holder/year/authority, exact scope, contributor/third-party rights and NOTICE remain unresolved. No active LICENSE or redistribution grant.
 - BLOCKED: disposition of personal paths/backup/author metadata in history and real curation/evaluator source. Latest-commit cleanup cannot sanitize history.
 - NOT_VERIFIED: exact dependency/transitive, asset, model and data redistribution rights; [review](docs/dependencies-and-attribution.md).
 - BLOCKED for deployment: Ingest secret transition and operational approval; production unchanged.
