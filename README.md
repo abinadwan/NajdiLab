@@ -9,6 +9,7 @@
   <a href="docs/user-guide.md"><img alt="HTML5 interface" src="https://img.shields.io/badge/HTML5-Interface-E34F26?style=for-the-badge&amp;logo=html5&amp;logoColor=white"></a>
   <a href="docs/user-guide.md"><img alt="CSS3 styling" src="https://img.shields.io/badge/CSS3-Styling-1572B6?style=for-the-badge&amp;logo=css3&amp;logoColor=white"></a>
   <a href="docs/architecture.md"><img alt="Local-first application" src="https://img.shields.io/badge/Architecture-Local--first-0D9488?style=for-the-badge"></a>
+  <a href="https://github.com/abinadwan/NajdiLab/actions/workflows/public-source-candidate.yml"><img alt="Core checks verified in October 2026" src="https://img.shields.io/badge/Core%20Tests-Verified%20Oct%202026-16A34A?style=for-the-badge&amp;logo=githubactions&amp;logoColor=white"></a>
 </p>
 <p align="center">
   <a href="docs/hermes-integration.md"><img alt="Optional Hermes integration" src="https://img.shields.io/badge/Hermes-Optional-6366F1?style=for-the-badge"></a>
