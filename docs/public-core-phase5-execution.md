@@ -1,0 +1,203 @@
+# Public Core Phase 5 execution
+
+Date: 2026-10-27. Authorized scope: B02–B06 candidate-only implementation and B07 evidence review. No production, original protected-source changes, training, license activation or publication.
+
+## Goal 0 baseline and execution control
+
+Base: `dc5c82e2e32f647ad7b5551dea7d0fdc7bf4422a`, branch `dev/public-core-release-scope`. Implementation branch: `dev/public-core-workflow-completion`, stacked against that analysis branch. Main is `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`; PR #2 remains open Draft at `d5e8c2d60a84822e4587a7fd47688ed65f29e491`; PR #3 remains open Draft at `555647fcfc6c2d73c792adfa0c02977d4b4cacdd`. Remote references fetched; repository Private; starting working tree clean.
+
+All **270 tracked baseline paths** have private SHA256 evidence. Recalculation identifies **136 protected original files** under app/static/scripts/tests/config/migrations/plans. These originals, media, historical reports and original data remain untouched. Private datasets/weights/production state are absent and their hashes are NOT_VERIFIED. Candidate-specific sources under public_source and its tests/policy may change under this authorization.
+
+The baseline maps **37 selected files + MANIFEST.json**, with a separate server/UI, generic core service/database/dataset libraries, opt-in fictional demo, offline setup and tests. It excludes original server, phase/training/runtime/platform-state implementations, model/data artifacts and Git. New analysis/report paths require explicit exclusion entries; no broad discovery or automatic unknown-file acceptance is permitted.
+
+Confirmed defect: UI sends an incomplete correction body; protected service defaults omitted flags to false. Existing expected_updated_at is optional. Independent review corrected the initial second-resolution hypothesis: original utc_now emits microseconds, but does not itself guarantee a unique revision. Candidate-side transactions must require a token, merge unchanged flags and issue a strictly fresh revision without modifying the shared service. Reads, validation and writes must share the same SQLite write transaction. Restore must preserve restrictive flags and leave training ineligible.
+
+Baseline Linux tests are recorded in [verification](public-core-phase5-verification.md). Earlier scope analysis retained the failing privacy probe. Execution sequence: reproduce and fix flags/concurrency; contextual browser review; read-only readiness/version/quality; constrained artifacts and backup; candidate docs/screenshots/architecture; deterministic exact-candidate and cross-platform acceptance; selected-content rights and independent final review. Milestones receive focused commits; their SHAs and evidence are appended here.
+
+## Safety and rollback
+
+No original protected modules or original tests are edited. No proposed SQL is moved into migrations. Model/historical routes remain unavailable, with no extension discovery. All tests/demos use independently fictional records and disposable candidate-local storage. Existing PRs/main/visibility remain unchanged. Roll back candidate changes with forward reverts of milestone commits and their reviewed policy pins; retain all user-created records and failed evidence. Restore backups only into a separate disposable location.
+
+## Goal ledger
+
+| Goal | Status | Evidence / commit |
+|---|---|---|
+| 0 Baseline | PASS | Reconciled refs; 270-path / 136 protected hashes; baseline tests below |
+| 1 Privacy/staleness | PASS | fa2170b backend + Goal2 real browser closure |
+| 2 Contextual review | PASS | 37 tests/31 subtests and real Chromium workflow |
+| 3 Dataset inspection | PASS | 53 tests/34 subtests + actual browser readiness/version workflow |
+| 4 Artifacts/backup | PASS | 64 tests/50 subtests + real download/backup/restore |
+| 5 Docs/UI | PASS | 68-file exact candidate64/50; real browser/recovery; editable SVG/Mermaid and eight captures |
+| 6 Cross-platform | PASS | Final74-file source e03a640: Windows/Ubuntu73PASS/68subtests, builder11/18 and real browser/recovery PASS |
+| 7 Rights | PASS — decision package | aec3950 plus exact selected inventory refresh; ownership/license/history remain blocked |
+| 8 End-to-end acceptance | PASS |22-step assertion mapping; actual browser/API/original/backup/restore evidence on both hosted OSes |
+| 9 Independent review | PASS | Late legacy bypass reproduced/fixed/reviewed;30 engineering closures; legal gateP5-05 remains blocked |
+
+## Goal 1 — atomic review safety boundary
+
+- Candidate files: reviews.py, server.py, initial UI safety patch, review/support tests and explicit policy selections. No protected module edited. Mandatory expected_updated_at and BEGIN IMMEDIATE cover read/compare/merge/validation/write/revision/readback. Omitted flags/notes/tags/reviewer remain unchanged; strict types reject ambiguous booleans; restrictive flags force training ineligible. Revisions strictly advance beyond stored time.
+- All direct mutation routes use the wrapper. Approve/generic save cannot discard a saved overlay. Exclude preserves corrected text and decision and sets exclusion; restore preserves restrictions and is PENDING/ineligible. A restored pending overlay must be explicitly resolved with exclusion selected before re-excluding; controlled400 has zero writes. Existing schemas only; unexpected review_events fails closed instead of activating it. Complete event history is not claimed.
+- RED evidence: initial five failing cases plus four malformed subtests; three approval-bypass failures; four independent-review lifecycle/provenance failures; restored-overlay refusal test failed on prior code. Final exact candidate: **33 passed / 31 subtests**, zero skips. Independent reviewer exercised lifecycle, future-clock revision, no-discard and no-write rejection and found no remaining Critical/Important backend issue. Visual acceptance remains pending Goal2; initial UI already sends revision and changed fields only.
+- Risks/rollback: current-state SQLite schema has no full audit sequence. Forward revert this candidate unit/pins together, preserve DB/overlay data. Original history/modules unaffected.
+
+## Goal 2 — contextual review acceptance
+
+- New read-only list/detail view (core_views), contextual candidate UI and browser/HTTP tests; original UI/assets remain unchanged. Conversation search/detail, user/context/original, saved correction/type/notes/reviewer/flags, filters, approve/correct/exclude/restore and explicit saved/unsaved state are operational.
+- RED: three missing-view cases; new missing-database detail probe failed because writable shared connect created state; candidate mode=ro wrapper fixed it. Independent review exposed same-page draft-loss and in-flight overwrite hazards. Browser regression reproduced the dirty-loss exclusion, then confirmed same-page preservation, explicit discard reset and frozen editor/reload during delayed real HTTP writes. Serialized selection prevents out-of-order detail rendering.
+- Exact candidate: **37 passed / 31 subtests**, zero skips. Real Chromium acceptance PASS: fresh offline install, conversations/context, Arabic and HTML-like inert text, correction/privacy persistence, concurrent stale conflict retains draft, safe reload, exclude, approve, restart and browser readback, 390px no-overflow, shutdown. Independent reviewer found no remaining Critical/Important issues in this boundary. Goals1–2 accepted.
+- Retained intermediate browser failures: initial missing UI, selector visibility/row-load/list-refresh synchronization, and reusing a just-closed port during OS TIME_WAIT. Tests now await actual row/save readiness and restart with persisted storage on an explicitly chosen new free port. No port/authentication protection weakened. This does not claim immediate same-port reuse on every OS.
+- Rollback: revert candidate UI/views/routes/tests/pins together; retain stored decisions and private artifacts. No schema change; no full event-history guarantee.
+
+## Goal 3 — dataset preparation and inspection
+
+- Goal2 commit `826896c`. Candidate-only datasets/snapshot/storage modules, routes, UI diagnostics, independently fictional 32-record workshop, tests and policy selections. No source record/decision is silently reclassified. Workshop requires --confirm-disposable --workshop before first launch, leaves all decisions PENDING and never auto-seeds.
+- Readiness uses read-only SQLite and existing pure split/dedup/validation helpers. Candidate now requires at least20 final records, >=3 holdout conversations and actual10–15% holdout after dedup. This strengthens the original service's under20 exception; it does not weaken existing gates. Private flags are checked for all selected source types and earlier conversational context. Restricted context is blocked, never silently removed.
+- New managed-version inspection checks registered manifest equality, exact files/counts/SHA256 and regular local paths; diagnostics consume verified in-memory bytes. Actual evaluation_holdout.jsonl is adapted only in memory for generic quality checks; strict assistant-only masks apply to train/multi/holdout. Balance counts use the actual format. Empty holdout, insufficient diversity/fraction or inconsistent totals report BLOCKED.
+- First release prepares conversational SFT only. Direct/preference preparation fails clearly before writes (manual editing deferred B08); existing manual privacy checks still run. No training/runtime is introduced. Full_archive.json created by unchanged generic export contains all local records and remains private; Goal4 will refuse its delivery.
+- Independent review found restricted-context leakage, manual privacy, export-root links, old holdout naming, weak training-mask and empty-holdout false READY cases. Each received RED regression evidence before fix. Snapshot interface initially missed binary/text open variants (four integration failures on each attempt); fixed read-only adapters. The first manual-privacy RED used an incomplete fixture; corrected required source/language fields, then reproduced the actual bypass. These failures remain in verification history.
+- One server per storage root enforced with nonblocking OS advisory lock; per-server POST lock serializes supported mutations/preparation. A second port cannot open the same storage; no stale lock deletion. Out-of-band SQLite/library writers are unsupported and cannot be treated as a database-wide transaction guarantee. No blocked schema activated.
+- Final exact profile49 files: **53 passed / 34 subtests**, zero skips, 7.87s. Actual Chromium review + dataset acceptance PASS: explicit workshop, review/flags/conflict/restart, resolve synthetic decisions, inspect readiness, prepare version, inspect SHA256/quality/holdout. Independent code review found no remaining Critical/Important findings in this boundary.
+- Rollback: revert candidate dataset/guard/UI/pins unit; keep generated data and backups private. Prior versions are never rewritten to satisfy new checks; insufficient older versions become BLOCKED on inspection.
+
+## Goal 4 — constrained artifacts and coherent recovery
+
+- Goal3 commit `35863c9`. Added fixed-name JSONL artifact handler, attachment/nosniff headers, explicit browser selection and redistribution warning. Only five manifest-authorized data files can be retrieved; full_archive.json, metadata reports, manifest download, DB, secrets, weights and arbitrary paths are denied. Served bytes come from the verified snapshot.
+- New candidate backup/restore scripts; original scripts/backup.py remains byte-identical and is excluded in favor of the mapped wrapper. SQLite online snapshot determines registered versions; only their validated bytes are backed up. Unregistered/staging files are ignored; linked files and bounded-size violations refuse. Exact manifest bytes are captured once, not reread after verification. Private final ZIP uses exclusive creation/no-replace linking and owner-only permissions; cleanup tracks ownership.
+- Restore checks ZIP inventory/type/CRC/size, read-only SQLite integrity/FKs, required version JSONL inventory/counts/hashes and registry equality. It validates before exclusively reserving a new destination, copies with xb creation and never renames over an existing directory. IO-partial output retains .RESTORE_INCOMPLETE; startup refuses that marker. Do not overwrite/reuse partial results; preserve the backup and choose a new destination. Semantically blocked versions may be preserved; restore is not release validation.
+- RED: initial artifact/restore operations absent; then independent review found incoherent live-export copying and incomplete restore inventory (two true regressions), plus no-overwrite race. Added ownership/resource tests; an introduced archive/member variable shadow caused six failures and initially masked the collision test. Fixed descriptive names and confirmed a controlled cleanup mutation deletes unowned evidence, while the real ownership guard preserves it. Resource budgets apply before DB reads and incrementally before each version blob. No failure evidence removed.
+- Final52-file profile: **64 passed / 50 subtests**, zero skips, 13.95s, including actual concurrent preparation/backup and restore. Real Chromium PASS includes selected download SHA, archive refusal, online backup, separate restore, all conversation/message/review/tag/version rows and dataset hashes equal, private/training routes unavailable and shutdown. Independent review accepted with no remaining Critical/Important findings.
+- Risks/rollback: backup bounds16MiB/file64MiB total; no model/external-runtime recovery. Deliberate external SQLite/filesystem writers remain outside the single-operator contract. Forward-revert candidate artifact/backup/restore/pins; keep all private backups/data and original script. No active license or publication.
+
+## Goal5 — candidate-specific onboarding and honest visuals
+
+- Goal4 commit8d9b899. Added Core README, guide, API/contribution/architecture pages; preserved minimal README as dated historical initial-profile.md. All original full-platform documentation/media remain unchanged. Added original editable SVG and standard-library generator, with no external icons/fonts/resources.
+- Eight actual Chromium captures use only opt-in fictional Arabic workshop data. Desktop1440px and narrow390px exercised; long Arabic correction, inert HTML, empty/blocked/saved/conflict states are real. Narrow SVG requires zoom/open; no claim of full-width mobile readability. Actual quality WARNING includes33 missing-provenance findings; grouped summary preserves full report.
+- Builder retains raw pinned PNG bytes only under docs/images after bounded decode/chunk/CRC/metadata checks. SVG XML/style/attribute/resource checks reject active content. Independent review discovered stylesheet PI and xml:base bypasses: two RED subtests now pass. Initial diagram file:// renderer was policy-blocked; rendering inline SVG in Chromium succeeded, desktop/narrow visually inspected. Existing media untouched.
+- README restore ordering initially conflicted with installer-created directories. Fixed copy validated restored state into a separate fresh candidate BEFORE installation. Actual browser test verifies installation preserves it, new-port launch, flags/correction/version readback and browser display. Hosted OS evidence is explicitly pending Goal6.
+- Rollback: ordinary forward revert of candidate docs/UI/builder/pins, preserve local backups/versions and original guides. New assets convey no rights clearance.
+
+Goal5 verification completed: exact68-file profile64 passed/50 subtests/zero skips; builder9 passed/16 subtests; original270 retained/protected136 identical; root97 and candidate7 Markdown files resolve. SVG generator matches bytes, Mermaid12 syntax+render PASS; Chromium SVG desktop/narrow rendered and visually inspected. An additional CSS image-set bypass was reproduced RED, then restricted to fragment-only url() functions. All failed attempts retained privately.
+
+## Goal6 — exact-candidate security and cross-platform acceptance
+
+- Goal5 commit7f199d3. Added mandatory integrity-selected disposable copies in Python and Node acceptance harnesses; wrong profile/manifest, tampered file and traversal fail before execution, unlisted data never copied. A manifest is not an authenticity signature. Pure fake-source probes never run the original application. Installer/port/unsupported-runtime/HMAC cases added. Windows contract now launches real run.ps1 and stops only its own process tree; Linux uses run.sh.
+- Seven unsupported-method RED subtests reproduced generic501. Candidate now emits boundary-first controlled405/Allow, with no HEAD body. Malformed JSON/types/UTF8 and declared oversize return controlled400 without loading the body. Existing Host/Origin/CSRF/authentication remain enforced.
+- Two pytest runtime dependency probes were RED; import checker now permits pytest only in tests. Guard initially failed on missing module, then overbroad hidden-file rejection caused1failed/42errors; fixed explicit reviewed .env.example/.gitignore exceptions without allowing .env or Git. Subsequent suite66/62 PASS.
+- New real shell-install test found missing install.sh/install.ps1 (1FAIL/69PASS), which Python-only tests had not detected. Reviewed original wrappers and selected unchanged canonical bytes; no protected source edited. Exact74-file candidate now70PASS/62subtests/zeroSKIP,16.59s. Linux original suite277PASS/24SKIP/68subtests, existing warning. Hosted Ubuntu/Windows real browser workflow added; results pending before this goal can pass.
+- Rollback: revert candidate/harness/workflow/policy changes as a unit, preserve original source and local data. Tests stop only the subprocess they create. No training/dependency runtime/model download, artifact upload or production operation.
+
+## Goal7 — independent rights/publication package
+
+Reviewed the exact74 selected sources/assets and generated a separate local clean snapshot, manifest eabd5ba88e8a516c11b5e1d1fe384f7fd56f4b01d6413ed85af74aeb970c637e. Tagged Python/SQLite/pytest/puppeteer source license texts were freshly retrieved; external binaries/transitives remain NOT_VERIFIED. New [rights/inventory/owner package](public-core-phase5-rights.md) distinguishes technical packaging, bounded privacy scans, ownership/license/asset/distribution approvals and historical Git. Unchanged v007-named helper retains no real records but legacy labels/defaults require owner disposition. No active LICENSE/NOTICE, public snapshot, model/runtime or private records distributed. Final source changes require refreshing exact inventory/hash; Windows acceptance remains under investigation independently. Rollback preserves restricted history and uses forward revert, never visibility/history/license changes.
+
+### Goal6 Windows corrective continuation
+
+Hosted ea2347f failed5/65PASS: three fixture encoding defects, two valid-restore refusals. Explicit UTF-8 closed all three on78dcedd (68PASS/2FAIL). Direct-function diagnostics identify strict canonical comparison on the newly allocated temporary staging root; a real nonlinked alias test reproduces the rejection on Linux. Normalizing only the owned new stage fixes it without changing user-path/link/hash/exclusive-destination rules. Local exact candidate now71PASS/62subtests/zeroSKIP,15.94s. Final hosted result remains pending; earlier failing runs and issueP5-29 remain visible. README now links current verification rather than asserting a pending/passing hosted state that can become stale.
+
+### Goal9 reopened acceptance boundary: legacy native-ingest override
+
+Final review found the inherited compatibility environment flag can violate Core's credential-required contract; preserved helper intentionally supports it for the original application. Raw negative requests and actual valid fictional ingestion reproduced the bypass before DB-row assertions. Added candidate-only503 configuration refusal, with/without credentials on both native paths, prior to shared validation/parse/DB; no global environment mutation or protected-source change. NewP5-31 remains IN_PROGRESS until exact local/Windows/Ubuntu acceptance passes; earlier successful4513686 evidence is retained. Roll back this wrapper/tests/docs/pin unit only; never deploy a credential transition to production.
+
+## Final Phase5 engineering verdict
+
+**ENGINEERING PASS — RELEASE GATES REMAIN**. Goals0–9 completed within the authorized local Core boundary. Publication remains **NOT READY — BLOCKERS REMAIN**. No protected source/data, production, main/earlier PR, license or visibility action is authorized or performed by this verdict.
+
+| Goal | Accepted result / evidence | Implementation/evidence commit |
+|---|---|---|
+|0 Baseline |270 retained paths; actual136 protected hashes; baseline original277/24SKIP and Core22/13subtests |0a95f54 |
+|1 Correction/privacy |Atomic mandatory revision, flags/notes/reviewer preservation, immutable originals; regression + browser |fa2170b |
+|2 Contextual review |Conversations/context/search/editor/approve/exclude/restore, safe draft/conflict/Arabic rendering |826896c |
+|3 Readiness/version |Strict privacy/context/split/mask/dedup, read-only verified-byte quality/balance/holdout |35863c9 |
+|4 Artifact/recovery |Fixed JSONL download, coherent backup, separate restore, exclusive bounded containment |8d9b899; Windows owned-stage fix4513686 |
+|5 Docs/UI |Separate Core guides/API/architecture,8 real screenshots and editable SVG; originals retained |7f199d3; measured capture captione03a640 |
+|6 Cross-platform |Exact final73tests/68subtests, builder11/18, actual browser/harness on Windows and Ubuntu |ea2347f; UTF8 diagnostics78dcedd;4513686; finalb9a3071/10907b1/e03a640 |
+|7 Rights |Exact74-source inventory, tagged dependency evidence, clean snapshot and inactive owner package |aec3950; final inventory in this evidence continuation |
+|8 User acceptance |All22 scenario steps observed/asserted in exact candidate; same-schema fresh-source restore resume |e03a640 tested source; final verification ledger |
+|9 Review |Independent code/isolation/rights reviews; late legacy bypass reproduced, fixed and rechecked; no open P0 |b9a3071/10907b1; final finding/verification ledger |
+
+Current source profile: **e03a640c08554ee8e171faeed0fb8686f324dbfa**,74 selected files plus MANIFEST.json, SHA256 **cc94baf399dd66056d8a64b9150237cf5d14ffe651cd67fd9839547138c94044**. Final evidence/workflow-only commits preserve this package byte-for-byte. Earlier profiles/counts/failures above are historical checkpoints, not current unresolved engineering status.
+
+Final source acceptance: [candidate Windows/Ubuntu40532489241](https://github.com/abinadwan/NajdiLab/actions/runs/40532489241), [separate preserved-source40532489260](https://github.com/abinadwan/NajdiLab/actions/runs/40532489260). Reports identify actual PASS/FAIL/SKIP and runtime versions. Final metadata-head checks repeat the same profile on PR#4; no generated package is uploaded.
+
+### Preservation, risk and rollback
+
+All270 starting paths retained; all136 original protected worktree hashes and12 original documentation-media hashes unchanged. Starting CRLF PowerShell worktree bytes were preserved; comparisons against canonical Git text are not substituted for the private starting-byte baseline. Frozen original datasets/checkpoints/private databases are inaccessible and NOT_VERIFIED, never modified or claimed verified. Source-only snapshot omits Git and private assets; historical repository exposure remains uncleared.
+
+Retain local single-operator trust, explicit flags/consent,20-final-record/holdout gates,16MiB/file64MiB inspection/recovery budgets and all authentication checks. No append-only event log, signed build authenticity, HMAC replay freshness, public-network service, RBAC or compatibility with arbitrary old private databases is claimed. Proposed migrations and production Ingest transition remain excluded.
+
+Rollback each candidate commit/pins/tests/docs as a reviewed unit with ordinary forward reverts; keep all originals, private state and backups. A used installation is not a pristine package. Restore only to a new separate destination, copy validated state into a fresh same-schema candidate before installation, and never overwrite live data. Do not reset/force-push, merge, change visibility, publish, activate licensing or train.
+
+Smallest next approved action: owner review of the completed Draft#4 and [exact rights package](public-core-phase5-rights.md), deciding ownership/holder/year/notices/residual helper labels and future clean-snapshot scope/destination. B08–B12 remain separate proposed work; no model/training action starts automatically.
+
+## Final changed-file inventory
+
+66 paths relative to analysisdc5c82e; no deleted paths and no protected-original code changes. Full review: [Draft#4 files](https://github.com/abinadwan/NajdiLab/pull/4/files). A=addition,M=authorized candidate/doc/workflow update. Source manifest inventory is separate from this implementation diff.
+
+```text
+M	.github/workflows/public-source-candidate.yml
+M	CHANGELOG.md
+M	PROJECT_STATUS.md
+M	SECURITY.md
+M	docs/asset-provenance.md
+M	docs/dependencies-and-attribution.md
+M	docs/documentation-index.md
+M	docs/public-core-feature-parity.md
+A	docs/public-core-phase5-execution.md
+A	docs/public-core-phase5-issue-register.md
+A	docs/public-core-phase5-rights.md
+A	docs/public-core-phase5-verification.md
+M	docs/public-core-release-scope.md
+A	docs/public-core-user-guide.md
+M	docs/public-private-boundary.md
+M	docs/public-release-decision.md
+M	docs/public-source-isolation-report.md
+M	docs/source-provenance.md
+M	docs/worklogs/public-release-remediation.md
+A	public_source/CONTRIBUTING.md
+M	public_source/README.md
+A	public_source/artifacts.py
+A	public_source/backup.py
+M	public_source/build.py
+A	public_source/datasets.py
+A	public_source/docs/api.md
+A	public_source/docs/architecture.md
+A	public_source/docs/generate_architecture.py
+A	public_source/docs/images/artifact-access.png
+A	public_source/docs/images/conversation-review.png
+A	public_source/docs/images/core-architecture.svg
+A	public_source/docs/images/correction-editor.png
+A	public_source/docs/images/dataset-readiness.png
+A	public_source/docs/images/dataset-version.png
+A	public_source/docs/images/overview.png
+A	public_source/docs/images/quality-findings.png
+A	public_source/docs/images/saved-decision.png
+A	public_source/docs/initial-profile.md
+A	public_source/docs/screenshots.md
+A	public_source/docs/user-guide.md
+M	public_source/policy.json
+A	public_source/read_views.py
+A	public_source/restore_backup.py
+A	public_source/reviews.py
+M	public_source/server.py
+A	public_source/snapshot.py
+M	public_source/static/app.js
+M	public_source/static/index.html
+M	public_source/static/style.css
+A	public_source/storage.py
+M	public_source/synthetic_demo.py
+A	public_source/synthetic_workshop.json
+A	public_source/tests/__init__.py
+A	public_source/tests/artifacts.py
+A	public_source/tests/browser.cjs
+A	public_source/tests/candidate-copy.cjs
+A	public_source/tests/context.py
+M	public_source/tests/contract.py
+A	public_source/tests/datasets.py
+A	public_source/tests/harness.cjs
+A	public_source/tests/install.py
+A	public_source/tests/package.py
+A	public_source/tests/reviews.py
+M	public_source/tests/security.py
+A	public_source/tests/support.py
+M	public_source/tests/test_builder.py
+```

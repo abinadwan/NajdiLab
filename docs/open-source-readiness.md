@@ -1,5 +1,7 @@
 # Open-source publication readiness
 
+Current decision package: [public release decision](public-release-decision.md), [privacy/history audit](privacy-history-review.md), [distribution policy](dataset-model-distribution-policy.md) and [dependency matrix](dependency-licensing-matrix.md). PR #1 was already merged before the current audit; references below to preparation as an unmerged draft describe the earlier state, not the current repository. Publication is still blocked.
+
 Decision: **NOT READY — BLOCKERS REMAIN.** English-readiness work is a reviewable preparation branch, not publication, merge, deployment, a history rewrite or a license grant. Private production and backup state remain outside this work.
 
 ## Publication gates

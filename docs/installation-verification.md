@@ -1,5 +1,7 @@
 # Installation verification — 2026-10-27
 
+Historical installation record. Current combined-branch checks and updated repository state are in [unified verification](unified-readiness-verification.md). PR #1 is now merged; final paragraphs below describe the earlier delivery state.
+
 All operations used disposable source-only checkouts, paths containing spaces, fresh databases, synthetic content and separate/free loopback ports. Production/Hermes/training services and the existing backup volume were not operated. Exact private paths/logs are excluded from Git.
 
 | Environment / check | Commands / actual result |

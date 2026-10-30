@@ -1,8 +1,8 @@
 # Maintainer handover
 
-Start at [PROJECT_STATUS](../PROJECT_STATUS.md). Current authorization is private preparation, not Corpus implementation, production deployment or training. Exact final proof is in [verification](verification-and-readiness-report.md).
+Start at [PROJECT_STATUS](../PROJECT_STATUS.md). Current authorization is private preparation, not Corpus implementation, production deployment or training. Fresh combined proof is in [unified verification](unified-readiness-verification.md); earlier [verification](verification-and-readiness-report.md) is historical.
 
-1. Clone the original repo using your own authorized GitHub credentials; select dev/english-open-source-readiness while unmerged. Record git rev-parse HEAD and git status; preserve all local work.
+1. Clone the original repo using your own authorized GitHub credentials; select dev/open-source-final-readiness while unmerged. Record git rev-parse HEAD and git status; preserve all local work.
 2. Review setup scripts and follow [installation](installation.md). Core app needs no third-party package or Hermes/Ollama; setup is offline after clone and preserves state.
 3. Select a free loopback port, launch this checkout, verify health/database identity. Ctrl+C stops only this terminal instance; never test on live data.
 4. Follow [developer setup](developer-setup.md), run pytest -rs and read failures/skips/warnings. Private historical checks need authorized restoration; never publish fixtures.

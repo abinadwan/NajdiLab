@@ -1,11 +1,13 @@
 # System requirements and verification scope
 
+Current reproducible evidence: [unified verification](unified-readiness-verification.md). Historical OS checks remain labeled below.
+
 ## Core local web platform
 
 | Item | Requirement / evidence |
 |---|---|
 | Python | Code/launcher minimum 3.11; preparation tested Python 3.12.10 on Windows; Ubuntu/WSL version in installation-verification. Other versions need checks |
-| SQLite | Python sqlite3 with WAL/FKs; SQLite 3.24+ for registry UPSERT; tested builds recorded in verification |
+| SQLite | Python sqlite3 with WAL/FKs; SQLite 3.24+ for registry UPSERT; current Linux build 3.53.1; prior Windows 3.49.1 and Ubuntu/WSL 3.45.1 |
 | Dependencies | Standard library only; no pip, GPU/CUDA, Hermes, Ollama, Node or model required to open app |
 | Tests | Optional requirements-dev.txt; never implicitly installed on launch |
 | Browser | Modern JS/CSS browser; recorded real-browser English/Arabic and themes proof; legacy browsers unverified |
@@ -15,6 +17,8 @@
 | OS | Windows 11 tested. Ubuntu 24.04 under WSL2 only to scope recorded in installation-verification; hosted native Ubuntu source tests passed separately; native deployment, macOS and other distributions/versions not certified |
 
 Each checkout owns its data/registry paths. Keep SQLite and writers on the same OS filesystem; do not share a live DB between Windows/WSL. Setup checks runtime/source only; first launch applies existing migrations and initializes state.
+
+Core CPU/RAM/disk minima are NOT_VERIFIED. Capacity must cover the database/WAL, exports and independent backup/restore copies; no GPU is required.
 
 ## Optional model training
 

@@ -82,3 +82,7 @@ in public issues. If the repository provides private vulnerability reporting,
 use it. Otherwise ask the maintainer for a private reporting channel without
 posting exploit payloads or sensitive evidence publicly. Provide the affected
 version, a minimal reproduction using synthetic data, and the expected boundary.
+
+## Public Core Phase5 candidate boundary
+
+The separate allowlisted candidate adds atomic stale-token/flag preservation, contextual privacy gates, single-storage-instance guard, fixed manifest-verified JSONL delivery and bounded coherent backup/new-location restore. It explicitly refuses inherited legacy unauthenticated-ingest override with503 before shared auth/parse/DB. This changes no protected original helper, running integration or production credential setting. Actual Windows/Ubuntu security/browser acceptance and remaining limitations are in [Phase5 verification](docs/public-core-phase5-verification.md). Local single-operator trust, no RBAC/public-network certification, HMAC replay limits, asserted reviewers and migration-loader debt remain; proposed SQL, models and private extensions are not activated.

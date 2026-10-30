@@ -9,7 +9,7 @@ git clone https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
 ```
 
-For this unmerged preparation select `git switch dev/english-open-source-readiness`. Main remains the previous baseline until separate merge approval. A clone downloads code; it does not install dependencies or restore data.
+For this unmerged preparation select `git switch dev/open-source-final-readiness`. PR #1 is already merged; this combined branch remains unmerged until separate approval. A clone downloads code; it does not install dependencies or restore data.
 
 ## Windows PowerShell
 

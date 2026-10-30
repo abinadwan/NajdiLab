@@ -57,3 +57,17 @@ flowchart LR
 Setup uses scripts/install.py with platform wrappers; launch uses scripts/launch.py, then app.server. Browser JS obtains a process CSRF session and sends JSON; server boundary runs before route handling, domain services enforce data/job gates. UI uses no bundler. SQLite migrations are automatic only for files already in migrations, with known loader limitations. Filesystem dataset registry is implemented; proposed canonical SQL registry/event activation remains blocked. Evaluation uses locked provenance and human decisions; model release is separately gated.
 
 Extend the responsible component in [code map](codebase-navigation.md); preserve API fields/protocol masks and tests before introducing an extension. [API](api-reference.md), [migration guide](database-and-migrations.md), [training guide](dataset-and-training.md) and [handover](maintainer-handover.md) describe implementation versus plans.
+
+## Request handling, frontend and extension boundaries
+
+`app/server.py` validates HTTP authority/origin/request framing before route dispatch and maps domain errors to structured JSON responses. Mutations validate JSON; native Ingest uses `app/http_security.py` bearer/HMAC checks, while browser writes require a process-local CSRF session. `app/service.py` enforces transactional review/ingest operations. Dataset and training errors remain domain-specific; consult the generated [route inventory](api-routes.md) before adding a handler. Exceptions/diagnostics may expose operational details to the trusted local client; they are not safe public logs.
+
+The framework-free frontend uses `static/index.html`, `app.js`, theme and localization scripts. Client calls obtain the session and submit JSON. English shell/layout is LTR; Arabic editors/content use independent RTL/auto direction. Theme controls do not translate stored data. Backend security remains authoritative; disabling a UI control alone is not authorization.
+
+SQLite WAL/foreign keys and `BEGIN IMMEDIATE` protect composite writes; review overlays preserve original records. Existing startup migrations remain automatic and the loader is not atomic/guarded. The public source includes protected historical Phase 3.8/3.9 data-bearing modules imported by server/freeze/resolution paths: see [separation policy](dataset-model-distribution-policy.md). A source-only clone is independently runnable but is not yet cleared for public redistribution.
+
+The [README architecture and workflow diagrams](../README.md#system-architecture) distinguish optional runtime boundaries and blocked future deployment. Model registry/preflight, zero-step Dry Run, distinct Smoke/Full approvals, adapter validation and human evaluation are separate stages. Planned SQL registry/reviewer-event/RBAC work must not be confused with implemented filesystem registry and local CSRF controls.
+
+## Visual and conceptual views
+
+See the [architecture gallery](architecture-diagrams.md) for the new editable SVG, preserved owner illustration, Mermaid/data/schema/security views and documented discrepancies. This technical reference and its existing Mermaid remain unchanged above. [User guide](user-guide.md) and [real synthetic screenshots](screenshots.md) connect concepts to the interface.

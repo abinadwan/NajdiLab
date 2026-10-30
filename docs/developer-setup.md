@@ -29,3 +29,13 @@ Synthetic fixtures are included. Specific historical tests declare private file 
 Use a free NAJDILAB_PORT and no-demo launch. `python -m pdb scripts/launch.py` supports backend debugging with the selected supported interpreter; continuing can initialize this checkout's DB. Browser developer tools inspect plain JS. Local tracebacks may contain private paths/content; redact before sharing. Never log real bearer secrets, conversation HMAC payloads or session values in public issues.
 
 Read [architecture](architecture.md), [code map](codebase-navigation.md), [API](api-reference.md), [migrations](database-and-migrations.md) and [standards](../CONTRIBUTING.md). Create `git switch -c fix/short-purpose`; reproduce a defect with synthetic proof, change the owning layer, run focused and full checks, update docs/status/worklog and inspect git diff --check plus staged files. Preserve Arabic data/API/schema/masks. Submit a PR with rollback and approval gates, not an implicit deployment.
+
+## Extending one endpoint safely
+
+1. Locate the existing route in `docs/api-routes.md` and `app/server.py`; choose the responsible service/dataset/training module using the code map.
+2. Specify the input fields, structured errors, state changes and approval requirements. Add a synthetic test in the owning test file using a temporary database/directory; never use historical IDs as fabricated evidence.
+3. Keep HTTP security before dispatch and enforce authorization in the owning operation. Use SQL parameters, path containment and argv-based subprocess calls; avoid shell interpolation. Preserve Arabic content and API compatibility.
+4. Run focused tests, then the available full source suite with `-rs`; update the API inventory through `python scripts/generate_api_reference.py`, relevant English docs/status/changelog and worklog. Run `python scripts/check_docs.py` and inspect staged files.
+5. Submit a Draft PR with observed results, skips, security/data impact and ordinary-revert rollback. Schema/runtime/training changes retain their separate approval gates.
+
+For a disposable app, use a fresh checkout and a free port; port selection alone does not separate database paths. Existing startup migrations may run only against that disposable state during tests. Missing private historical fixtures must remain explicit skips. [Current evidence](unified-readiness-verification.md) records reproducible commands and environment limits.

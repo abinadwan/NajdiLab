@@ -1,5 +1,7 @@
 # English localization and public release audit
 
+Historical report: its test counts and draft/main-state statements describe the preceding work. The [current release decision](public-release-decision.md) records a fresh clean-clone baseline, independent privacy counts and the observed prior merge/deletion of PR #1's branch. Earlier 317-artifact verification is retained as reported evidence; this task has no access to those private originals and does not claim to reverify them.
+
 Decision: **NOT READY — BLOCKERS REMAIN** for public publication. The private development branch is prepared for owner review; this report does not authorize merge, deployment, a release, history rewriting or a final source license.
 
 ## Changes and localization accounting

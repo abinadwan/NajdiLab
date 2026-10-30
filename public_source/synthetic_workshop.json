@@ -1,0 +1,422 @@
+{
+  "synthetic": true,
+  "description": "Independently fictional demonstration; no private records used. All reviews remain pending.",
+  "turns": [
+    {
+      "conversation_id": "fictional-workshop-card-0",
+      "title": "Fictional workshop card 0",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 0؟",
+      "assistant_response": "اكتب على البطاقة رقم 0 عنوان الرف التجريبي رقم 0، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-1",
+      "title": "Fictional workshop card 1",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 1؟",
+      "assistant_response": "اكتب على البطاقة رقم 1 عنوان الرف التجريبي رقم 1، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-2",
+      "title": "Fictional workshop card 2",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 2؟",
+      "assistant_response": "اكتب على البطاقة رقم 2 عنوان الرف التجريبي رقم 2، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-3",
+      "title": "Fictional workshop card 3",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 3؟",
+      "assistant_response": "اكتب على البطاقة رقم 3 عنوان الرف التجريبي رقم 3، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-4",
+      "title": "Fictional workshop card 4",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 4؟",
+      "assistant_response": "اكتب على البطاقة رقم 4 عنوان الرف التجريبي رقم 4، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-5",
+      "title": "Fictional workshop card 5",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 5؟",
+      "assistant_response": "اكتب على البطاقة رقم 5 عنوان الرف التجريبي رقم 5، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-6",
+      "title": "Fictional workshop card 6",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 6؟",
+      "assistant_response": "اكتب على البطاقة رقم 6 عنوان الرف التجريبي رقم 6، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-7",
+      "title": "Fictional workshop card 7",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 7؟",
+      "assistant_response": "اكتب على البطاقة رقم 7 عنوان الرف التجريبي رقم 7، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-8",
+      "title": "Fictional workshop card 8",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 8؟",
+      "assistant_response": "اكتب على البطاقة رقم 8 عنوان الرف التجريبي رقم 8، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-9",
+      "title": "Fictional workshop card 9",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 9؟",
+      "assistant_response": "اكتب على البطاقة رقم 9 عنوان الرف التجريبي رقم 9، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-10",
+      "title": "Fictional workshop card 10",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 10؟",
+      "assistant_response": "اكتب على البطاقة رقم 10 عنوان الرف التجريبي رقم 10، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-11",
+      "title": "Fictional workshop card 11",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 11؟",
+      "assistant_response": "اكتب على البطاقة رقم 11 عنوان الرف التجريبي رقم 11، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-12",
+      "title": "Fictional workshop card 12",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 12؟",
+      "assistant_response": "اكتب على البطاقة رقم 12 عنوان الرف التجريبي رقم 12، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-13",
+      "title": "Fictional workshop card 13",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 13؟",
+      "assistant_response": "اكتب على البطاقة رقم 13 عنوان الرف التجريبي رقم 13، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-14",
+      "title": "Fictional workshop card 14",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 14؟",
+      "assistant_response": "اكتب على البطاقة رقم 14 عنوان الرف التجريبي رقم 14، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-15",
+      "title": "Fictional workshop card 15",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 15؟",
+      "assistant_response": "اكتب على البطاقة رقم 15 عنوان الرف التجريبي رقم 15، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-16",
+      "title": "Fictional workshop card 16",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 16؟",
+      "assistant_response": "اكتب على البطاقة رقم 16 عنوان الرف التجريبي رقم 16، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-17",
+      "title": "Fictional workshop card 17",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 17؟",
+      "assistant_response": "اكتب على البطاقة رقم 17 عنوان الرف التجريبي رقم 17، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-18",
+      "title": "Fictional workshop card 18",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 18؟",
+      "assistant_response": "اكتب على البطاقة رقم 18 عنوان الرف التجريبي رقم 18، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-19",
+      "title": "Fictional workshop card 19",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 19؟",
+      "assistant_response": "اكتب على البطاقة رقم 19 عنوان الرف التجريبي رقم 19، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-20",
+      "title": "Fictional workshop card 20",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 20؟",
+      "assistant_response": "اكتب على البطاقة رقم 20 عنوان الرف التجريبي رقم 20، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-21",
+      "title": "Fictional workshop card 21",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 21؟",
+      "assistant_response": "اكتب على البطاقة رقم 21 عنوان الرف التجريبي رقم 21، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-22",
+      "title": "Fictional workshop card 22",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 22؟",
+      "assistant_response": "اكتب على البطاقة رقم 22 عنوان الرف التجريبي رقم 22، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-23",
+      "title": "Fictional workshop card 23",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 23؟",
+      "assistant_response": "اكتب على البطاقة رقم 23 عنوان الرف التجريبي رقم 23، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-24",
+      "title": "Fictional workshop card 24",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 24؟",
+      "assistant_response": "اكتب على البطاقة رقم 24 عنوان الرف التجريبي رقم 24، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-25",
+      "title": "Fictional workshop card 25",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 25؟",
+      "assistant_response": "اكتب على البطاقة رقم 25 عنوان الرف التجريبي رقم 25، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-26",
+      "title": "Fictional workshop card 26",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 26؟",
+      "assistant_response": "اكتب على البطاقة رقم 26 عنوان الرف التجريبي رقم 26، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-27",
+      "title": "Fictional workshop card 27",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 27؟",
+      "assistant_response": "اكتب على البطاقة رقم 27 عنوان الرف التجريبي رقم 27، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-28",
+      "title": "Fictional workshop card 28",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 28؟",
+      "assistant_response": "اكتب على البطاقة رقم 28 عنوان الرف التجريبي رقم 28، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-29",
+      "title": "Fictional workshop card 29",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 29؟",
+      "assistant_response": "اكتب على البطاقة رقم 29 عنوان الرف التجريبي رقم 29، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-30",
+      "title": "Fictional workshop card 30",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 30؟",
+      "assistant_response": "اكتب على البطاقة رقم 30 عنوان الرف التجريبي رقم 30، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    },
+    {
+      "conversation_id": "fictional-workshop-card-31",
+      "title": "Fictional workshop card 31",
+      "source": "import",
+      "channel": "cli",
+      "user_message": "وش أكتب على بطاقة الورشة التجريبية رقم 31؟",
+      "assistant_response": "اكتب على البطاقة رقم 31 عنوان الرف التجريبي رقم 31، وخذ مساحة للملاحظة.",
+      "demo": true,
+      "metadata": {
+        "synthetic": true,
+        "purpose": "independently fictional card workshop"
+      }
+    }
+  ]
+}

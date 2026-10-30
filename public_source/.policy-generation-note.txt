@@ -1,0 +1,1 @@
+Policy changes require explicit review: selected source SHA256 and destination map, excluded paths, import closure, tests and protected hashes. No automatic production discovery or publish action. The engineering-only policy is not included in the built candidate.

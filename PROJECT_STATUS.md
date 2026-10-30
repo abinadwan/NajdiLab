@@ -1,5 +1,7 @@
 # NajdiLab project status
 
+Current publication decision: **NOT READY — BLOCKERS REMAIN**; see [public-release-decision](docs/public-release-decision.md) and [fresh verification](docs/unified-readiness-verification.md). Unified preparation branch: `dev/open-source-final-readiness`, based on remote main `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`. PR #1 was already merged and its former branch deleted before this work; that is a governance/process finding, with no inference about authorization. The prior local `5ac0f2b` decision package was inspected and incorporated on the new branch. Earlier original-main/unmerged-PR statements below are historical. No production reconciliation or deployment is implied.
+
 Last reconciliation: **2026-10-27**. This is the authoritative development handover, not operational approval. Stable source baseline: main at `85c39ac3f4e15db916d46db22e05095cca10a286`. Preparation branch: dev/english-open-source-readiness. Publication: **NOT READY — BLOCKERS REMAIN**. Production has not received this branch.
 
 NajdiLab is a local Arabic/Najdi data-review, immutable dataset and controlled training/evaluation platform. The English interface preserves Arabic content and API/data compatibility. Three independent tracks use overlapping phase numbers; they must not be combined.
@@ -71,3 +73,27 @@ English UI/docs, Arabic direction/data invariants, Host/Origin/CSRF/JSON control
 ## Resume safely
 
 Next task: owner review this branch and license/history/data disposition plus security migration plan. Do not start Corpus Phase 1A or training automatically. Follow [maintainer handover](docs/maintainer-handover.md): clone reviewed revision, install locally, test, identify exact blocked gates, make a scoped branch and update status/worklog. Proposed SQL stays outside migrations. Roll back by ordinary revert plus verified private restore; never restore over live state.
+
+## Public-source isolation engineering track
+
+Separate `dev/public-source-isolation` is stacked on the unmerged documentation PR #2. A narrower candidate profile stages a new server/UI and reuses core logic unchanged; original research/training application remains preserved. Historical/model actions are unavailable in the candidate, not newly authorized. [Specification](docs/public-private-boundary.md) and [exact-candidate report](docs/public-source-isolation-report.md) record implementation and remaining gates. No license or publication approval.
+
+## Public core Phase 4 — analysis and scope review, 2026-10-27
+
+Both Draft PRs remain intact: #2 at `d5e8c2d`, #3 at `555647f`; main unchanged and repository Private. The separate analysis branch `dev/public-core-release-scope` inventories 19 original navigation views, the legacy redirect, 27 backend modules and all 101 route branches. The candidate exposes 22 original method/path patterns through 20 branches: 19 implemented core contracts and 3 reduced contracts; the remaining original routes are 42 missing, 27 blocked and 10 private historical workflows. These counts describe API disposition, not UI parity or release readiness.
+
+Proposed first release: local collection/review/correction/eligibility and dataset preparation/inspection, with safe artifact handoff and backup. Generic model configuration/offline planning/evaluation are deferred; real training/runtime/model operations remain unavailable. [Parity evidence](docs/public-core-feature-parity.md) and [scope/backlog B01–B12](docs/public-core-release-scope.md) identify dependencies, acceptance tests, rollback and approvals. No feature migration, protected-source edit or candidate-policy change is made. Fresh Linux candidate: 22 passed / 13 subtests; original: 277 passed / 24 skipped / 68 subtests, one existing warning. Windows/browser/visual results from previous tasks remain historical. Publication: **NOT READY — BLOCKERS REMAIN**.
+
+## Public core Phase 5 — authorized candidate implementation
+
+Dedicated branch `dev/public-core-workflow-completion` starts at scope analysis `dc5c82e`; [Draft PR #4](https://github.com/abinadwan/NajdiLab/pull/4) targets the analysis branch. PR #2/#3 and protected originals remain unchanged. Goal0 baseline commit `0a95f54`; atomic review boundary `fa2170b` fixes mandatory stale-token and field preservation in candidate code only. Contextual conversation/review UI is under acceptance; dataset/artifact/docs/cross-platform milestones follow. Current authoritative [execution](docs/public-core-phase5-execution.md), [issues](docs/public-core-phase5-issue-register.md), [verification](docs/public-core-phase5-verification.md). Engineering work grants no license or publication permission.
+
+## Public Core Phase5 — final authorized engineering acceptance (2026-10-27)
+
+**ENGINEERING PASS — RELEASE GATES REMAIN** for the local source-only Core; publication **NOT READY — BLOCKERS REMAIN**. This supersedes only earlier candidate implementation checkpoints, not historical training/Corpus decisions. Original full-platform source/research/runtime status remains preserved.
+
+Completed approved B02–B06: contextual review and atomic flag/stale protection, strict dataset readiness/quality/version/holdout inspection, constrained manifest-verified JSONL retrieval, coherent private backup/new-location restore, separate actual Core documentation/screenshots/SVG and real Windows/Ubuntu acceptance. Final selected sourcee03a640,74files plus manifest, exact73tests/68subtests, builder11/18 and actual browser/harness PASS on each OS. Native legacy override is explicitly refused in candidate code; original security module/production untouched.
+
+B07 produced exact source/asset/rights inventory and inactive owner/license/attribution decisions, not permission to publish. All31 findings are recorded:30 engineering verified closures,1 blocked legal/history group. All270 baseline paths,136 protected source hashes and12 original media hashes retained/unchanged; inaccessible private originals/frozen versions NOT_VERIFIED. PR#2/#3/main remain unchanged, repository Private, implementation Draft#4 stacked on analysisdc5c82e.
+
+Authoritative [execution/rollback](docs/public-core-phase5-execution.md), [verification/actual CI](docs/public-core-phase5-verification.md), [finding register](docs/public-core-phase5-issue-register.md), [rights/owner package](docs/public-core-phase5-rights.md), [Core user entry point](docs/public-core-user-guide.md). Next action is owner review of rights/holder/year/notices/history/snapshot scope, not training, Corpus Phase1A, license activation or publication. Deferred manual/model/evaluation/full audit/network-hardening work remains a separately scoped B08–B12 decision.

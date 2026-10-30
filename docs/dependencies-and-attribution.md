@@ -1,5 +1,7 @@
 # Dependencies and attribution review
 
+Current release review: [dependency licensing matrix](dependency-licensing-matrix.md) records tagged license-text evidence, distribution obligations, optional AGPL scope and NOT_VERIFIED artifact rights. The earlier inventory below remains background; it is not a clearance.
+
 Status: preliminary source inventory, checked 2026-10-26. The repository has no complete pinned dependency lockfile or final third-party notice bundle. This document identifies evidence and remaining review work; it is not a redistribution clearance or a claim that all dependencies use one license.
 
 ## Local application
@@ -31,3 +33,7 @@ Primary upstream license references include [Transformers](https://github.com/hu
 Pin the exact versions/hashes of anything packaged. Collect the matching LICENSE/NOTICE/copyright files, transitive native-library notices, source and binary distribution conditions and any required modification notices. Record static asset provenance and rights; record the source/revision and terms for model weights, tokenizer/template and adapters independently. Produce an attribution bundle scoped to the actual distribution, preserving upstream notices rather than substituting a generic project license.
 
 Historical runtime measurements in the [preflight runbook](training-preflight-runbook.md) are not a lockfile. The model catalog supplies identity/revision evidence but no automatic legal approval. See [license options](license-options.md) for the distinct source-license decision.
+
+## Phase5 Public Core distribution footprint
+
+The exact Core candidate bundles project source, fictional fixtures/tests/docs and original vector/browser captures, with standard-library runtime imports only. Python/SQLite and pytest/Node/puppeteer/browser test tools are installed externally, not shipped binaries. Matching tagged license texts, required-notice conditions and remaining ownership/runtime/transitive uncertainties are in the [exact selected rights package](public-core-phase5-rights.md). ML/GPU/Hermes/Ollama/llama.cpp/model/tokenizer assets remain excluded; no library license clears their data/model rights. Existing historical matrix and inactive NOTICE are preserved, not activated or treated as universal clearance.

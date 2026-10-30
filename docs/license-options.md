@@ -1,5 +1,7 @@
 # Source license decision: Apache-2.0, MIT or BSD-3-Clause
 
+Final inactive drafts and owner fields: [licensing approval package](proposals/licensing-approval.md), [Apache-2.0 text proposal](proposals/LICENSE-Apache-2.0.txt) and [NOTICE proposal](proposals/NOTICE.txt). No root LICENSE or active NOTICE is introduced.
+
 Status: **OWNER DECISION REQUIRED — no LICENSE has been added.** This is a preparation recommendation, not a license grant or a conclusion that all contributions are cleared. Confirm copyright ownership/contributor authority and the intended public attribution before applying any license. Do not substitute an actual developer identity without consent.
 
 | Option | Main effect | Distribution obligations | Tradeoff |

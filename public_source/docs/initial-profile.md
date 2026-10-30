@@ -1,0 +1,23 @@
+# Historical initial isolated profile
+
+Superseded by Phase5 Core documentation on 2026-10-27. Preserved initial README below; its minimal UI/API and historical test counts are not the current contract. Follow the current [Core README](../README.md) and [user guide](user-guide.md).
+
+# NajdiLab source-only engineering candidate
+
+A local reusable core for Arabic conversation review, original-preserving correction overlays and dataset preparation. This candidate intentionally has a smaller API and interface than the private research application. It contains no historical modules, Git history, weights or research artifacts.
+
+**NOT READY — BLOCKERS REMAIN.** No active source license or permission to publish/redistribute is granted. Source ownership, historical Git privacy and exact third-party/data/model rights remain separate gates. This directory is for isolated engineering verification only.
+
+Python 3.11+ and SQLite 3.24+ are required; core operation uses the standard library. Install: `python scripts/install.py` (Windows) or `python3 scripts/install.py` (Linux). Setup creates a no-pip venv and preserves existing state; first launch initializes only this checkout's existing migrations. No blocked SQL is included.
+
+Optional synthetic setup, **before first launch and only in a fresh disposable candidate**: `python scripts/synthetic_demo.py --confirm-disposable`. Without this explicit flag no data is created; an existing DB is refused. The two library-card examples are independently fictional and are never loaded by startup. Then launch using `python scripts/launch.py`, or this candidate's `.venv` interpreter, and open http://127.0.0.1:8770. Set NAJDILAB_PORT in the launching shell for a separate port. Ctrl+C stops only that instance. Windows: `.venv\Scripts\python.exe scripts\launch.py` or the included `run.ps1`; Linux: `.venv/bin/python scripts/launch.py` or `sh run.sh`.
+
+The small UI supports correction overlays and explicit dataset preparation. Native `POST /api/v1/turn` uses a privately configured `NAJDILAB_INGEST_TOKEN` bearer or HMAC credential; browser mutations require the process CSRF token. `.env` is not automatically loaded. The server binds loopback only; this is a trusted local single-operator tool, not shared/public hosting. HMAC has no replay freshness; the original explicit legacy credential compatibility switch is retained in the reused security module and weakens protection if enabled. Default is fail-closed.
+
+Historical and training routes return 503 / EXTENSION_UNAVAILABLE. Missing other routes return a controlled 404. There is no private loader, production directory discovery, runtime probe, model download or training. Original private implementations and their authorization rules are preserved in the engineering repository; enabling any private adapter requires separate reviewed explicit wiring.
+
+Dataset preparation is not training. Mark only verified eligible local examples; privacy, review-integrity, dedup and holdout rules still apply. The two-row quick demo alone is insufficient for the existing evaluation-split gate. The contract independently creates additional numbered fictional cards to satisfy the unchanged split/eligibility rules; it builds a local version and inspects health/quality. It never touches frozen research versions.
+
+Run `python -m unittest discover -s tests -p test_candidate_contract.py` for the self-contained exact-candidate installation/API/security/Arabic/correction/dataset/backup contract. Optional test tooling: `python -m ensurepip`, `python -m pip install -r requirements-dev.txt`, `python -m pytest -q tests -rs` (use a disposable copy; tests mutate temporary state). Existing reused unit tests cover clean export and quality; the candidate contract covers review overlays. Read skips separately; no historical data checks are claimed here.
+
+MANIFEST.json contains deterministic source hashes and blocked-component status, not a legal clearance. Verify a **pristine** directory using the original builder's `--verify` command before installation; generated environments, caches and databases intentionally make a used directory fail exact verification. Keep a pristine copy for comparison. SHA256 detects changes; it does not authenticate a maliciously replaced manifest. Back up synthetic/local state with `python scripts/backup.py`; restore into a separate directory and verify integrity/FKs/counts. Never overwrite live evidence. No package is uploaded automatically.

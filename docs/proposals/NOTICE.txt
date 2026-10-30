@@ -4,6 +4,7 @@ third-party notices and actual distribution scope.
 
 Proposed project attribution:
 NajdiLab
+Copyright [YEAR TO CONFIRM] [COPYRIGHT HOLDER TO CONFIRM]
 Original project: NajdiLab
 Source repository: https://github.com/abinadwan/NajdiLab
 
