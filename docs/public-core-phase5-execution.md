@@ -4,6 +4,8 @@ Date: 2026-10-27. Authorized scope: B02–B06 candidate-only implementation and 
 
 ## Goal 0 baseline and execution control
 
+**Historical engineering baseline:** The branch/main/PR identifiers below record the Phase 5 work at the time of its checks. These branches have since been merged into private `main` through [PR #5](https://github.com/abinadwan/NajdiLab/pull/5) and deleted (2026-10-30). See [current status](../PROJECT_STATUS.md). This note does not change the verification evidence or release gates.
+
 Base: `dc5c82e2e32f647ad7b5551dea7d0fdc7bf4422a`, branch `dev/public-core-release-scope`. Implementation branch: `dev/public-core-workflow-completion`, stacked against that analysis branch. Main is `2015a085c1de88a9d1fc4bd4e9e5f45b8394c2a2`; PR #2 remains open Draft at `d5e8c2d60a84822e4587a7fd47688ed65f29e491`; PR #3 remains open Draft at `555647fcfc6c2d73c792adfa0c02977d4b4cacdd`. Remote references fetched; repository Private; starting working tree clean.
 
 All **270 tracked baseline paths** have private SHA256 evidence. Recalculation identifies **136 protected original files** under app/static/scripts/tests/config/migrations/plans. These originals, media, historical reports and original data remain untouched. Private datasets/weights/production state are absent and their hashes are NOT_VERIFIED. Candidate-specific sources under public_source and its tests/policy may change under this authorization.
