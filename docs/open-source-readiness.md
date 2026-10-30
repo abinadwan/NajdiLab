@@ -9,7 +9,7 @@ Decision: **NOT READY — BLOCKERS REMAIN.** The earlier English-readiness prepa
 | Gate | State | Required closure |
 |---|---|---|
 | English application/documentation | Verified in development; publication gates remain | See verification-and-readiness-report.md and the Arabic exception inventory |
-| Source license | BLOCKED | Owner selects license and copyright attribution; confirms authority over contributions |
+| Source license | TARGET Apache-2.0 APPROVED FOR FUTURE CORE; NOT ACTIVE | Confirm holder/year/scope, contributor/third-party rights and exact LICENSE/NOTICE adoption; target approval is not a grant |
 | Reachable Git history | BLOCKED | Owner explicitly decides how to handle historical personal identifiers, machine paths and operational/backup disclosures; document review of all publishable refs |
 | Tracked data-bearing source | BLOCKED | Determine rights/privacy disposition of historical corpus/review corrections embedded in source; preserve their content pending owner decision |
 | Data/model/dependency rights | OPEN | Exact artifact/version review, data consent/provenance and distribution notices |
