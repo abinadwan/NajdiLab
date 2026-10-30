@@ -328,7 +328,7 @@ Start with [developer setup](docs/developer-setup.md), [code navigation](docs/co
 
 ## Licensing and attribution
 
-**Actual status: no active source license; owner approval is pending.** Apache-2.0 is recommended subject to ownership and compatibility checks; MIT and BSD-3-Clause alternatives are assessed in [license options](docs/license-options.md). The [license/NOTICE/copyright/contributor proposals](docs/proposals/licensing-approval.md) are inactive. No permission to redistribute is asserted here.
+**Actual status: no active source license.** On 2026-10-28 the owner approved Apache-2.0 as the **target license for a future, separate clean Public Core repository only**; this does not activate a LICENSE, NOTICE or redistribution permission. Copyright holder/year/authority, source scope, third-party compatibility, privacy and required notices still need approval. Historical MIT/BSD-3-Clause alternatives remain documented in [license options](docs/license-options.md), and the [license/NOTICE/copyright/contributor proposals](docs/proposals/licensing-approval.md) are inactive.
 
 Original project: **NajdiLab**. Original repository: https://github.com/abinadwan/NajdiLab . Preserve legally required notices once applicable terms are approved. Visible README/About credit is recommended; Apache-2.0 does not universally mandate a homepage backlink. Data, weights, adapters, templates and third-party components have separate rights. Current source cleanup does not remove historical disclosures; the [history review](docs/privacy-history-review.md) recommends a separately approved clean snapshot after all other gates close.
 
