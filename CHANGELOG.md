@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — private post-merge documentation correction (2026-10-30)
+
+- Integrated the four stacked development branches into private `main` via [PR #5](https://github.com/abinadwan/NajdiLab/pull/5), merge commit `fdebe50aaf1a20d2f2478eed8fc979cac8372347`; deleted the four merged branch refs. PRs #2–#4 are closed. This item records the earlier GitHub operation, not a new merge in this documentation task.
+- Corrected current README/Windows/Linux installation, developer setup and maintainer checkout instructions to use default `main` rather than a deleted preparation branch.
+- Reconciled present-day GitHub state across project status, release decision and documentation navigation, while preserving dated engineering/PR baselines as historical evidence.
+- Documentation-only correction: no application/runtime/data/schema/production/training changes, no publication or active license. Verify current links, instructions and repository checks before merging the documentation PR.
+
 ## Unreleased — Public Core Phase 5 implementation
 
 - Added mandatory atomic review revisions, preserved omitted flags/notes/tags/reviewer, strict boolean validation and safe lifecycle handling in candidate-only code.
