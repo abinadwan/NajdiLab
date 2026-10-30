@@ -2,8 +2,8 @@
 
 ## Unreleased — README technology badges (2026-10-30)
 
-- Added nine centered, linked Shields.io technology/status badges to the main README: enforced Python/SQLite minimums, vanilla JavaScript, HTML5/CSS3, local-first design, optional Hermes integration, private repository status and future-only Apache-2.0 license target.
-- Badge labels reflect verified source capabilities and the documented licensing boundary. No Go, React, TypeScript, Tailwind, Docker-ready or active source-license claims were added. Links point to authoritative project guides/status rather than undocumented features.
+- Added ten centered, linked Shields.io technology/status badges to the main README: enforced Python/SQLite minimums, vanilla JavaScript, HTML5/CSS3, local-first design, dated Core CI verification, optional Hermes integration, private repository status and future-only Apache-2.0 license target.
+- The Core test badge links to the actual private GitHub workflow and explicitly dates the verification rather than claiming perpetual test success. Badge labels reflect verified source capabilities and the documented licensing boundary. No Go, React, TypeScript, Tailwind, Docker-ready or active source-license claims were added. Links point to authoritative project guides/status rather than undocumented features.
 - Presentation-only change: no application code, dependencies, project visibility, licensing, package, model, training, private data or deployment changes. External badge rendering requires access to img.shields.io; documentation content remains readable without it.
 
 ## Unreleased — private post-merge documentation correction (2026-10-30)
