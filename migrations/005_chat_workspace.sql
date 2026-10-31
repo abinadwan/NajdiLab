@@ -1,6 +1,6 @@
 -- Additive only. Existing conversations, reviews, exports and migrations remain.
 BEGIN IMMEDIATE;
-CREATE TABLE chat_sessions (
+CREATE TABLE IF NOT EXISTS chat_sessions (
     id TEXT PRIMARY KEY,
     provider TEXT NOT NULL CHECK(provider IN ('lmstudio','ollama')),
     model TEXT NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE chat_sessions (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
-CREATE TABLE chat_requests (
+CREATE TABLE IF NOT EXISTS chat_requests (
     session_id TEXT NOT NULL REFERENCES chat_sessions(id),
     request_id TEXT NOT NULL,
     payload_hash TEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE chat_requests (
     created_at TEXT NOT NULL,
     PRIMARY KEY(session_id,request_id)
 );
-CREATE TABLE chat_turns (
+CREATE TABLE IF NOT EXISTS chat_turns (
     session_id TEXT NOT NULL,
     request_id TEXT NOT NULL,
     ordinal INTEGER NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE chat_turns (
     UNIQUE(session_id,ordinal),
     FOREIGN KEY(session_id,request_id) REFERENCES chat_requests(session_id,request_id)
 );
-CREATE TRIGGER chat_archive_eligibility BEFORE UPDATE OF training_eligible ON reviews
+CREATE TRIGGER IF NOT EXISTS chat_archive_eligibility BEFORE UPDATE OF training_eligible ON reviews
 WHEN NEW.training_eligible=1 AND EXISTS (
     SELECT 1 FROM messages m JOIN chat_turns t ON t.review_conversation_id=m.conversation_id
     JOIN chat_sessions s ON s.id=t.session_id

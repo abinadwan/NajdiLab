@@ -48,7 +48,7 @@ Implementation head **fc70fd83722f07fbd5361b9147f4c88d7543c155** has all four jo
 - [Source-only candidate](https://github.com/abinadwan/NajdiLab/actions/runs/41242203310): both OS builder **11 passed / 18 subtests**, **74 candidate tests / 68 subtests**, manifest verification, manifest-only harness and candidate browser acceptance pass. This supersedes the local candidate environment failures as hosted-platform evidence, without concealing those local failures.
 - Browser evidence is attached as workflow artifacts. It uses only synthetic own sessions/engines. It is neither actual LM Studio model acceptance nor native app history capture.
 
-The following results-documentation commit changes no product code or selected candidate pins. Inspect the latest PR checks for that commit as well. [Draft PR #11](https://github.com/abinadwan/NajdiLab/pull/11) stays unmerged; no installed update or publication is approved.
+A final migration recovery check reproduced the existing loader's schema-COMMIT/ledger-insert crash gap. New migration005 is now idempotent, so replay preserves completed Chat data if that ledger insert was interrupted. Migrations001–004 remain unchanged. The regression failed before the correction and passes after it; final-head CI is tracked in PR checks. [Draft PR #11](https://github.com/abinadwan/NajdiLab/pull/11) stays unmerged; no installed update or publication is approved.
 
 ## Rollback / retention
 

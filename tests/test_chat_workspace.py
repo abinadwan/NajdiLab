@@ -258,3 +258,15 @@ def test_restart_marks_unfinished_receipts_interrupted_and_never_replays(chat):
         with pytest.raises(IntegrationError):send(reopened,session,request_id=request_id)
         assert not engine.calls and count(db,'chat_turns')==0
     finally:reopened.close()
+
+
+def test_additive_migration_replays_after_schema_commit_before_ledger_record(chat):
+    ws,engine,_,db=chat
+    session=send(ws,new(ws))['session']
+    # Simulate a process exit between migration005 COMMIT and the existing
+    # loader's separate schema_migrations insert. Do not alter older migrations.
+    with connect(db) as conn:
+        conn.execute("DELETE FROM schema_migrations WHERE version='005_chat_workspace.sql'")
+    apply_migrations(db)
+    assert ws.get(session['id'])['turns'][0]['assistant']==engine.content
+    assert count(db,'chat_turns')==1
