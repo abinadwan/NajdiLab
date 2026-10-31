@@ -101,6 +101,7 @@ async function loadView(view) {
   if (view==='phase39-review') return loadPhase39Verification();
   if (view==='exports') return loadExports();
   if (view==='analytics') return loadAnalytics();
+  if (view==='settings') return window.NajdiIntegrations?.load();
 }
 
 async function loadPhase39Verification(){const host=$('#phase39-status'),list=$('#phase39-records');try{const data=await api('/api/v1/phase39/post-edit-verification');state.phase39=data;state.phase39Index=Math.min(state.phase39Index||0,data.records.length-1);$('#nav-phase39').textContent=`${data.summary.verified}/${data.summary.total}`;renderPhase39Verification();}catch(e){host.textContent=`Unable to load verification status: ${e.message}`;host.className='phase38-status error-state';}}

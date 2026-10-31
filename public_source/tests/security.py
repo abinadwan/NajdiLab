@@ -67,4 +67,14 @@ class CandidateSecurity(unittest.TestCase):
         with patch.dict(os.environ,{'NAJDILAB_ALLOW_LEGACY_INGEST':'1','NAJDILAB_INGEST_TOKEN':'fictional-boundary-only'}):
             for path in ['/api/v1/turn','/api/v1/hermes-hook']:
                 with self.subTest(path=path):
-                    self.assertEqual(self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length','7')],b'{broken',path)[0],503)
+                    self.assertEqual(self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length','7')],b'{broken',path)[0],409 if path.endswith('hermes-hook') else 503)
+
+    def test_hermes_blocked_before_body_read_with_or_without_credentials(self):
+        import os
+        from unittest.mock import patch
+        for legacy in ['0','1']:
+            with patch.dict(os.environ,{'NAJDILAB_ALLOW_LEGACY_INGEST':legacy,'NAJDILAB_INGEST_TOKEN':'fictional-boundary-only'}), patch.object(NajdiLabHandler,'body',side_effect=AssertionError('No body parsing')):
+                for extra in [[],[('Authorization','Bearer fictional-boundary-only')]]:
+                    status,headers=self.request('POST',[('Host',self.host),('Content-Type','application/json'),('Content-Length','7'),*extra],b'{broken','/api/v1/hermes-hook')
+                    self.assertEqual(status,409)
+                    self.assertEqual(headers.get('Connection'),'close')

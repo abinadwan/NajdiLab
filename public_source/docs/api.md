@@ -1,6 +1,6 @@
 # NajdiLab Core API scope
 
-All routes are loopback-only with shared Host/Origin/Fetch Metadata checks. Native POST /turn and /hermes-hook require bearer/HMAC credentials. Other mutations require JSON and X-NajdiLab-CSRF from GET /session. Requests are capped at 2 MiB. .env is not auto-loaded. No public-network, multi-user identity or HMAC replay-freshness guarantee.
+All routes are loopback-only with shared Host/Origin/Fetch Metadata checks. Native POST /turn requires bearer/HMAC credentials. POST /hermes-hook is BLOCKED with 409 HERMES_UNSAFE_SOURCE before body reading/parsing/storage, regardless of credentials/legacy mode. Hermes v0.22.5 sender fields filtering and enabled:false cannot be trusted; external disconnect remains unverified. Do not route unsafe Hermes events through /turn as a workaround. Other mutations require JSON and X-NajdiLab-CSRF from GET /session. Requests are capped at 2 MiB. .env is not auto-loaded. No public-network, multi-user identity or HMAC replay-freshness guarantee.
 
 Prefix below: /api/v1. Numeric review/conversation IDs and bounded local version identifiers are validated; no arbitrary path input is accepted.
 
@@ -15,7 +15,8 @@ Prefix below: /api/v1. Numeric review/conversation IDs and bounded local version
 | GET | /dataset-versions, /dataset-versions/{version} | Registered local versions, files, counts, manifest and hashes |
 | GET | /dataset-versions/{version}/{health,quality-findings,balance,eval-sets,release-validation} | Read-only verified-byte diagnostics, actual holdout and dataset checks; no publication clearance |
 | GET | /dataset-versions/{version}/files/{filename} | Attachment for manifest-authorized sft.jsonl, multi_turn.jsonl, direct_language.jsonl, preference_pairs.jsonl or evaluation_holdout.jsonl only |
-| POST | /turn, /hermes-hook | Credentialed completed-turn ingestion/protocol compatibility; no external Hermes operation |
+| POST | /turn | Credentialed generic completed-turn ingestion; no external Hermes operation |
+| POST | /hermes-hook | BLOCKED 409 before body reading; no sender privacy or disconnect guarantee |
 | POST | /conversations, /messages | Explicit core conversation/message creation |
 | POST | /reviews/{id}, /reviews/{id}/{approve,correct,exclude,restore,ignore,delete} | Mandatory optimistic revision and atomic candidate policy |
 | POST | /exports | Explicit boolean include_demo, existing eligibility/split/mask/dedup gates plus candidate privacy/context checks |

@@ -13,6 +13,7 @@ Model / provider -> POST /api/v1/turn -> loopback collector
 ## Components
 
 - `app/server.py`: standard-library HTTP server, JSON routes and static assets.
+- `app/integrations.py`: fixed local inference connector registry, bounded probes, process-local consent/selection and serialized disconnect; Hermes source remains blocked. See [integrations](integrations.md).
 - `app/service.py`: transactions, ingestion, review, context reconstruction and exports.
 - `app/dataset_platform.py`: version discovery, health, candidate balancing, hashes and locked-evaluation leakage detection; reuses the trusted window selector.
 - `app/dataset_balancer.py` and `app/dataset_quality.py`: read-only balance and deterministic quality reports.

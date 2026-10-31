@@ -165,18 +165,18 @@ class HttpSecurityTests(unittest.TestCase):
             self.assertEqual(status, 201)
             ingest.assert_called_once_with({})
 
-    def test_signed_hermes_body_and_tamper_rejection(self):
+    def test_signed_hermes_and_tampered_body_both_fail_closed(self):
         secret = "synthetic-test-secret"
         body = b'{"synthetic":true}'
         signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
         with patch.dict(os.environ, {"NAJDILAB_INGEST_TOKEN": secret, "NAJDILAB_ALLOW_LEGACY_INGEST": "0"}), patch.object(server, "ingest_hermes_hook", return_value={"accepted": True}) as ingest:
             status, _, _ = self.ingest("/api/v1/hermes-hook", [("X-Hermes-Signature-256", signature)], body)
-            self.assertEqual(status, 201)
-            ingest.assert_called_once_with({"synthetic": True})
+            self.assertEqual(status, 409)
+            ingest.assert_not_called()
             for extra, candidate in (([("X-Hermes-Signature-256", signature)], b'{"synthetic":false}'), ([("X-Hermes-Signature-256", signature), ("X-Hermes-Signature-256", signature)], body)):
                 status, _, _ = self.ingest("/api/v1/hermes-hook", extra, candidate)
-                self.assertEqual(status, 401)
-            self.assertEqual(ingest.call_count, 1)
+                self.assertEqual(status, 409)
+            ingest.assert_not_called()
 
     def test_legacy_ingest_requires_explicit_opt_in_and_does_not_bypass_browser_csrf(self):
         with patch.dict(os.environ, {"NAJDILAB_INGEST_TOKEN": "", "NAJDILAB_ALLOW_LEGACY_INGEST": "1"}), patch.object(server, "ingest_turn", return_value={"accepted": True}):

@@ -14,6 +14,7 @@
     "SECURITY.md",
     "app/dataset_registry.py",
     "app/generation_hardening.py",
+    "app/integrations.py",
     "app/native_tool_data.py",
     "app/phase310_freeze.py",
     "app/phase35_analysis.py",
@@ -95,6 +96,9 @@
     "docs/images/screenshots/training-setup.png",
     "docs/installation-verification.md",
     "docs/installation.md",
+    "docs/integrations-validation.md",
+    "docs/integrations-windows-update.md",
+    "docs/integrations.md",
     "docs/license-options.md",
     "docs/maintainer-handover.md",
     "docs/master-execution-board.md",
@@ -123,6 +127,8 @@
     "docs/shell-commands.md",
     "docs/source-provenance.md",
     "docs/superpowers/plans/2026-10-26-english-open-source-readiness.md",
+    "docs/superpowers/plans/2026-10-31-integrations.md",
+    "docs/superpowers/specs/2026-10-31-integrations-design.md",
     "docs/system-requirements.md",
     "docs/third-party-attributions.md",
     "docs/tool-runtime-contract.md",
@@ -184,6 +190,8 @@
     "static/app.js",
     "static/favicon.svg",
     "static/index.html",
+    "static/integrations.css",
+    "static/integrations.js",
     "static/localization.js",
     "static/manual-data.css",
     "static/phase1.css",
@@ -196,6 +204,7 @@
     "static/theme.css",
     "static/theme.js",
     "tests/http_client.py",
+    "tests/integrations-ui.test.cjs",
     "tests/private_artifacts.py",
     "tests/test_arabic_training_ui.py",
     "tests/test_backend_localization.py",
@@ -207,6 +216,8 @@
     "tests/test_http_security.py",
     "tests/test_ingest_cli.py",
     "tests/test_installation.py",
+    "tests/test_integrations.py",
+    "tests/test_integrations_http.py",
     "tests/test_model_selection_contract.py",
     "tests/test_najdilab.py",
     "tests/test_phase310_gates.py",
@@ -240,7 +251,7 @@
   "files": {
     ".env.example": {
       "destination": ".env.example",
-      "sha256": "5644f61c1ba5f91b9e245352b0a0ec2bd1a1afbd58547d52b38d86907055b6b4"
+      "sha256": "95ddca71c82ff17539a73c996609740532d99d6b63252c4d065dcac7d0d06d43"
     },
     ".gitignore": {
       "destination": ".gitignore",
@@ -308,7 +319,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "63edbc9573de1505880c78e4072d5ddff3293d06183c73b4325bf97f79106a3f"
+      "sha256": "a8e4a423f2ef288d8d7914422143b9a2a45d158dbc92777ec7a089b82334f0cf"
     },
     "public_source/extensions.py": {
       "destination": "app/extensions.py",
@@ -316,7 +327,7 @@
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "484af942dd03967b63bd67ac524c1f9d5caf1314825eae9e975f46da81bd3391"
+      "sha256": "860dbdce1554cb506fbd5c472372a56ddc943df18f4b4a90a1f24181bdebbff6"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
@@ -344,7 +355,7 @@
     },
     "public_source/tests/security.py": {
       "destination": "tests/test_candidate_security.py",
-      "sha256": "5bc10f77fcbde885a37cb5fed277c2124821d5c6b94cdca5c4b75ba5c237d6ec"
+      "sha256": "76e409003a82908d7d876036f64f6bb5dc1c762b6cb91af47f23b007ba30a084"
     },
     "requirements-dev.txt": {
       "destination": "requirements-dev.txt",
@@ -388,7 +399,7 @@
     },
     "public_source/tests/reviews.py": {
       "destination": "tests/test_candidate_reviews.py",
-      "sha256": "9188ff27b1b457f69fc5cf466a41aa3b809b469b6cb5ae17509123b96a163bf5"
+      "sha256": "33088fe94bd23aacd7e9de89f0ee3f32245cc819dcbd5b48675ba0126b3ad77f"
     },
     "public_source/tests/__init__.py": {
       "destination": "tests/__init__.py",
@@ -460,7 +471,7 @@
     },
     "public_source/docs/api.md": {
       "destination": "docs/api.md",
-      "sha256": "801740dc343678a0828161df7671e885b2b69dced6cfe95f525f6abf955730c1"
+      "sha256": "2d55dff89f69adb485c64d8db0625cf8906c454f194c09e25b8b2b82b157bb6c"
     },
     "public_source/docs/initial-profile.md": {
       "destination": "docs/initial-profile.md",

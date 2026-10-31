@@ -12,7 +12,9 @@ All methods first validate Host (loopback and listening port), Origin and Fetch 
 |---|---|
 | GET /api/v1/session | Accepted local request; returns ok and csrf_token; process-memory token changes on restart |
 | GET routes | Request boundary checks; local trusted-client access, no per-user RBAC |
-| POST /turn or /hermes-hook | Configured NAJDILAB_INGEST_TOKEN with bearer OR raw-body Hermes HMAC; browser requests also need CSRF |
+| POST /turn | Configured NAJDILAB_INGEST_TOKEN with bearer OR raw-body HMAC; browser requests also need CSRF |
+| POST /hermes-hook | BLOCKED 409 before body reading, even with credentials/legacy mode; existing request boundaries run first |
+| POST /integrations actions | CSRF plus exact approved=true, test additionally binds selection_revision; discovery accepts empty object only |
 | Other POST/PATCH/DELETE | X-NajdiLab-CSRF from session, including native scripts; training approvals remain additional |
 | Training/download/export/recovery actions | Domain validation, fingerprints and action-specific confirmation/authorization where implemented; never infer permission merely from a token or HTTP 200 |
 
@@ -27,7 +29,8 @@ Legacy NAJDILAB_ALLOW_LEGACY_INGEST=1 is an explicit warned native-only migratio
 | Health/session/config | GET, no JSON body; health returns ok/service/version/database (local path, do not publish); session returns csrf_token; config exposes controlled vocabularies |
 | Conversations/messages | GET filters search/model/channel; numeric detail route returns original messages/reviews. Creation passes JSON to create_conversation/create_message; required fields/defaults are enforced by service, not renamed for English |
 | Turn Ingest | conversation_id, user_message, assistant_response required; source_message_id optional dedup key; optional provider/model/channel/provenance metadata. Success includes conversation/message/review IDs, PENDING review_status and duplicate flag under handler's ok wrapper |
-| Hermes hook | Existing completed-turn webhook format; data/body extraction in ingest_hermes_hook; exact-byte signature before parsing |
+| Hermes hook | Intentionally refused before body reading/storage; HERMES_UNSAFE_SOURCE. Historical internal parser is not an enabled HTTP integration |
+| Settings integrations | Passive snapshot, bounded read-only discovery, approved runtime connection/selection/synthetic test/local disconnect; see [wire contract and states](integrations.md) |
 | Reviews/bulk | Numeric review ID, controlled action enum and full corrected_response where correction required; reviewer metadata/flags per service; transactions preserve originals. Bulk validates all before commit |
 | Manual data | SFT/direct/preference JSON with type-specific fields/flags; PATCH/DELETE version/archive/export guards; version/history reads. See service create/update/manual validators |
 | Exports/datasets | Query version/filter options; derive/overlap/freeze JSON; responses include manifests, fingerprints, findings or readiness blockers. Failure must not silently replace frozen content |

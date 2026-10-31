@@ -34,7 +34,9 @@ Data paths are based on the repository root (`data/najdilab.db`, `exports/`, `da
 
 Generate a high-entropy secret locally, for example with `python -c "import secrets; print(secrets.token_urlsafe(32))"`, and store it in authorized private secret storage. Set `NAJDILAB_INGEST_TOKEN` in the server launch environment and configure the same value in the collector; do not paste it into a tracked script, `.env.example`, issue or terminal transcript intended for publication. A new environment value takes effect when the intended process is deliberately relaunched.
 
-Both `/api/v1/turn` and `/api/v1/hermes-hook` require either `Authorization: Bearer <secret>` or Hermes HMAC authentication. Without a configured secret they return 503. With a configured secret, missing, wrong, duplicate or mixed credentials return 401. [Hermes setup](hermes-integration.md) describes the signature format.
+`/api/v1/turn` requires either `Authorization: Bearer <secret>` or raw-body HMAC authentication. Without a configured secret it returns 503; missing, wrong, duplicate or mixed credentials return 401 when configured. `/api/v1/hermes-hook` is BLOCKED with 409 before body reading regardless of credentials/legacy mode: see [Hermes safety correction](hermes-integration.md). Never route unsafe Hermes events through the generic collector as a workaround.
+
+[Settings integrations](integrations.md) use fixed loopback runtime endpoints and in-memory consent. No API keys, endpoint overrides, external config edits or new environment variables are introduced.
 
 `NAJDILAB_ALLOW_LEGACY_INGEST=1` is an explicit compatibility exception for native clients and prints a startup warning. Do not enable it for a new setup; bad supplied credentials still fail, and browser CSRF rules remain in force. All other writes, including native scripts, need `X-NajdiLab-CSRF` from `GET /api/v1/session`. The browser UI handles its own token. CSRF tokens are not reviewer authentication or ingest credentials.
 

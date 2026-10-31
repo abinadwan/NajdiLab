@@ -1,69 +1,27 @@
-# Passive Hermes integration — NajdiLab v1.1
+# Hermes collection — BLOCKED
 
-The integration copies completed turns through Hermes `post_llm_call` events. The turn path builds a small payload and enqueues it; a background daemon performs HTTP requests. Failure emits a warning, without changing the response or restarting Hermes. This is an integration contract; the external Hermes implementation and its dependencies are not bundled here.
+Settings discovers only the existence of the known `.hermes` directory using metadata. It does not inspect config, secrets, sessions, history, system prompts, tools, or the Hermes version. Detection is not compatibility verification.
 
-## Configuration
+## Safety correction (2026-10-31)
 
-Configure `hooks.outbound` in the external Hermes `config.yaml`:
+The former guide assumed that `hooks.outbound[].fields` filtered outgoing events and that `enabled:false` stopped delivery. Those assumptions are unsafe for Hermes v0.22.5: the fields allowlist may not be applied and disabled targets may continue sending. **The previous webhook configuration and disconnect instructions are withdrawn. Do not activate them.** Newer/unidentified versions are not presumed fixed.
 
-```yaml
-- name: najdilab-passive
-  enabled: true
-  url: http://127.0.0.1:8770/api/v1/hermes-hook
-  events: [post_llm_call]
-  timeout: 1
-  secret: <private-shared-secret>
-  fields:
-    - turn_id
-    - user_message
-    - assistant_response
-    - model
-    - provider
-    - platform
-    - conversation_key_hash
-    - system_prompt_version
-    - generation_settings
-    - acceptance_test
-```
+Receiver-side redaction cannot prevent private data from leaving Hermes. HMAC authenticates a body; it cannot make an overbroad body private. Therefore this release does not configure, connect, or live-test Hermes collection. Settings shows `BLOCKED` with `HERMES_UNSAFE_SOURCE`. Attempts to connect/select/test return HTTP 409.
 
-`<private-shared-secret>` is a documentation placeholder, not a usable default. Configure the same high-entropy value as the NajdiLab process variable `NAJDILAB_INGEST_TOKEN`, using private deployment configuration. Do not commit either value. The existing external deployment is unchanged by this branch.
+`POST /api/v1/hermes-hook` now returns HTTP 409 `HERMES_UNSAFE_SOURCE` before reading, parsing, authenticating or storing the body. Host/Origin/framing protections still run first. Valid credentials and `NAJDILAB_ALLOW_LEGACY_INGEST=1` cannot enable this endpoint. The connection closes without draining the body. This is an intentional security compatibility change; existing rows and internal historical parsing/idempotency tests remain intact. `/api/v1/turn` remains a separately authenticated generic collector, **not a bypass for unsafe Hermes delivery**.
 
-To stop collection, set `enabled: false` and reload/restart the external gateway through its normal operational process. This requires no NajdiLab data deletion. See [SECURITY.md](../SECURITY.md) for the current ingest protection boundary before connecting a client.
+## Disconnect verification
 
-## Privacy and fields
+“Verify receiver block” confirms only this NajdiLab receiver is closed. The UI/API always reports external sender disconnect `UNVERIFIED`. It cannot prove that Hermes stopped transmitting, removed an outbound target, drained a queue, or stopped another deployment. No external configuration or service is changed.
 
-- `conversation_key_hash` is SHA-256 of an internal conversation key; do not send phone numbers, messaging IDs or the raw key. A hash is pseudonymous metadata, not guaranteed anonymization.
-- `system_prompt_version` contains a hash only; system prompt text stays in Hermes.
-- `generation_settings` allows only `temperature`, `top_p`, `top_k`, `seed` and `context_length`.
-- Do not send headers, API keys, cookies, full conversation history, or tool calls/results.
-- NajdiLab preserves the original response and creates a `PENDING` review with `training_eligible=false`.
-- User and assistant text can still contain private material. Review consent, retention and training rights separately.
+If an older installation already has an outbound hook, its operator must inspect that configuration privately and arrange removal of the target through its supported reload/restart procedure. Do not rely on `enabled:false`. Do not stop another service casually or publish the configuration/credential. This PR does not execute that operational change. Blocking the receiver does not retract data already transmitted or delete stored records.
 
-## Continuity and idempotency
+## Conditions for future enablement
 
-The conversation hash is a stable source identity. `turn_id` becomes `source_message_id`; resending the same event returns the existing record rather than duplicating messages or reviews.
+A separately reviewed sender-side bridge must construct a fresh minimal completed-turn payload **before enqueueing/network I/O**. Permit only explicitly consented user/assistant text and necessary pseudonymous identifiers; reject arbitrary keys. Exclude full history, raw system prompts, tools/calls/results, headers, cookies, credentials and raw source identities. Conversation text can itself contain secrets: obtain consent and prove the agreed fail-closed detection/redaction policy rather than claiming arbitrary prose is safe. If privacy verification is unavailable, collect nothing.
 
-## Failure behavior
+Prove raw-wire behavior using synthetic secret/history/system/tool sentinels, unexpected keys, malformed events, retries, queue overflow and errors. Database-only redaction is insufficient. Version-pin the verified sender. Prove disconnect by removing the actual outbound target, applying the supported reload, invalidating queued deliveries, and a bounded synthetic positive/negative observation that deliveries cease. Define ownership and rollback without data loss. No success label is justified until these proofs exist.
 
-Collection is best effort and fail open for the external user response. When NajdiLab is unavailable or slow, Hermes continues delivery. Timeouts/retries belong to the background worker; a bounded queue drops excess events with a warning rather than blocking the turn path.
+## Retired utility
 
-## Endpoints
-
-`POST /api/v1/hermes-hook` accepts the filtered lifecycle payload and creates the conversation, user message, assistant message and review in one transaction. `POST /api/v1/turn` remains the generic local collector endpoint. Configure the actual selected port in both systems.
-
-## Authentication and controlled migration
-
-The default is fail closed: absent/empty `NAJDILAB_INGEST_TOKEN` produces HTTP 503 on both ingest routes. A configured secret requires one valid credential scheme:
-
-- Native client: `Authorization: Bearer <same-secret>`.
-- Hermes outbound hook with `secret` configured: `X-Hermes-Signature-256: sha256=<digest>`, where the digest is lowercase hexadecimal HMAC-SHA256 of the exact raw UTF-8 request body, using the secret's UTF-8 bytes as key. Sign the bytes actually sent; reformatting JSON changes the signature.
-
-Missing/invalid/duplicate/mixed credentials produce 401 when a secret is configured. HMAC proves possession of the secret and body integrity; it provides no timestamp/nonce replay defense. Existing turn-id idempotency is not a general replay-prevention mechanism.
-
-Before deployment, prepare the shared secret in private storage, configure the server launch environment and the external hook, then perform a controlled restart/reload through each system's authorized operational process. Verify a synthetic authorized turn is accepted and unauthenticated ingestion is refused, without exposing real conversations or the secret in logs. Keep the old deployment recoverable until compatibility is proved. This guide does not authorize changing the current external installation.
-
-`NAJDILAB_ALLOW_LEGACY_INGEST=1` deliberately allows native ingestion without credentials and emits a startup warning. It is an explicit migration exception, not the default; do not use it to avoid configuring a secret. Bad supplied credentials still fail. Browser requests retain Origin/Host/Content-Type and CSRF checks. All non-ingest writes by scripts need the session CSRF header described in [SECURITY.md](../SECURITY.md).
-
-## Optional integration acceptance utility
-
-`scripts/acceptance_v11.py` is a write-capable synthetic integration check, not a normal startup check. Use only a disposable installation and compatible collector; it modifies demo review/export state in that installation. Set `NAJDILAB_ACCEPTANCE_WRITE=1`, provide `NAJDILAB_INGEST_TOKEN`, and set `NAJDILAB_HERMES_ROOT` to a compatible external Hermes checkout if it is not adjacent. Both webhook test targets use the configured shared secret. This preparation did not execute the live integration utility; raw HMAC compatibility was independently checked against the Hermes implementation. The simple `scripts/ingest_test.py` requires the shared secret before any network attempt.
+`scripts/acceptance_v11.py` exits `BLOCKED` before external imports, network or writes, even if its former opt-in is set. Its previous database-only privacy PASS was not a sender-side privacy guarantee. Use the fixture-only [integration tests](../tests/test_integrations_http.py), [request security tests](../tests/test_http_security.py) and [integration guide](integrations.md). No installed Hermes instance is needed or contacted.

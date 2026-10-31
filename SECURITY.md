@@ -35,16 +35,16 @@ boundaries, not isolation guarantees between local users or processes.
 
 ## Ingestion credentials and migration
 
-`POST /api/v1/turn` and `POST /api/v1/hermes-hook` fail closed with HTTP 503
+`POST /api/v1/hermes-hook` is BLOCKED with HTTP 409 before body reading/parsing or storage, regardless of credentials or legacy mode. Hermes v0.22.5 sender filtering and `enabled:false` are unreliable; do not activate the old webhook configuration. Settings verifies only this receiver block, never external delivery cessation. See the [Hermes safety correction](docs/hermes-integration.md).
+
+`POST /api/v1/turn` fails closed with HTTP 503
 unless `NAJDILAB_INGEST_TOKEN` is configured. Set a high-entropy random secret
 in the server's environment and restart it. Shell environment variables are used;
 `.env` files are not loaded automatically. Never commit the configured secret.
 
 Clients supply exactly one credential method: `Authorization: Bearer <secret>`
 or `X-Hermes-Signature-256: sha256=<hex>`, where `<hex>` is the lowercase
-HMAC-SHA256 of the exact raw request bytes using the UTF-8 secret. Hermes already
-supports this signature through `hooks.outbound[].secret`; set it to the same
-value as the server's token. Missing, invalid, duplicate, or mixed credentials
+HMAC-SHA256 of the exact raw request bytes using the UTF-8 secret. This generic collector authentication must not be used to bypass the blocked Hermes hook. Missing, invalid, duplicate, or mixed credentials
 receive HTTP 401 when a secret is configured. Authentication precedes ingestion.
 Browser requests also require the session CSRF token.
 
@@ -60,6 +60,10 @@ The signature authenticates body contents; it does not provide freshness or
 replay prevention. Do not assume all ingestion payloads are idempotent. Protect
 secrets and avoid replaying events unless the relevant event identity and dedup
 behavior have been verified. Payload sizes are bounded before authentication.
+
+## Local runtime integrations
+
+Settings discovery probes only fixed numeric-loopback model-list APIs and metadata on verified local known home-directory markers. No DNS/proxies/redirects, custom URLs, credentials, histories or configuration reads are supported. Connect/select/test/disconnect additionally require explicit approval and CSRF. Synthetic tests are bound to the displayed selection revision to reject cross-tab changes. Response bytes (including HTTP framing) and request time are bounded. Consent is process-local and revoked by restart; disconnect serializes with in-flight tests and does not stop upstream compute/services. See [Integrations](docs/integrations.md) for exact limits and unsupported cases. LM Studio/Ollama do not automatically expose application history.
 
 ## Files and data
 
