@@ -16,7 +16,7 @@ Delivered: read-only audit/KEEP-REMOVE-DEPRECATE map; dataset-first UI/API/CLI r
 
 | Check | Observed result |
 |---|---|
-| Full Windows Python3.12 suite with optional SDK in isolated .venv | 378 passed, 24 skipped, 68 subtests, one pre-existing warning before final rollover regression; fresh final count recorded below |
+| Full Windows Python3.12 suite with optional SDK in isolated .venv | **380 passed, 24 skipped, 68 subtests, one pre-existing warning** on implementation head fc70fd8 |
 | Chat lifecycle after final atomic rollover correction | 20 passed; injected insertion failure leaves original OPEN; restart never replays unfinished receipt |
 | Actual SDK1.5.0/helper with disposable synthetic WebSocket engine | bound count/predict specifiers; replacement at prediction boundary refused; no model load/unload/preset/history harvesting |
 | Node controllers | 8 passed (3 Chat, 5 Integrations) |
@@ -42,7 +42,13 @@ Ruling: shared candidate files (`dataset_platform.py`, `review_integrity.py`, `s
 
 ## Hosted final-head gate
 
-Pending: Windows/Linux source suites, root-browser acceptance and isolated candidate jobs. Record actual run/head links after inspection. Keep Draft; no automatic merge or installed update.
+Implementation head **fc70fd83722f07fbd5361b9147f4c88d7543c155** has all four jobs green:
+
+- [Source checks](https://github.com/abinadwan/NajdiLab/actions/runs/41242203217): Linux **379 passed / 25 skipped / 68 subtests**; Windows **381 passed / 23 skipped / 68 subtests**. Eight Node controller tests and the real hosted root-browser acceptance pass on both. One existing Python warning remains. Host-specific symlink/OS and private artifact availability explain skip differences; no critical Chat case is skipped in hosted proof.
+- [Source-only candidate](https://github.com/abinadwan/NajdiLab/actions/runs/41242203310): both OS builder **11 passed / 18 subtests**, **74 candidate tests / 68 subtests**, manifest verification, manifest-only harness and candidate browser acceptance pass. This supersedes the local candidate environment failures as hosted-platform evidence, without concealing those local failures.
+- Browser evidence is attached as workflow artifacts. It uses only synthetic own sessions/engines. It is neither actual LM Studio model acceptance nor native app history capture.
+
+The following results-documentation commit changes no product code or selected candidate pins. Inspect the latest PR checks for that commit as well. [Draft PR #11](https://github.com/abinadwan/NajdiLab/pull/11) stays unmerged; no installed update or publication is approved.
 
 ## Rollback / retention
 
