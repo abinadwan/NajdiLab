@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Native capture diagnostics; collection remains unavailable (2026-10-31)
+
+- Independently investigated official native API/event/storage/polling paths for Hermes v0.22.5 and Ollama Desktop v0.40.13, and LM Studio's documented native JSON/inference contracts. No end-to-end zero-change completed-turn acquisition was established: Hermes remains BLOCKED, LM Studio UNSUPPORTED and Ollama native capture BLOCKED. Recorded promising Hermes terminal receipts and the acquisition gate rather than claiming universal impossibility. No routed-chat substitute or model-test capture PASS.
+- Added separate native capability, source metadata detection, unverified installed version/format, disconnected/OFF state, capture/error fields and explicit reasons to Settings. Separately approved path fallback is available only after automatic source detection fails; it does not read source contents, verify a schema or authorize collection. Native connect/enable are refused server-side even with consent; disable/disconnect verify only the local OFF invariant and preserve existing data.
+- Consolidated metadata validation with kernel no-reparse lookup on fixed Windows volume objects and Linux openat2 no-link/no-mount-crossing metadata descriptors. Added synthetic ancestor-replacement, source/queue preservation, exact consent, path and HTTP/controller regressions. No source SQLite connection, snapshot, parser, scheduler, migration, credential extraction, application/service modification, deployment or main merge. Existing runtime functions and Hermes early-body refusal remain intact.
+- Added [research](docs/native-capture-research.md), [explicit Phase A results](docs/native-capture-test-results.md), [blocked/current and future Windows acceptance](docs/native-capture-windows-acceptance.md), architecture/security/API and rollback updates. Final commands/CI are reported in the PR; owner native acceptance remains NOT TESTED. Core only receives explicit source-classification exclusions for root-profile additions.
+
 ## Unreleased — Settings integrations (2026-10-31)
 
 - Added a server-owned connector registry and Settings UI for bounded read-only discovery of Hermes directory evidence and known numeric-loopback LM Studio/Ollama APIs. No external configuration/history/secret reads, custom endpoints, DNS, proxies, redirects, downloads, migrations or new application dependencies.

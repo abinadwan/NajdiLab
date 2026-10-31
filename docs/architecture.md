@@ -14,6 +14,7 @@ Model / provider -> POST /api/v1/turn -> loopback collector
 
 - `app/server.py`: standard-library HTTP server, JSON routes and static assets.
 - `app/integrations.py`: fixed local inference connector registry, bounded probes, process-local consent/selection and serialized disconnect; Hermes source remains blocked. See [integrations](integrations.md).
+- `app/native_capture.py`: independent native capability/discovery state and exact-consent gates; no content reader, watcher, polling collector or importer is enabled. `app/local_sources.py` / `local_sources_windows.py` share no-follow, metadata-only path validation with runtime directory-marker detection. See [native capture evidence](native-capture-research.md).
 - `app/service.py`: transactions, ingestion, review, context reconstruction and exports.
 - `app/dataset_platform.py`: version discovery, health, candidate balancing, hashes and locked-evaluation leakage detection; reuses the trusted window selector.
 - `app/dataset_balancer.py` and `app/dataset_quality.py`: read-only balance and deterministic quality reports.
@@ -24,6 +25,8 @@ Model / provider -> POST /api/v1/turn -> loopback collector
 - `migrations/`: ordered schema changes. Proposed SQL in `plans/` is deliberately outside automatic startup migrations.
 
 ## Integrity and security boundaries
+
+Native source detection and runtime availability are separate facts. GET integration snapshots are passive; discovery uses known bounded local metadata and existing read-only loopback runtime probes. Native connect/enable remain rejected for all unverified/blocked capabilities; model consent never grants native source access. No source database is attached/opened by SQLite or copied into NajdiLab, and no native rows enter the review queue. Disable/disconnect/restart preserve local OFF without changing third-party services or existing review records. Future extraction/dedup/recovery code is deliberately absent until a supported acquisition/completion/privacy contract exists; see [design](superpowers/specs/2026-10-31-native-capture-design.md).
 
 The server binds only to `127.0.0.1`. Request bodies are limited to 2 MB, and response headers restrict framing and content sniffing. See [SECURITY.md](../SECURITY.md) for current browser-write protections and remaining limitations. Historical security proposals describe their state at the date of each audit.
 

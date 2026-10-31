@@ -1,5 +1,15 @@
 # Settings → Integrations
 
+## Native application capture is not enabled
+
+The [native-source assessment](native-capture-research.md) adds explicit metadata/capability diagnostics. Hermes and Ollama Desktop native capture are BLOCKED; LM Studio native capture is UNSUPPORTED. All stay DISCONNECTED/OFF; installed versions/formats and owner acceptance remain unverified. No source content is read or imported, and no native capture PASS is claimed. Runtime connect/model tests below retain their independent scope and do not grant collection access. See the [16-case Phase A matrix](native-capture-test-results.md) and [Windows acceptance gate](native-capture-windows-acceptance.md).
+
+GET snapshots include `native_capture`: capability/reason, source status/location, `version: NOT_VERIFIED`, `format_verification: NOT_TESTED`, native connection, enabled=false, last check/action, last capture=null, last error, local disconnect verification. `source_location` is DEFAULT/CUSTOM, never a private path. Discovery performs bounded no-follow metadata checks only. Unknown backends/mapped/reparse paths fail closed. No content opens, SQL or schema inference occur; metadata-only OS handles are distinct from content/database access.
+
+The existing CSRF/Host/Origin/JSON boundary also protects `POST /api/v1/integrations/{id}/native/{path|connect|enable|disable|disconnect}`. Payload is exact `{ "approved": true }`, plus only `path` for the path action. Missing/nonboolean approval is 403, unknown action/source 404, connect/enable 409 NATIVE_CAPTURE_BLOCKED or NATIVE_CAPTURE_UNSUPPORTED. Unexpected fields are 400. Path fallback accepts an absolute local expected filename/directory only when default detection failed; it never enables capture, uploads a file or verifies its format. Disable/disconnect acknowledge local OFF and preserve existing queue items; runtime disconnect also verifies native OFF. State/path choices reset at process restart. No collection worker/cursor exists.
+
+## Existing runtime functionality (PR #8)
+
 Open Settings to run a bounded read-only discovery. This release supports two local model-runtime APIs and a blocked Hermes conversation-source connector. No service is installed, started, stopped, configured or downloaded. No training registry, job or dataset is changed.
 
 | Connector | Discovery | Approved behavior | Limitations |

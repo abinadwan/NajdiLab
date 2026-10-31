@@ -13,6 +13,7 @@ from email.message import Message
 
 from app import server
 from app.http_security import validate_request
+from http_client import SingleWriteHTTPConnection
 
 
 class HttpSecurityTests(unittest.TestCase):
@@ -32,7 +33,7 @@ class HttpSecurityTests(unittest.TestCase):
         cls.thread.join(timeout=5)
 
     def request(self, method="GET", path="/api/v1/config", headers=(), body=None):
-        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        connection = SingleWriteHTTPConnection("127.0.0.1", self.port, timeout=5)
         try:
             connection.putrequest(method, path, skip_host=True)
             for name, value in headers:

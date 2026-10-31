@@ -15,6 +15,7 @@ All methods first validate Host (loopback and listening port), Origin and Fetch 
 | POST /turn | Configured NAJDILAB_INGEST_TOKEN with bearer OR raw-body HMAC; browser requests also need CSRF |
 | POST /hermes-hook | BLOCKED 409 before body reading, even with credentials/legacy mode; existing request boundaries run first |
 | POST /integrations actions | CSRF plus exact approved=true, test additionally binds selection_revision; discovery accepts empty object only |
+| POST /integrations/{id}/native/{path,connect,enable,disable,disconnect} | CSRF plus separate exact approved=true; connect/enable remain blocked 409, path is metadata-only fallback; no native collector is enabled |
 | Other POST/PATCH/DELETE | X-NajdiLab-CSRF from session, including native scripts; training approvals remain additional |
 | Training/download/export/recovery actions | Domain validation, fingerprints and action-specific confirmation/authorization where implemented; never infer permission merely from a token or HTTP 200 |
 

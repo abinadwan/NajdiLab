@@ -1,11 +1,12 @@
 """Request security and receiver refusal on disposable ports only."""
 import http.client
-from http.client import HTTPConnection
+from http_client import SingleWriteHTTPConnection as HTTPConnection
 import json
 import os
 import subprocess
 import sys
 import threading
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -104,3 +105,40 @@ def test_old_acceptance_utility_refuses_before_external_import_or_writes(tmp_pat
     assert "BLOCKED" in result.stderr
     assert "Traceback" not in result.stderr
     assert list(tmp_path.iterdir()) == []
+
+
+def test_native_capture_cannot_be_enabled_by_api_or_runtime_consent(http_api):
+    request, runtime, _ = http_api
+    request("/api/v1/integrations/lmstudio/connect", {"approved": True})
+    for key in ("hermes", "lmstudio", "ollama"):
+        status, snapshot = request("/api/v1/integrations")
+        source = item(snapshot, key)["native_capture"]
+        assert source["enabled"] is False
+        assert source["connection"] == "DISCONNECTED"
+        for action in ("connect", "enable"):
+            path = f"/api/v1/integrations/{key}/native/{action}"
+            assert request(path, {}, token=False)[0] == 403
+            assert request(path, {"approved": True}, origin="http://evil.example")[0] == 403
+            assert request(path, {})[0] == 403
+            status, result = request(path, {"approved": True})
+            assert status == 409
+            assert result["code"] == ("NATIVE_CAPTURE_UNSUPPORTED" if key == "lmstudio" else "NATIVE_CAPTURE_BLOCKED")
+        for action in ("disable", "disconnect"):
+            status, result = request(f"/api/v1/integrations/{key}/native/{action}", {"approved": True})
+            assert status == 200
+            assert item(result, key)["native_capture"]["enabled"] is False
+    assert not any(payload for _, _, payload in runtime.requests)
+
+
+def test_native_path_fallback_is_ui_api_only_and_reads_no_content(http_api, tmp_path):
+    request, _, _ = http_api
+    source = tmp_path / "custom/conversations"
+    source.mkdir(parents=True)
+    (source / "private-synthetic.json").write_text("DO-NOT-READ", encoding="utf-8")
+    with patch.object(Path, "open", side_effect=AssertionError("No chat file opens")):
+        status, result = request("/api/v1/integrations/lmstudio/native/path", {"approved": True, "path": str(source)})
+    assert status == 200
+    capture = item(result, "lmstudio")["native_capture"]
+    assert capture["source_status"] == "DETECTED"
+    assert capture["capability"] == "UNSUPPORTED"
+    assert str(source) not in str(result)

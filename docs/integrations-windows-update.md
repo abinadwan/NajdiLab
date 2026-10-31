@@ -1,5 +1,7 @@
 # Windows update and rollback — only after PR approval and merge
 
+The native-capture diagnostics continuation is stacked on still-open PR #8; review both PRs and their exact merged heads before a later installed pull. It enables **no** native conversation collector. Do not interpret a new Settings card or successful model test as native capture. Follow the [separate Windows native acceptance gate](native-capture-windows-acceptance.md): the positive native-turn sequence is currently BLOCKED for all three apps. This continuation adds no schema/cursor/persistent capture consent or source snapshots; rollback to the reviewed PR #8 head removes diagnostics without changing existing data/source apps. No update steps were executed by this work.
+
 Do not run these installation steps while the PR is open. Review the final diff, obtain owner merge approval, merge through GitHub, and confirm the exact merged commit has green Linux/Windows CI first. This is guidance only; development did not touch the installed checkout, credentials or running services.
 
 Commands support Windows PowerShell 5.1 and PowerShell 7. Use your trusted private console. Never publish backup contents, environment variables or private logs.

@@ -17,6 +17,55 @@ window.NajdiIntegrations = (() => {
     host.className = error ? 'integration-notice integration-error' : 'integration-notice';
   }
 
+  function renderNative(service, button) {
+    const native = service.native_capture;
+    if (!native) return '<p class="integration-error">Native capture status unavailable. Collection remains OFF.</p>';
+    const id = esc(service.id);
+    const expected = {hermes: 'state.db', lmstudio: 'conversations', ollama: 'db.sqlite'}[service.id];
+    return `<section class="native-capture" aria-labelledby="native-heading-${id}">
+      <h4 id="native-heading-${id}">Native application capture</h4>
+      <strong class="integration-badge blocked">${esc(native.capability)}</strong>
+      <p>${esc(native.reason)}</p>
+      <dl><div><dt>Native source detection</dt><dd>${esc(native.source_status)} · ${esc(native.source_location)}</dd></div>
+        <div><dt>Installed version</dt><dd>${esc(native.version)}</dd></div>
+        <div><dt>Source format verification</dt><dd>${esc(native.format_verification)}</dd></div>
+        <div><dt>Native source connection</dt><dd>${esc(native.connection)}</dd></div>
+        <div><dt>Last successful capture</dt><dd>${native.last_capture_at ? esc(fmtDate(native.last_capture_at)) : 'Never'}</dd></div>
+        <div><dt>Local native disconnect</dt><dd>${native.local_disconnect_verified ? 'VERIFIED' : 'NOT_VERIFIED'}</dd></div></dl>
+      <label class="native-collection-label" for="native-enabled-${id}"><input type="checkbox" id="native-enabled-${id}" disabled> Automatic Conversation Collection <b>OFF</b></label>
+      <p>No source conversations are read or imported. A model test is not native application capture. Installed-version and owner acceptance tests remain unverified.</p>
+      ${native.last_error ? `<p class="integration-error">${esc(native.last_error.code)}: ${esc(native.last_error.message)}</p>` : ''}
+      <div class="integration-actions">${button('native-connect', 'Connect native source', true)}${button('native-disable', 'Verify collection OFF')}${button('native-disconnect', 'Verify native disconnect')}</div>
+      ${native.source_status === 'DETECTED' ? '' : `<details class="native-path-fallback"><summary>Select a local source path (metadata only)</summary><p>Automatic source detection did not succeed. Choose the existing ${esc(expected)} source. This verifies metadata only, never reads conversations, and cannot enable capture or verify its format.</p><label for="native-path-${id}">Absolute local path to ${esc(expected)}</label><input type="text" id="native-path-${id}" maxlength="4096" autocomplete="off" spellcheck="false"><div class="integration-actions">${button('native-path', 'Use source path')}</div></details>`}
+    </section>`;
+  }
+
+  async function nativeAction(service, action) {
+    if (action === 'connect' || action === 'enable') {
+      status(`${service.native_capture?.capability || 'BLOCKED'}: ${service.native_capture?.reason || 'No verified native capture method.'}`, true);
+      return;
+    }
+    if (!['path', 'disable', 'disconnect'].includes(action)) return;
+    const payload = {approved: true};
+    if (action === 'path') {
+      payload.path = el(`native-path-${service.id}`).value;
+      if (!payload.path.trim()) {status('Choose an absolute local source path first.', true); return;}
+    }
+    const message = action === 'path'
+      ? `Allow NajdiLab to inspect the selected ${service.name} source path metadata only? No conversation/configuration contents are read, no files are changed, and capture remains OFF.`
+      : `Verify NajdiLab native collection is OFF for ${service.name}? Existing review data stays intact. This does not change or stop the external application.`;
+    if (!confirm(message)) return;
+    setBusy(true);
+    try {
+      render(await api(`/api/v1/integrations/${encodeURIComponent(service.id)}/native/${action}`, {method: 'POST', body: JSON.stringify(payload)}));
+      status(action === 'path' ? 'Source metadata detected. Native capture remains OFF; version/format and native collection are not verified.' : 'NajdiLab native collection OFF and local disconnect verified. External application unchanged.');
+    } catch (error) {
+      status(`Native action refused: ${error.message}`, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function render(data) {
     snapshot = data;
     el('integration-cards').innerHTML = data.items.map(service => {
@@ -39,6 +88,7 @@ window.NajdiIntegrations = (() => {
           <select id="integration-model-${id}" ${connected ? '' : 'disabled'}><option value="">Choose a model</option>${service.models.map(model => `<option value="${esc(model)}" ${model === service.selected_model ? 'selected' : ''}>${esc(model)}</option>`).join('')}</select>`}
         ${service.last_error ? `<p class="integration-error">${esc(service.last_error.code)}: ${esc(service.last_error.message)}</p>` : ''}
         <div class="integration-actions">${button('connect', 'Connect', source || connected)}${source ? '' : button('select', 'Use model', !connected || !service.models.length)}${button('test', 'Test connection', source || !connected || !service.selected_model)}${button('disconnect', source ? 'Verify receiver block' : 'Disconnect', !source && !connected)}</div>
+        ${renderNative(service, button)}
       </article>`;
     }).join('');
   }
@@ -70,6 +120,7 @@ window.NajdiIntegrations = (() => {
     const {integrationAction: action, connector: id} = button.dataset;
     const service = snapshot.items.find(item => item.id === id);
     if (!service) return;
+    if (action.startsWith('native-')) return nativeAction(service, action.slice(7));
     const payload = {approved: true};
     if (action === 'test') payload.selection_revision = service.selection_revision;
     if (action === 'select') {

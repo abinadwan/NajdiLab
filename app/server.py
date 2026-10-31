@@ -346,6 +346,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 if data:
                     raise IntegrationError("INVALID_PAYLOAD", "Discovery accepts an empty object only.")
                 self._json(self.server.integrations.discover())
+            elif match := re.fullmatch(r"/api/v1/integrations/([a-z0-9-]+)/native/(path|connect|enable|disable|disconnect)", parsed.path):
+                self._json(self.server.integrations.native_action(match.group(1), match.group(2), data))
             elif match := re.fullmatch(r"/api/v1/integrations/([a-z0-9-]+)/(connect|disconnect|select|test)", parsed.path):
                 self._json(self.server.integrations.action(match.group(1), match.group(2), data))
             elif parsed.path == "/api/v1/conversations":

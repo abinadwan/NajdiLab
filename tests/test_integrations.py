@@ -277,9 +277,9 @@ def test_stale_tab_cannot_generate_with_unapproved_model(manager, runtime):
 
 
 def test_unverified_filesystem_is_rejected_before_stat(tmp_path):
-    from app import integrations
-    with patch.object(integrations, "local_filesystem", return_value=False), patch.object(Path, "lstat", side_effect=AssertionError("No metadata access on unverified drive")):
-        assert integrations.marker_present(tmp_path, ".hermes") is False
+    from app import local_sources
+    with patch.object(local_sources, "local_filesystem", return_value=False), patch.object(Path, "lstat", side_effect=AssertionError("No metadata access on unverified drive")):
+        assert local_sources.marker_present(tmp_path, ".hermes") is False
 
 
 def test_total_wire_budget_counts_headers(runtime):

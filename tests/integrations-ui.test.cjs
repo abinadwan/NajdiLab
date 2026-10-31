@@ -5,10 +5,12 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 function fixture() {
-  const ids = ['integrations-controls','integration-cards','integration-status','integration-scan','integration-model-lmstudio'];
+  const ids = ['integrations-controls','integration-cards','integration-status','integration-scan','integration-model-lmstudio','native-path-lmstudio'];
   const elements = Object.fromEntries(ids.map(id => [id, {innerHTML:'', textContent:'', disabled:false, value:'synthetic-model', setAttribute(){}}]));
   const calls = [], confirmations = [];
   const state = {items:[{id:'lmstudio', name:'LM Studio', kind:'model_runtime', endpoint:'http://127.0.0.1:1234', installation:'NOT_DETECTED', availability:'AVAILABLE', connection:'CONNECTED', selection_revision:2, models:['synthetic-model'], selected_model:'synthetic-model', disconnect:{local_verified:false,external_status:'NOT_MANAGED'}}, {id:'hermes',name:'Hermes Agent',kind:'conversation_source',availability:'BLOCKED',connection:'BLOCKED',models:[],disconnect:{local_verified:true,external_status:'UNVERIFIED'}}]};
+  for (const service of state.items) service.native_capture = {capability:service.id==='lmstudio'?'UNSUPPORTED':'BLOCKED',reason:'No verified native completed-turn capture.',source_status:'MISSING',source_location:'DEFAULT',version:'NOT_VERIFIED',format_verification:'NOT_TESTED',connection:'DISCONNECTED',enabled:false,last_capture_at:null,local_disconnect_verified:true};
+  elements['native-path-lmstudio'].value='C:\\synthetic\\conversations';
   let consent = true, failure = false;
   const context = vm.createContext({window:{}, document:{querySelector:sel=>elements[sel.slice(1)]},
     esc:value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
@@ -52,4 +54,37 @@ test('failed loads remain visible and controls recover', async()=>{
   assert.match(f.elements['integration-status'].textContent,/offline/);
   assert.equal(f.elements['integrations-controls'].disabled,false);
   assert.equal(f.elements['integration-cards'].innerHTML,'');
+});
+
+test('runtime consent never disguises native collection as enabled', async()=>{
+  const f=fixture();await f.ui.load();f.calls.length=0;
+  const html=f.elements['integration-cards'].innerHTML;
+  assert.match(html,/Native application capture/);
+  assert.match(html,/Automatic Conversation Collection/);
+  assert.match(html,/NOT_VERIFIED/);
+  assert.match(html,/UNSUPPORTED/);
+  assert.match(html,/<input[^>]+type="checkbox"[^>]+disabled/);
+  for (const action of ['native-connect','native-enable'])await f.click(action);
+  assert.equal(f.calls.length,0);
+  assert.match(f.elements['integration-status'].textContent,/No verified native/);
+});
+
+test('manual path metadata and OFF verification require separate consent', async()=>{
+  const f=fixture();await f.ui.load();f.calls.length=0;
+  f.setConsent(false);await f.click('native-path');assert.equal(f.calls.length,0);
+  f.setConsent(true);await f.click('native-path');
+  assert.equal(f.calls[0][0],'/api/v1/integrations/lmstudio/native/path');
+  assert.deepEqual(JSON.parse(f.calls[0][1].body),{approved:true,path:'C:\\synthetic\\conversations'});
+  assert.match(f.confirmations[0],/metadata only/);
+  await f.click('native-disconnect');
+  assert.equal(f.calls[1][0],'/api/v1/integrations/lmstudio/native/disconnect');
+  assert.deepEqual(JSON.parse(f.calls[1][1].body),{approved:true});
+  assert.match(f.elements['integration-status'].textContent,/OFF/);
+});
+
+test('native path fallback is hidden after source auto detection succeeds', async()=>{
+  const f=fixture();f.state.items[0].native_capture.source_status='DETECTED';await f.ui.load();
+  const html=f.elements['integration-cards'].innerHTML;
+  assert.ok(!html.includes('id="native-path-lmstudio"'));
+  assert.ok(html.includes('id="native-path-hermes"'));
 });

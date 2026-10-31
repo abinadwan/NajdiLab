@@ -7,7 +7,6 @@ import json
 import os
 import re
 import socket
-import stat
 import sys
 import threading
 import time
@@ -15,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .db import utc_now
+from .local_sources import marker_present
+from .native_capture import NativeCaptureDiagnostics, NativeCaptureError
 
 
 class IntegrationError(Exception):
@@ -163,59 +164,16 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
         sock.close()
 
 
-def local_filesystem(path: Path) -> bool:
-    """Prove locality before stat: reject remote/mapped drives and unknown mounts."""
-    if os.name == "nt":
-        import ctypes
-        get_type = ctypes.windll.kernel32.GetDriveTypeW
-        get_type.argtypes = [ctypes.c_wchar_p]
-        get_type.restype = ctypes.c_uint
-        return get_type(path.anchor) == 3  # DRIVE_FIXED only; remote/unknown refused
-    if sys.platform.startswith("linux"):
-        try:
-            # Kernel mount metadata, never user config or a directory traversal.
-            with open("/proc/self/mountinfo", "rb") as stream:
-                raw = stream.read(128 * 1024 + 1)
-            if len(raw) > 128 * 1024:
-                return False
-            matches = []
-            for line in raw.decode("utf-8").splitlines():
-                left, _, right = line.partition(" - ")
-                mount = re.sub(r"\\([0-7]{3})", lambda m: chr(int(m[1], 8)), left.split()[4])
-                parent = Path(mount)
-                if path.is_relative_to(parent):
-                    matches.append((len(parent.parts), right.split()[0]))
-            return bool(matches) and max(matches)[1] in {"ext2", "ext3", "ext4", "xfs", "btrfs", "tmpfs", "ramfs", "overlay", "aufs", "zfs", "f2fs", "squashfs"}
-        except (OSError, ValueError, IndexError):
-            return False
-    return False  # Unknown platform/filesystem: skip marker discovery, API still works.
-
-
-def marker_present(home: Path, marker: str) -> bool:
-    """Metadata only, refusing symlinks/reparse points and UNC/network paths."""
-    path = home / marker
-    if not path.is_absolute() or str(path).startswith(("\\\\", "//")):
-        return False
-    if not local_filesystem(path):
-        return False
-    try:
-        for part in [*reversed(path.parents), path]:
-            info = part.lstat()
-            if not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode):
-                return False
-            if getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
-                return False
-        return True
-    except OSError:
-        return False
-
-
 class IntegrationManager:
     """One process owns consent. Lock covers I/O so disconnect waits for in-flight work."""
 
-    def __init__(self, *, connectors=None, home: Path | None = None):
+    def __init__(self, *, connectors=None, home: Path | None = None, local_app_data: Path | None = None, platform: str | None = None):
         self.connectors = dict(CONNECTORS if connectors is None else connectors)
         self.home = Path.home() if home is None else home
+        if local_app_data is None:
+            # Explicit fixture homes never inspect the operator's AppData.
+            local_app_data = Path(os.environ.get("LOCALAPPDATA", str(self.home / "AppData/Local"))) if home is None else self.home / "AppData/Local"
+        self.native_capture = NativeCaptureDiagnostics(home=self.home, local_app_data=local_app_data, platform=sys.platform if platform is None else platform)
         self._lock = threading.RLock()
         self._last_discovery = float("-inf")
         self._states = {}
@@ -233,7 +191,10 @@ class IntegrationManager:
 
     def snapshot(self) -> dict:
         with self._lock:
-            return {"ok": True, "consent_scope": "server_process", "items": copy.deepcopy(list(self._states.values()))}
+            items = copy.deepcopy(list(self._states.values()))
+            for state in items:
+                state["native_capture"] = self.native_capture.snapshot(state["id"])
+            return {"ok": True, "consent_scope": "server_process", "items": items}
 
     def _failure(self, state: dict, error: IntegrationError):
         state["selection_revision"] += 1
@@ -272,6 +233,7 @@ class IntegrationManager:
         with self._lock:
             if time.monotonic() - self._last_discovery < 10:
                 return self.snapshot()
+            self.native_capture.discover()
             for key, spec in self.connectors.items():
                 state = self._states[key]
                 state["installation"] = "DETECTED" if marker_present(self.home, spec.marker) else "NOT_DETECTED"
@@ -280,6 +242,14 @@ class IntegrationManager:
                 else:
                     state["last_checked_at"] = utc_now()
             self._last_discovery = time.monotonic()
+            return self.snapshot()
+
+    def native_action(self, key: str, action: str, payload: dict) -> dict:
+        with self._lock:
+            try:
+                self.native_capture.action(key, action, payload)
+            except NativeCaptureError as error:
+                raise IntegrationError(error.code, str(error), error.status) from None
             return self.snapshot()
 
     def action(self, key: str, action: str, payload: dict) -> dict:
@@ -293,6 +263,7 @@ class IntegrationManager:
                 raise IntegrationError("INVALID_PAYLOAD", "Only the documented action fields are allowed.")
             state, spec = self._states[key], self.connectors[key]
             if action == "disconnect":
+                self.native_capture.action(key, "disconnect", {"approved": True})
                 state["selection_revision"] += 1
                 state.update(connection="BLOCKED" if spec.kind == "conversation_source" else "DISCONNECTED",
                              models=[], selected_model=None, last_test=None)
