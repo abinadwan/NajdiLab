@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/phase1.css">
   <link rel="stylesheet" href="/rtl-overhaul.css">
   <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="/integrations.css">
 </head>
 <body>
   <div class="shell">
@@ -329,6 +330,15 @@
       </section>
 
       <section id="view-settings" class="view">
+        <section class="integrations" aria-labelledby="integrations-heading">
+          <h2 id="integrations-heading">Integrations</h2>
+          <p>Discover local AI services without changing their configuration. Runtime tests use synthetic text only. LM Studio and Ollama do not automatically provide their application conversation history.</p>
+          <p id="integration-status" class="integration-notice" role="status" aria-live="polite">Open Settings to discover known local services.</p>
+          <fieldset id="integrations-controls"><legend class="sr-only">Local service integrations</legend>
+            <button type="button" id="integration-scan" class="button ghost">Scan again</button>
+            <div id="integration-cards" class="integration-grid"></div>
+          </fieldset>
+        </section>
         <div class="settings-grid"><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>Interface theme</h2><p>Choose light, dark, or system. This choice is saved only in this browser.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="Choose interface theme in settings"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>Secure local operation</h2><p>The server listens on 127.0.0.1 only. No API keys appear in logs, and sensitive fields are redacted from metadata.</p></div><span class="status-ok">Enabled</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>SQLite</h2><p>Foreign keys, WAL, atomic transactions, and numbered migrations.</p></div><span class="status-ok">Passed</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>Training</h2><p>Phase 4 is blocked until explicit approval; the theme does not change training gates.</p></div><span class="status-neutral">BLOCKED</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>Data from Demo</h2><p>is labeled and logically isolated. Exports exclude it by default.</p></div><span class="status-demo">Isolated</span></div></div>
       </section>
       <footer class="app-footer">© <span id="copyright-year"></span> <span id="copyright-owner">NajdiLab</span>. All rights reserved.</footer>
@@ -351,6 +361,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/theme.js" defer></script>
   <script src="/app.js" defer></script>
+  <script src="/integrations.js" defer></script>
 </body>
 </html>
 

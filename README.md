@@ -1,5 +1,7 @@
 # NajdiLab
 
+**Settings → Integrations (2026-10-31):** bounded read-only local discovery, approved LM Studio/Ollama model selection and synthetic connection tests, and verified local disconnect. Neither runtime automatically supplies application conversation history. **Hermes collection is BLOCKED** because sender filtering and disconnect are unverified; the former webhook setup instructions are withdrawn and its HTTP endpoint refuses events. No external services, secrets, schema or training settings are changed. See [behavior/security limits](docs/integrations.md), [Hermes safety correction](docs/hermes-integration.md) and [post-merge Windows update/rollback](docs/integrations-windows-update.md). Installation remains pending PR review, merge approval and green CI.
+
 <p align="center">
   <a href="docs/system-requirements.md"><img alt="Python 3.11 or newer" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&amp;logo=python&amp;logoColor=white"></a>
   <a href="docs/system-requirements.md"><img alt="SQLite 3.24 or newer" src="https://img.shields.io/badge/SQLite-3.24%2B-003B57?style=for-the-badge&amp;logo=sqlite&amp;logoColor=white"></a>

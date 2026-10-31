@@ -94,6 +94,10 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def dispatch(self,method):
         path=urlparse(self.path).path
+        if method=='POST' and path=='/api/v1/hermes-hook':
+            self.close_connection=True
+            self.respond({'ok':False,'code':'HERMES_UNSAFE_SOURCE','message':'Hermes collection is BLOCKED: sender privacy and external disconnect are unverified.'},409,{'Connection':'close'})
+            return
         try:
             data=self.body() if method=='POST' else {}
             if path.startswith(('/api/v1/phase','/api/v1/training/','/api/v1/evaluation/')):
@@ -127,7 +131,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 elif m:=re.fullmatch(r'/api/v1/dataset-versions/([A-Za-z0-9._-]+)',path):result=core_datasets.version_detail(m[1])
             else:
                 if path=='/api/v1/turn':result={'ok':True,**service.ingest_turn(data)};status=201
-                elif path=='/api/v1/hermes-hook':result={'ok':True,**service.ingest_hermes_hook(data)};status=201
                 elif path=='/api/v1/conversations':result={'ok':True,'conversation':service.create_conversation(data)};status=201
                 elif path=='/api/v1/messages':result={'ok':True,'message':service.add_message(data)};status=201
                 elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)/(approve|correct|exclude|restore|ignore|delete)',path):

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Settings integrations (2026-10-31)
+
+- Added a server-owned connector registry and Settings UI for bounded read-only discovery of Hermes directory evidence and known numeric-loopback LM Studio/Ollama APIs. No external configuration/history/secret reads, custom endpoints, DNS, proxies, redirects, downloads, migrations or new application dependencies.
+- Added explicit session-only connect/select/synthetic-test/disconnect consent with existing Host/Origin/CSRF; test approval binds the displayed selection revision to prevent cross-tab model changes. Bounded transport includes HTTP framing, payload limits and total deadlines. Disconnect waits for in-flight work and revokes only local permission; runtime processes remain unchanged. No automatic LM Studio/Ollama application history collection.
+- Security compatibility change: `/api/v1/hermes-hook` now refuses with 409 `HERMES_UNSAFE_SOURCE` before body reading/parsing/storage, including authenticated/legacy clients. Hermes v0.22.5 may ignore `fields` and `enabled:false`; automatic collection and external disconnect verification remain BLOCKED/UNVERIFIED. Preserved existing records and generic authenticated manual ingestion. Retired the misleading live acceptance utility and withdrew unsafe webhook instructions.
+- Added fixture-only unit/integration/controller tests and CI controller checks on Windows/Linux. Updated API/security/configuration docs and [safe Windows update/rollback](docs/integrations-windows-update.md). See the PR and [validation record](docs/integrations-validation.md) for actual results and remaining real-service acceptance gates. Applied the same Hermes receiver block to the separately packaged Core profile and updated its reviewed classification/hashes; runtime integrations remain outside Core. No merge, release, publication or installed-device change is performed by this branch.
+
 ## Unreleased — Core verification link repair (2026-10-31)
 
 - Replaced the deleted `dev/public-core-workflow-completion` verification link in `public_source/README.md` with the existing `main` documentation path.

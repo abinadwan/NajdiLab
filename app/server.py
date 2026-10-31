@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from .db import DB_PATH, ROOT, apply_migrations
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
+from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .dataset_platform import (
     DatasetPlatformError,
     apply_overlap_plan,
@@ -95,6 +96,10 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
     allow_reuse_address = False
 
+    def __init__(self, *args, **kwargs):
+        self.integrations = IntegrationManager()
+        super().__init__(*args, **kwargs)
+
     def server_bind(self) -> None:
         if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
@@ -128,6 +133,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'")
         if length is not None:
             self.send_header("Content-Length", str(length))
+        if self.close_connection:
+            self.send_header("Connection", "close")
         self.end_headers()
 
     def _json(self, payload: object, status: int = HTTPStatus.OK) -> None:
@@ -195,6 +202,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         try:
             if parsed.path == "/api/v1/session":
                 self._json({"ok": True, "csrf_token": CSRF_TOKEN})
+            elif parsed.path == "/api/v1/integrations":
+                self._json(self.server.integrations.snapshot())
             elif parsed.path == "/api/v1/health":
                 self._json({"ok": True, "service": "NajdiLab", "version": "1.1", "database": str(DB_PATH)})
             elif parsed.path == "/api/v1/platform/status":
@@ -325,16 +334,26 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        # Fail closed before reading or parsing any potentially overbroad event.
+        # Closing prevents unread body bytes becoming another request.
+        if parsed.path == "/api/v1/hermes-hook":
+            self.close_connection = True
+            self._error(HERMES_BLOCK, HTTPStatus.CONFLICT, code="HERMES_UNSAFE_SOURCE")
+            return
         try:
             data = self._body()
-            if parsed.path == "/api/v1/conversations":
+            if parsed.path == "/api/v1/integrations/discover":
+                if data:
+                    raise IntegrationError("INVALID_PAYLOAD", "Discovery accepts an empty object only.")
+                self._json(self.server.integrations.discover())
+            elif match := re.fullmatch(r"/api/v1/integrations/([a-z0-9-]+)/(connect|disconnect|select|test)", parsed.path):
+                self._json(self.server.integrations.action(match.group(1), match.group(2), data))
+            elif parsed.path == "/api/v1/conversations":
                 self._json({"ok": True, "conversation": create_conversation(data)}, HTTPStatus.CREATED)
             elif parsed.path == "/api/v1/messages":
                 self._json({"ok": True, "message": add_message(data)}, HTTPStatus.CREATED)
             elif parsed.path == "/api/v1/turn":
                 self._json({"ok": True, **ingest_turn(data)}, HTTPStatus.CREATED)
-            elif parsed.path == "/api/v1/hermes-hook":
-                self._json({"ok": True, **ingest_hermes_hook(data)}, HTTPStatus.CREATED)
             elif match := re.fullmatch(r"/api/v1/reviews/(\d+)", parsed.path):
                 self._json({"ok": True, "review": save_review(int(match.group(1)), data)})
             elif match := re.fullmatch(r"/api/v1/reviews/(\d+)/(approve|correct|exclude|restore|ignore|delete)", parsed.path):
@@ -472,6 +491,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 )})
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
+        except IntegrationError as exc:
+            self._error(str(exc), exc.status, code=exc.code)
         except RequestSecurityError as exc:
             self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:

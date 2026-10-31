@@ -1,5 +1,7 @@
 # NajdiLab Core
 
+**Hermes security correction (2026-10-31):** the Hermes HTTP receiver is BLOCKED before body reading because Hermes v0.22.5 sender filtering and external disconnect are unverified. Credentials/legacy mode cannot reopen it. This profile still excludes model execution and Settings runtime integrations; no publication/license approval is implied. See [API](docs/api.md).
+
 NajdiLab Core is a local-first workspace for collecting authorized conversations, reviewing Arabic/Najdi responses and preparing traceable datasets. It keeps original messages separate from human corrections, privacy flags and eligibility decisions.
 
 It is for dataset curators, reviewers and developers who want to understand what entered a dataset and why. The browser workflow connects conversation context → explicit review → readiness and quality checks → a new local dataset version with integrity hashes.

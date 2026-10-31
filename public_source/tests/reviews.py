@@ -115,7 +115,8 @@ class ReviewWrites(CandidateCase):
                 for headers in [{},{'Authorization':'Bearer fictional-acceptance-only'}]:
                     with self.subTest(path=path,credential=bool(headers)):
                         status,data=self.request(path,payload,headers)
-                        self.assertEqual(status,503);self.assertEqual(data['code'],'LEGACY_INGEST_DISABLED')
+                        self.assertEqual(status,409 if path.endswith('hermes-hook') else 503)
+                        self.assertEqual(data['code'],'HERMES_UNSAFE_SOURCE' if path.endswith('hermes-hook') else 'LEGACY_INGEST_DISABLED')
             self.assertEqual({t:self.rows('select count(*) n from '+t)[0]['n'] for t in before},before)
         finally:
             self.stop();self.env.pop('NAJDILAB_ALLOW_LEGACY_INGEST',None);self.start()
