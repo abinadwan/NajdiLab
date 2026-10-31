@@ -67,16 +67,17 @@
           <aside class="panel chat-controls" aria-label="Conversation controls">
             <label for="chat-provider">Connected provider</label><select id="chat-provider"></select>
             <label for="chat-model">Model</label><select id="chat-model"></select>
-            <p class="muted">Connect providers in Settings → Integrations. Chat uses an already loaded model; it never loads or reconfigures one.</p>
-            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096">
+            <p class="muted">Connect providers in Settings → Integrations. LM Studio must already have the model loaded; NajdiLab never loads it there.</p>
+            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096" list="chat-budget-options"><datalist id="chat-budget-options"><option value="4096"></option><option value="8192"></option><option value="16384"></option><option value="32768"></option><option value="65536"></option></datalist>
             <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" value="512">
-            <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending.</p>
+            <label id="chat-load-row" class="inline-check" hidden><input id="chat-load-approved" type="checkbox"> Let Ollama load this model at this context</label>
+            <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending. Ollama loads models on request, and a different context reloads the model, so it needs this approval.</p>
             <button id="chat-new" class="button primary" type="button">New conversation</button>
             <label for="chat-saved">Saved conversations</label><select id="chat-saved"><option value="">Choose a saved conversation</option></select>
             <button id="chat-refresh" class="button ghost" type="button">Refresh saved state</button>
             <button id="chat-archive" class="button ghost" type="button" disabled>Archive conversation</button>
             <button id="chat-hardware" class="button ghost" type="button">Read device specs</button>
-            <p class="muted">Read-only RAM/GPU snapshot. No model allocation or stress tests.</p>
+            <p class="muted">Read-only device and selected-model snapshot. It never loads a model. No allocation or stress tests.</p>
             <div id="chat-hardware-result" role="status"></div>
           </aside>
           <div class="panel chat-main">

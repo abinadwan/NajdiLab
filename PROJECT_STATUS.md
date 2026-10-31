@@ -4,7 +4,7 @@
 
 Current scope: **local Chat → human review → quality/version → external Unsloth**. See [roadmap](docs/roadmap.md), [audit](docs/scope-audit-2026-10-31.md) and [actual verification/limits](docs/dataset-chat-results.md). Independent branch from main `d992b0a`; PR #10 closed/draft/unmerged, Issue #9 open. No merge, installed update or third-party app change performed.
 
-Training UI/execution APIs and executable training/GGUF/benchmark workflows are retired; historical data/reads remain. Chat completion/consent/context and external handoff are implemented with synthetic checks. **Ollama Chat admission BLOCKED**, numeric per-model memory recommendation unavailable, real LM Studio/owner acceptance NOT TESTED. This is a review candidate, not a claim that every requested capability is complete.
+Training UI/execution APIs and executable training/GGUF/benchmark workflows are retired; historical data/reads remain. Chat completion/consent/context and external handoff are implemented with synthetic checks. Draft follow-up branch `feat/chat-workspace-claude` adds Ollama Chat with per-turn admission proof, verified on the real 0.40.13 binary with a synthetic model, and labeled evidence-tiered context suggestions ([report](docs/chat-completion-results.md)). Installed-model Ollama, real LM Studio and owner acceptance are NOT TESTED. This is a review candidate, not a claim that every requested capability is complete.
 
 The historical tracks below remain evidence only; old training/phase readiness is not the active product roadmap.
 

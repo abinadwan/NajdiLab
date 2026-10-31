@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Chat completion: Ollama, context and hardware evidence (2026-11-01)
+
+- Added Ollama Chat with per-turn admission proof: `truncate`/`shift` off, a live overflow-refusal check, exact `prompt_eval_count` from a one-token prediction, `/api/ps` clamp detection, digest binding, cloud-model refusal and explicit per-conversation load approval. Fails closed as `CONTEXT_REFUSAL_UNPROVEN` if an engine does not refuse overflow.
+- Context budgets are checked against the runtime when a conversation is created; rollover reports exact numbers; `MODEL_CHANGED` and `CONTEXT_SHRANK` guard history that is no longer the model's own or was dropped. Added additive migration 006.
+- Hardware analysis reports model maximum, runtime context, measured use and estimated feasibility separately, with 8K–64K tiers and an unverified suggested context, or no number without evidence.
+- LM Studio: moved from private SDK helpers to public handle methods on the same instance reference; `MODEL_NOT_LOADED` and similar causes now reach the user; the SDK message gap no longer limits long prompt processing; chat deadline raised from 90 to 600 seconds.
+- Fixed: Settings/integration status froze during a turn; Stop could not interrupt a blocked read on Windows; retrying a completed request after its conversation closed failed; non-string provider caused an unhandled error.
+- See the [completion report](docs/chat-completion-results.md) for evidence and limits, and [Windows acceptance](docs/chat-windows-acceptance.md) for the owner procedure.
+
 ## Unreleased — Dataset-first Chat and external Unsloth (2026-10-31)
 
 - Rescoped active UI to Chat, human review, manual data, quality/version/dedup and external exports. Retired training/model-download/WSL/worker/deploy controls and training namespace writes (410); historical reads/data and applied migrations retained. CLI trainers/GGUF/benchmark entrypoints now refuse before dependencies load.

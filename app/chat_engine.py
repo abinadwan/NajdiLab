@@ -1,17 +1,36 @@
-"""Bounded helper process for an existing LM Studio loaded-model API handle."""
+"""Bounded raw-chat access: LM Studio helper process and Ollama loopback HTTP."""
 from contextlib import contextmanager
 import json
 import os
 import queue
+import re
 import subprocess
 import sys
 import threading
 import time
 
 from .db import ROOT
-from .integrations import IntegrationError
+from .integrations import IntegrationError, request_json
 
 MAX_WIRE = 512 * 1024
+# Covers a cold model load plus an 8192-token reply on a mid-range GPU. Both
+# engines keep running if a turn is abandoned here; only NajdiLab's call ends.
+CHAT_DEADLINE = 600
+SHOW_LIMIT = 8 * 1024 * 1024
+CHAT_LIMIT = 2 * 1024 * 1024
+UNAVAILABLE = 'Exact loaded-model chat is unavailable. Check the optional SDK and the existing engine; no model was loaded or settings changed.'
+WORKER_ERRORS = {
+    'SDK_REQUIRED': 'LM Studio Chat needs the pinned optional SDK (requirements-chat.txt) in NajdiLab\'s own environment.',
+    'MODEL_NOT_LOADED': 'This model is not loaded in LM Studio. Load it there and retry; NajdiLab never loads models.',
+    'MODEL_CHANGED': 'The loaded model, template or context changed during this turn; no pair was saved.',
+    'RESULT_MISMATCH': 'The reply did not match the measured request; no pair was saved.',
+    'NON_TEXT_RESPONSE': 'The model produced reasoning fragments, which LM Studio Chat refuses rather than edits; no pair was saved.',
+    'RESPONSE_TOO_LARGE': 'The reply exceeded the size limit; no pair was saved.',
+    'ENGINE_PROTOCOL_ERROR': UNAVAILABLE,
+}
+# Ollama's llama-server refusal. Only ever matched, never shown to a user.
+OVERFLOW = re.compile(r'request \((\d+) tokens\) exceeds the available context size \((\d+) tokens\)')
+CLOUD_NAME = re.compile(r'[:-]cloud$')
 
 
 class EngineProcess:
@@ -24,7 +43,7 @@ class EngineProcess:
             env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         self.events = queue.Queue(maxsize=4)
-        self.deadline = time.monotonic() + 90
+        self.deadline = time.monotonic() + CHAT_DEADLINE
         self.stopped = False
         def read():
             try:
@@ -41,7 +60,7 @@ class EngineProcess:
                     pass
         self.reader = threading.Thread(target=read, daemon=True)
         self.reader.start()
-        self.write({'port':spec.port,'model':model})
+        self.write({'port':spec.port,'model':model,'deadline':CHAT_DEADLINE})
 
     def write(self, data):
         try:
@@ -62,15 +81,19 @@ class EngineProcess:
                 continue
             if not isinstance(result, dict) or result.get('error'):
                 code = result.get('error') if isinstance(result, dict) else 'ENGINE_PROTOCOL_ERROR'
-                if code not in {'SDK_REQUIRED','MODEL_NOT_LOADED','ENGINE_PROTOCOL_ERROR'}:
+                if code not in WORKER_ERRORS:
                     code = 'ENGINE_UNAVAILABLE'
-                raise IntegrationError(code, 'Exact loaded-model chat is unavailable. Check the optional SDK and the existing engine; no model was loaded or settings changed.', 409)
+                raise IntegrationError(code, WORKER_ERRORS.get(code, UNAVAILABLE), 409)
             return result
-        raise IntegrationError('ENGINE_TIMEOUT', 'Chat exceeded the 90-second deadline; no pair was saved.', 504)
+        raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504)
 
-    def measure(self, messages):
-        self.write({'messages':messages})
+    def limits(self):
+        self.write({'limits':True})
         return self.receive()
+
+    def measure(self, messages, budget, stop=None):
+        self.write({'messages':messages})
+        return self.receive(stop)
 
     def generate(self, messages, reserve, stop):
         self.write({'reply_reserve':reserve})
@@ -91,11 +114,153 @@ class EngineProcess:
         self.reader.join(1)
 
 
+def kv_inputs(info, arch):
+    """Only the fields the KV-cache estimate needs, from `/api/show` model_info."""
+    keys = ('block_count', 'embedding_length', 'attention.head_count', 'attention.head_count_kv',
+            'attention.key_length', 'attention.value_length')
+    return {k: info.get(f'{arch}.{k}') for k in keys}
+
+
+class OllamaEngine:
+    """Proves admission per turn using only public `/api/*` behavior.
+
+    Ollama has no tokenize route. It silently drops old messages by default
+    (`truncate`) and shifts context while generating (`shift`), so each request
+    turns both off, and each turn first verifies the engine actually refuses an
+    oversized history. `prompt_eval_count` of a one-token prediction is then the
+    exact rendered prompt, from the same template, tokenizer and options the
+    reply uses. `num_ctx` is sent with every request, so another client's
+    runner settings cannot move the limit between those two calls.
+    """
+
+    def __init__(self, spec, model):
+        self.spec, self.model = spec, model
+        self.deadline = time.monotonic() + CHAT_DEADLINE
+        self.budget, self.digest = None, None
+
+    def call(self, path, payload=None, *, stop=None, limit=None, error_status=()):
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504)
+        try:
+            return request_json(self.spec, path, payload, timeout=remaining, limit=limit or CHAT_LIMIT,
+                                cancel=stop, error_status=error_status)
+        except IntegrationError as error:
+            if stop is not None and stop.is_set():
+                raise IntegrationError('STOPPED', 'Turn stopped; no pair was saved.', 409) from None
+            if error.code == 'TIMEOUT':
+                raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504) from None
+            raise IntegrationError(error.code, str(error), 502) from None
+
+    def current_digest(self):
+        rows = [m for m in self.call(self.spec.models_path).get('models', [])
+                if isinstance(m, dict) and m.get('name') == self.model]
+        if len(rows) != 1 or not isinstance(rows[0].get('digest'), str) or not rows[0]['digest']:
+            raise IntegrationError('MODEL_UNAVAILABLE', 'Ollama no longer lists exactly this model; no pair was saved.', 409)
+        return rows[0]
+
+    def loaded(self):
+        rows = self.call('/api/ps').get('models')
+        return rows if isinstance(rows, list) else []
+
+    def limits(self):
+        """Read-only: tags, show, ps and version never load a model."""
+        row = self.current_digest()
+        show = self.call('/api/show', {'model':self.model}, limit=SHOW_LIMIT)
+        # A cloud tag forwards prompts off this machine. Chat stays local-only.
+        if (CLOUD_NAME.search(self.model) or show.get('remote_host') or show.get('remote_model') or
+                row.get('remote_host') or row.get('remote_model')):
+            raise IntegrationError('REMOTE_MODEL_REFUSED', 'This is a cloud model; prompts would leave this machine. Chat only uses local models.', 409)
+        capabilities = show.get('capabilities')
+        info = show.get('model_info')
+        if not isinstance(capabilities, list) or 'completion' not in capabilities or not isinstance(info, dict):
+            raise IntegrationError('MODEL_UNSUPPORTED', 'Ollama does not report this as a local text-completion model.', 409)
+        arch = info.get('general.architecture')
+        maximum = info.get(f'{arch}.context_length')
+        if type(maximum) is not int or maximum < 1:
+            raise IntegrationError('CONTEXT_UNKNOWN', 'Ollama did not report this model\'s maximum context; admission cannot be proven.', 409)
+        self.digest = row['digest']
+        running = self.loaded()
+        mine = next((m for m in running if isinstance(m, dict) and m.get('digest') == row['digest']), None)
+        details = show.get('details') if isinstance(show.get('details'), dict) else {}
+        version = self.call('/api/version').get('version')
+        return {'budget_ceiling':maximum, 'model_max_context':maximum, 'architecture':arch,
+                'runtime_context':mine.get('context_length') if mine else None,
+                'weights_bytes':row.get('size'), 'quantization':details.get('quantization_level'),
+                'kv':kv_inputs(info, arch), 'capabilities':capabilities, 'model_system_prompt':bool(show.get('system')),
+                'loaded':{'context':mine.get('context_length'), 'size_bytes':mine.get('size'), 'size_vram_bytes':mine.get('size_vram')} if mine else None,
+                'other_loaded_models':[m.get('name') for m in running if m is not mine and isinstance(m, dict)],
+                'model_key':f"ollama:{row['digest']}", 'engine_version':version if isinstance(version, str) else None}
+
+    def chat(self, messages, predict, stop, *, error_status=()):
+        # Nothing here but the conversation and the two limits this workspace
+        # must set: no system, tools, format, think, keep_alive or sampling.
+        return self.call('/api/chat', {'model':self.model, 'messages':messages, 'stream':False, 'truncate':False, 'shift':False,
+                                       'options':{'num_ctx':self.budget, 'num_predict':predict}},
+                         stop=stop, error_status=error_status)
+
+    def prove_refusal(self, stop):
+        """Old servers ignore `truncate`, so test the behavior, not a version.
+
+        Dropping the first message would leave a tiny prompt, so a success here
+        means overflow is silent on this engine/model. The filler needs no exact
+        size: the engine's own refusal states the count, and evaluates nothing.
+        """
+        filler = ' '.join(map(str, range(self.budget + 512)))
+        value = self.chat([{'role':'user','content':filler}, {'role':'assistant','content':'ok'}, {'role':'user','content':'ok'}],
+                          1, stop, error_status=(400,))
+        refused = OVERFLOW.search(str(value.get('error'))) if value.get('http_status') == 400 else None
+        if not refused or int(refused[1]) <= int(refused[2]):
+            raise IntegrationError('CONTEXT_REFUSAL_UNPROVEN', 'Ollama did not refuse an oversized history, so silent context truncation cannot be ruled out. Sending is blocked; update Ollama or use a different model.', 409)
+        if int(refused[2]) < self.budget:
+            raise self.mismatch()
+
+    def mismatch(self):
+        return IntegrationError('ENGINE_CONTEXT_MISMATCH', 'Ollama is not running this model at the selected context, so the budget cannot be proven. Choose a smaller budget in a new chat.', 409)
+
+    def measure(self, messages, budget, stop=None):
+        self.budget = budget
+        limits = self.limits()
+        result = {'loaded_context':limits['model_max_context'], 'model_key':limits['model_key'],
+                  'engine_version':limits['engine_version']}
+        if budget > limits['model_max_context']:
+            return {**result, 'input_tokens':0}
+        self.prove_refusal(stop)
+        value = self.chat(messages, 1, stop, error_status=(400,))
+        if value.get('http_status') == 400:
+            refused = OVERFLOW.search(str(value.get('error')))
+            if not refused:
+                raise IntegrationError('ENGINE_REFUSED', 'Ollama refused this request; no pair was saved.', 502)
+            tokens = int(refused[1])
+        else:
+            tokens = value.get('prompt_eval_count')
+            if value.get('done') is not True or type(tokens) is not int or tokens < 1:
+                raise IntegrationError('EXACT_TOKEN_COUNT_UNAVAILABLE', 'Ollama did not report an exact prompt size; admission cannot be proven.', 409)
+        # Ollama silently clamps num_ctx; only /api/ps shows what it really used.
+        runtime = next((m.get('context_length') for m in self.loaded() if isinstance(m, dict) and m.get('digest') == self.digest), None)
+        if runtime != budget:
+            raise self.mismatch()
+        return {**result, 'input_tokens':tokens, 'loaded_context':runtime}
+
+    def generate(self, messages, reserve, stop):
+        value = self.chat(messages, reserve, stop)
+        message = value.get('message')
+        if self.current_digest()['digest'] != self.digest:
+            raise IntegrationError('MODEL_CHANGED', 'The Ollama model changed during this turn; no pair was saved.', 409)
+        if (value.get('done') is not True or value.get('remote_host') or value.get('remote_model') or
+                not isinstance(message, dict) or message.get('role') != 'assistant'):
+            raise IntegrationError('INCOMPLETE_RESPONSE', 'Ollama did not return a finished local reply; no pair was saved.', 502)
+        return {'content':message.get('content'), 'input_tokens':value.get('prompt_eval_count'),
+                'output_tokens':value.get('eval_count'), 'stop_reason':value.get('done_reason'),
+                'tool_calls':message.get('tool_calls'), 'reasoning_discarded':bool(message.get('thinking'))}
+
+    def close(self):
+        pass
+
+
 @contextmanager
 def open_engine(spec, model):
-    if spec.name != 'LM Studio':
-        raise IntegrationError('EXACT_TOKEN_COUNT_UNAVAILABLE', 'Ollama chat is blocked: an exact public template-token preflight is not verified. Runtime connectivity does not establish safe Chat admission.', 409)
-    engine = EngineProcess(spec, model)
+    engine = OllamaEngine(spec, model) if spec.name == 'Ollama' else EngineProcess(spec, model)
     try:
         yield engine
     finally:

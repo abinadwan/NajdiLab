@@ -6,7 +6,7 @@
 
 Startup apply_migrations creates schema_migrations, sorts migrations/*.sql lexically, executes absent filenames and records each afterward. It is a filename ledger, not a checksum/approval system. executescript plus subsequent ledger insertion are **not one guaranteed atomic migration+ledger transaction**. An interrupted/non-idempotent script can leave partial state. The future guarded loader is not implemented.
 
-001–004 are existing startup migrations. **005/006/007/008 remain blocked** under plans, never onboarding steps. 007 risks a competing registry; 008 is lifecycle design. See [migration review](corpus-v1.1/07-migration-review-005-007.md) and [guard specification](corpus-v1.1/15-migration-loader-guard.md). Do not edit applied SQL or move blocked proposals into migrations.
+001–004 are existing startup migrations. `migrations/005_chat_workspace.sql` and `migrations/006_chat_session_binding.sql` are additive Chat migrations on the feature branch ([Chat rollback](chat-workspace.md#backup-and-rollback)). The separately numbered **005/006/007/008 under `plans/` remain blocked**, never onboarding steps. 007 risks a competing registry; 008 is lifecycle design. See [migration review](corpus-v1.1/07-migration-review-005-007.md) and [guard specification](corpus-v1.1/15-migration-loader-guard.md). Do not edit applied SQL or move blocked proposals into migrations.
 
 ## Separately authorized migration process
 

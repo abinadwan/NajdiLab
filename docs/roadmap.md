@@ -18,10 +18,10 @@ This roadmap supersedes training execution priorities in older phase documents. 
 
 - Text-only saved Chat sessions, immutable provider/model per session, user budget + reply reserve, exact preflight, complete unchanged history; context-limit rollover never replays the rejected draft.
 - LM Studio implementation uses **pinned optional SDK 1.5.0**, only existing loaded instances. Template, tokens, context and inference use an instance-reference-bound protocol. The pinned SDK's session helpers are private compatibility surfaces; unknown SDK versions fail closed. Synthetic SDK/WebSocket proof is not real-engine acceptance.
-- **Ollama sending remains BLOCKED** until a supported exact public preflight can prove template/token counts and context. Discovery, selection and approved synthetic connection tests remain. No character-ratio estimates or invented token API.
+- **Ollama sending implemented with per-turn proof** ([method](chat-workspace.md#ollama-admission)): `truncate`/`shift` off, a live refusal check, an exact one-token count, a `/api/ps` clamp check and digest binding. Verified on the real 0.40.13 binary with a synthetic model only. No character-ratio estimates or invented token API. It relies on fields absent from Ollama's REST reference page, so the refusal check stays on every turn and blocks if behavior changes.
 - Separate collection consent OFF on creation/restart; continuously consented completed pairs form review segments. Earlier OFF turns stay only in saved Chat. A segment that begins mid-chat is labeled “earlier context excluded”; review/export must not claim it is the entire original inference history.
 - Request receipts, single database owner, stop/error/restart/revoke/re-enable/stale-tab/transaction/archive tests.
-- Read-only RAM/NVIDIA memory snapshot on explicit click. **No numeric safe-memory recommendation** without model resident weights, KV, placement, concurrent use and overhead. No stress tests run or implied.
+- Read-only RAM/NVIDIA snapshot plus selected-model evidence on explicit click. Model maximum, runtime context, measured use and estimated feasibility stay separate; any suggested context is labeled unverified, never safe. No stress tests run or implied.
 
 ## Phase 3 — reviewed external handoff
 
@@ -34,4 +34,4 @@ This roadmap supersedes training execution priorities in older phase documents. 
 
 Delivery evidence is in [results](dataset-chat-results.md). Before merge: green final-head Windows/Linux source and candidate CI, synthetic security/transport/UI proof, reviewed diff and rollback. **Owner approval is still required to merge or update the installed app.** After that, separate owner-operated synthetic Windows acceptance verifies actual engine versions, model template/count agreement, no hidden runtime presets/plugins, memory behavior and cancellation. None has been performed by this change.
 
-Remaining work: safe Ollama count admission, real LM Studio acceptance, complete per-model memory evidence/recommendation, optional owner-approved staged allocation experiments, separately reviewed physical erasure/export retention, and eventual deletion of deprecated research implementations after compatibility review. Do not mark these complete based on synthetic checks.
+Remaining work: owner [Windows acceptance](chat-windows-acceptance.md) of Ollama with an installed model and of LM Studio, optional owner-approved staged allocation experiments, separately reviewed physical erasure/export retention, and eventual deletion of deprecated research implementations after compatibility review. Do not mark these complete based on synthetic checks.

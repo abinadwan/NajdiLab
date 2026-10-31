@@ -1,5 +1,7 @@
 # Dataset-first Chat execution ledger and results
 
+> Evidence as of `aa328ff`. Ollama sending, hardware recommendations and the LM Studio handle path changed afterward; see the [completion report](chat-completion-results.md). This ledger is retained unchanged as the record of that point.
+
 Plan: [implementation plan](superpowers/plans/2026-10-31-dataset-chat.md). Base: `d992b0a`. Prepared for a **draft PR**, not merge/installation approval. Evidence collected across 2026-10-31 / 2026-11-01 (Asia/Riyadh).
 
 Initial audit and design complete. Native worktree tool rejected a nested repository root; a separate Git linked worktree was created within the authorized workspace instead. No changes to the older #10 checkout.

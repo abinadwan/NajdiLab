@@ -2,7 +2,7 @@
 
 ## Current workflow (2026-10-31)
 
-Use Chat Workspace for raw local text conversations, then explicitly collect completed pairs for Pending review; approve/correct and explicitly choose eligibility, validate quality and build a dataset version, then use Export center's external Unsloth handoff. [Detailed Chat, privacy, context and retention behavior](chat-workspace.md). Training setup/jobs/WSL/deploy controls shown in older screenshots are retired. Ollama Chat is blocked pending safe exact counting; actual engine/owner acceptance is not yet performed. No native app conversation collection is claimed.
+Use Chat Workspace for raw local text conversations, then explicitly collect completed pairs for Pending review; approve/correct and explicitly choose eligibility, validate quality and build a dataset version, then use Export center's external Unsloth handoff. [Detailed Chat, privacy, context and retention behavior](chat-workspace.md). Training setup/jobs/WSL/deploy controls shown in older screenshots are retired. Ollama Chat needs your approval to load the model at the chosen context. Installed-model and owner acceptance are not yet performed; see the [Windows acceptance procedure](chat-windows-acceptance.md). No native app conversation collection is claimed.
 
 ## Historical UI guide — retained reference
 

@@ -16,6 +16,9 @@ from test_chat_workspace import Engine
 
 class BrowserEngine(Engine):
     content='  Synthetic fixture reply — no personal data.  '
+    def limits(self):
+        return {**super().limits(),'model_max_context':131072,'runtime_context':None,'weights_bytes':4*1024**3,'architecture':'synthetic',
+                'kv':{'block_count':12,'embedding_length':1024,'attention.head_count':8}}
     def generate(self,messages,reserve,stop):
         if messages[-1]['content']=='STOP_FIXTURE':
             stop.wait(5)

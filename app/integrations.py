@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 from .db import utc_now
@@ -33,12 +34,14 @@ class Connector:
     port: int = 0
     models_path: str = ""
     test_path: str = ""
+    chat_paths: tuple[str, ...] = ()
 
 
 CONNECTORS = {
     "hermes": Connector("Hermes Agent", "conversation_source", ".hermes"),
     "lmstudio": Connector("LM Studio", "model_runtime", ".lmstudio", 1234, "/v1/models", "/v1/chat/completions"),
-    "ollama": Connector("Ollama", "model_runtime", ".ollama", 11434, "/api/tags", "/api/generate"),
+    "ollama": Connector("Ollama", "model_runtime", ".ollama", 11434, "/api/tags", "/api/generate",
+                        ("/api/version", "/api/show", "/api/ps", "/api/chat")),
 }
 HERMES_BLOCK = "Hermes collection is BLOCKED: sender-side filtering and external disconnect are unverified."
 MAX_RESPONSE = 256 * 1024
@@ -75,23 +78,41 @@ class BoundedReader:
 
 
 class BoundedResponse(http.client.HTTPResponse):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, limit=MAX_RESPONSE, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fp = BoundedReader(self.fp)
+        self.fp = BoundedReader(self.fp, limit=limit + 64 * 1024)
 
 
-def request_json(connector: Connector, path: str, payload: dict | None = None, *, timeout: float = 3) -> dict:
+class WakingSocket(socket.socket):
+    """Windows does not wake a blocked recv on shutdown, so reads wake to check."""
+
+    expired: threading.Event
+
+    def recv_into(self, *args):
+        while True:
+            try:
+                return super().recv_into(*args)
+            except TimeoutError:
+                if self.expired.is_set():
+                    raise
+
+
+def request_json(connector: Connector, path: str, payload: dict | None = None, *, timeout: float = 3,
+                 limit: int = MAX_RESPONSE, cancel: threading.Event | None = None,
+                 error_status: tuple[int, ...] = ()) -> dict:
     """Numeric IPv4 socket: no DNS, proxy, redirect, credential or user URL support.
 
-    A deadline shuts down the socket even if a peer trickles headers/body bytes.
-    Neither upstream body nor exception text is returned in an error.
+    A deadline or `cancel` shuts down the socket even if a peer trickles
+    headers/body bytes. Neither upstream body nor exception text is returned in
+    an error. Only a listed `error_status` body reaches the caller, as data
+    marked `http_status`, never as a user-visible message.
     """
-    if not connector.port or path not in {connector.models_path, connector.test_path}:
+    if not connector.port or path not in {connector.models_path, connector.test_path, *connector.chat_paths}:
         raise IntegrationError("ENDPOINT_BLOCKED", "Endpoint is not in the connector registry.")
     connection = http.client.HTTPConnection("127.0.0.1", connector.port, timeout=timeout)
-    connection.response_class = BoundedResponse
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    expired = threading.Event()
+    connection.response_class = partial(BoundedResponse, limit=limit)
+    sock = WakingSocket(socket.AF_INET, socket.SOCK_STREAM)
+    expired = sock.expired = threading.Event()
     deadline = time.monotonic() + timeout
 
     def expire():
@@ -103,9 +124,19 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
 
     timer = threading.Timer(timeout, expire)
     timer.daemon = True
+    finished = threading.Event()
+
+    def watch_cancel():
+        while not finished.wait(.05):
+            if cancel.is_set():
+                expire()
+                return
+
     try:
         sock.settimeout(timeout)
         timer.start()
+        if cancel is not None:
+            threading.Thread(target=watch_cancel, daemon=True).start()
         sock.connect(("127.0.0.1", connector.port))
         connection.sock = sock
         if expired.is_set():
@@ -115,6 +146,7 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
         if body is not None:
             headers["Content-Type"] = "application/json"
         connection.request("GET" if body is None else "POST", path, body=body, headers=headers)
+        sock.settimeout(min(timeout, .1))
         response = connection.getresponse()
         # Shutdown can yield partial headers instead of raising on some platforms.
         if expired.is_set() or time.monotonic() >= deadline:
@@ -123,7 +155,7 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
             raise IntegrationError("AUTH_REQUIRED", "Runtime requires authentication; credential forwarding is unsupported.")
         if 300 <= response.status < 400:
             raise IntegrationError("REDIRECT_BLOCKED", "Runtime redirects are refused.")
-        if response.status != 200:
+        if response.status != 200 and response.status not in error_status:
             raise IntegrationError("HTTP_ERROR", "Runtime returned an unsuccessful HTTP status.")
         lengths = response.headers.get_all("Content-Length", [])
         encodings = response.headers.get_all("Transfer-Encoding", [])
@@ -131,22 +163,24 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
             raise IntegrationError("INVALID_RESPONSE", "Runtime response framing is unsupported.")
         if lengths and (not lengths[0].isascii() or not lengths[0].isdigit()):
             raise IntegrationError("INVALID_RESPONSE", "Runtime response length is invalid.")
-        if lengths and int(lengths[0]) > MAX_RESPONSE:
+        if lengths and int(lengths[0]) > limit:
             raise IntegrationError("RESPONSE_TOO_LARGE", "Runtime response exceeds the size limit.")
         if response.headers.get("Content-Encoding", "identity").lower() != "identity":
             raise IntegrationError("INVALID_RESPONSE", "Compressed runtime responses are unsupported.")
         if response.headers.get_content_type() != "application/json":
             raise IntegrationError("INVALID_RESPONSE", "Runtime response must be JSON.")
-        raw = response.read(MAX_RESPONSE + 1)
+        raw = response.read(limit + 1)
         if expired.is_set() or time.monotonic() >= deadline:
             raise TimeoutError
-        if len(raw) > MAX_RESPONSE:
+        if len(raw) > limit:
             raise IntegrationError("RESPONSE_TOO_LARGE", "Runtime response exceeds the size limit.")
         if lengths and len(raw) != int(lengths[0]):
             raise IntegrationError("INVALID_RESPONSE", "Runtime response was incomplete.")
         value = json.loads(raw.decode("utf-8"))
         if not isinstance(value, dict):
             raise ValueError
+        if response.status != 200:
+            value["http_status"] = response.status
         return value
     except IntegrationError:
         raise
@@ -159,6 +193,7 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
             raise IntegrationError("TIMEOUT", "Runtime request exceeded its deadline.") from None
         raise IntegrationError("INVALID_RESPONSE", "Runtime is unavailable or returned an invalid response.") from None
     finally:
+        finished.set()
         timer.cancel()
         connection.close()
         sock.close()
@@ -212,12 +247,14 @@ def marker_present(home: Path, marker: str) -> bool:
 
 
 class IntegrationManager:
-    """One process owns consent. Lock covers I/O so disconnect waits for in-flight work."""
+    """One process owns consent. Actions wait for in-flight chat; reads never do."""
 
     def __init__(self, *, connectors=None, home: Path | None = None):
         self.connectors = dict(CONNECTORS if connectors is None else connectors)
         self.home = Path.home() if home is None else home
         self._lock = threading.RLock()
+        self._lease_ended = threading.Condition(self._lock)
+        self._leased = set()
         self._last_discovery = float("-inf")
         self._states = {}
         for key, spec in self.connectors.items():
@@ -240,18 +277,27 @@ class IntegrationManager:
     def chat_lease(self, key: str, model: str, revision: int):
         """Keep selection/connection stable through count, inference and commit.
 
-        Disconnect waits for this lease; chat stop/collection revocation uses its
-        own lock and can cancel while the runtime is busy.
+        One turn per runtime. Disconnect/select wait for this lease without
+        holding the lock, so status reads stay live during a long reply; chat
+        stop/collection revocation uses its own lock and can cancel meanwhile.
         """
         with self._lock:
-            state = self._states.get(key)
-            if key not in {"lmstudio", "ollama"} or not state:
+            state = self._states.get(key) if isinstance(key, str) else None
+            if not state or key not in {"lmstudio", "ollama"}:
                 raise IntegrationError("UNKNOWN_PROVIDER", "Choose an approved local runtime.")
             if state["connection"] != "CONNECTED" or state["selected_model"] != model:
                 raise IntegrationError("NOT_CONNECTED", "Connect and select this model in Settings → Integrations.", 409)
             if type(revision) is not int or revision != state["selection_revision"]:
                 raise IntegrationError("STALE_SELECTION", "Runtime selection changed; refresh before sending.", 409)
+            if key in self._leased:
+                raise IntegrationError("ENGINE_BUSY", "This runtime is finishing another chat request; try again when it is done.", 409)
+            self._leased.add(key)
+        try:
             yield self.connectors[key]
+        finally:
+            with self._lease_ended:
+                self._leased.discard(key)
+                self._lease_ended.notify_all()
 
     def _failure(self, state: dict, error: IntegrationError):
         state["selection_revision"] += 1
@@ -294,7 +340,8 @@ class IntegrationManager:
                 state = self._states[key]
                 state["installation"] = "DETECTED" if marker_present(self.home, spec.marker) else "NOT_DETECTED"
                 if spec.kind == "model_runtime":
-                    self._refresh(key)
+                    if key not in self._leased:
+                        self._refresh(key)
                 else:
                     state["last_checked_at"] = utc_now()
             self._last_discovery = time.monotonic()
@@ -309,6 +356,8 @@ class IntegrationManager:
             allowed = {"approved", "model"} if action == "select" else {"approved", "selection_revision"} if action == "test" else {"approved"}
             if set(payload) - allowed:
                 raise IntegrationError("INVALID_PAYLOAD", "Only the documented action fields are allowed.")
+            while key in self._leased:
+                self._lease_ended.wait()
             state, spec = self._states[key], self.connectors[key]
             if action == "disconnect":
                 state["selection_revision"] += 1

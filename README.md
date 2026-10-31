@@ -18,9 +18,9 @@ This feature branch is based on main `d992b0a` (PR #8). PR #10 is closed, draft 
 
 **LM Studio:** implemented against optional pinned Python SDK 1.5.0 and tested with synthetic engine transports. Exact count and prediction bind an existing loaded instance reference; unknown SDK/API behavior fails closed. It never loads/reconfigures a model. Real engine/model compatibility and the owner's Windows acceptance are **NOT TESTED**.
 
-**Ollama:** discovery/selection/approved connectivity tests remain. Chat sending is **BLOCKED** because an exact supported public template-token preflight is not yet verified. This branch does not pretend a character-ratio estimate proves context safety.
+**Ollama:** Chat sending works by proving each turn: history truncation off, a live check that the engine refuses overflow, an exact one-token prompt count and a context clamp check. [Method](docs/chat-workspace.md#ollama-admission). Verified on a real 0.40.13 binary with a synthetic tiny model only. Installed models are **NOT TESTED**. It relies on request fields missing from Ollama's REST reference page, so if a future version changes them, sending blocks instead of truncating. Ollama loads models on request, so each conversation needs explicit load approval.
 
-**Hardware:** explicit read-only RAM/GPU memory snapshot; **no numeric safe context recommendation** when KV/cache placement/resident weights/overhead/concurrent allocation evidence is missing. No 64K guarantee or allocation stress test.
+**Hardware:** explicit read-only device and selected-model evidence, with model maximum, runtime context, measured use and estimated feasibility reported separately. A suggested context is an **unverified estimate**, never a safe limit; without the inputs no number is given. No 64K guarantee or allocation stress test.
 
 Saved text and raw review archives can contain private information. Collection consent is not text anonymization. Archive retains data and old exports while excluding linked reviews from future selection; physical erasure is deferred for a separately reviewed retention decision. New Unsloth handoffs require the new context privacy attestation; preserve historical exports and build a fresh reviewed version instead of rewriting them.
 

@@ -2,7 +2,7 @@
 
 ## Current scope override (2026-10-31)
 
-See [Chat and Unsloth routes](chat-workspace.md#routes). Training namespace writes now return **410 TRAINING_EXTERNAL_ONLY before body parsing**; old mutation branch documentation below is historical. Only job/attempt/log/metric history and dataset/quality reads remain in that namespace. Startup no longer initializes training/runtime registries. Applied schema remains intact; Chat adds migration 005.
+See [Chat and Unsloth routes](chat-workspace.md#routes). Training namespace writes now return **410 TRAINING_EXTERNAL_ONLY before body parsing**; old mutation branch documentation below is historical. Only job/attempt/log/metric history and dataset/quality reads remain in that namespace. Startup no longer initializes training/runtime registries. Applied schema remains intact; Chat adds migrations 005 and 006.
 
 New frozen exports include `privacy_policy=no_flagged_or_excluded_context_v1`. Privacy-tainted full context blocks export without trimming. The new Unsloth endpoint requires this attestation and creates conversational prompt/completion JSONL with completion-only external loss, separate from old export contracts. No merge/deploy/training action is provided.
 

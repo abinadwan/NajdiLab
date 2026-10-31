@@ -19,6 +19,7 @@ class Engine:
     fail = False
     started = None
     release = None
+    key = 'fixture'
 
     def __init__(self):
         self.calls = []
@@ -27,9 +28,15 @@ class Engine:
     def open(self, spec, model):
         yield self
 
-    def measure(self, messages):
+    def limits(self):
+        return {'budget_ceiling': self.ceiling, 'model_max_context': 8192, 'runtime_context': self.ceiling, 'kv': None,
+                'weights_bytes': 1000, 'model_key': 'fixture'}
+
+    def measure(self, messages, budget, stop=None):
         self.calls.append(('measure', messages))
-        return {'input_tokens': self.count, 'loaded_context': self.ceiling, 'model_key': 'fixture'}
+        # History grows every turn, as a real rendered prompt does.
+        self.seen = self.count + len(messages) - 1 if type(self.count) is int else self.count
+        return {'input_tokens': self.seen, 'loaded_context': self.ceiling, 'model_key': self.key}
 
     def generate(self, messages, reserve, stop):
         self.calls.append(('generate', messages, reserve))
@@ -39,7 +46,7 @@ class Engine:
         if self.fail:
             raise IntegrationError('ENGINE_FAILED', 'Synthetic engine error', 502)
         return {'content': self.content, 'stop_reason': self.reason,
-                'input_tokens': self.count, 'output_tokens': 3}
+                'input_tokens': self.seen, 'output_tokens': 3}
 
 
 @pytest.fixture
@@ -58,7 +65,7 @@ def chat(tmp_path):
 
 def new(ws, **extra):
     return ws.create({'provider': 'lmstudio', 'model': 'fixture', 'selection_revision': 2,
-                      'context_budget': 512, 'reply_reserve': 32, **extra})
+                      'context_budget': 512, 'reply_reserve': 32, 'load_approved': False, **extra})
 
 
 def send(ws, session, **extra):
@@ -270,3 +277,107 @@ def test_additive_migration_replays_after_schema_commit_before_ledger_record(cha
     apply_migrations(db)
     assert ws.get(session['id'])['turns'][0]['assistant']==engine.content
     assert count(db,'chat_turns')==1
+
+
+def test_lm_studio_model_swapped_under_same_identifier_cannot_continue_history(chat):
+    ws,engine,_,db=chat
+    done=send(ws,new(ws))['session']
+    engine.key='other-model'
+    with pytest.raises(IntegrationError) as caught:send(ws,done)
+    assert caught.value.code=='MODEL_CHANGED'
+    assert count(db,'chat_turns')==1 and not any(c[0]=='generate' for c in engine.calls[2:])
+
+
+def test_engine_reporting_no_model_identity_is_refused(chat):
+    ws,engine,_,db=chat
+    engine.key=''
+    with pytest.raises(IntegrationError):send(ws,new(ws))
+    assert count(db,'chat_turns')==0
+
+
+def test_prompt_that_stopped_growing_is_refused_before_a_reply(chat):
+    ws,engine,_,db=chat
+    done=send(ws,new(ws))['session']
+    engine.count-=5
+    with pytest.raises(IntegrationError) as caught:send(ws,done)
+    assert caught.value.code=='CONTEXT_SHRANK'
+    assert count(db,'chat_turns')==1
+
+
+def test_budget_above_loaded_context_is_refused_at_creation_and_when_model_reloads_smaller(chat):
+    ws,engine,_,_=chat
+    engine.ceiling=256
+    with pytest.raises(IntegrationError) as caught:new(ws)
+    assert caught.value.code=='ENGINE_CONTEXT_LIMIT'
+    engine.ceiling=4096
+    session=new(ws)
+    engine.ceiling=256
+    with pytest.raises(IntegrationError) as caught:send(ws,session)
+    assert caught.value.code=='ENGINE_CONTEXT_LIMIT'
+    assert ws.get(session['id'])['status']=='OPEN'
+
+
+def test_unknown_runtime_limit_blocks_session_creation(chat):
+    ws,engine,_,_=chat
+    engine.ceiling=None
+    with pytest.raises(IntegrationError) as caught:new(ws)
+    assert caught.value.code=='CONTEXT_UNKNOWN'
+
+
+def test_non_string_provider_is_a_clean_refusal(chat):
+    ws,*_=chat
+    with pytest.raises(IntegrationError):
+        ws.create({'provider':['ollama'],'model':'fixture','selection_revision':2,'context_budget':512,'reply_reserve':32,'load_approved':False})
+
+
+def test_session_from_before_binding_table_keeps_working(chat):
+    ws,engine,_,db=chat
+    session=new(ws)
+    with connect(db) as conn:
+        conn.execute('DELETE FROM chat_session_bindings')
+    assert ws.get(session['id'])['model_fingerprint'] is None
+    result=send(ws,session)
+    assert result['session']['model_fingerprint']=='fixture'
+    engine.count=490
+    assert send(ws,result['session'])['status']=='CONTEXT_LIMIT'
+
+
+def test_binding_migration_replays_after_schema_commit_before_ledger_record(chat):
+    ws,_,_,db=chat
+    session=send(ws,new(ws))['session']
+    with connect(db) as conn:
+        conn.execute("DELETE FROM schema_migrations WHERE version='006_chat_session_binding.sql'")
+    apply_migrations(db)
+    assert ws.get(session['id'])['model_fingerprint']=='fixture'
+
+
+def test_collected_ollama_turn_reaches_a_handoff_only_after_human_approval(tmp_path,monkeypatch):
+    import json
+    from pathlib import Path
+    from app import dataset_platform
+    from app.review_integrity import ExportReadinessError
+    from app.service import approve_review,create_export
+    from app.unsloth_export import create_handoff
+    db=tmp_path/'export.db';apply_migrations(db)
+    manager=IntegrationManager(home=tmp_path)
+    manager._states['ollama'].update(connection='CONNECTED',selected_model='fixture',models=['fixture'],selection_revision=2)
+    engine=Engine()
+    ws=ChatWorkspace(manager,db,engine_factory=engine.open)
+    try:
+        session=new(ws,provider='ollama',load_approved=True)
+        session=ws.collect(session['id'],{'enabled':True,'revision':session['revision']})
+        send(ws,session,text='  سؤال خام  ')
+    finally:
+        ws.close()
+    with connect(db) as conn:
+        review=conn.execute('SELECT * FROM reviews').fetchone()
+        assert (review['review_status'],review['training_eligible'])==('PENDING',0)
+        assert conn.execute('SELECT provider FROM conversations').fetchone()[0]=='ollama'
+    exports=tmp_path/'exports'
+    with pytest.raises(ExportReadinessError):create_export(db,exports_dir=exports)
+    approve_review(review['id'],{'training_eligible':True},db)
+    create_export(db,exports_dir=exports)
+    monkeypatch.setattr(dataset_platform,'EXPORTS_DIR',exports)
+    handoff=create_handoff('gold-v001',output_root=tmp_path/'handoffs')
+    row=json.loads((Path(handoff['directory'])/'dataset.jsonl').read_text(encoding='utf-8'))
+    assert row=={'prompt':[{'role':'user','content':'  سؤال خام  '}],'completion':[{'role':'assistant','content':Engine.content}]}

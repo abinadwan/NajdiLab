@@ -17,7 +17,6 @@ from .db import DB_PATH, ROOT, apply_migrations
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .chat_workspace import ChatWorkspace, fields
-from .hardware import snapshot as hardware_snapshot
 from .unsloth_export import create_handoff, read_handoff
 from .dataset_platform import (
     DatasetPlatformError,
@@ -399,8 +398,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             elif parsed.path == '/api/v1/chat/hardware':
                 if data.get('approved') is not True:
                     raise IntegrationError('APPROVAL_REQUIRED', 'Approve the read-only hardware snapshot first.', 403)
-                fields(data, {'approved'})
-                self._json(hardware_snapshot())
+                self._json(self.server.workspace().hardware(data))
             elif parsed.path == '/api/v1/chat/sessions':
                 self._json(self.server.workspace().create(data), HTTPStatus.CREATED)
             elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/(send|collect|stop|archive)', parsed.path):

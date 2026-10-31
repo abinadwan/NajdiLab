@@ -20,6 +20,7 @@ const puppeteer=require('puppeteer-core');
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base+'/chat');await page.waitForSelector('#chat-provider option');
     assert.equal(await page.$('[data-view="training"]'),null);
+    assert.equal(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
     await page.click('#chat-new');await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
     assert.equal(await page.$eval('#chat-collect',e=>e.checked),false);
     const sid=await page.$eval('#chat-saved',e=>e.value);
@@ -55,13 +56,24 @@ const puppeteer=require('puppeteer-core');
     await page.waitForFunction(()=>!document.querySelector('#chat-stop').disabled);await page.click('#chat-stop');
     await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
     assert.equal(await page.$$eval('.chat-message',es=>es.length),0);
-    await page.select('#chat-provider','ollama');await page.click('#chat-new');
-    await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('Ollama Chat is blocked'));
-    assert.equal(await page.$eval('#chat-send',e=>e.disabled),true);
+    // Ollama loads on request, so it needs its own approval before any session.
+    await page.select('#chat-provider','ollama');
+    assert.notEqual(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
+    await page.click('#chat-new');
+    await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('Approve Ollama'));
+    await page.click('#chat-load-approved');await page.click('#chat-new');
+    await page.waitForFunction(()=>document.querySelector('#chat-usage').textContent.startsWith('ollama'));
+    await page.type('#chat-draft','Synthetic Ollama question');await page.click('#chat-send');
+    await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2);
+    await page.click('#chat-hardware');
+    await page.waitForFunction(()=>document.querySelector('#chat-hardware-result').textContent.includes('Model maximum context: 131072'));
+    // Reading specs must not stale the conversation that is already open.
+    await page.type('#chat-draft','Second question after reading specs');await page.click('#chat-send');
+    await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===4);
     await page.goto(base+'/training/setup');await page.waitForSelector('#view-retired.active');
     assert.equal(await page.$('#training-setup-form'),null);
     assert.deepEqual(errors,[]);
-    console.log('PASS: real browser raw text/HTML escaping, opt-in pending queue/privacy, reload/history, overflow/no replay, Stop, Ollama refusal and retired training view. Synthetic engines only.');
+    console.log('PASS: real browser raw text/HTML escaping, opt-in pending queue/privacy, reload/history, overflow/no replay, Stop, Ollama load approval and retired training view. Synthetic engines only.');
   }finally{
     if(browser)await browser.close();child.kill();
   }

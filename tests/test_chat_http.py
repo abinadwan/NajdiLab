@@ -9,6 +9,7 @@ from app import server
 from app.db import apply_migrations
 from app.http_security import CSRF_TOKEN
 from app.chat_workspace import ChatWorkspace
+from app.integrations import IntegrationError
 from test_chat_workspace import Engine
 
 
@@ -39,7 +40,7 @@ def api(tmp_path):
 
 def test_chat_routes_and_security(api):
     request,_=api
-    data={'provider':'lmstudio','model':'fixture','selection_revision':2,'context_budget':512,'reply_reserve':32}
+    data={'provider':'lmstudio','model':'fixture','selection_revision':2,'context_budget':512,'reply_reserve':32,'load_approved':False}
     assert request('/api/v1/chat/sessions',data,token=False)[0]==403
     assert request('/api/v1/chat/sessions',data,origin='http://evil.example')[0]==403
     status,session=request('/api/v1/chat/sessions',data)
@@ -68,6 +69,46 @@ def test_training_writes_retired_before_body_and_history_is_read_only(api,tmp_pa
 def test_hardware_requires_explicit_read_only_approval(api):
     request,_=api
     assert request('/api/v1/chat/hardware',{})[0]==403
-    with patch.object(server,'hardware_snapshot',return_value={'read_only':True,'recommendation':{'recommended_context':None}}) as probe:
+    with patch('app.chat_workspace.hardware_snapshot',return_value={'read_only':True,'recommendation':{'recommended_context':None}}) as probe:
         assert request('/api/v1/chat/hardware',{'approved':True})[0]==200
         assert probe.call_count==1
+
+
+def test_selected_model_hardware_uses_read_only_limits_and_survives_runtime_failure(api):
+    request,http=api
+    body={'approved':True,'provider':'lmstudio','model':'fixture','selection_revision':2}
+    status,result=request('/api/v1/chat/hardware',body)
+    assert status==200 and result['read_only'] is True
+    assert result['recommendation']['model_max_context']==8192
+    assert request('/api/v1/chat/hardware',{**body,'selection_revision':1})[1]['warnings'][-1]=='STALE_SELECTION'
+    assert request('/api/v1/chat/hardware',{**body,'path':'C:/secrets'})[0]==400
+
+
+def test_status_reads_stay_live_during_a_turn_and_disconnect_waits_for_it(api):
+    request,http=api
+    data={'provider':'lmstudio','model':'fixture','selection_revision':2,'context_budget':512,'reply_reserve':32,'load_approved':False}
+    session=request('/api/v1/chat/sessions',data)[1]
+    engine=http.chat.engine_factory.__self__
+    engine.started,engine.release=threading.Event(),threading.Event()
+    from uuid import uuid4
+    results=[]
+    turn=threading.Thread(target=lambda:results.append(request('/api/v1/chat/sessions/'+session['id']+'/send',
+        {'request_id':str(uuid4()),'revision':session['revision'],'selection_revision':2,'text':'x'})))
+    turn.start()
+    assert engine.started.wait(3)
+    assert request('/api/v1/integrations')[0]==200
+    assert http.integrations.snapshot()['ok'] is True
+    with pytest.raises(IntegrationError) as busy:
+        with http.integrations.chat_lease('lmstudio','fixture',2):
+            pass
+    assert busy.value.code=='ENGINE_BUSY'
+    done=threading.Event()
+    def disconnect():
+        http.integrations.action('lmstudio','disconnect',{'approved':True})
+        done.set()
+    closer=threading.Thread(target=disconnect)
+    closer.start()
+    assert not done.wait(.3)
+    engine.release.set()
+    turn.join(4);closer.join(4)
+    assert done.is_set() and results[0][1]['status']=='COMPLETED'
