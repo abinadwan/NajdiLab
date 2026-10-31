@@ -1,0 +1,3 @@
+# Optional for Chat only; core review/export remains standard-library Python.
+# Installs into NajdiLab's environment, never into LM Studio/Ollama.
+lmstudio==1.5.0

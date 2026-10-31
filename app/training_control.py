@@ -502,7 +502,7 @@ def get_job(job_id: str) -> dict[str, Any]:
 
 
 def list_jobs() -> list[dict[str, Any]]:
-    initialize_training_control(); result = []
+    result = []
     for path in sorted(JOBS_ROOT.glob("train-*/job.json"), reverse=True):
         try: result.append(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, json.JSONDecodeError): continue

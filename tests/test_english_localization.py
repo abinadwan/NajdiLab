@@ -57,7 +57,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const elements = new Map();
 const element = selector => {
-    if (!elements.has(selector)) elements.set(selector, {checked: false, innerHTML: '', textContent: '', className: ''});
+    if (!elements.has(selector)) elements.set(selector, {checked: false, innerHTML: '', textContent: '', className: '',style:{},classList:{toggle(){},add(){},remove(){}}});
     return elements.get(selector);
 };
 const context = {console, Intl, Date, URLSearchParams, setTimeout: () => 0, clearTimeout: () => {},
@@ -68,6 +68,13 @@ vm.runInContext(fs.readFileSync('static/app.js', 'utf8'), context);
 """
     result = subprocess.run([node, "-e", bootstrap + script], cwd=ROOT, text=True, capture_output=True)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_pending_review_does_not_display_training_eligibility_before_human_choice():
+    run_browser_script(r"""
+vm.runInContext(`state.queue=[{conversation_title:'Synthetic pending',training_eligible:0,context:[],original_response:'raw'}];renderReview();`,context);
+assert.equal(element('#training-eligible').checked,false);
+""")
 
 
 def test_export_readiness_findings_render_as_text():

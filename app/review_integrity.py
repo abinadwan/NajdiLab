@@ -186,6 +186,32 @@ def _result(findings: list[dict[str, Any]], include_demo: bool) -> dict[str, Any
     }
 
 
+def export_privacy(conn: sqlite3.Connection, *, include_demo: bool = False) -> dict[str, Any]:
+    """Block a whole window; never trim excluded/private context silently."""
+    findings = []
+    rows = conn.execute('''SELECT DISTINCT r.id FROM reviews r
+        JOIN messages m ON m.id=r.message_id JOIN conversations c ON c.id=m.conversation_id
+        WHERE r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')
+        AND r.exclude_from_training=0 AND (r.training_eligible=1 OR r.evaluation_only=1)
+        AND (?=1 OR c.demo=0) AND EXISTS (
+            SELECT 1 FROM messages p JOIN reviews pr ON pr.message_id=p.id
+            WHERE p.conversation_id=m.conversation_id AND p.turn_index<=m.turn_index
+            AND (pr.contains_personal_data=1 OR pr.contains_sensitive_data=1 OR pr.exclude_from_training=1
+                 OR pr.review_status IN ('IGNORED','DELETED') OR (r.training_eligible=1 AND pr.evaluation_only=1))
+        )''', (int(include_demo),)).fetchall()
+    for row in rows:
+        findings.append(_finding('EXPORT_PRIVATE_CONTEXT',f'review:{row[0]}',
+            'A selected target or its full context contains privacy-flagged, excluded, deleted or evaluation-only data. Resolve the review or exclude the whole target; context was not trimmed.',
+            'ERROR',confirmed=True))
+    for table in ('manual_sft_items','direct_language_texts','preference_pairs'):
+        for row in conn.execute(f'''SELECT id FROM {table} WHERE archived=0 AND exclude_from_training=0
+            AND deleted_at IS NULL AND ignored_at IS NULL AND (training_eligible=1 OR evaluation_only=1)
+            AND (contains_personal_data=1 OR contains_sensitive_data=1) AND (?=1 OR demo=0)''', (int(include_demo),)):
+            findings.append(_finding('EXPORT_PRIVATE_TARGET',f'{table}:{row[0]}',
+                'An eligible manual record has a privacy flag; resolve or exclude it before export.', 'ERROR',confirmed=True))
+    return _result(findings,include_demo)
+
+
 def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = False) -> dict[str, Any]:
     path = Path(db_path)
     try:
@@ -197,6 +223,8 @@ def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = Fals
     try:
         result = review_integrity(conn, include_demo=include_demo)
         try:
+            privacy = export_privacy(conn,include_demo=include_demo)
+            result = _result([*result['findings'],*privacy['findings']],include_demo)
             exportable = conn.execute(
                 """
                 SELECT

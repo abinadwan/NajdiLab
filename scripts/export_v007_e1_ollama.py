@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# Historical helpers only; no direct model/GGUF/runtime execution.
+if __name__ == '__main__':
+    raise SystemExit('This workflow is retired. Export a reviewed dataset for external Unsloth.')
+
 """Export the locked gold-v007-balanced Epoch-1 adapter.
 
 This script is deliberately conservative: it refuses to overwrite any existing

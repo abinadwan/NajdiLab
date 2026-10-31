@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Dataset-first Chat and external Unsloth (2026-10-31)
+
+- Rescoped active UI to Chat, human review, manual data, quality/version/dedup and external exports. Retired training/model-download/WSL/worker/deploy controls and training namespace writes (410); historical reads/data and applied migrations retained. CLI trainers/GGUF/benchmark entrypoints now refuse before dependencies load.
+- Added additive Chat migration 005, own completed text storage, separate collection OFF on creation/restart, pending review segments, idempotent receipts, single database owner, revisions, consent epochs, stop/error/restart/archive safeguards and preserved whitespace/Unicode.
+- Added exact template-token admission with reply reservation and explicit context rollover; pinned optional SDK1.5.0 helper binds existing LM Studio instance references without load/config/service operations. Ollama sending remains blocked pending exact preflight; native application capture is not claimed and Hermes remains blocked.
+- Added read-only hardware snapshot with honest unknown KV/overhead/placement and no numeric safe-context promise or stress testing.
+- Added immutable Unsloth conversational prompt/completion JSONL/provenance/manifests, requiring completion-only loss. Context privacy blocks whole windows, source snapshot is locked, and all quality/holdout input hashes are verified before handoff publication. Historical exports remain intact; new handoff requires a fresh privacy-attested version.
+- Updated current architecture/roadmap/audit/API/rollback and synthetic tests. Actual results and untested owner gates are tracked in [delivery evidence](docs/dataset-chat-results.md); no real engine or device acceptance is implied.
+
 ## Unreleased — Settings integrations (2026-10-31)
 
 - Added a server-owned connector registry and Settings UI for bounded read-only discovery of Hermes directory evidence and known numeric-loopback LM Studio/Ollama APIs. No external configuration/history/secret reads, custom endpoints, DNS, proxies, redirects, downloads, migrations or new application dependencies.

@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+# Retained for historical validation imports, retired as an executable.
+if __name__ == '__main__':
+    raise SystemExit('Training is retired in NajdiLab. Export a reviewed dataset for external Unsloth.')
+
+
 import argparse
 import copy
 import hashlib

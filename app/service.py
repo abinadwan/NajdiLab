@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
+
 import hashlib
 import json
 import math
@@ -16,7 +18,7 @@ from typing import Any
 from uuid import uuid4
 
 from .db import DB_PATH, ROOT, connect, json_dumps, json_loads, redact_secrets, transaction, utc_now
-from .review_integrity import ExportReadinessError, export_readiness
+from .review_integrity import ExportReadinessError, export_readiness, export_privacy
 from .review_lifecycle import append_event
 
 CORRECTION_REVIEW_STATUSES = {
@@ -194,14 +196,19 @@ def add_message(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str
         conn.close()
 
 
-def ingest_turn(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+def ingest_turn(data: dict[str, Any], db_path: Path | str = DB_PATH, *, _connection=None, _preserve_text=False) -> dict[str, Any]:
     external_id = _required(data, "conversation_id")
     user_message = _required(data, "user_message")
     assistant_response = _required(data, "assistant_response")
+    if _preserve_text:
+        # Internal raw-chat entry: validate without stripping the source text.
+        if any(not isinstance(data.get(k), str) or not data[k].strip() for k in ("user_message", "assistant_response")):
+            raise ValidationError("Completed chat text must be a nonblank string")
+        user_message, assistant_response = data["user_message"], data["assistant_response"]
     source_message_id = str(data.get("source_message_id") or "").strip() or None
-    conn = connect(db_path)
+    conn = _connection if _connection is not None else connect(db_path)
     try:
-        with transaction(conn):
+        with (nullcontext(conn) if _connection is not None else transaction(conn)):
             conversation = _conversation_row(conn, external_id)
             now = utc_now()
             if conversation and source_message_id:
@@ -339,7 +346,8 @@ def ingest_turn(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str
                 "duplicate": False,
             }
     finally:
-        conn.close()
+        if _connection is None:
+            conn.close()
 
 
 def ingest_hermes_hook(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
@@ -1541,6 +1549,8 @@ def _review_training_records(conn: sqlite3.Connection, include_demo: bool, evalu
                 "messages": messages,
                 "origin": "human_corrected" if row["corrected_response"] else "real_conversation",
                 "review_status": row["review_status"],
+                "contains_personal_data": bool(row["contains_personal_data"]),
+                "contains_sensitive_data": bool(row["contains_sensitive_data"]),
                 "provider": row["provider"],
                 "model_name": row["model_name"],
                 "model_version": row["model_version"],
@@ -2110,35 +2120,47 @@ def create_export(
     conn = connect(db_path)
     try:
         with transaction(conn):
+            privacy = export_privacy(conn,include_demo=include_demo)
+            if not privacy['ok']:
+                raise ExportReadinessError(privacy)
             number = conn.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM dataset_versions").fetchone()[0]
             version = f"gold-v{number:03d}"
             if (exports_dir / version).exists():
                 raise ValidationError("The version directory already exists")
-        dataset = training_dataset(db_path, include_demo)
-        reviews = dataset["reviews"]
-        manual = dataset["manual_sft"]
-        training_entries = (
-            [("sft", _annotate_sft_record(item)) for item in reviews + manual]
-            + [("direct_language", item) for item in dataset["direct_language"]]
-            + [("preference_pairs", item) for item in dataset["preference_pairs"]]
-        )
-        explicit_evaluation_entries = (
-            [
-                ("sft", _annotate_sft_record(item))
-                for item in (
-                    _review_training_records(conn, include_demo, evaluation=True)
-                    + _manual_records(conn, "manual_sft_items", include_demo, evaluation=True)
-                )
-            ]
-            + [
-                ("direct_language", item)
-                for item in _manual_records(conn, "direct_language_texts", include_demo, evaluation=True)
-            ]
-            + [
-                ("preference_pairs", item)
-                for item in _manual_records(conn, "preference_pairs", include_demo, evaluation=True)
-            ]
-        )
+            dataset = training_dataset(db_path, include_demo)
+            reviews = dataset["reviews"]
+            manual = dataset["manual_sft"]
+            training_entries = (
+                [("sft", _annotate_sft_record(item)) for item in reviews + manual]
+                + [("direct_language", item) for item in dataset["direct_language"]]
+                + [("preference_pairs", item) for item in dataset["preference_pairs"]]
+            )
+            explicit_evaluation_entries = (
+                [
+                    ("sft", _annotate_sft_record(item))
+                    for item in (
+                        _review_training_records(conn, include_demo, evaluation=True)
+                        + _manual_records(conn, "manual_sft_items", include_demo, evaluation=True)
+                    )
+                ]
+                + [
+                    ("direct_language", item)
+                    for item in _manual_records(conn, "direct_language_texts", include_demo, evaluation=True)
+                ]
+                + [
+                    ("preference_pairs", item)
+                    for item in _manual_records(conn, "preference_pairs", include_demo, evaluation=True)
+                ]
+            )
+            archive = {
+                "conversations": [dict(x) for x in conn.execute("SELECT * FROM conversations")],
+                "messages": [dict(x) for x in conn.execute("SELECT * FROM messages")],
+                "reviews": [dict(x) for x in conn.execute("SELECT * FROM reviews")],
+                "review_tags": [dict(x) for x in conn.execute("SELECT * FROM review_tags")],
+                "manual_sft_items": [dict(x) for x in conn.execute("SELECT * FROM manual_sft_items")],
+                "direct_language_texts": [dict(x) for x in conn.execute("SELECT * FROM direct_language_texts")],
+                "preference_pairs": [dict(x) for x in conn.execute("SELECT * FROM preference_pairs")],
+            }
         training_entries, evaluation, split_stats = _split_export_entries(
             training_entries, explicit_evaluation_entries
         )
@@ -2180,15 +2202,6 @@ def create_export(
                 _write_jsonl(temp_dir / name, items)
             _validate_jsonl_files(temp_dir, files)
             validation["jsonl_parse_valid"] = True
-            archive = {
-                "conversations": [dict(x) for x in conn.execute("SELECT * FROM conversations")],
-                "messages": [dict(x) for x in conn.execute("SELECT * FROM messages")],
-                "reviews": [dict(x) for x in conn.execute("SELECT * FROM reviews")],
-                "review_tags": [dict(x) for x in conn.execute("SELECT * FROM review_tags")],
-                "manual_sft_items": [dict(x) for x in conn.execute("SELECT * FROM manual_sft_items")],
-                "direct_language_texts": [dict(x) for x in conn.execute("SELECT * FROM direct_language_texts")],
-                "preference_pairs": [dict(x) for x in conn.execute("SELECT * FROM preference_pairs")],
-            }
             (temp_dir / "full_archive.json").write_text(
                 json.dumps(archive, ensure_ascii=False, indent=2), encoding="utf-8"
             )
@@ -2227,6 +2240,8 @@ def create_export(
             ).fetchone()
             manifest = {
                 "version": version,
+                "state": "Frozen",
+                "privacy_policy": "no_flagged_or_excluded_context_v1",
                 "created_at": utc_now(),
                 "record_count": sum(len(items) for items in files.values()),
                 "training_record_count": sum(len(items) for items in training_files.values()),

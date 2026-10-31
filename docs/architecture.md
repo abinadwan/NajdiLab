@@ -1,5 +1,19 @@
 # Architecture
 
+## Current dataset-first architecture (2026-10-31)
+
+The active flow is **Chat → review/correction → quality/version → external Unsloth handoff**. [Scope audit](scope-audit-2026-10-31.md), [current roadmap](roadmap.md) and [Chat contract](chat-workspace.md) supersede execution features described in the historical sections below.
+
+`app/chat_workspace.py` owns completed Chat storage, process/database ownership, UUID receipts/revisions, collection epochs and atomic review capture. Its additive migration 005 leaves earlier schema/data intact. Own Chat history is separate from the legacy ingestion tables, so uncollected text cannot enter ordinary dataset archives or be altered through `/messages`. Continuous opt-in segments alone enter existing reviews.
+
+`app/chat_engine.py` bounds a private helper process. `chat_engine_worker.py` uses pinned optional LM Studio SDK 1.5.0 session helpers with an immutable instance reference for template/token/context/prediction operations, no auto-load/preset/tool path. These helpers are private SDK compatibility surfaces and other SDK versions are refused. Exact count plus reply reservation gates inference. Ollama admission remains blocked pending a supported exact preflight. `hardware.py` provides only explicit read-only evidence and no invented memory-safe number.
+
+`service.py` retains original review/manual/export ownership. Context privacy recheck and full source snapshot share a SQLite write lock; excluded/private/evaluation context blocks a whole window rather than being silently trimmed. `unsloth_export.py` requires a current privacy-attested frozen version, verifies and snapshots every quality input, then publishes immutable prompt/completion JSONL/provenance/manifest. Earlier assistant context receives no completion loss; external training must preserve that contract.
+
+Training namespace writes and nonhistorical runtime controls are retired with structured 410. Historical job/attempt/log/metric reads remain without default initialization. CLI training/GGUF/benchmark entrypoints refuse before dependency imports. Legacy importable research helpers remain during compatibility retirement; no trainer/model runtime is part of the current application flow. Existing full-archive export is private raw review/manual evidence, not the Unsloth training file.
+
+## Historical architecture reference — superseded for active training behavior
+
 NajdiLab runs locally: clients send completed turns to a Python HTTP server, human reviewers create overlays, and gated exports produce immutable training versions. The original v1 scope covered collection, review, Gold management and data export; later phases added explicit training controls and evaluation workflows. Model merge, GGUF/Ollama release and deployment remain separately gated work.
 
 ```text

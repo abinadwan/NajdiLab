@@ -29,7 +29,7 @@ class Phase38UiTests(unittest.TestCase):
         css = (ROOT / "static" / "rtl-overhaul.css").read_text(encoding="utf-8")
         js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
         self.assertIn('<html lang="en" dir="ltr">', html)
-        self.assertIn('data-view="phase38-review"', html)
+        self.assertNotIn('data-view="phase38-review"', html)  # retained deep link, retired navigation
         self.assertIn('id="phase38-status"', html)
         self.assertIn("inset-inline-start:0", css)
         self.assertIn("transform:translateX(-105%)", css)

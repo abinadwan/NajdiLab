@@ -12,8 +12,12 @@
     "PROJECT_STATUS.md",
     "README.md",
     "SECURITY.md",
+    "app/chat_engine.py",
+    "app/chat_engine_worker.py",
+    "app/chat_workspace.py",
     "app/dataset_registry.py",
     "app/generation_hardening.py",
+    "app/hardware.py",
     "app/integrations.py",
     "app/native_tool_data.py",
     "app/phase310_freeze.py",
@@ -29,6 +33,7 @@
     "app/server.py",
     "app/tool_runtime.py",
     "app/training_control.py",
+    "app/unsloth_export.py",
     "config/tool-capabilities.v1.1.json",
     "config/tool-capabilities.v1.json",
     "docs/api-reference.md",
@@ -38,6 +43,7 @@
     "docs/architecture.md",
     "docs/asset-provenance.md",
     "docs/backup-and-restore.md",
+    "docs/chat-workspace.md",
     "docs/codebase-navigation.md",
     "docs/configuration.md",
     "docs/corpus-v1.1/01-behavior-spec.md",
@@ -74,6 +80,7 @@
     "docs/database-and-migrations.md",
     "docs/database-schema.md",
     "docs/dataset-and-training.md",
+    "docs/dataset-chat-results.md",
     "docs/dataset-model-distribution-policy.md",
     "docs/dependencies-and-attribution.md",
     "docs/dependency-licensing-matrix.md",
@@ -87,6 +94,7 @@
     "docs/images/architecture/najdilab-system-architecture.svg",
     "docs/images/architecture/owner-conceptual-architecture.jpg",
     "docs/images/english-ui-arabic-record.jpg",
+    "docs/images/screenshots/chat-workspace-synthetic.png",
     "docs/images/screenshots/conversation-review.png",
     "docs/images/screenshots/correction-overlay.png",
     "docs/images/screenshots/dashboard.png",
@@ -123,11 +131,15 @@
     "docs/public-private-boundary.md",
     "docs/public-release-decision.md",
     "docs/public-source-isolation-report.md",
+    "docs/roadmap.md",
+    "docs/scope-audit-2026-10-31.md",
     "docs/screenshots.md",
     "docs/shell-commands.md",
     "docs/source-provenance.md",
     "docs/superpowers/plans/2026-10-26-english-open-source-readiness.md",
+    "docs/superpowers/plans/2026-10-31-dataset-chat.md",
     "docs/superpowers/plans/2026-10-31-integrations.md",
+    "docs/superpowers/specs/2026-10-31-dataset-chat-design.md",
     "docs/superpowers/specs/2026-10-31-integrations-design.md",
     "docs/system-requirements.md",
     "docs/third-party-attributions.md",
@@ -142,6 +154,7 @@
     "docs/visual-documentation-verification.md",
     "docs/worklogs/english-open-source-readiness.md",
     "docs/worklogs/public-release-remediation.md",
+    "migrations/005_chat_workspace.sql",
     "plans/phase13/005_dataset_registry.sql",
     "plans/phase2/006_review_events.sql",
     "plans/training-readiness/007_model_training_registry.rollback.sql",
@@ -150,6 +163,7 @@
     "public_source/__init__.py",
     "public_source/build.py",
     "public_source/tests/test_builder.py",
+    "requirements-chat.txt",
     "run.cmd",
     "scripts/NajdiLab_Autostart.ps1",
     "scripts/acceptance_v11.py",
@@ -188,6 +202,8 @@
     "scripts/validate_training_masks.py",
     "scripts/verify_audit.py",
     "static/app.js",
+    "static/chat.css",
+    "static/chat.js",
     "static/favicon.svg",
     "static/index.html",
     "static/integrations.css",
@@ -203,15 +219,23 @@
     "static/theme-init.js",
     "static/theme.css",
     "static/theme.js",
+    "tests/chat-browser.cjs",
+    "tests/chat-ui.test.cjs",
+    "tests/chat_browser_fixture.py",
     "tests/http_client.py",
     "tests/integrations-ui.test.cjs",
     "tests/private_artifacts.py",
     "tests/test_arabic_training_ui.py",
     "tests/test_backend_localization.py",
+    "tests/test_chat_engine.py",
+    "tests/test_chat_http.py",
+    "tests/test_chat_sdk_integration.py",
+    "tests/test_chat_workspace.py",
     "tests/test_complete_review_queue.py",
     "tests/test_dataset_balancer.py",
     "tests/test_dataset_platform.py",
     "tests/test_dataset_registry.py",
+    "tests/test_dataset_scope_ui.py",
     "tests/test_english_localization.py",
     "tests/test_http_security.py",
     "tests/test_ingest_cli.py",
@@ -246,7 +270,8 @@
     "tests/test_training_control.py",
     "tests/test_training_plan_mismatch_regression.py",
     "tests/test_training_plan_mismatch_unit.py",
-    "tests/test_training_registry_migration.py"
+    "tests/test_training_registry_migration.py",
+    "tests/test_unsloth_export.py"
   ],
   "files": {
     ".env.example": {
@@ -271,7 +296,7 @@
     },
     "app/dataset_platform.py": {
       "destination": "app/dataset_platform.py",
-      "sha256": "58712351a96b56a0ec631600a6646bf026b1027d7e32474ff234681e72ecf2a2"
+      "sha256": "19dd3205da0c6c272c7148342b3e9b88b98107f21b94972e87b08bbb788e088a"
     },
     "app/dataset_quality.py": {
       "destination": "app/dataset_quality.py",
@@ -291,7 +316,7 @@
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
-      "sha256": "1a94367c9a9f87b3dc9472f69a1182834199b69fb936078bb3a095700231cd8f"
+      "sha256": "bfedf84f3658d43e8a3b39866590d90c9b4a27983d070450afc1b6602ad482ea"
     },
     "app/review_lifecycle.py": {
       "destination": "app/review_lifecycle.py",
@@ -299,7 +324,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "07dabe17178eac419a5c2d6eaeb969fa7c34ccbd5d00dd5db17358be3cac0ec8"
+      "sha256": "966955aa388316f60be16efd009c7ff84a8a3afbb61e055a720868fd41d3b4bd"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",
@@ -371,7 +396,7 @@
     },
     "scripts/install.py": {
       "destination": "scripts/install.py",
-      "sha256": "66e119a2ee999c6dab52b6eb5aaa0e248071d4ea39ebe3c6d2edcc5a29fdb962"
+      "sha256": "bae64ca7b0f5edb6de7fd6b5888bbb608383f1af71bb4a70cbf2f291d428ee19"
     },
     "scripts/launch.py": {
       "destination": "scripts/launch.py",

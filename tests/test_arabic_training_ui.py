@@ -16,49 +16,19 @@ def test_english_localization_layer_is_loaded_before_application():
     assert "global.NajdiI18n" in I18N
 
 
-def test_training_setup_is_english_first_and_keeps_technical_terms():
-    for label in ("Base model", "Dataset version", "Training method", "Learning rate", "Batch size", "preflight"):
+
+def test_dataset_first_chat_controls_are_english_and_training_is_retired():
+    for label in ('Connected provider','Context budget','Reserved reply tokens','New conversation','Collect future completed pairs'):
         assert label in INDEX
-    for technical in ("QLoRA", "LoRA", "BF16", "FP16", "VRAM"):
-        assert technical in INDEX or technical in APP
-    assert ">Training setup and preflight<" in INDEX
-    assert ">Check runtime<" in INDEX
-
-
-def test_candidate_model_registration_is_wired_without_download_action():
-    assert 'id="model-register-form"' in INDEX
-    assert 'name="source_type"' in INDEX
-    assert 'value="ollama"' in INDEX
-    assert 'name="revision"' in INDEX
-    assert "registerModelCandidate" in APP
-    assert "'/api/v1/training/models'" in APP
-    assert "values.repository_id=values.path" in APP
-    assert "/validate`" in APP
-    assert "fetch(" not in I18N
-    assert "does not download weights" in INDEX
+    assert 'id="training-setup-form"' not in INDEX
+    assert 'id="model-register-form"' not in INDEX
+    assert 'id="acquire-model"' not in INDEX
+    assert 'startFull' not in APP
 
 
 def test_accessibility_and_long_identifier_contracts():
     assert 'aria-live="polite"' in INDEX
-    assert "prefers-contrast:more" in THEME
-    assert "overflow-wrap:anywhere" in THEME
-    assert ":focus-visible" in THEME
-    assert "aria-label" in APP[APP.index("async function loadTrainingJobs"):]
-
-
-def test_official_model_acquisition_is_reviewable_and_never_implicit():
-    assert 'id="model-acquisition-card"' in INDEX
-    assert 'Validate and prepare download plan' in INDEX
-    assert 'id="acquire-model"' in INDEX
-    assert 'disabled>Download and verify approved checkpoint' in INDEX
-    assert '/api/v1/training/model-acquisition/catalog' in APP
-    assert '/api/v1/training/model-acquisition/prepare' in APP
-    assert '/api/v1/training/model-acquisition/acquire' in APP
-    assert 'gemma4-e2b-it-official' in APP
-    assert 'state.modelAcquisitionApproval=data.approval_text' in APP
-
-
-def test_model_or_config_change_invalidates_stale_preflight():
-    assert "state.trainingPreflight=null" in APP
-    assert "$('#create-training-job').disabled=true" in APP
-    assert "Not checked" in APP
+    assert 'prefers-contrast:more' in THEME
+    assert 'overflow-wrap:anywhere' in THEME
+    assert ':focus-visible' in THEME
+    assert 'aria-label' in APP

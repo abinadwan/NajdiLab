@@ -1,5 +1,13 @@
 # Local HTTP API
 
+## Current scope override (2026-10-31)
+
+See [Chat and Unsloth routes](chat-workspace.md#routes). Training namespace writes now return **410 TRAINING_EXTERNAL_ONLY before body parsing**; old mutation branch documentation below is historical. Only job/attempt/log/metric history and dataset/quality reads remain in that namespace. Startup no longer initializes training/runtime registries. Applied schema remains intact; Chat adds migration 005.
+
+New frozen exports include `privacy_policy=no_flagged_or_excluded_context_v1`. Privacy-tainted full context blocks export without trimming. The new Unsloth endpoint requires this attestation and creates conversational prompt/completion JSONL with completion-only external loss, separate from old export contracts. No merge/deploy/training action is provided.
+
+## Retained API reference and historical compatibility
+
 Base URL: http://127.0.0.1:8770 (or selected port). This is a trusted local-operator API, not a public/multi-user service. [Complete implemented route inventory](api-routes.md) is generated from routing source; no planned endpoints are included. Regex groups represent path parameters. Success wrappers and domain dispatch names link to actual handlers. [service](../app/service.py), [dataset platform](../app/dataset_platform.py), [training](../app/training_control.py), [runtime](../app/runtime_control.py), [review integrity](../app/review_integrity.py) and phase modules own payload validation and returned records.
 
 ## Common wire contract
