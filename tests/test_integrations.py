@@ -293,7 +293,8 @@ def test_total_wire_budget_counts_headers(runtime):
 
 
 def test_chunk_trailers_cannot_escape_total_wire_limit(runtime):
-    runtime.wire = [b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n{}\r\n0\r\n', *[b'X-Trailer: ' + b'x' * 1000 + b'\r\n'] * 400, b'\r\n']
+    # Fewer than CPython's newer 100-trailer guard, but above our wire budget.
+    runtime.wire = [b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n{}\r\n0\r\n', *[b'X-Trailer: ' + b'x' * 9000 + b'\r\n'] * 48, b'\r\n']
     with pytest.raises(IntegrationError) as exc:
         request_json(replace(CONNECTORS["lmstudio"], port=runtime.port), "/v1/models")
     assert exc.value.code == "RESPONSE_TOO_LARGE"
@@ -302,11 +303,31 @@ def test_chunk_trailers_cannot_escape_total_wire_limit(runtime):
 def test_trickled_headers_cannot_extend_total_deadline(runtime):
     runtime.wire = [b'HTTP/1.1 200 OK\r\n', *[b'X'] * 40]
     runtime.wire_delay = .02
+    # Force the total-deadline shutdown path rather than a per-read timeout.
+    class SlowTimeoutSocket(socket.socket):
+        def settimeout(self, value):
+            super().settimeout(value * 10 if value else value)
+
     start = time.monotonic()
-    with pytest.raises(IntegrationError) as exc:
+    with patch.object(socket, 'socket', SlowTimeoutSocket), pytest.raises(IntegrationError) as exc:
         request_json(replace(CONNECTORS["lmstudio"], port=runtime.port), "/v1/models", timeout=.1)
     assert exc.value.code == "TIMEOUT"
     assert time.monotonic() - start < .5
+
+
+def test_deadline_takes_precedence_over_partial_headers(runtime):
+    from email.message import Message
+    from types import SimpleNamespace
+    from app import integrations
+
+    def partial_response(connection):
+        # Some CPython/platform versions return partial headers after shutdown.
+        time.sleep(.03)
+        return SimpleNamespace(status=200, headers=Message())
+
+    with patch.object(integrations.http.client.HTTPConnection, 'getresponse', partial_response), pytest.raises(IntegrationError) as exc:
+        request_json(replace(CONNECTORS["lmstudio"], port=runtime.port), "/v1/models", timeout=.01)
+    assert exc.value.code == "TIMEOUT"
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows drive type boundary")

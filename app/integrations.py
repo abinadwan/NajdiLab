@@ -115,6 +115,9 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
             headers["Content-Type"] = "application/json"
         connection.request("GET" if body is None else "POST", path, body=body, headers=headers)
         response = connection.getresponse()
+        # Shutdown can yield partial headers instead of raising on some platforms.
+        if expired.is_set() or time.monotonic() >= deadline:
+            raise TimeoutError
         if response.status in {401, 403}:
             raise IntegrationError("AUTH_REQUIRED", "Runtime requires authentication; credential forwarding is unsupported.")
         if 300 <= response.status < 400:
