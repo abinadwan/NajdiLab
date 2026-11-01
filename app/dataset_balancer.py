@@ -9,13 +9,14 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any, Iterable
 
-from .dataset_platform import DatasetPlatformError, _json, _normalized, _state, _version_dir, dataset_health
+from .dataset_platform import DatasetPlatformError, EVAL_FILES, _json, _normalized, _state, _version_dir, dataset_health
 
-DATASET_FILES = {
+# DATA-03/DATA-04: eval entries derived from EVAL_FILES so balancer and platform share
+# one authoritative file-set; adding a file to EVAL_FILES automatically covers both.
+DATASET_FILES: dict[str, str] = {
     "sft.jsonl": "sft", "multi_turn.jsonl": "multi_turn",
     "preference_pairs.jsonl": "preference", "direct_language.jsonl": "direct_language",
-    "text_sft_eval.jsonl": "evaluation", "tool_eval.jsonl": "evaluation",
-    "vision_eval.jsonl": "evaluation", "runtime_agent_eval.jsonl": "evaluation",
+    **dict.fromkeys(EVAL_FILES, "evaluation"),
 }
 LENGTH_BUCKETS = (("very_short", 0, 39), ("short", 40, 119), ("medium", 120, 399), ("long", 400, 999), ("very_long", 1000, None))
 BALANCE_RULES = {

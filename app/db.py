@@ -72,6 +72,32 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
         conn.commit()
 
 
+def backup_db(db_path: Path | str = DB_PATH, dest_path: Path | str | None = None) -> Path:
+    """Online backup using SQLite's hot-backup API.
+
+    Backup boundary: ``data/najdilab.db`` holds ALL application state —
+    reviews, manual data, conversations, schema_migrations, and dataset_versions.
+    Frozen export files in ``exports/`` are derived from the DB and must also be
+    backed up to restore a complete working state, but the DB alone is sufficient
+    to re-derive them.  Migrations are source-controlled and do not need backup.
+
+    Recovery: restore the ``.db`` file then call ``apply_migrations`` (idempotent).
+    """
+    src = Path(db_path)
+    if dest_path is None:
+        dest_path = src.with_suffix(f".backup{utc_now().replace(':', '-').replace('.', '-')}.db")
+    dest = Path(dest_path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    src_conn = connect(src)
+    dest_conn = sqlite3.connect(dest)
+    try:
+        src_conn.backup(dest_conn)
+    finally:
+        dest_conn.close()
+        src_conn.close()
+    return dest
+
+
 def apply_migrations(db_path: Path | str = DB_PATH) -> None:
     conn = connect(db_path)
     try:
@@ -80,14 +106,27 @@ def apply_migrations(db_path: Path | str = DB_PATH) -> None:
         )
         applied = {row[0] for row in conn.execute("SELECT version FROM schema_migrations")}
         for migration in sorted(MIGRATIONS_DIR.glob("*.sql")):
+            # DB-01: skip rollback/helper files — only apply numbered migration files
+            if not re.fullmatch(r"\d{3}_[a-z0-9_]+\.sql", migration.name):
+                continue
             if migration.name in applied:
                 continue
             sql = migration.read_text(encoding="utf-8")
-            conn.executescript(sql)
-            conn.execute(
-                "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
-                (migration.name, utc_now()),
+            now = utc_now()
+            ledger = (
+                f"INSERT INTO schema_migrations(version, applied_at)"
+                f" VALUES ('{migration.name}', '{now}');"
             )
+            # DB-02: make the migration DDL and ledger INSERT atomic so a crash between
+            # them cannot leave the schema changed with no ledger entry.
+            # Migrations that already wrap themselves in BEGIN...COMMIT get the INSERT
+            # injected before their final COMMIT. Others are wrapped in a new transaction.
+            if re.search(r"^COMMIT\s*;", sql, re.MULTILINE | re.IGNORECASE):
+                parts = re.split(r"(?im)(^COMMIT\s*;)", sql, maxsplit=1)
+                combined = parts[0] + ledger + "\n" + parts[1]
+            else:
+                combined = "BEGIN;\n" + sql.rstrip("\n") + "\n" + ledger + "\nCOMMIT;\n"
+            conn.executescript(combined)
         conn.execute("PRAGMA optimize")
     finally:
         conn.close()

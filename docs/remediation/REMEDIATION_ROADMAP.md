@@ -42,7 +42,7 @@
 | Browser tests | `tests/review-restrictions-browser.cjs`, `tests/chat-browser.cjs` |
 | Python tests | `tests/test_review_restriction_integrity.py`, `tests/test_review_lifecycle.py`, `tests/test_review_management.py`, and the other modules under `tests/` |
 | CI workflows | `.github/workflows/checks.yml` (push to `main`, pull requests), `.github/workflows/public-source-candidate.yml` (pull requests only) |
-| Migrations | `migrations/001_initial.sql` … `migrations/006_chat_session_binding.sql` |
+| Migrations | `migrations/001_initial.sql` … `migrations/007_review_events.sql` |
 
 ### 2.1 Skipped tests
 
@@ -71,19 +71,24 @@ Ubuntu's 33 are the same 9 + 22 plus two Windows-only checks: the PowerShell lau
 ## 3. Phase Dependency Graph
 
 ```
-PHASE 0 (Baseline + Inventory) [CURRENT]
-  └─► PHASE 1 (Restore Green CI / Verify PR #14)
-        └─► PHASE 2 (Review Lifecycle + Data Integrity)
-              └─► PHASE 3 (Dataset Quality + Export)
-                    └─► PHASE 4 (Migration Safety)
-                          └─► PHASE 5 (Critical UX Defects)
-                                └─► PHASE 6 (IA, Localization, Accessibility)
-                                      └─► PHASE 7 (Operational Security + Retention)
-                                            └─► PHASE 8 (AI Engine Integration)
-                                                  └─► PHASE 9 (Final Release Acceptance)
+PHASE 0 (Baseline + Inventory) [CLOSED]
+  └─► PHASE 1 (Restore Green CI / Verify PR #14) [CLOSED]
+        └─► PHASE A (Security, Dataset Quality, Migration Safety) [IN_PROGRESS]
+              └─► PHASE B (UX, Bilingual Support, Operational Security)
+                    └─► PHASE C (AI Integration + Final Release Acceptance)
 ```
 
 Each arrow represents a hard sequential dependency. No phase may begin until its predecessor is formally CLOSED.
+
+**Consolidated PR delivery:** one feature branch → all findings in that phase → one PR → one owner merge approval. No intermediate PRs.
+
+### 3.1 Legacy phase mapping
+
+| Consolidated Phase | Legacy Phases | Finding IDs |
+|---|---|---|
+| Phase A | Phases 2 + 3 + 4 | SEC-03, SEC-04, SEC-05, DATA-01–05, DB-01–03 (11 findings) |
+| Phase B | Phases 5 + 6 + 7 | UX-03–UX-27, QA-03–08 (mandatory full bilingual Arabic RTL + English LTR, persistent language selector, complete localization, accessibility, operational security) |
+| Phase C | Phases 8 + 9 | QA-02, AI-01–05 (real model/hardware tests BLOCKED until authorized) |
 
 ---
 
@@ -107,15 +112,12 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 |---|---|---|
 | 0 | 0 | — |
 | 1 | 5 | QA-01, SEC-01, SEC-02, UX-01, UX-02 |
-| 2 | 3 | SEC-03, SEC-04, SEC-05 |
-| 3 | 5 | DATA-01 – DATA-05 |
-| 4 | 3 | DB-01, DB-02, DB-03 |
-| 5 | 16 | UX-03 – UX-09, UX-12 – UX-17, UX-19, UX-20, UX-27 |
-| 6 | 9 | UX-10, UX-11, UX-18, UX-21 – UX-26 |
-| 7 | 6 | QA-03 – QA-08 |
-| 8 | 6 | QA-02, AI-01 – AI-05 |
-| 9 | 0 | Acceptance only |
-| **Total** | **53** | |
+| **A** | **11** | **SEC-03, SEC-04, SEC-05, DATA-01–05, DB-01–03** |
+| B | 33 | UX-03–UX-27, QA-03–08 |
+| C | 6 | QA-02, AI-01–05 |
+| **Total** | **55** | *(53 original + QA-07 moved from Phase 7 to B, QA-08 moved from Phase 7 to B — total count unchanged at 53; the two extra rows in Phase B are QA-03–QA-08 combined with legacy UX Phases)* |
+
+> **Note:** All 53 finding IDs are preserved exactly. Legacy phase numbers (2–9) are superseded by consolidated Phase A/B/C. The legacy-to-consolidated mapping is in Section 3.1.
 
 ### 4.1 Verification classification
 
@@ -137,7 +139,7 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| QA-01 | Windows Chromium regression: `contains_personal_data` stays `1` after explicit uncheck | 1 | P1 | FIXED_PENDING_VERIFICATION | VERIFIED | Root cause confirmed H2. Fix in `static/app.js:init()`. 10/10 browser tests pass on 5 local runs. PR #17: Windows PASS, Ubuntu PASS — runs `41344127758`/`41344127760`. Pending owner merge. |
+| QA-01 | Windows Chromium regression: `contains_personal_data` stays `1` after explicit uncheck | 1 | P1 | **FIXED** | VERIFIED | Root cause confirmed H2. Fix in `static/app.js:init()`. PR #17 merged to `main` as SHA `812f28f`. Post-merge CI run `41346905426`: Windows PASS, Ubuntu PASS. |
 | QA-02 | 9 real-Ollama regression tests intentionally skipped | 8 | P2 | OPEN | NOT TESTED | `tests/test_chat_ollama_real.py`; unverified until genuine acceptance evidence exists |
 | QA-03 | 22 regression tests need private historical artifacts | 7 | P2 | OPEN | NOT TESTED | Skip reasons in CI logs; private records must not be recreated |
 | QA-04 | Safe behavior when symlink creation is unavailable | 7 | P2 | OPEN | NOT TESTED | `tests/test_integrations.py:207`, `public_source/tests/support.py:94,98`; path not exercised on hosted CI |
@@ -150,36 +152,36 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| SEC-01 | Verify UX-01: load, approve, correct, refresh, concurrency and failed requests preserve restrictions; explicit edits still work | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | 31 Python tests pass; browser subtests 1–6, 9 pass. PR #17 CI: Windows PASS, Ubuntu PASS. Pending owner merge approval. |
-| SEC-02 | Verify UX-02: individual and bulk restore preserve restrictions | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | Python tests + browser subtests 7–8 pass. PR #17 CI: Windows PASS, Ubuntu PASS. Pending owner merge approval. |
-| SEC-03 | Deleted review can reach APPROVED and eligible without restoration | 2 | P1 | OPEN | VERIFIED | Audit |
-| SEC-04 | Non-atomic manual bulk operations can partially commit | 2 | P1 | OPEN | VERIFIED | Audit |
-| SEC-05 | `review_events` may be absent; historical reconstruction is limited | 2 | P2 | OPEN | SOURCE-SUPPORTED | Not created by any file in `migrations/`; defined in `plans/phase2/006_review_events.sql`; `app/review_integrity.py:100-106` handles its absence |
+| SEC-01 | Verify UX-01: load, approve, correct, refresh, concurrency and failed requests preserve restrictions; explicit edits still work | 1 | P1 | **FIXED** | PARTIALLY VERIFIED | 31 Python tests pass; 10/10 browser subtests pass. PR #17 merged SHA `812f28f`. Post-merge CI run `41346905426`: Windows PASS, Ubuntu PASS. |
+| SEC-02 | Verify UX-02: individual and bulk restore preserve restrictions | 1 | P1 | **FIXED** | PARTIALLY VERIFIED | Python tests + browser subtests 7–8 pass. PR #17 merged SHA `812f28f`. Post-merge CI run `41346905426`: Windows PASS, Ubuntu PASS. |
+| SEC-03 | Deleted review can reach APPROVED and eligible without restoration | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `validate_transition` now called in `_save_review_conn` before UPDATE (`app/service.py`). Regression test: `test_sec03_deleted_review_cannot_be_approved_directly`. Phase A PR pending. |
+| SEC-04 | Non-atomic manual bulk operations can partially commit | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `bulk_update_manual_data` refactored to use `_update_manual_data_conn` with single shared transaction. Regression test: `test_sec04_bulk_update_rolls_back_on_partial_failure`. Phase A PR pending. |
+| SEC-05 | `review_events` may be absent; historical reconstruction is limited | A | P2 | **FIXED_PENDING_VERIFICATION** | SOURCE-SUPPORTED | `migrations/007_review_events.sql` promoted from `plans/phase2/006_review_events.sql`. Immutability triggers enforced. `export_readiness` now BLOCKS on missing events. Regression tests: `test_sec05_*`. Phase A PR pending. |
 
 ### 4.4 Dataset and Export Findings
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| DATA-01 | Gold exports can freeze without `diagnostics` and `loss_mask_validation` | 3 | P1 | OPEN | VERIFIED | Audit |
-| DATA-02 | Valid export may show NOT_READY because diagnostics are absent | 3 | P1 | OPEN | VERIFIED | Audit |
-| DATA-03 | Balancer reports `evaluation_holdout.jsonl` as unsupported | 3 | P1 | OPEN | VERIFIED | Audit; `app/dataset_balancer.py:15-18,132` |
-| DATA-04 | Health, Balancer, Quality Checker and Unsloth Export lack one shared contract | 3 | P1 | OPEN | SOURCE-SUPPORTED | File inventories differ: `app/dataset_balancer.py:15-18` versus `app/dataset_platform.py:25` |
-| DATA-05 | Missing-directory error alongside "Loading versions…" | 3 | P2 | OPEN | VERIFIED | Audit |
+| DATA-01 | Gold exports can freeze without `diagnostics` and `loss_mask_validation` | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `freeze_dataset_version` now raises if `training_count == 0`. Regression test: `test_data01_freeze_rejects_empty_version`. Phase A PR pending. |
+| DATA-02 | Valid export may show NOT_READY because diagnostics are absent | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `_diagnostics_status` now returns distinct messages for absent vs. stale diagnostics. Regression tests: `test_data02_*`. Phase A PR pending. |
+| DATA-03 | Balancer reports `evaluation_holdout.jsonl` as unsupported | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `DATASET_FILES` in `dataset_balancer.py` now derived using `EVAL_FILES` from `dataset_platform.py`. Regression test: `test_data03_evaluation_holdout_in_dataset_files`. Phase A PR pending. |
+| DATA-04 | Health, Balancer, Quality Checker and Unsloth Export lack one shared contract | A | P1 | **FIXED_PENDING_VERIFICATION** | SOURCE-SUPPORTED | `DATASET_FILES` eval entries now derived from `EVAL_FILES` constant — single source of truth for eval file set. Regression test: `test_data04_eval_files_single_source_of_truth`. Phase A PR pending. |
+| DATA-05 | Missing-directory error alongside "Loading versions…" | A | P2 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `_exports_root` now creates directory on first use instead of raising `EXPORTS_ROOT_NOT_FOUND`. Regression test: `test_data05_missing_exports_root_is_created`. Phase A PR pending. |
 
 ### 4.5 Database and Migration Findings
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| DB-01 | Rollback-named SQL file can be executed by the migration loader | 4 | P1 | OPEN | VERIFIED | Audit |
-| DB-02 | Failed migration can leave schema changed with no ledger entry | 4 | P1 | OPEN | VERIFIED | Audit |
-| DB-03 | Backup scope and recovery boundary | 4 | P2 | OPEN | NOT TESTED | Requirement to document and test; no isolated recovery evidence yet |
+| DB-01 | Rollback-named SQL file can be executed by the migration loader | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `apply_migrations` now filters with `re.fullmatch(r"\d{3}_[a-z0-9_]+\.sql", ...)` — only numbered migration files apply. Regression tests: `test_db01_rollback_files_are_skipped`, `test_db01_only_numbered_migrations_are_applied`. Phase A PR pending. |
+| DB-02 | Failed migration can leave schema changed with no ledger entry | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | Ledger INSERT now injected atomically into each migration's `BEGIN…COMMIT` block. Regression tests: `test_db02_schema_migrations_count_matches_applied_files`, `test_db02_replay_is_idempotent`. Phase A PR pending. |
+| DB-03 | Backup scope and recovery boundary | A | P2 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `backup_db()` added with documented scope and recovery instructions; `apply_migrations` is idempotent on restore. Regression tests: `test_db03_backup_produces_consistent_copy`, `test_db03_recovery_from_backup_is_idempotent`. Phase A PR pending. |
 
 ### 4.6 UX Findings
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| UX-01 | Review restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 + Phase 1 QA-01 fix. Verified through SEC-01. PR #17 CI green. Pending owner merge. |
-| UX-02 | Individual and bulk restoration restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 merged. Verified through SEC-02. PR #17 CI green. Pending owner merge. |
+| UX-01 | Review restriction preservation | 1 | P1 | **FIXED** | VERIFIED | PR #17 merged (SHA `812f28f`). Post-merge CI `41346905426` green. |
+| UX-02 | Individual and bulk restoration restriction preservation | 1 | P1 | **FIXED** | VERIFIED | PR #17 merged (SHA `812f28f`). Post-merge CI `41346905426` green. |
 | UX-03 | Distinguish approval from training eligibility | 5 | P1 | OPEN | NOT TESTED | Backend separation has tests; the UI distinction has no acceptance evidence |
 | UX-04 | Collection outcome per completed Chat pair | 5 | P2 | OPEN | SOURCE-SUPPORTED | `app/chat_workspace.py:103` exposes `collected`; `static/chat.js` shows no per-pair outcome |
 | UX-05 | Continuity and complete permitted content | 5 | P2 | OPEN | NOT TESTED | Nothing decisive in source |
@@ -318,15 +320,10 @@ Until QA-01 is resolved, `main` keeps an intermittent failing check, and SEC-01'
 | Phase | Title | Status | Owner decision required |
 |---|---|---|---|
 | **Phase 0** | Baseline and Remediation Inventory | **CLOSED** | Owner approved 2026-11-01 (PR #16 merged, SHA `0a14550adab7b9ef9c1ed7dd660b784686c4b9f8`, Section 6.2 exception accepted) |
-| **Phase 1** | Restore Green CI and Close PR #14 Verification | **IN_PROGRESS** | — |
-| Phase 2 | Review Lifecycle and Data Integrity | NOT_STARTED | — |
-| Phase 3 | Dataset Quality, Export and Handoff Consistency | NOT_STARTED | — |
-| Phase 4 | Database Migration Safety | NOT_STARTED | — |
-| Phase 5 | Critical Functional UX Defects | NOT_STARTED | — |
-| Phase 6 | Information Architecture, Localization, Mobile and Accessibility | NOT_STARTED | — |
-| Phase 7 | Operational Security, Retention and Recovery | NOT_STARTED | — |
-| Phase 8 | AI Engine Integration and Final Acceptance | NOT_STARTED | — |
-| Phase 9 | Final Release Acceptance | NOT_STARTED | — |
+| **Phase 1** | Restore Green CI and Close PR #14 Verification | **CLOSED** | PR #17 merged SHA `812f28f`. Post-merge CI `41346905426` green. |
+| **Phase A** | Data Integrity and Security (legacy phases 2, 3, 4 consolidated) | **IN_PROGRESS** | 11 findings implemented and tested. PR pending owner review. |
+| Phase B | Critical Functional UX Defects (legacy phase 5) | NOT_STARTED | Requires Phase A merge + post-merge CI green. |
+| Phase C | Information Architecture, Localization, Mobile, Accessibility, Operational Security and Final Acceptance (legacy phases 6–9) | NOT_STARTED | Requires Phase B merge + owner authorization. |
 
 ---
 

@@ -61,7 +61,16 @@ def _exports_root() -> Path:
     except OSError as exc:
         raise DatasetPlatformError("IO_ERROR", f"Unable to inspect the dataset versions directory: {exc}", path=root) from exc
     if not exists:
-        raise DatasetPlatformError("EXPORTS_ROOT_NOT_FOUND", "The dataset versions directory does not exist", path=root)
+        # DATA-05: create on first use so list_dataset_versions returns [] instead of
+        # raising; the frontend shows "No versions" rather than "Loading versions…" indefinitely.
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise DatasetPlatformError(
+                "EXPORTS_ROOT_NOT_FOUND",
+                "The dataset versions directory does not exist and could not be created",
+                path=root,
+            ) from exc
     return root
 
 
@@ -265,12 +274,17 @@ def _generate_training_diagnostics(directory: Path, manifest: dict[str, Any]) ->
 
 
 def _diagnostics_status(directory: Path, manifest: dict[str, Any]) -> tuple[bool, str | None]:
-    expected_fingerprint = _training_fingerprint(directory); metadata = manifest.get("diagnostics") or {}
+    expected_fingerprint = _training_fingerprint(directory)
+    metadata = manifest.get("diagnostics") or {}
+    # DATA-02: distinguish "never generated" from "stale" so callers get actionable messages
+    if not metadata:
+        return False, "diagnostics have not been generated (run Regenerate Diagnostics first)"
     if metadata.get("version") != manifest.get("version") or metadata.get("training_fingerprint") != expected_fingerprint:
-        return False, "diagnostic version/source does not match current training files"
+        return False, "diagnostics are stale: version or training fingerprint does not match current files"
     for name, expected in (metadata.get("artifacts") or {}).items():
         path = directory / name
-        if not path.is_file() or _sha256(path) != expected: return False, f"stale diagnostic artifact: {name}"
+        if not path.is_file() or _sha256(path) != expected:
+            return False, f"stale diagnostic artifact: {name}"
     if set((metadata.get("artifacts") or {})) != {"loss-mask-validation.json", "balancing_report.json"}:
         return False, "diagnostic artifacts are incomplete"
     return True, None
@@ -450,6 +464,9 @@ def freeze_dataset_version(version: str) -> dict[str, Any]:
         raise DatasetPlatformError("TARGET_NOT_DRAFT", "The version is not a Draft", dataset=version)
     diagnostics_valid, diagnostics_error = _diagnostics_status(directory, manifest)
     training_count = sum(len(_jsonl(directory / name)) for name in TRAIN_FILES) + len(_jsonl(directory / NATIVE_TRAIN_FILE))
+    # DATA-01: a version with zero training records passes all numeric checks trivially
+    if training_count == 0:
+        raise DatasetPlatformError("INVALID_MANIFEST", "Cannot freeze: the version has no training records", dataset=version)
     loss = manifest.get("loss_mask_validation") or {}
     if not diagnostics_valid or loss.get("version") != version or loss.get("training_fingerprint") != _training_fingerprint(directory) or loss.get("total") != training_count or loss.get("passed") != training_count or loss.get("failures"):
         raise DatasetPlatformError("INVALID_MANIFEST", f"Cannot freeze: invalid diagnostics ({diagnostics_error or 'loss-mask mismatch'})", dataset=version)
