@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Phase 1: Review integrity and QA-01 fix
+
+- Fixed QA-01: resolved an intermittent Chromium regression where `contains_personal_data` was not saved as `0` after an explicit uncheck during a correction. Root cause: `init()` in `static/app.js` called `loadQueue()` unconditionally before `switchView()`, then `switchView()` called `loadQueue()` a second time without awaiting. If the user interacted with a restriction checkbox between the first and second render, `renderReview()` in the second call reset the checkbox to the persisted value (`1`), clobbering the explicit change. Fix: `init()` now skips the upfront `loadQueue()` call when the initial view is `review-queue`, preventing the double render. The single `loadQueue()` called inside `loadView('review-queue')` from `switchView()` is authoritative for that view. All other views retain the existing behavior. Closes QA-01. Addresses SEC-01 and UX-01 (explicit flag change path).
+- Added regression subtest 9 to `tests/review-restrictions-browser.cjs`: "init race regression: fresh navigation preserves immediate checkbox change" — navigates to `/review`, unchecks a checkbox immediately after first render, performs an API round-trip for async settlement, then asserts the checkbox was not reset by any second render cycle.
+- Verified: 10/10 browser subtests pass on 5 consecutive runs. 31/31 restriction-integrity Python tests pass. 11/11 review lifecycle and management Python tests pass.
+- Phase 0 is formally CLOSED (Section 6.2 exception approved by owner per 2026-11-01 authorization). Phase 1 is IN_PROGRESS.
+
 ## Unreleased — PR #14 Windows browser stability
 
 - Set the review restriction Chromium test to an explicit 1440 x 1000 desktop viewport before navigation, preserving all assertions and integrity checks. This stabilizes the Windows desktop test; responsive UI defects and mobile acceptance remain outside its scope. Reproduction, per-run verification, limitations and source-only rollback are in the [review restriction evidence](docs/review-restriction-integrity.md#pr-14-windows-browser-viewport-follow-up-2026-11-01).

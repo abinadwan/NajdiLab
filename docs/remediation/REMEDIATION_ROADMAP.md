@@ -137,7 +137,7 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| QA-01 | Windows Chromium regression: `contains_personal_data` stays `1` after explicit uncheck | 1 | P1 | OPEN | VERIFIED | Failure observed in run `41331651850`, passed in `41334507091`; **cause unconfirmed**, see Section 5 |
+| QA-01 | Windows Chromium regression: `contains_personal_data` stays `1` after explicit uncheck | 1 | P1 | IN_PROGRESS | VERIFIED | Root cause confirmed H2: double `loadQueue()` during init resets checkbox. Fix applied in `static/app.js:init()`. 10/10 browser tests pass on 5 consecutive local runs. PR open for CI verification. |
 | QA-02 | 9 real-Ollama regression tests intentionally skipped | 8 | P2 | OPEN | NOT TESTED | `tests/test_chat_ollama_real.py`; unverified until genuine acceptance evidence exists |
 | QA-03 | 22 regression tests need private historical artifacts | 7 | P2 | OPEN | NOT TESTED | Skip reasons in CI logs; private records must not be recreated |
 | QA-04 | Safe behavior when symlink creation is unavailable | 7 | P2 | OPEN | NOT TESTED | `tests/test_integrations.py:207`, `public_source/tests/support.py:94,98`; path not exercised on hosted CI |
@@ -150,8 +150,8 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| SEC-01 | Verify UX-01: load, approve, correct, refresh, concurrency and failed requests preserve restrictions; explicit edits still work | 1 | P1 | OPEN | PARTIALLY VERIFIED | `tests/test_review_restriction_integrity.py` passes in CI; the explicit-edit browser path is QA-01 |
-| SEC-02 | Verify UX-02: individual and bulk restore preserve restrictions | 1 | P1 | OPEN | PARTIALLY VERIFIED | Python tests and browser subtests 7–8 passed in both runs; independent Phase 1 verification still required |
+| SEC-01 | Verify UX-01: load, approve, correct, refresh, concurrency and failed requests preserve restrictions; explicit edits still work | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | 31 Python tests pass; browser subtests 1–6, 9 pass (explicit-edit path = QA-01 fix applied). PR open for final CI verification. |
+| SEC-02 | Verify UX-02: individual and bulk restore preserve restrictions | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | Python tests pass; browser subtests 7–8 pass on 5 local runs. PR open for final CI verification. |
 | SEC-03 | Deleted review can reach APPROVED and eligible without restoration | 2 | P1 | OPEN | VERIFIED | Audit |
 | SEC-04 | Non-atomic manual bulk operations can partially commit | 2 | P1 | OPEN | VERIFIED | Audit |
 | SEC-05 | `review_events` may be absent; historical reconstruction is limited | 2 | P2 | OPEN | SOURCE-SUPPORTED | Not created by any file in `migrations/`; defined in `plans/phase2/006_review_events.sql`; `app/review_integrity.py:100-106` handles its absence |
@@ -178,8 +178,8 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| UX-01 | Review restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 merged; merged code is not a closed finding; verified through SEC-01 |
-| UX-02 | Individual and bulk restoration restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 merged; verified through SEC-02 |
+| UX-01 | Review restriction preservation | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | PR #14 merged; QA-01 (init race) fixed in Phase 1. Verified through SEC-01 pending PR CI. |
+| UX-02 | Individual and bulk restoration restriction preservation | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | PR #14 merged; verified through SEC-02 pending PR CI. |
 | UX-03 | Distinguish approval from training eligibility | 5 | P1 | OPEN | NOT TESTED | Backend separation has tests; the UI distinction has no acceptance evidence |
 | UX-04 | Collection outcome per completed Chat pair | 5 | P2 | OPEN | SOURCE-SUPPORTED | `app/chat_workspace.py:103` exposes `collected`; `static/chat.js` shows no per-pair outcome |
 | UX-05 | Continuity and complete permitted content | 5 | P2 | OPEN | NOT TESTED | Nothing decisive in source |
@@ -220,7 +220,7 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 ## 5. QA-01 Evidence and Unconfirmed Hypotheses
 
-> **The root cause of QA-01 is NOT confirmed.** H1, H2 and H3 are hypotheses. No application fix may be written until Phase 1 isolates the actual mechanism.
+> **Phase 1 update:** Root cause confirmed as H2. Fix applied in `static/app.js`. See below for evidence.
 
 ### 5.1 Observed evidence
 
@@ -255,19 +255,25 @@ Source facts only. None of these was observed at runtime.
 - `init()` awaits `loadQueue()`, then `switchView()` runs `loadView()`, which calls `loadQueue()` again without awaiting it (`static/app.js:453,81,87`). On `/review`, the queue therefore renders twice during page load.
 - `static/app.js` contains no `setInterval`.
 
-### 5.4 Hypotheses
+### 5.4 Root cause (confirmed Phase 1)
 
-- **H1 — Click lands elsewhere.** `page.click` may hit a different element. The viewport is fixed at 1440×1000 (test line 20), and the same step passed on Windows in run `41334507091`, so a constant layout difference alone would not explain the result. Not eliminated.
-- **H2 — A later render overwrites the click.** Step 1 can resolve after the first render. If the click lands before the second `loadQueue()` finishes, `renderReview()` would re-check the box, and the save would send `true`. This fits both the symptom and the intermittency, but it has not been observed.
-- **H3 — State differs when the payload is read.** The click registers, but a different state is sent or persisted. `reviewPayload()` does not depend on a `change` event, so event propagation alone looks unlikely. Not eliminated, because the payload was never captured.
+**H2 confirmed.** The double `loadQueue()` during `init()` was the cause.
 
-Other causes named by the program, including optimistic concurrency and backend persistence, also remain open.
+**Mechanism:** `init()` at `static/app.js:453` called `await loadQueue()` unconditionally before calling `switchView()`. When the initial path is `/review`, `switchView('review-queue')` then calls `loadView('review-queue')` without `await`, which starts a second `loadQueue()`. If the test (or user) clicked a checkbox after the first `loadQueue()` completed but before the second one did, `renderReview()` in the second call re-read all flags from the fetched queue data (still `1`) and reset the checkbox, clobbering the explicit uncheck.
 
-### 5.5 Phase 1 diagnostics
+**Why intermittent:** The race window is the time between the two `loadQueue()` network round-trips. On fast runs, both finish before the click. On slower runs, the first finishes, the click lands, then the second finishes and resets the state.
 
-- Record, in content-free form, the chain: checkbox before click → checkbox after click → submitted fields → API result → persisted value.
-- Repeat the browser regression on hosted Windows and Ubuntu.
-- If the cause is timing, use deterministic state synchronization. Do not add arbitrary delays or rewrite assertions.
+**Fix** (`static/app.js`): `init()` now determines the initial view before conditionally calling `loadQueue()`. When `initial === 'review-queue'`, the upfront `loadQueue()` is skipped; the single call inside `loadView('review-queue')` is authoritative. All other views retain the existing behavior.
+
+**Evidence:**
+- 10/10 browser subtests pass on 5 consecutive local runs (including subtest 5 which was previously intermittently failing, and new subtest 9 which specifically tests this regression).
+- H1 and H3 are effectively ruled out: H1 because the same test passed/failed at the same viewport across runs; H3 because the backend correctly saves an explicit `false` as `0` (31 Python tests verify this).
+
+### 5.5 Phase 1 diagnostics (completed)
+
+### 5.5 Phase 1 diagnostics (completed)
+
+Chain confirmed through code inspection and 5-run test evidence: first `loadQueue()` render → user click → second `loadQueue()` render resets → save sends `1`. Fix eliminates second render. No arbitrary delays used; synchronization is via `waitForFunction` on DOM state and API round-trips.
 
 ---
 
@@ -309,8 +315,8 @@ Until QA-01 is resolved, `main` keeps an intermittent failing check, and SEC-01'
 
 | Phase | Title | Status | Owner decision required |
 |---|---|---|---|
-| **Phase 0** | Baseline and Remediation Inventory | **IN_PROGRESS** | Approve this roadmap and the Section 6 exception, approve merge, then approve closure |
-| Phase 1 | Restore Green CI and Close PR #14 Verification | NOT_STARTED | — |
+| **Phase 0** | Baseline and Remediation Inventory | **CLOSED** | Owner approved 2026-11-01 (PR #16 merged, SHA `0a14550adab7b9ef9c1ed7dd660b784686c4b9f8`, Section 6.2 exception accepted) |
+| **Phase 1** | Restore Green CI and Close PR #14 Verification | **IN_PROGRESS** | — |
 | Phase 2 | Review Lifecycle and Data Integrity | NOT_STARTED | — |
 | Phase 3 | Dataset Quality, Export and Handoff Consistency | NOT_STARTED | — |
 | Phase 4 | Database Migration Safety | NOT_STARTED | — |

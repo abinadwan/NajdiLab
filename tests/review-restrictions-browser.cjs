@@ -112,6 +112,16 @@ test('review restriction integrity in Chromium',async t=>{
       }
       assert.equal(items[1].ignored_reason,'Synthetic bulk restoration');
     });
+    await t.test('init race regression: fresh navigation preserves immediate checkbox change',async()=>{
+      await page.goto(base+'/review');
+      await page.waitForFunction(()=>document.querySelector('#queue-position')?.textContent.includes('of'));
+      assert.equal(await page.$eval('#needs-fact-check',e=>e.checked),true);
+      await page.click('#needs-fact-check');
+      assert.equal(await page.$eval('#needs-fact-check',e=>e.checked),false);
+      const queue=await page.evaluate(()=>fetch('/api/v1/review-queue').then(r=>r.json()));
+      assert.ok(queue.items.length>0);
+      assert.equal(await page.$eval('#needs-fact-check',e=>e.checked),false,'checkbox must not be reset by a second loadQueue render cycle');
+    });
     assert.deepEqual(errors,[]);
   }finally{if(browser)await browser.close();child.kill();}
 });
