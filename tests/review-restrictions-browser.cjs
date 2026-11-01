@@ -112,6 +112,41 @@ test('review restriction integrity in Chromium',async t=>{
       }
       assert.equal(items[1].ignored_reason,'Synthetic bulk restoration');
     });
+    await t.test('init race regression: exactly one queue fetch on /review init',async()=>{
+      // Intercept fetch before navigation so the override is in place when app.js runs.
+      // __rqDone chains a settled-promise for each review-queue fetch, so awaiting it
+      // after waitForFunction ensures any second init-time fetch has also completed
+      // before the count is read. Pre-fix: count=2 (direct call + switchView call).
+      // Post-fix: count=1 (switchView call only, direct call skipped for review-queue view).
+      const s=await page.evaluateOnNewDocument(()=>{
+        window.__rqCount=0;
+        window.__rqDone=Promise.resolve();
+        const orig=window.fetch;
+        window.fetch=(...a)=>{
+          const p=orig(...a);
+          if(String(a[0]).includes('review-queue?include_demo')){
+            window.__rqCount++;
+            window.__rqDone=window.__rqDone.then(()=>p.then(()=>{},()=>{}));
+          }
+          return p;
+        };
+      });
+      await page.goto(base+'/review');
+      await page.waitForFunction(()=>document.querySelector('#queue-position')?.textContent.includes('of'));
+      // Await the chained promise: resolves only when all tracked fetches settle.
+      // The init() microtask runs synchronously after the first fetch resolves, so
+      // any second fetch is dispatched before Puppeteer receives the waitForFunction
+      // notification — __rqDone already includes it by the time we read it here.
+      await page.evaluate(()=>window.__rqDone);
+      const count=await page.evaluate(()=>window.__rqCount);
+      await page.removeScriptToEvaluateOnNewDocument(s.identifier);
+      assert.equal(count,1,'init must call loadQueue exactly once on /review (pre-fix would be 2)');
+      assert.equal(await page.$eval('#needs-fact-check',e=>e.checked),true);
+      await page.click('#needs-fact-check');
+      const q=await page.evaluate(()=>fetch('/api/v1/review-queue').then(r=>r.json()));
+      assert.ok(q.items.length>0,'queue must have items');
+      assert.equal(await page.$eval('#needs-fact-check',e=>e.checked),false,'checkbox must not reset after init (double-render regression)');
+    });
     assert.deepEqual(errors,[]);
   }finally{if(browser)await browser.close();child.kill();}
 });
