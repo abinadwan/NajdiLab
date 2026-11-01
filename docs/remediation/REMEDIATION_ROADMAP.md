@@ -266,7 +266,8 @@ Source facts only. None of these was observed at runtime.
 **Fix** (`static/app.js`): `init()` now determines the initial view before conditionally calling `loadQueue()`. When `initial === 'review-queue'`, the upfront `loadQueue()` is skipped; the single call inside `loadView('review-queue')` is authoritative. All other views retain the existing behavior.
 
 **Evidence:**
-- 10/10 browser subtests pass on 5 consecutive CI runs. Subtest 9 uses a fetch-interception request-count assertion: on the patched code, exactly 1 `/api/v1/review-queue` fetch is made during `/review` init; the pre-fix code path produces 2. The assertion is deterministic — see Section 5.5 for why.
+- 10/10 browser subtests pass on 5 consecutive in-container test runs prior to CI submission. Subtest 9 uses a fetch-interception request-count assertion: on the patched code, exactly 1 `/api/v1/review-queue` fetch is made during `/review` init; the pre-fix code path produces 2. The assertion is deterministic — see Section 5.5 for why.
+- All four GitHub Actions checks passed on commit `cc0edc5` (runs `41345407604` and `41345407573`). `node --test tests/review-restrictions-browser.cjs` passed on both Windows and Ubuntu.
 - H1 and H3 are effectively ruled out: H1 because the same test passed/failed at the same viewport across runs; H3 because the backend correctly saves an explicit `false` as `0` (31 Python tests verify this).
 - The root cause was confirmed by code inspection and test evidence. The exact timing of the original Windows failure was not captured at runtime; no request payload was intercepted. The mechanism is inferred from source analysis and is consistent with the observed symptom and intermittency.
 
