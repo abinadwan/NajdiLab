@@ -1,6 +1,6 @@
 # Verification evidence and unresolved limits
 
-These are dated observations from preceding work, preserved to avoid converting old failures, skips or approvals into current claims. They are not verification of the present source-removal diff. Current cleanup checks belong in its own result record. No hosted cleanup CI, installed update, private-data verification or real-model acceptance is claimed here.
+These are dated observations, preserved to avoid converting old failures, skips or approvals into current claims. Earlier sections retain their original dates and scopes; the PR #13 section separately records verified hosted cleanup results for its exact head. The [initial cleanup record](cleanup-results.md) retains the local pre-push evidence. No installed update, private-data verification, real-model/GPU/owner acceptance, merge or publication approval is claimed here. A later commit requires its own CI results.
 
 ## Security and installation evidence — 2026-10-26/27
 
@@ -23,6 +23,29 @@ Implementation `fc70fd8` local Windows380 passed /24 skipped /68 subtests,8 Node
 Dated hosted source checks [41242203217](https://github.com/abinadwan/NajdiLab/actions/runs/41242203217): Linux379/25 skips/68 subtests, Windows381/23 skips/68 subtests;8 Node tests and synthetic root-browser checks passed. Candidate [41242203310](https://github.com/abinadwan/NajdiLab/actions/runs/41242203310): both OS builder11/18,74 candidate tests/68 subtests and browser/manifest proof passed. These supersede only those earlier platform observations, not the local failure record or this cleanup's verification.
 
 Reviews reproduced and fixed restricted earlier context escaping into a target, mutable SDK handles, mutable/unverified holdout inputs and remaining executable entrypoints. The migration005 schema-COMMIT/ledger-insert gap was reproduced; replay-safe additions preserve Chat after interrupted bookkeeping. Later changes use public SDK instance-bound methods and immutable local Ollama digests: [completion results](chat-completion-results.md). Real installed Gemma4, real LM Studio models, owner Windows acceptance and hardware capacity remain unverified. Native application capture is unsupported; Hermes sender filtering/disconnect remains UNVERIFIED and receiver BLOCKED.
+
+## PR #13 hosted cleanup evidence — 2026-11-01
+
+[Draft PR #13](https://github.com/abinadwan/NajdiLab/pull/13) targets `feat/chat-workspace-claude`. These results apply to cleanup head `f4cff7c5edfd8015f3027eecc9f367c0596239f9`, whose direct parent is PR #12 head `a04e2ea8e1db7fbc094a6ba5ffc30a99d16110f9`; they do not replace PR #12's historical security-fix results or establish success for a later documentation head.
+
+Verified GitHub job metadata and log summaries: [Source checks run 41287022924](https://github.com/abinadwan/NajdiLab/actions/runs/41287022924) and [Source-only candidate run 41287022915](https://github.com/abinadwan/NajdiLab/actions/runs/41287022915). All four jobs completed with conclusion `success`. Windows used Python 3.12.10; Linux used Python 3.12.15.
+
+| Check | Platform / GitHub job | Passed | Failed | Skipped | Subtests passed |
+|---|---|---:|---:|---:|---:|
+| Source `python -m pytest -q tests -rs` | Windows, `124790279590` | 417 | 0 | 31 | 59 |
+| Source `python -m pytest -q tests -rs` | Linux, `124790279777` | 415 | 0 | 33 | 59 |
+| Builder `python -m pytest -q public_source/tests/test_builder.py` | Windows, `124790279659` | 12 | 0 | 0 | 18 |
+| Builder `python -m pytest -q public_source/tests/test_builder.py` | Linux, `124790279861` | 12 | 0 | 0 | 18 |
+| Built Core `python -m pytest -q tests -rs` | Windows, `124790279659` | 78 | 0 | 0 | 68 |
+| Built Core `python -m pytest -q tests -rs` | Linux, `124790279861` | 78 | 0 | 0 | 68 |
+
+Windows source skips: **9 opt-in disposable real-Ollama checks + 22 absent-private-artifact checks = 31**. Linux has those same 31 plus **1 Windows PowerShell launcher check + 1 Windows drive-type boundary check = 33**. None counts as passed. The earlier local Windows source **416/32** and Core **75/3** results remain historical; hosted accounts supported the link cases skipped locally. Subtests are reported separately, not added to test totals.
+
+Each source job also passed **5 integration-controller + 5 Chat-controller Node tests**, with zero failures/skips in either Node suite; root real-browser synthetic acceptance passed on both OSes. The source POSIX shell syntax step passed on Linux and was explicitly **SKIPPED on Windows**, not passed there. Each Core job passed its manifest-copy harness and **4 browser acceptance groups** (artifacts/backup, fresh-source recovery, dataset and review). All four jobs passed recursive local-link/generated-API documentation checks over **63 Markdown files**.
+
+Both Core jobs verified **71 selected files** and manifest SHA256 `c8d81fa90d9158197284f1c52894135e81c0c557cc7e1c1ef5fed094787541e8`. This restricted Core profile does not contain full Chat/external handoff and remains `publication_approved=false`.
+
+These are hosted synthetic engineering checks, including Windows/Linux source and isolated Core storage/browser proof. They performed no owner-operated Gemma4/LM Studio/GPU acceptance and do not validate missing private bytes. **Real Gemma4, real LM Studio, GPU/VRAM capacity and owner Windows acceptance remain NOT VERIFIED; Hermes remains BLOCKED.** No merge, installed update, training, deployment or publication approval follows. Use the [owner acceptance guide](chat-windows-acceptance.md) only with the separate approvals it requires. The approved scope remains Chat/review/dataset preparation and external Unsloth handoff.
 
 ## Dataset/provenance observations
 
