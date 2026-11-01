@@ -266,14 +266,15 @@ Source facts only. None of these was observed at runtime.
 **Fix** (`static/app.js`): `init()` now determines the initial view before conditionally calling `loadQueue()`. When `initial === 'review-queue'`, the upfront `loadQueue()` is skipped; the single call inside `loadView('review-queue')` is authoritative. All other views retain the existing behavior.
 
 **Evidence:**
-- 10/10 browser subtests pass on 5 consecutive local runs (including subtest 5 which was previously intermittently failing, and new subtest 9 which specifically tests this regression).
+- 10/10 browser subtests pass on 5 consecutive CI runs. Subtest 9 uses a fetch-interception request-count assertion: on the patched code, exactly 1 `/api/v1/review-queue` fetch is made during `/review` init; the pre-fix code path produces 2. The assertion is deterministic — see Section 5.5 for why.
 - H1 and H3 are effectively ruled out: H1 because the same test passed/failed at the same viewport across runs; H3 because the backend correctly saves an explicit `false` as `0` (31 Python tests verify this).
+- The root cause was confirmed by code inspection and test evidence. The exact timing of the original Windows failure was not captured at runtime; no request payload was intercepted. The mechanism is inferred from source analysis and is consistent with the observed symptom and intermittency.
 
 ### 5.5 Phase 1 diagnostics (completed)
 
-### 5.5 Phase 1 diagnostics (completed)
+Chain confirmed through code inspection and 5-run test evidence: first `loadQueue()` render → user click → second `loadQueue()` render resets → save sends `1`. Fix eliminates second render.
 
-Chain confirmed through code inspection and 5-run test evidence: first `loadQueue()` render → user click → second `loadQueue()` render resets → save sends `1`. Fix eliminates second render. No arbitrary delays used; synchronization is via `waitForFunction` on DOM state and API round-trips.
+The request-count assertion in subtest 9 is deterministic because `init()` resumes as a microtask after the first fetch resolves — meaning any second `loadQueue()` dispatch runs synchronously in the same microtask continuation, before any I/O callback (including Puppeteer's `waitForFunction` notification). By the time `await page.evaluate(() => window.__rqDone)` reads the chained promise, all init-time fetches have already been dispatched and are tracked. No arbitrary delays are needed.
 
 ---
 
