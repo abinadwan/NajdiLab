@@ -29,10 +29,10 @@ def test_theme_uses_tokens_and_distinguishes_status_classes():
     assert ".gate-badge.blocked" in css
 
 
-def test_dashboard_uses_derived_platform_status():
+def test_dashboard_describes_dataset_scope_without_training_status_probes():
     app = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
-    assert "/api/v1/platform/status" in app
-    assert "platform.phase4" in app
+    assert "/api/v1/platform/status" not in app
+    assert "Training runs externally in Unsloth" in app
 
 
 def test_manual_modal_color_pairs_meet_text_contrast_in_both_themes():

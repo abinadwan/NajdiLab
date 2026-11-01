@@ -1,5 +1,7 @@
 # Training preflight runbook
 
+**Current scope notice (2026-10-31):** training execution is retired. This historical guide does not authorize a trainer, WSL worker, model/GGUF release or installed update. Use the [dataset-first roadmap](roadmap.md) and [Chat/external handoff contract](chat-workspace.md). Existing data/exports remain unchanged.
+
 Preflight proves that the selected model, dataset, configuration and environment agree before READY. It performs no optimizer steps.
 
 ## Sequence

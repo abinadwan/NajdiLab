@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 import http.client
 import json
 import os
@@ -234,6 +235,23 @@ class IntegrationManager:
     def snapshot(self) -> dict:
         with self._lock:
             return {"ok": True, "consent_scope": "server_process", "items": copy.deepcopy(list(self._states.values()))}
+
+    @contextmanager
+    def chat_lease(self, key: str, model: str, revision: int):
+        """Keep selection/connection stable through count, inference and commit.
+
+        Disconnect waits for this lease; chat stop/collection revocation uses its
+        own lock and can cancel while the runtime is busy.
+        """
+        with self._lock:
+            state = self._states.get(key)
+            if key not in {"lmstudio", "ollama"} or not state:
+                raise IntegrationError("UNKNOWN_PROVIDER", "Choose an approved local runtime.")
+            if state["connection"] != "CONNECTED" or state["selected_model"] != model:
+                raise IntegrationError("NOT_CONNECTED", "Connect and select this model in Settings → Integrations.", 409)
+            if type(revision) is not int or revision != state["selection_revision"]:
+                raise IntegrationError("STALE_SELECTION", "Runtime selection changed; refresh before sending.", 409)
+            yield self.connectors[key]
 
     def _failure(self, state: dict, error: IntegrationError):
         state["selection_revision"] += 1

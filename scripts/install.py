@@ -29,7 +29,7 @@ def install(check_only=False):
     else:
         venv.EnvBuilder(with_pip=False).create(environment)
     subprocess.run([str(executable), str(ROOT / 'scripts/install.py'), '--check'], check=True)
-    for name in ('data', 'datasets', 'exports', 'reports', 'training', 'checkpoints', 'backups'):
+    for name in ('data', 'datasets', 'exports', 'reports', 'backups'):
         (ROOT / name).mkdir(exist_ok=True)
     try:
         with (ROOT / '.env').open('xb') as target:

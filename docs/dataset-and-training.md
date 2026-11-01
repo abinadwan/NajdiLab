@@ -1,5 +1,7 @@
 # Dataset lifecycle and optional training
 
+**Current scope notice (2026-10-31):** training execution is retired. This historical guide does not authorize a trainer, WSL worker, model/GGUF release or installed update. Use the [dataset-first roadmap](roadmap.md) and [Chat/external handoff contract](chat-workspace.md). Existing data/exports remain unchanged.
+
 Clients send completed turns through authenticated Ingest. Human review overlays approve/correct/exclude/restore decisions without replacing originals. Manual SFT/direct/preference items carry provenance/privacy/version metadata; Corpus v1.1's pending-review lifecycle is a future gate, not universally implemented. Inspect current eligibility flags.
 
 Export blocks evaluation-only, sensitive/personal, ignored/archived/excluded data. Corrections substitute only in export copies. Deterministic cleaning, exact/near-duplicate checks, holdout/conversation separation, quality/balance and masks gate a new version. Catalog covers immutable exports and managed datasets; duplicate IDs fail. Derived candidates preserve parents; freeze/release validates files/manifests. Arabic training/evaluation strings are never translated for interface localization.

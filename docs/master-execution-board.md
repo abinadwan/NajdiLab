@@ -1,5 +1,7 @@
 # NajdiLab Master Execution Board
 
+**Current scope notice (2026-10-31):** training execution is retired. This historical guide does not authorize a trainer, WSL worker, model/GGUF release or installed update. Use the [dataset-first roadmap](roadmap.md) and [Chat/external handoff contract](chat-workspace.md). Existing data/exports remain unchanged.
+
 This is a historical engineering snapshot. [PROJECT_STATUS](../PROJECT_STATUS.md) reconciles current tracks and preparation-branch security versus undeployed production. Historical OPEN/NOT IMPLEMENTED security rows are not claims about this development branch.
 
 Historical board baseline: 2026-10-09 (Asia/Riyadh), with the explicitly dated Corpus v1.1 addition below. Current branch request/ingest protections are described in [SECURITY.md](../SECURITY.md). Status values are evidence-based; `DONE` is used only after acceptance verification.

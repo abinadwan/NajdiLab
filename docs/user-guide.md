@@ -1,5 +1,11 @@
 # User guide — a fictional Arabic text workshop
 
+## Current workflow (2026-10-31)
+
+Use Chat Workspace for raw local text conversations, then explicitly collect completed pairs for Pending review; approve/correct and explicitly choose eligibility, validate quality and build a dataset version, then use Export center's external Unsloth handoff. [Detailed Chat, privacy, context and retention behavior](chat-workspace.md). Training setup/jobs/WSL/deploy controls shown in older screenshots are retired. Ollama Chat is blocked pending safe exact counting; actual engine/owner acceptance is not yet performed. No native app conversation collection is claimed.
+
+## Historical UI guide — retained reference
+
 **Profile scope:** this preserved walkthrough demonstrates the original full application UI, not the reduced source-only candidate. Candidate setup is in its [README](../public_source/README.md); [parity](public-core-feature-parity.md) and [release scope](public-core-release-scope.md) identify unavailable screens and planned improvements. No step here newly authorizes training or access to private data.
 
 This walkthrough uses three invented turns about Arabic text storage and review. The screenshots come from the real UI, not a mockup. **Demonstrated** means performed in the disposable instance; **explanation only** means no dataset/model operation was executed. Use a new checkout with a free port; a new port alone does not isolate data. Follow [installation](installation.md), [configuration](configuration.md) and [security](../SECURITY.md).

@@ -6,6 +6,7 @@ import os
 import re
 import socket
 import sys
+import threading
 import traceback
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,6 +16,9 @@ from urllib.parse import parse_qs, unquote, urlparse
 from .db import DB_PATH, ROOT, apply_migrations
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
+from .chat_workspace import ChatWorkspace, fields
+from .hardware import snapshot as hardware_snapshot
+from .unsloth_export import create_handoff, read_handoff
 from .dataset_platform import (
     DatasetPlatformError,
     apply_overlap_plan,
@@ -98,7 +102,27 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
     def __init__(self, *args, **kwargs):
         self.integrations = IntegrationManager()
+        self.chat = None
+        self._workspace_lock = threading.Lock()
         super().__init__(*args, **kwargs)
+
+    def workspace(self):
+        # Independent from the inference lease so Stop/revoke never waits for
+        # the model's response or an integration snapshot.
+        with self._workspace_lock:
+            if self.chat is None:
+                self.chat = ChatWorkspace(self.integrations, DB_PATH)
+            return self.chat
+
+    def server_close(self):
+        super().server_close()
+        if self.chat is not None:
+            try:
+                self.chat.close()
+            except IntegrationError:
+                # Active writers retain ownership until process exit, preventing
+                # a second writer from committing over an unfinished request.
+                pass
 
     def server_bind(self) -> None:
         if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
@@ -108,6 +132,17 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
 class NajdiLabHandler(BaseHTTPRequestHandler):
     server_version = "NajdiLab/1.1"
+
+    def _training_retired(self, path):
+        if not (path == '/api/v1/training' or path.startswith('/api/v1/training/')):
+            return False
+        history = re.fullmatch(r'/api/v1/training/jobs(?:/train-\d{8}-\d{3}(?:/attempts/attempt-\d{3}(?:/(?:logs|metrics))?)?)?', path)
+        dataset_read = path in {'/api/v1/training/datasets', '/api/v1/training/quality-gate'}
+        if self.command == 'GET' and (history or dataset_read):
+            return False
+        self.close_connection = True
+        self._error('Training execution is retired. Export a reviewed dataset for external Unsloth; historical job reads remain available.', HTTPStatus.GONE, code='TRAINING_EXTERNAL_ONLY')
+        return True
 
     def parse_request(self) -> bool:
         if not super().parse_request():
@@ -195,6 +230,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if self._training_retired(parsed.path):
+            return
         if not parsed.path.startswith("/api/"):
             self._serve_static(parsed.path)
             return
@@ -202,6 +239,14 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         try:
             if parsed.path == "/api/v1/session":
                 self._json({"ok": True, "csrf_token": CSRF_TOKEN})
+            elif parsed.path == '/api/v1/chat/sessions':
+                self._json({'items':self.server.workspace().list()})
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})', parsed.path):
+                self._json(self.server.workspace().get(match.group(1)))
+            elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
+                raw = read_handoff(*match.groups())
+                self._headers(HTTPStatus.OK, 'application/octet-stream', len(raw))
+                self.wfile.write(raw)
             elif parsed.path == "/api/v1/integrations":
                 self._json(self.server.integrations.snapshot())
             elif parsed.path == "/api/v1/health":
@@ -316,6 +361,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 )
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
+        except IntegrationError as exc:
+            self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
         except EvaluationGuardError as exc:
@@ -334,6 +381,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if self._training_retired(parsed.path):
+            return
         # Fail closed before reading or parsing any potentially overbroad event.
         # Closing prevents unread body bytes becoming another request.
         if parsed.path == "/api/v1/hermes-hook":
@@ -342,7 +391,28 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             return
         try:
             data = self._body()
-            if parsed.path == "/api/v1/integrations/discover":
+            if parsed.path == '/api/v1/unsloth-exports':
+                fields(data, {'version'})
+                if not isinstance(data['version'],str):
+                    raise ValidationError('Choose a dataset version.')
+                self._json(create_handoff(data['version']), HTTPStatus.CREATED)
+            elif parsed.path == '/api/v1/chat/hardware':
+                if data.get('approved') is not True:
+                    raise IntegrationError('APPROVAL_REQUIRED', 'Approve the read-only hardware snapshot first.', 403)
+                fields(data, {'approved'})
+                self._json(hardware_snapshot())
+            elif parsed.path == '/api/v1/chat/sessions':
+                self._json(self.server.workspace().create(data), HTTPStatus.CREATED)
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/(send|collect|stop|archive)', parsed.path):
+                sid, action = match.groups()
+                workspace = self.server.workspace()
+                if action == 'stop':
+                    fields(data, set())
+                    result = workspace.stop(sid)
+                else:
+                    result = getattr(workspace, action)(sid, data)
+                self._json(result)
+            elif parsed.path == "/api/v1/integrations/discover":
                 if data:
                     raise IntegrationError("INVALID_PAYLOAD", "Discovery accepts an empty object only.")
                 self._json(self.server.integrations.discover())
@@ -513,6 +583,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_PATCH(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if self._training_retired(parsed.path):
+            return
         try:
             data = self._body()
             if match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)", parsed.path):
@@ -531,6 +603,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if self._training_retired(parsed.path):
+            return
         try:
             data = self._body()
             if match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)", parsed.path):
@@ -552,8 +626,6 @@ def run(host: str = "127.0.0.1", port: int = 8770, seed_demo: bool = True) -> No
     if os.environ.get("NAJDILAB_ALLOW_LEGACY_INGEST") == "1":
         print("WARNING: legacy unauthenticated ingestion is enabled; remove NAJDILAB_ALLOW_LEGACY_INGEST after migration.", file=sys.stderr)
     apply_migrations()
-    initialize_training_control()
-    initialize_runtime_control()
     initialize_manual_versions()
     sync_manual_export_history()
     seeded = seed_demo_data() if seed_demo else 0

@@ -1,5 +1,7 @@
 # Training export
 
+**Current scope notice (2026-10-31):** training execution is retired. This historical guide does not authorize a trainer, WSL worker, model/GGUF release or installed update. Use the [dataset-first roadmap](roadmap.md) and [Chat/external handoff contract](chat-workspace.md). Existing data/exports remain unchanged.
+
 ## Eligibility
 
 Training files accept only `training_eligible=true` records with `archived=false`, `evaluation_only=false` and `exclude_from_training=false`, subject to privacy and review-integrity gates. Demo records are excluded unless explicitly included. Non-archived, non-excluded evaluation-only samples go only to `evaluation_holdout.jsonl`, never SFT, direct language or preference files.

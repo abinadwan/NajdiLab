@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="/rtl-overhaul.css">
   <link rel="stylesheet" href="/theme.css">
   <link rel="stylesheet" href="/integrations.css">
+  <link rel="stylesheet" href="/chat.css">
 </head>
 <body>
   <div class="shell">
@@ -26,6 +27,7 @@
       </div>
       <nav id="main-nav">
         <span class="nav-group">Home</span>
+        <button class="nav-item" data-view="chat"><span class="nav-icon">◫</span> Chat Workspace</button>
         <button class="nav-item active" data-view="dashboard"><span class="nav-icon">◈</span><span class="nav-label">Dashboard</span></button>
         <span class="nav-group">Dataset</span>
         <button class="nav-item" data-view="review-queue"><span class="nav-icon">⌁</span><span class="nav-label">Review queue</span> <b id="nav-pending">—</b></button>
@@ -37,14 +39,8 @@
         <button class="nav-item" data-view="dataset-health"><span class="nav-icon">♥</span> Dataset health</button>
         <button class="nav-item" data-view="balancer"><span class="nav-icon">≋</span><span class="nav-label">Dataset balancer<small>Dataset Balancer</small></span></button>
         <button class="nav-item" data-view="dataset-versions"><span class="nav-icon">◇</span> Dataset versions</button>
-        <span class="nav-group">Training</span>
-        <button class="nav-item" data-view="training"><span class="nav-icon">△</span> Training setup</button>
-        <button class="nav-item" data-view="training-jobs"><span class="nav-icon">▣</span> Training jobs</button>
         <span class="nav-group">Evaluation</span>
         <button class="nav-item" data-view="eval-sets"><span class="nav-icon">⌕</span> Evaluation sets</button>
-        <button class="nav-item" data-view="human-review"><span class="nav-icon">◉</span> Human review</button>
-        <button class="nav-item" data-view="phase38-review"><span class="nav-icon">◎</span><span class="nav-label">Remediation review<small>Phase 3.8</small></span><b id="nav-phase38">0/36</b></button>
-        <button class="nav-item" data-view="phase39-review"><span class="nav-icon">✎</span><span class="nav-label">Verify edits<small>Phase 3.9</small></span><b id="nav-phase39">0/7</b></button>
         <span class="nav-group">Export</span>
         <button class="nav-item" data-view="exports"><span class="nav-icon">⇩</span> Export center</button>
         <span class="nav-group">System</span>
@@ -65,11 +61,41 @@
         <div class="top-actions"><div class="theme-control"><label for="theme-select">Appearance</label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip">● Local storage</span><button id="refresh-view" class="button ghost">Refresh</button></div>
       </header>
 
+      <section id="view-chat" class="view">
+        <div class="panel chat-intro"><strong>Raw model chat</strong><p>No system/developer prompts from NajdiLab. No tools, RAG, external memory or response rewriting. The engine uses the model's normal chat template.</p><p>These are conversations created in NajdiLab. This does not collect native LM Studio or Ollama chats.</p></div>
+        <div class="chat-layout">
+          <aside class="panel chat-controls" aria-label="Conversation controls">
+            <label for="chat-provider">Connected provider</label><select id="chat-provider"></select>
+            <label for="chat-model">Model</label><select id="chat-model"></select>
+            <p class="muted">Connect providers in Settings → Integrations. Chat uses an already loaded model; it never loads or reconfigures one.</p>
+            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096">
+            <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" value="512">
+            <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending.</p>
+            <button id="chat-new" class="button primary" type="button">New conversation</button>
+            <label for="chat-saved">Saved conversations</label><select id="chat-saved"><option value="">Choose a saved conversation</option></select>
+            <button id="chat-refresh" class="button ghost" type="button">Refresh saved state</button>
+            <button id="chat-archive" class="button ghost" type="button" disabled>Archive conversation</button>
+            <button id="chat-hardware" class="button ghost" type="button">Read device specs</button>
+            <p class="muted">Read-only RAM/GPU snapshot. No model allocation or stress tests.</p>
+            <div id="chat-hardware-result" role="status"></div>
+          </aside>
+          <div class="panel chat-main">
+            <p id="chat-notice" role="status" aria-live="polite">Start a new conversation or open a saved one.</p>
+            <label class="inline-check"><input id="chat-collect" type="checkbox" disabled> Collect future completed pairs for human review</label>
+            <p class="muted">OFF by default and after restart. Saved chat history stays local regardless of this choice. Collected pairs enter PENDING, never training-approved. No earlier turns are collected retroactively.</p>
+            <p id="chat-usage" class="muted"></p>
+            <div id="chat-messages" class="chat-messages" aria-label="Conversation messages"></div>
+            <form id="chat-form"><label for="chat-draft">Message</label><textarea id="chat-draft" dir="auto" rows="4" maxlength="65536" placeholder="Write a message…"></textarea><div class="chat-actions"><button id="chat-send" class="button primary" type="submit" disabled>Send</button><button id="chat-stop" class="button ghost" type="button" disabled>Stop</button></div></form>
+            <p class="muted">Completed text pairs are saved. Failed, stopped or token-limited responses are discarded. Archiving retains local text and historical exports; it excludes the conversation's collected pairs from future training selection. Physical erasure requires a separate retention decision.</p>
+          </div>
+        </div>
+      </section>
+
       <section id="view-dashboard" class="view active">
         <div id="dashboard-stats" class="stat-grid" aria-live="polite"></div>
         <div class="dashboard-grid">
           <section class="panel workflow-card"><span class="eyebrow">Workflow</span><h2>From conversation to Gold dataset</h2><div class="workflow-steps"><button data-go="review-queue">Review</button><i aria-hidden="true">→</i><button data-go="dataset-health">Health</button><i aria-hidden="true">→</i><button data-go="balancer">Balance</button><i aria-hidden="true">→</i><button data-go="exports">Build</button></div></section>
-          <section class="panel readiness-card"><span class="eyebrow">System status</span><h2>Phase 1 readiness</h2><ul id="dashboard-readiness"><li><span class="status-dot ok"></span>Local database</li><li><span class="status-dot ok"></span>Review uses an overlay and preserves the original</li><li><span class="status-dot ok"></span>Gold versions cannot be overwritten</li><li><span class="status-dot neutral"></span>Training and deployment require a later explicit action</li></ul></section>
+          <section class="panel readiness-card"><span class="eyebrow">System status</span><h2>Phase 1 readiness</h2><ul id="dashboard-readiness"><li><span class="status-dot ok"></span>Local database</li><li><span class="status-dot ok"></span>Review uses an overlay and preserves the original</li><li><span class="status-dot ok"></span>Gold versions cannot be overwritten</li><li><span class="status-dot neutral"></span>Training is external: export a reviewed dataset for Unsloth</li></ul></section>
           <section class="panel recent-card"><div class="panel-heading"><div><span class="eyebrow">Latest versions</span><h2>Dataset Versions</h2></div><button class="button ghost" data-go="exports">View all</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
         </div>
       </section>
@@ -80,7 +106,7 @@
         </div>
         <div id="review-workspace" class="review-workspace">
           <section class="context-column panel">
-            <div class="panel-heading"><div><span class="eyebrow">Full context</span><h2 dir="auto" id="review-conversation-title">—</h2></div><span id="review-demo" class="badge demo hidden">Demo</span></div>
+            <div class="panel-heading"><div><span class="eyebrow">Review context</span><h2 dir="auto" id="review-conversation-title">—</h2></div><span id="review-demo" class="badge demo hidden">Demo</span></div>
             <div id="review-meta" class="meta-row"></div>
             <div id="context-messages" class="chat-stream"></div>
           </section>
@@ -239,41 +265,7 @@
         <div class="versions-layout"><section class="panel version-list-panel"><div class="panel-heading"><div><span class="eyebrow">Gold Library</span><h2>Dataset Versions</h2></div></div><div id="version-list" class="version-list"></div></section><section id="version-detail" class="panel phase-panel"><div class="empty-inline">Choose a version to view manifest, status, and files.</div></section></div>
       </section>
 
-      <section id="view-training" class="view">
-        <div class="safety-banner" role="note">Preparation and validation only. Does not start training or automatically run WSL or Unsloth.</div>
-        <div class="training-layout">
-          <form id="training-setup-form" class="panel phase-panel training-form">
-            <div class="panel-heading"><div><span class="eyebrow">Training management</span><h2>Training setup and preflight</h2></div><span id="quality-gate-badge" class="gate-badge unavailable">Unavailable</span></div>
-            <div class="form-grid">
-              <label>Dataset version<select id="training-dataset" dir="ltr"></select></label>
-              <label>Base model<select id="training-model" dir="ltr" aria-describedby="selected-model-help"></select><small id="selected-model-help">Select a candidate and run preflight. Selection does not download or train a model.</small></label>
-              <label>Training method<select id="training-method"><option>QLoRA</option><option>LoRA</option></select></label>
-              <label>Epochs<input id="training-epochs" type="number" min="0.1" step="0.1" value="3"></label>
-              <label>Maximum steps<input id="training-max-steps" type="number" min="0" value="0"></label>
-              <label>Learning rate<input id="training-lr" type="number" min="0.0000001" step="0.00001" value="0.0002"></label>
-              <label>Batch size<input id="training-batch" type="number" min="1" value="1"></label>
-              <label>Gradient accumulation<input id="training-grad-acc" type="number" min="1" value="8"></label>
-              <label>Maximum sequence length<input id="training-seq" type="number" min="128" step="128" value="2048"></label>
-              <label>Warmup ratio<input id="training-warmup" type="number" min="0" max="0.99" step="0.01" value="0.03"></label>
-              <label>Weight decay<input id="training-weight-decay" type="number" min="0" step="0.01" value="0.01"></label>
-              <label>Learning rate scheduler<select id="training-scheduler"><option>cosine</option><option>linear</option><option>constant</option><option>constant_with_warmup</option></select></label>
-              <label>Optimizer<select id="training-optimizer"><option>adamw_8bit</option><option>paged_adamw_8bit</option><option>adamw_torch</option></select></label>
-              <label>LoRA rank<input id="training-rank" type="number" min="1" value="16"></label>
-              <label>LoRA alpha<input id="training-alpha" type="number" min="1" value="32"></label>
-              <label>LoRA dropout<input id="training-dropout" type="number" min="0" max="1" step="0.01" value="0"></label>
-            </div>
-            <div class="check-grid"><label><input id="training-packing" type="checkbox"> Pack samples (Packing)</label><label><input id="training-checkpointing" type="checkbox" checked> Gradient checkpointing</label><label><input id="training-bf16" type="checkbox" checked> BF16</label><label><input id="training-fp16" type="checkbox"> FP16</label></div>
-            <div class="training-actions"><button id="run-training-preflight" type="button" class="button primary">Run preflight</button><button id="check-training-runtime" type="button" class="button ghost">Check runtime</button><button id="create-training-job" type="button" class="button ghost" disabled>Create training job</button></div>
-          </form>
-          <section class="panel phase-panel model-register-panel"><div class="panel-heading"><div><span class="eyebrow">Model acquisition</span><h2>Gemma 4 official trainable model</h2></div></div><p class="muted">Shows size, storage, license, and a pinned revision. Preparing a plan does not download weights; download requires separate, explicit approval.</p><div id="model-acquisition-card" class="detail-status">Loading official catalog…</div><div class="training-actions"><button id="prepare-model-acquisition" class="button ghost" type="button">Validate and prepare download plan</button><button id="acquire-model" class="button primary" type="button" disabled>Download and verify approved checkpoint</button></div><div id="model-acquisition-status" class="detail-status" aria-live="polite"></div></section>
-          <section class="panel phase-panel model-register-panel"><div class="panel-heading"><div><span class="eyebrow">Model registry</span><h2>Add model candidate</h2></div></div><p class="muted">Registers a reference only and does not download weights. Models in Ollama/GGUF are for inference only and are not treated as a checkpoint for training.</p><form id="model-register-form" class="form-grid"><label>Technical identifier<input name="id" dir="ltr" required pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,119}" placeholder="gemma4-ollama-q4km"></label><label>Display name<input name="display_name" required placeholder="Gemma 4 Ollama Q4_K_M"></label><label>Source type<select name="source_type"><option value="local">Local trainable checkpoint</option><option value="huggingface">Hugging Face (reference only)</option><option value="ollama">Ollama / GGUF (inference only)</option></select></label><label class="wide-label">Local path or repository/model identifier for Ollama<input name="path" dir="ltr" required placeholder="/home/user/models/model or org/model or gemma4:latest"></label><label>Version / Revision<input name="revision" dir="ltr" placeholder="commit SHA or digest"></label><label>Runtime<select name="runtime"><option value="wsl:NajdiTrain">WSL · NajdiTrain</option><option value="local">Local Windows</option></select></label><label>Architecture<input name="architecture" dir="ltr" placeholder="AutoModelForCausalLM"></label><label>Quantization<input name="quantization" dir="ltr" placeholder="bnb-4bit"></label><label>Model size (GB)<input name="model_size_gb" type="number" min="0" step="0.1"></label><button class="button ghost" type="submit">Register and validate candidate</button></form><div id="model-register-status" class="detail-status" aria-live="polite"></div></section>
-          <div class="training-results"><section id="quality-gate-result" class="panel phase-panel"><div class="empty-inline">Select a dataset version, then run preflight.</div></section><section id="training-plan-result" class="panel phase-panel"><div class="empty-inline">Step calculation will appear here.</div></section><section id="runtime-result" class="panel phase-panel"><div class="empty-inline">Runtime checks do not run automatically.</div></section></div>
-        </div>
-      </section>
-
-      <section id="view-training-jobs" class="view">
-        <div class="jobs-layout"><section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Permanent log</span><h2>Training jobs</h2></div><button id="refresh-training-jobs" class="button ghost">Refresh</button></div><div id="training-job-list" class="training-job-list"></div></section><section id="training-job-detail" class="panel phase-panel"><div class="empty-inline">Select a job to view details.</div></section></div>
-      </section>
+      <section id="view-retired" class="view"><div class="panel"><h2>Training runs in external Unsloth</h2><p>Review and validate a dataset, create a version, then export it. Training setup, jobs, model downloads, WSL workers and deployment controls are retired. Historical records remain available through read-only APIs.</p><button class="button primary" data-go="exports">Open Export center</button></div></section>
 
       <section id="view-eval-sets" class="view">
         <div class="phase-toolbar panel"><div><span class="eyebrow">Locked Holdout</span><h2>Isolate evaluation from training</h2></div><select id="eval-version" aria-label="Dataset version"></select><button id="refresh-eval" class="button primary">Check leakage</button></div>
@@ -317,6 +309,7 @@
       </section>
 
       <section id="view-exports" class="view">
+        <div class="panel chat-intro"><h2>External Unsloth handoff</h2><p>Choose an existing frozen version. Creates conversational prompt/completion JSONL and a provenance manifest; only the final approved assistant target is a completion. Direct text, DPO, tools and holdout stay in their existing separate exports.</p><label for="unsloth-version">Dataset version</label><input id="unsloth-version" placeholder="gold-v001"><button id="unsloth-create" class="button primary" type="button">Create Unsloth handoff</button><p>Use completion_only_loss=True and packing=False in external Unsloth/TRL. Check the chosen tokenizer/template and reject overlength records before training. Frozen exports reflect their original review state; after exclusions, build a fresh dataset version.</p><div id="unsloth-result" role="status"></div></div>
         <div class="export-layout">
           <div class="panel export-card"><span class="eyebrow">Version cannot be overwritten</span><h2>Create Gold Dataset</h2><p>Separates record types, prevents evaluation leakage, and computes SHA-256 for each file.</p><label class="inline-check warning"><input id="export-demo" type="checkbox"> Include data from Demo in this version</label><button id="preview-dedup" class="button ghost">Check duplicates first</button><button id="create-export" class="button primary">Create new version</button><div id="dedup-result" class="dedup-result"></div></div>
           <div class="panel"><div class="panel-heading"><div><span class="eyebrow">History</span><h2>Previous versions</h2></div></div><div id="exports-list" class="exports-list"></div></div>
@@ -339,7 +332,7 @@
             <div id="integration-cards" class="integration-grid"></div>
           </fieldset>
         </section>
-        <div class="settings-grid"><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>Interface theme</h2><p>Choose light, dark, or system. This choice is saved only in this browser.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="Choose interface theme in settings"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>Secure local operation</h2><p>The server listens on 127.0.0.1 only. No API keys appear in logs, and sensitive fields are redacted from metadata.</p></div><span class="status-ok">Enabled</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>SQLite</h2><p>Foreign keys, WAL, atomic transactions, and numbered migrations.</p></div><span class="status-ok">Passed</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>Training</h2><p>Phase 4 is blocked until explicit approval; the theme does not change training gates.</p></div><span class="status-neutral">BLOCKED</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>Data from Demo</h2><p>is labeled and logically isolated. Exports exclude it by default.</p></div><span class="status-demo">Isolated</span></div></div>
+        <div class="settings-grid"><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>Interface theme</h2><p>Choose light, dark, or system. This choice is saved only in this browser.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="Choose interface theme in settings"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>Secure local operation</h2><p>The server listens on 127.0.0.1 only. No API keys appear in logs, and sensitive fields are redacted from metadata.</p></div><span class="status-ok">Enabled</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>SQLite</h2><p>Foreign keys, WAL, atomic transactions, and numbered migrations.</p></div><span class="status-ok">Passed</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>External training</h2><p>NajdiLab prepares datasets; Unsloth runs training separately.</p></div><span class="status-neutral">EXTERNAL ONLY</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>Data from Demo</h2><p>is labeled and logically isolated. Exports exclude it by default.</p></div><span class="status-demo">Isolated</span></div></div>
       </section>
       <footer class="app-footer">© <span id="copyright-year"></span> <span id="copyright-owner">NajdiLab</span>. All rights reserved.</footer>
     </main>
@@ -362,6 +355,7 @@
   <script src="/theme.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/integrations.js" defer></script>
+  <script src="/chat.js" defer></script>
 </body>
 </html>
 

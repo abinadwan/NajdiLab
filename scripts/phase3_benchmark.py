@@ -2,6 +2,10 @@
 """Deterministic Phase 3 Base/Adapter benchmark and approval-gated comparison."""
 from __future__ import annotations
 
+# Historical helpers only; no direct model/GGUF/runtime execution.
+if __name__ == '__main__':
+    raise SystemExit('This workflow is retired. Export a reviewed dataset for external Unsloth.')
+
 import argparse, gc, hashlib, json, random, time
 from difflib import SequenceMatcher
 from pathlib import Path
