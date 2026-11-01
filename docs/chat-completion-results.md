@@ -12,7 +12,13 @@ Codex remediation on the same Claude feature branch:
 - New synthetic regressions exercise alias-to-cloud and A→B→A flips, first-turn substitution, unsupported versions/digests, and cancellation during metadata and after generation. They are **not** proof of real Gemma4/LM Studio acceptance.
 - The digest-ref semantics were checked in the versioned Ollama v0.40.13 `server/model_resolver.go`, `server/routes.go` and `internal/modelref/modelref.go`. After Ollama update, Chat blocks until the new resolver is reviewed. No third-party configuration is altered.
 
-**Verification status:** source/code review and synthetic regressions are part of this change; hosted Windows/Linux CI and the owner Gemma4/LM Studio acceptance remain pending. Do not merge/install based on this entry alone.
+**Hosted source/candidate CI for security fix commit [7659c8b](https://github.com/abinadwan/NajdiLab/commit/7659c8b00e961f6c291cbe5c53041bff9eedb27f): GREEN on both OSes.**
+- [Source checks](https://github.com/abinadwan/NajdiLab/actions/runs/41275717498): Windows **452 passed, 32 skipped, 68 subtests passed**; Linux **450 passed, 34 skipped, 68 subtests passed**; one existing warning each, no failures. Node chat/integration controllers, compile/docs and hosted synthetic browser acceptance completed successfully.
+- [Source-only candidate](https://github.com/abinadwan/NajdiLab/actions/runs/41275717499): Windows/Linux **74 passed / 68 subtests** each; builder **11 passed / 18 subtests**; same 74 selected candidate files and manifest SHA256 `9047157b634c862122eb2ff71e707e442debe44856a9c06ca2df5418210ffa56`; hosted candidate browsers passed.
+- Skips reflect unshipped historical private artifacts, unavailable OS-specific cases, and **nine opt-in tests against a real Ollama binary not run in hosted CI**. All new synthetic security tests are included and not skipped. No installed real Gemma4, real LM Studio or GPU acceptance has run as part of this Codex remediation.
+- This result applies to the listed implementation commit; documentation-only follow-up commits also require a green final-head CI check before merging.
+
+**Owner acceptance for real Gemma4/LM Studio is still NOT TESTED, as is GPU/VRAM feasibility.** Keep Draft PR #12 unmerged and do not install based on synthetic tests alone.
 
 ## What this adds
 
