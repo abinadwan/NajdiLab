@@ -2,6 +2,18 @@
 
 Draft follow-up to PR #11, on branch `feat/chat-workspace-claude`, based on reviewed commit `aa328ff` and targeting `feat/dataset-chat-workspace`. Evidence collected 2026-11-01. This is not merge or installation approval. [Contract](chat-workspace.md) · [owner acceptance](chat-windows-acceptance.md).
 
+## Independent security review and Codex remediation (2026-11-01)
+
+The independent review of `4937cd9` found **P1 model-name retargeting (potential cloud disclosure and A→B→A misattribution)** and **P2 Stop failing to interrupt stalled Ollama metadata reads**. No actual cloud transmission occurred. These findings supersede the earlier claim that post-response digest checks alone bind Ollama inference.
+
+Codex remediation on the same Claude feature branch:
+- Model routing now uses `sha256:<manifest digest>:local` for **every** Ollama Chat probe and inference. Only the source-reviewed v0.40.13 resolver is allowed; other versions and invalid/missing digests fail closed before user data is sent. The selected digest is saved when the Chat is created and compared again **before** any text-bearing request on each turn.
+- The Stop event propagates to `/api/tags`, `/api/version`, `/api/show`, `/api/ps`, inference, and the post-generation metadata read. Synthetic metadata-stall tests assert timely interruption without stored turns.
+- New synthetic regressions exercise alias-to-cloud and A→B→A flips, first-turn substitution, unsupported versions/digests, and cancellation during metadata and after generation. They are **not** proof of real Gemma4/LM Studio acceptance.
+- The digest-ref semantics were checked in the versioned Ollama v0.40.13 `server/model_resolver.go`, `server/routes.go` and `internal/modelref/modelref.go`. After Ollama update, Chat blocks until the new resolver is reviewed. No third-party configuration is altered.
+
+**Verification status:** source/code review and synthetic regressions are part of this change; hosted Windows/Linux CI and the owner Gemma4/LM Studio acceptance remain pending. Do not merge/install based on this entry alone.
+
 ## What this adds
 
 - **Ollama Chat**, previously BLOCKED, with [per-turn admission proof](chat-workspace.md#ollama-admission).

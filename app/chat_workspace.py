@@ -112,7 +112,8 @@ class ChatWorkspace:
         sid, now = str(uuid4()), utc_now()
         conn.execute('INSERT INTO chat_sessions(id,provider,model,context_budget,reply_reserve,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
                      (sid, data['provider'], data['model'], data['context_budget'], data['reply_reserve'], now, now))
-        conn.execute('INSERT INTO chat_session_bindings(session_id,load_approved) VALUES(?,?)', (sid, int(bool(data['load_approved']))))
+        conn.execute('INSERT INTO chat_session_bindings(session_id,load_approved,model_fingerprint) VALUES(?,?,?)',
+                     (sid, int(bool(data['load_approved'])), data.get('model_fingerprint')))
         return sid
 
     def _create(self, data):
@@ -136,8 +137,11 @@ class ChatWorkspace:
                 raise IntegrationError("CONTEXT_UNKNOWN", "The runtime did not report a context limit, so the budget cannot be proven.", 409)
             if data['context_budget'] > ceiling:
                 raise IntegrationError("ENGINE_CONTEXT_LIMIT", f"This model allows at most {ceiling} tokens of context here; choose a smaller budget.", 409)
+            fingerprint = limits.get('model_key')
+            if data['provider'] == 'ollama' and (not isinstance(fingerprint, str) or not fingerprint):
+                raise IntegrationError('MODEL_REFERENCE_UNVERIFIED', 'Ollama model identity could not be fixed; Chat is blocked.', 409)
             with self._lock:
-                return self._create(data)
+                return self._create({**data, 'model_fingerprint':fingerprint if isinstance(fingerprint, str) else None})
 
     def hardware(self, data):
         """Device evidence, plus model evidence when a selected model is named."""
@@ -212,6 +216,8 @@ class ChatWorkspace:
                 raise IntegrationError("CHAT_CLOSED", "This conversation is closed. Start a new one.", 409)
             if row['provider'] == 'ollama' and not row['load_approved']:
                 raise IntegrationError("LOAD_APPROVAL_REQUIRED", "Start a new conversation and approve Ollama loading this model.", 403)
+            if row['provider'] == 'ollama' and not row['model_fingerprint']:
+                raise IntegrationError("MODEL_BINDING_REQUIRED", "This Ollama session has no verified model identity. Start a new chat.", 409)
             self._expected(row, data['revision'])
             if sid in self._active:
                 raise IntegrationError("CHAT_BUSY", "One turn is already in progress.", 409)
@@ -229,6 +235,8 @@ class ChatWorkspace:
         try:
             with self.integrations.chat_lease(row['provider'], row['model'], data['selection_revision']) as spec:
                 with self.engine_factory(spec, row['model']) as engine:
+                    if row['provider'] == 'ollama':
+                        engine.expected_model_key = row['model_fingerprint']
                     measured = engine.measure(messages, row['context_budget'], event)
                     tokens = integer(measured.get('input_tokens'), 0, 1048576)
                     ceiling = integer(measured.get('loaded_context'), 128, 1048576)

@@ -31,6 +31,9 @@ WORKER_ERRORS = {
 # Ollama's llama-server refusal. Only ever matched, never shown to a user.
 OVERFLOW = re.compile(r'request \((\d+) tokens\) exceeds the available context size \((\d+) tokens\)')
 CLOUD_NAME = re.compile(r'[:-]cloud$')
+LOCAL_DIGEST = re.compile(r'(?:sha256:)?([0-9a-f]{64})\Z')
+# Verified from Ollama v0.40.13 source. Unknown resolver semantics must fail closed.
+PINNED_REF_VERSION = '0.40.13'
 
 
 class EngineProcess:
@@ -124,7 +127,8 @@ def kv_inputs(info, arch):
 class OllamaEngine:
     """Proves admission per turn using only public `/api/*` behavior.
 
-    Ollama has no tokenize route. It silently drops old messages by default
+    Requests use a content-addressed local manifest reference, never the
+    mutable selected tag. Ollama has no tokenize route. It silently drops old messages by default
     (`truncate`) and shifts context while generating (`shift`), so each request
     turns both off, and each turn first verifies the engine actually refuses an
     oversized history. `prompt_eval_count` of a one-token prediction is then the
@@ -136,9 +140,12 @@ class OllamaEngine:
     def __init__(self, spec, model):
         self.spec, self.model = spec, model
         self.deadline = time.monotonic() + CHAT_DEADLINE
-        self.budget, self.digest = None, None
+        self.budget, self.digest, self.model_ref = None, None, None
+        self.expected_model_key = None
 
     def call(self, path, payload=None, *, stop=None, limit=None, error_status=()):
+        if stop is not None and stop.is_set():
+            raise IntegrationError('STOPPED', 'Turn stopped; no pair was saved.', 409)
         remaining = self.deadline - time.monotonic()
         if remaining <= 0:
             raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504)
@@ -152,21 +159,32 @@ class OllamaEngine:
                 raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504) from None
             raise IntegrationError(error.code, str(error), 502) from None
 
-    def current_digest(self):
-        rows = [m for m in self.call(self.spec.models_path).get('models', [])
+    def current_digest(self, stop=None):
+        rows = [m for m in self.call(self.spec.models_path, stop=stop).get('models', [])
                 if isinstance(m, dict) and m.get('name') == self.model]
         if len(rows) != 1 or not isinstance(rows[0].get('digest'), str) or not rows[0]['digest']:
             raise IntegrationError('MODEL_UNAVAILABLE', 'Ollama no longer lists exactly this model; no pair was saved.', 409)
         return rows[0]
 
-    def loaded(self):
-        rows = self.call('/api/ps').get('models')
+    def loaded(self, stop=None):
+        rows = self.call('/api/ps', stop=stop).get('models')
         return rows if isinstance(rows, list) else []
 
-    def limits(self):
-        """Read-only: tags, show, ps and version never load a model."""
-        row = self.current_digest()
-        show = self.call('/api/show', {'model':self.model}, limit=SHOW_LIMIT)
+    def limits(self, stop=None):
+        """Resolve an immutable *local* manifest, not the mutable selected tag.
+
+        Ollama v0.40.13 resolves sha256:<digest>:local against a content-addressed
+        manifest and refuses remote models. Untested versions fail closed.
+        """
+        row = self.current_digest(stop)
+        match = LOCAL_DIGEST.fullmatch(row.get('digest') if isinstance(row.get('digest'), str) else '')
+        if not match:
+            raise IntegrationError('MODEL_REFERENCE_UNVERIFIED', 'Ollama did not return a full local manifest digest; Chat is blocked.', 409)
+        version = self.call('/api/version', stop=stop).get('version')
+        if version != PINNED_REF_VERSION:
+            raise IntegrationError('MODEL_REFERENCE_UNVERIFIED', 'This Ollama version has not been verified for immutable local references; Chat is blocked.', 409)
+        pinned = f'sha256:{match.group(1)}:local'
+        show = self.call('/api/show', {'model':pinned}, limit=SHOW_LIMIT, stop=stop)
         # A cloud tag forwards prompts off this machine. Chat stays local-only.
         if (CLOUD_NAME.search(self.model) or show.get('remote_host') or show.get('remote_model') or
                 row.get('remote_host') or row.get('remote_model')):
@@ -179,23 +197,25 @@ class OllamaEngine:
         maximum = info.get(f'{arch}.context_length')
         if type(maximum) is not int or maximum < 1:
             raise IntegrationError('CONTEXT_UNKNOWN', 'Ollama did not report this model\'s maximum context; admission cannot be proven.', 409)
-        self.digest = row['digest']
-        running = self.loaded()
+        self.digest = match.group(1)
+        self.model_ref = pinned
+        running = self.loaded(stop)
         mine = next((m for m in running if isinstance(m, dict) and m.get('digest') == row['digest']), None)
         details = show.get('details') if isinstance(show.get('details'), dict) else {}
-        version = self.call('/api/version').get('version')
         return {'budget_ceiling':maximum, 'model_max_context':maximum, 'architecture':arch,
                 'runtime_context':mine.get('context_length') if mine else None,
                 'weights_bytes':row.get('size'), 'quantization':details.get('quantization_level'),
                 'kv':kv_inputs(info, arch), 'capabilities':capabilities, 'model_system_prompt':bool(show.get('system')),
                 'loaded':{'context':mine.get('context_length'), 'size_bytes':mine.get('size'), 'size_vram_bytes':mine.get('size_vram')} if mine else None,
                 'other_loaded_models':[m.get('name') for m in running if m is not mine and isinstance(m, dict)],
-                'model_key':f"ollama:{row['digest']}", 'engine_version':version if isinstance(version, str) else None}
+                'model_key':f"ollama:{self.digest}", 'engine_version':version}
 
     def chat(self, messages, predict, stop, *, error_status=()):
         # Nothing here but the conversation and the two limits this workspace
         # must set: no system, tools, format, think, keep_alive or sampling.
-        return self.call('/api/chat', {'model':self.model, 'messages':messages, 'stream':False, 'truncate':False, 'shift':False,
+        if not self.model_ref or not self.digest:
+            raise IntegrationError('MODEL_REFERENCE_UNVERIFIED', 'No immutable local model reference was established; Chat is blocked.', 409)
+        return self.call('/api/chat', {'model':self.model_ref, 'messages':messages, 'stream':False, 'truncate':False, 'shift':False,
                                        'options':{'num_ctx':self.budget, 'num_predict':predict}},
                          stop=stop, error_status=error_status)
 
@@ -220,7 +240,9 @@ class OllamaEngine:
 
     def measure(self, messages, budget, stop=None):
         self.budget = budget
-        limits = self.limits()
+        limits = self.limits(stop)
+        if self.expected_model_key is not None and self.expected_model_key != limits['model_key']:
+            raise IntegrationError('MODEL_CHANGED', 'The selected model was replaced before inference; no prompt was sent.', 409)
         result = {'loaded_context':limits['model_max_context'], 'model_key':limits['model_key'],
                   'engine_version':limits['engine_version']}
         if budget > limits['model_max_context']:
@@ -237,7 +259,7 @@ class OllamaEngine:
             if value.get('done') is not True or type(tokens) is not int or tokens < 1:
                 raise IntegrationError('EXACT_TOKEN_COUNT_UNAVAILABLE', 'Ollama did not report an exact prompt size; admission cannot be proven.', 409)
         # Ollama silently clamps num_ctx; only /api/ps shows what it really used.
-        runtime = next((m.get('context_length') for m in self.loaded() if isinstance(m, dict) and m.get('digest') == self.digest), None)
+        runtime = next((m.get('context_length') for m in self.loaded(stop) if isinstance(m, dict) and m.get('digest') == self.digest), None)
         if runtime != budget:
             raise self.mismatch()
         return {**result, 'input_tokens':tokens, 'loaded_context':runtime}
@@ -245,7 +267,9 @@ class OllamaEngine:
     def generate(self, messages, reserve, stop):
         value = self.chat(messages, reserve, stop)
         message = value.get('message')
-        if self.current_digest()['digest'] != self.digest:
+        current = self.current_digest(stop).get('digest')
+        matched = LOCAL_DIGEST.fullmatch(current if isinstance(current, str) else '')
+        if not matched or matched.group(1) != self.digest:
             raise IntegrationError('MODEL_CHANGED', 'The Ollama model changed during this turn; no pair was saved.', 409)
         if (value.get('done') is not True or value.get('remote_host') or value.get('remote_model') or
                 not isinstance(message, dict) or message.get('role') != 'assistant'):

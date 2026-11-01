@@ -30,6 +30,10 @@ class FakeOllama:
                       'message':{'role':'assistant','content':'  هلا 🙂  '}}
         self.honors_truncate, self.clamp, self.overflow_text = True, None, None
         self.replace_digest_after_reply, self.hang = False, None
+        self.version = '0.40.13'
+        self.hang_show, self.release_show = None, threading.Event()
+        self.hang_tags_after_reply, self.release_tags = None, threading.Event()
+        self.reply_seen = False
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -47,9 +51,12 @@ class FakeOllama:
             def do_GET(self):
                 fake.requests.append((self.path, None))
                 if self.path == '/api/tags':
+                    if fake.reply_seen and fake.hang_tags_after_reply:
+                        fake.hang_tags_after_reply.set()
+                        fake.release_tags.wait(4)
                     self.send(200, {'models':[{'name':MODEL, 'digest':fake.digest, 'size':5 * 1024**3}]})
                 elif self.path == '/api/version':
-                    self.send(200, {'version':'0.40.13'})
+                    self.send(200, {'version':fake.version})
                 else:
                     rows = [{'name':MODEL, 'digest':fake.digest, 'context_length':fake.context, 'size':6 * 1024**3, 'size_vram':6 * 1024**3}] if fake.context else []
                     self.send(200, {'models':rows})
@@ -58,6 +65,9 @@ class FakeOllama:
                 payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                 fake.requests.append((self.path, payload))
                 if self.path == '/api/show':
+                    if fake.hang_show:
+                        fake.hang_show.set()
+                        fake.release_show.wait(4)
                     return self.send(200, fake.show)
                 return self.send(*fake.chat(payload, self))
 
@@ -82,6 +92,7 @@ class FakeOllama:
                          'message':{'role':'assistant','content':'x'}}
         if self.replace_digest_after_reply:
             self.digest = 'b' * 64
+        self.reply_seen = True
         return 200, {**self.reply, 'prompt_eval_count':self.prompt}
 
     def chats(self):
@@ -143,6 +154,8 @@ def test_request_is_only_history_and_the_two_disclosed_limits(fake, chat):
     assert result['session']['turns'][0]['assistant'] == '  هلا 🙂  '
     reply = fake.chats()[-1]
     assert set(reply) == {'model', 'messages', 'stream', 'truncate', 'shift', 'options'}
+    assert reply['model'] == f'sha256:{DIGEST}:local'
+    assert {r['model'] for path, r in fake.requests if path == '/api/show'} == {f'sha256:{DIGEST}:local'}
     assert reply['messages'] == [{'role':'user', 'content':'سؤال'}]
     assert reply['options'] == {'num_ctx':512, 'num_predict':32}
     assert reply['stream'] is False and reply['truncate'] is False and reply['shift'] is False
@@ -401,3 +414,108 @@ def test_rollover_keeps_collection_off_and_never_copies_history(fake, chat):
     with connect(db) as conn:
         assert 'unsent draft' not in str([tuple(r) for r in conn.execute('SELECT * FROM chat_turns')])
         assert conn.execute('SELECT count(*) FROM reviews').fetchone()[0] == 1
+
+
+def test_immutable_local_reference_prevents_cloud_retarget_and_A_B_A_misattribution(fake, chat):
+    ws, db = chat
+    session = new(ws)
+    assert session['model_fingerprint'] == f'ollama:{DIGEST}'
+    original = fake.chat
+    outbound_cloud = []
+
+    def swap(payload, handler):
+        if payload['options']['num_predict'] == 32:
+            # Another client changes A -> B (a cloud alias) -> A while the
+            # final request is in flight. Name-based routing would leak.
+            fake.digest = 'b' * 64
+            try:
+                if payload['model'] == MODEL:
+                    outbound_cloud.append(payload['messages'])
+                    return 200, {**fake.reply, 'message':{'role':'assistant','content':'B reply'},
+                                 'prompt_eval_count':fake.prompt}
+                assert payload['model'] == f'sha256:{DIGEST}:local'
+                return original(payload, handler)
+            finally:
+                fake.digest = DIGEST
+        return original(payload, handler)
+
+    fake.chat = swap
+    done = send(ws, session)
+    assert done['status'] == 'COMPLETED'
+    assert done['session']['turns'][0]['assistant'] == '  هلا 🙂  '
+    assert not outbound_cloud and saved(db) == 1
+    assert {p['model'] for p in fake.chats()} == {f'sha256:{DIGEST}:local'}
+
+
+def test_alias_repoint_before_first_turn_is_refused_before_user_text(fake, chat):
+    ws, db = chat
+    session = new(ws)
+    fake.digest = 'b' * 64
+    assert error_of(lambda: send(ws, session, 'sensitive input')) == 'MODEL_CHANGED'
+    assert not fake.chats() and saved(db) == 0
+
+
+@pytest.mark.parametrize('bad_digest,bad_version', [
+    ('bad-digest', '0.40.13'),
+    (DIGEST, '0.40.14'),
+    (DIGEST, '0.12.0'),
+])
+def test_unsupported_digest_or_version_blocks_without_chat(fake, chat, bad_digest, bad_version):
+    ws, db = chat
+    fake.digest, fake.version = bad_digest, bad_version
+    assert error_of(lambda: new(ws)) == 'MODEL_REFERENCE_UNVERIFIED'
+    assert fake.chats() == [] and saved(db) == 0
+
+
+def test_stop_interrupts_blocked_show_metadata_before_text_probe(fake, chat):
+    ws, db = chat
+    session = new(ws)
+    fake.hang_show = threading.Event()
+    outcome = []
+
+    def worker():
+        try:
+            outcome.append(send(ws, session))
+        except IntegrationError as e:
+            outcome.append(e.code)
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    try:
+        assert fake.hang_show.wait(3)
+        began = time.monotonic()
+        assert ws.stop(session['id'])['stop_requested']
+        thread.join(2)
+        assert outcome == ['STOPPED'] and time.monotonic() - began < 1.8
+        assert fake.chats() == [] and saved(db) == 0
+    finally:
+        fake.release_show.set()
+        thread.join(4)
+
+
+def test_stop_interrupts_post_reply_tags_wait_without_saving(fake, chat):
+    ws, db = chat
+    session = new(ws)
+    fake.hang_tags_after_reply = threading.Event()
+    outcome = []
+
+    def worker():
+        try:
+            outcome.append(send(ws, session))
+        except IntegrationError as e:
+            outcome.append(e.code)
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    try:
+        assert fake.hang_tags_after_reply.wait(3)
+        began = time.monotonic()
+        assert ws.stop(session['id'])['stop_requested']
+        thread.join(2)
+        assert outcome == ['STOPPED'] and time.monotonic() - began < 1.8
+        assert saved(db) == 0
+        with connect(db) as conn:
+            assert conn.execute('SELECT count(*) FROM reviews').fetchone()[0] == 0
+    finally:
+        fake.release_tags.set()
+        thread.join(4)

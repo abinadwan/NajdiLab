@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — Chat security remediation (Codex, 2026-11-01)
+
+- P1: Ollama Chat now pins every text-bearing request to an immutable `sha256:<digest>:local` model reference on source-reviewed Ollama v0.40.13; it refuses unsupported resolver versions and invalid digests. The model is bound at session creation and checked before prompts. Post-reply digest checks remain defense in depth, not the privacy boundary.
+- P2: Stop now cancels all per-turn Ollama metadata reads and post-reply checks, not only inference. Added tests for alias/cloud retarget, A→B→A, metadata stalls and unsupported versions. No external Ollama, LM Studio or Hermes settings changed.
+
 ## Unreleased — Chat completion: Ollama, context and hardware evidence (2026-11-01)
 
 - Added Ollama Chat with per-turn admission proof: `truncate`/`shift` off, a live overflow-refusal check, exact `prompt_eval_count` from a one-token prediction, `/api/ps` clamp detection, digest binding, cloud-model refusal and explicit per-conversation load approval. Fails closed as `CONTEXT_REFUSAL_UNPROVEN` if an engine does not refuse overflow.

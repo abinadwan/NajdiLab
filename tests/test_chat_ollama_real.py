@@ -64,6 +64,7 @@ def test_default_ollama_really_drops_history_which_is_why_this_design_exists(oll
 def test_count_is_full_prompt_even_when_served_from_cache(ollama):
     engine = OllamaEngine(spec(ollama), ollama.model)
     engine.budget = 512
+    engine.limits()
     messages = [{'role':'user','content':'abc def'}]
     first = engine.chat(messages, 1, None)
     second = engine.chat(messages, 1, None)
@@ -83,6 +84,7 @@ def test_unknown_runner_setting_cannot_pass_ps_check(ollama):
     # 8192 is the synthetic model's trained maximum; Ollama would clamp above it.
     engine = OllamaEngine(spec(ollama), ollama.model)
     engine.budget = TRAIN_CONTEXT * 2
+    engine.limits()
     engine.chat([{'role':'user','content':'a'}], 1, None)
     rows = ollama.call('GET', '/api/ps')[1]['models']
     assert rows[0]['context_length'] == TRAIN_CONTEXT
