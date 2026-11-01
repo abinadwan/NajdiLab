@@ -137,7 +137,7 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| QA-01 | Windows Chromium regression: `contains_personal_data` stays `1` after explicit uncheck | 1 | P1 | IN_PROGRESS | VERIFIED | Root cause confirmed H2: double `loadQueue()` during init resets checkbox. Fix applied in `static/app.js:init()`. 10/10 browser tests pass on 5 consecutive local runs. PR open for CI verification. |
+| QA-01 | Windows Chromium regression: `contains_personal_data` stays `1` after explicit uncheck | 1 | P1 | FIXED_PENDING_VERIFICATION | VERIFIED | Root cause confirmed H2. Fix in `static/app.js:init()`. 10/10 browser tests pass on 5 local runs. PR #17: Windows PASS, Ubuntu PASS — runs `41344127758`/`41344127760`. Pending owner merge. |
 | QA-02 | 9 real-Ollama regression tests intentionally skipped | 8 | P2 | OPEN | NOT TESTED | `tests/test_chat_ollama_real.py`; unverified until genuine acceptance evidence exists |
 | QA-03 | 22 regression tests need private historical artifacts | 7 | P2 | OPEN | NOT TESTED | Skip reasons in CI logs; private records must not be recreated |
 | QA-04 | Safe behavior when symlink creation is unavailable | 7 | P2 | OPEN | NOT TESTED | `tests/test_integrations.py:207`, `public_source/tests/support.py:94,98`; path not exercised on hosted CI |
@@ -150,8 +150,8 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| SEC-01 | Verify UX-01: load, approve, correct, refresh, concurrency and failed requests preserve restrictions; explicit edits still work | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | 31 Python tests pass; browser subtests 1–6, 9 pass (explicit-edit path = QA-01 fix applied). PR open for final CI verification. |
-| SEC-02 | Verify UX-02: individual and bulk restore preserve restrictions | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | Python tests pass; browser subtests 7–8 pass on 5 local runs. PR open for final CI verification. |
+| SEC-01 | Verify UX-01: load, approve, correct, refresh, concurrency and failed requests preserve restrictions; explicit edits still work | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | 31 Python tests pass; browser subtests 1–6, 9 pass. PR #17 CI: Windows PASS, Ubuntu PASS. Pending owner merge approval. |
+| SEC-02 | Verify UX-02: individual and bulk restore preserve restrictions | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | Python tests + browser subtests 7–8 pass. PR #17 CI: Windows PASS, Ubuntu PASS. Pending owner merge approval. |
 | SEC-03 | Deleted review can reach APPROVED and eligible without restoration | 2 | P1 | OPEN | VERIFIED | Audit |
 | SEC-04 | Non-atomic manual bulk operations can partially commit | 2 | P1 | OPEN | VERIFIED | Audit |
 | SEC-05 | `review_events` may be absent; historical reconstruction is limited | 2 | P2 | OPEN | SOURCE-SUPPORTED | Not created by any file in `migrations/`; defined in `plans/phase2/006_review_events.sql`; `app/review_integrity.py:100-106` handles its absence |
@@ -178,8 +178,8 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| UX-01 | Review restriction preservation | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | PR #14 merged; QA-01 (init race) fixed in Phase 1. Verified through SEC-01 pending PR CI. |
-| UX-02 | Individual and bulk restoration restriction preservation | 1 | P1 | IN_PROGRESS | PARTIALLY VERIFIED | PR #14 merged; verified through SEC-02 pending PR CI. |
+| UX-01 | Review restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 + Phase 1 QA-01 fix. Verified through SEC-01. PR #17 CI green. Pending owner merge. |
+| UX-02 | Individual and bulk restoration restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 merged. Verified through SEC-02. PR #17 CI green. Pending owner merge. |
 | UX-03 | Distinguish approval from training eligibility | 5 | P1 | OPEN | NOT TESTED | Backend separation has tests; the UI distinction has no acceptance evidence |
 | UX-04 | Collection outcome per completed Chat pair | 5 | P2 | OPEN | SOURCE-SUPPORTED | `app/chat_workspace.py:103` exposes `collected`; `static/chat.js` shows no per-pair outcome |
 | UX-05 | Continuity and complete permitted content | 5 | P2 | OPEN | NOT TESTED | Nothing decisive in source |
