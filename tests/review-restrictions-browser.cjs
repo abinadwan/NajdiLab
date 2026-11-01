@@ -16,7 +16,9 @@ test('review restriction integrity in Chromium',async t=>{
     });
     assert.ok(!base.endsWith(':8770'));
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
-    const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    const page=await browser.newPage();
+    await page.setViewport({width:1440,height:1000});
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
     const flags=['#exclude-training','#evaluation-only','#contains-sensitive','#contains-personal','#needs-fact-check'];
     const checked=()=>page.evaluate(selectors=>selectors.map(s=>document.querySelector(s).checked),flags);
     const read=()=>page.evaluate(()=>fetch('/api/v1/review-queue').then(r=>r.json()));

@@ -154,8 +154,9 @@ below are recorded executions, not permission to run against owner data:
 Chromium used the separately installed pinned `puppeteer-core@25.16.0` driver,
 with `PYTHON`/`NAJDILAB_TEST_PYTHON` set to the isolated test interpreter and
 `NAJDILAB_BROWSER_EXECUTABLE=/usr/bin/chromium`. No runtime dependency changed.
-Execution is Linux/Python 3.12 only; Windows and hosted CI have not run on this
-fix. Nine opt-in real-Ollama checks are intentionally disabled, 22 checks need
+The preceding results are from Linux/Python 3.12; the local Windows follow-up
+is recorded below. Hosted CI has not been run as part of this follow-up.
+Nine opt-in real-Ollama checks are intentionally disabled, 22 checks need
 unavailable private historical artifacts, and two checks require Windows. Those
 33 skips are not passes. No real-model, GPU, installed-application or private-data
 acceptance is claimed. Independent read-only review found no actionable issues.
@@ -165,6 +166,97 @@ preconditions remain optional for legacy callers; reviewer identities are assert
 categories. Existing single exclude/delete paths still do not compare submitted
 revisions; this change does not expand into those separate lifecycle endpoints.
 Existing exports retain their historical state and are never rewritten.
+
+## PR #14: Windows browser viewport follow-up (2026-11-01)
+
+The local checkout was clean on `fix/review-restriction-integrity` at
+`e38eed62e2d48c6737c12149cb5262fb3143690d` before this follow-up. Windows used
+Node 26.10.0, Python 3.12.10, the existing `puppeteer-core` 25.16.0 installation
+and Chrome 156.0.8078.74; no dependencies were installed or updated.
+
+Before editing, `node --test tests/review-restrictions-browser.cjs` reproduced
+6 PASS / 3 FAIL / 0 skipped in 1671.6537 ms. The first failure was the click on
+`#apply-reviewed-filters` in single-card restoration:
+`Node is either not clickable or not an Element`. Bulk restoration then failed
+with `0 !== 2`, and the parent failed too. The earlier investigation reported
+that `/gold` was active and Apply was visible with normal dimensions. The
+owner's temporary 1440 x 1000 experiment passed 9/9 in approximately 1.7 seconds;
+the fresh before/after runs below corroborate the viewport dependency.
+
+`tests/review-restrictions-browser.cjs` now calls
+`await page.setViewport({width:1440,height:1000});` immediately after
+`browser.newPage()` and before navigation. An explicit desktop viewport makes
+the layout assumption of this desktop review workflow repeatable instead of
+relying on Puppeteer's default viewport. All assertions, success conditions,
+existing UI clicks and API integrity checks remain unchanged. There is no DOM
+click bypass, disabled integrity check, added retry or application-code change.
+
+This stabilizes the browser test only. It does not fix responsive UI defects,
+prove mobile/small-window usability, or establish the precise rendering cause
+of the default-viewport click failure. Separate responsive acceptance is still
+needed; it is outside this narrow follow-up.
+
+Run from `C:\Users\Admin\Documents\NajdiLab-PR14` with the existing environment:
+
+```powershell
+$env:NODE_PATH='C:\Users\Admin\Documents\NajdiLab-PR14-BrowserTools\node_modules'
+$env:PYTHON='C:\Users\Admin\Documents\NajdiLab-Test\.venv\Scripts\python.exe'
+$env:PYTHONDONTWRITEBYTECODE='1'
+$env:NAJDILAB_BROWSER_EXECUTABLE='C:\Program Files\Google\Chrome\Application\chrome.exe'
+$env:NAJDILAB_DISPOSABLE_OLLAMA='0'
+$env:NAJDILAB_TEST_PYTHON=$env:PYTHON
+node --test tests/review-restrictions-browser.cjs # run 1
+node --test tests/review-restrictions-browser.cjs # run 2
+node --test tests/review-restrictions-browser.cjs # run 3
+& $env:PYTHON -m pytest -q -p no:cacheprovider tests/test_review_restriction_integrity.py
+& $env:PYTHON -m pytest -q -p no:cacheprovider tests/test_review_management.py tests/test_review_integrity.py tests/test_review_lifecycle.py tests/test_najdilab.py tests/test_unsloth_export.py tests/test_complete_review_queue.py -rs
+& $env:PYTHON -m pytest -q -p no:cacheprovider tests -rs
+node --test tests/integrations-ui.test.cjs tests/chat-ui.test.cjs
+node --check tests/review-restrictions-browser.cjs
+& $env:PYTHON scripts/check_docs.py
+git diff --check
+```
+
+The pytest cache provider is disabled to avoid repository cache writes; this
+does not change test selection or assertions. Browser counts include eight
+functional subtests and their parent. Consecutive post-fix executions were:
+
+| Check | Passed | Failed | Skipped | Duration |
+| --- | ---: | ---: | ---: | ---: |
+| Chromium run 1 | 9 | 0 | 0 | 1788.7314 ms |
+| Chromium run 2 | 9 | 0 | 0 | 1765.5895 ms |
+| Chromium run 3 | 9 | 0 | 0 | 1769.2129 ms |
+| Python review restriction integrity | 31 | 0 | 0 | 4.33 s |
+| Related Python review/export checks | 79 | 0 | 0 | 4.23 s |
+| Full root Python regression suite | 447 | 0 | 32 | 103.66 s |
+| JavaScript Chat/integration controllers | 10 | 0 | 0 | 60.467 ms |
+
+All entries above exited 0. The full Python suite also passed 59 subtests,
+reported separately from the 447 tests. Its 32 skips are not passes:
+
+- Nine real-engine checks in `tests/test_chat_ollama_real.py` were intentionally
+  disabled by `NAJDILAB_DISPOSABLE_OLLAMA=0`; no real inference was run.
+- Twenty-two checks require unavailable private historical artifacts.
+- `tests/test_integrations.py::test_symlink_marker_is_not_followed`
+  was skipped because this Windows account cannot create the required symlink.
+
+The documentation checker passed all 64 Markdown files, local file links and
+the generated API inventory. Node syntax and `git diff --check` passed. No
+post-fix test failed. Hosted CI and mobile/responsive acceptance were not run.
+
+Only the browser test, this existing evidence document and `CHANGELOG.md` are
+changed. The original NajdiLab checkout, `NajdiLab-Test` environment and database,
+and real user data were not modified. Browser/HTTP writes target disposable
+synthetic SQLite fixtures on random loopback ports. No Ollama, LM Studio or
+Hermes application was started, and no model download or real inference ran.
+
+Rollback for this viewport-only follow-up: remove the added `setViewport` call,
+join the surrounding page/error-listener line if desired, and remove this
+follow-up section plus its changelog entry. Then rerun the same checks and
+expect the default-viewport regression to be possible again. No schema, database,
+exports, dependencies, reset/clean or history rewrite is required. Do not revert
+the underlying review-integrity remediation to undo this test setup change.
+At the time of the local verification recorded above, no commit or push had been performed. No new PR, merge or base-branch change was performed during that verification.
 
 ## Rollback
 
