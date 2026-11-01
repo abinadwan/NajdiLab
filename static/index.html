@@ -35,7 +35,7 @@
         <button class="nav-item" data-view="reviewed"><span class="nav-icon">✓</span> Reviewed</button>
         <button class="nav-item" data-view="add-data"><span class="nav-icon">＋</span> Add data</button>
         <button class="nav-item" data-view="manual-data"><span class="nav-icon">▦</span> Manual data</button>
-        <button class="nav-item" data-view="dataset"><span class="nav-icon">▤</span> Training data</button>
+        <button class="nav-item" data-view="dataset"><span class="nav-icon">▤</span> Dataset records</button>
         <button class="nav-item" data-view="dataset-health"><span class="nav-icon">♥</span> Dataset health</button>
         <button class="nav-item" data-view="balancer"><span class="nav-icon">≋</span><span class="nav-label">Dataset balancer<small>Dataset Balancer</small></span></button>
         <button class="nav-item" data-view="dataset-versions"><span class="nav-icon">◇</span> Dataset versions</button>
@@ -67,26 +67,27 @@
           <aside class="panel chat-controls" aria-label="Conversation controls">
             <label for="chat-provider">Connected provider</label><select id="chat-provider"></select>
             <label for="chat-model">Model</label><select id="chat-model"></select>
-            <p class="muted">Connect providers in Settings → Integrations. Chat uses an already loaded model; it never loads or reconfigures one.</p>
-            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096">
+            <p class="muted">Connect providers in Settings → Integrations. LM Studio must already have the model loaded; NajdiLab never loads it there.</p>
+            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096" list="chat-budget-options"><datalist id="chat-budget-options"><option value="4096"></option><option value="8192"></option><option value="16384"></option><option value="32768"></option><option value="65536"></option></datalist>
             <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" value="512">
-            <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending.</p>
+            <label id="chat-load-row" class="inline-check" hidden><input id="chat-load-approved" type="checkbox"> Let Ollama load this model at this context</label>
+            <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending. Ollama loads models on request, and a different context reloads the model, so it needs this approval.</p>
             <button id="chat-new" class="button primary" type="button">New conversation</button>
             <label for="chat-saved">Saved conversations</label><select id="chat-saved"><option value="">Choose a saved conversation</option></select>
             <button id="chat-refresh" class="button ghost" type="button">Refresh saved state</button>
             <button id="chat-archive" class="button ghost" type="button" disabled>Archive conversation</button>
             <button id="chat-hardware" class="button ghost" type="button">Read device specs</button>
-            <p class="muted">Read-only RAM/GPU snapshot. No model allocation or stress tests.</p>
+            <p class="muted">Read-only device and selected-model snapshot. It never loads a model. No allocation or stress tests.</p>
             <div id="chat-hardware-result" role="status"></div>
           </aside>
           <div class="panel chat-main">
             <p id="chat-notice" role="status" aria-live="polite">Start a new conversation or open a saved one.</p>
             <label class="inline-check"><input id="chat-collect" type="checkbox" disabled> Collect future completed pairs for human review</label>
-            <p class="muted">OFF by default and after restart. Saved chat history stays local regardless of this choice. Collected pairs enter PENDING, never training-approved. No earlier turns are collected retroactively.</p>
+            <p class="muted">OFF by default and after restart. Saved chat history stays local regardless of this choice. Collected pairs enter PENDING, never dataset-approved. No earlier turns are collected retroactively.</p>
             <p id="chat-usage" class="muted"></p>
             <div id="chat-messages" class="chat-messages" aria-label="Conversation messages"></div>
             <form id="chat-form"><label for="chat-draft">Message</label><textarea id="chat-draft" dir="auto" rows="4" maxlength="65536" placeholder="Write a message…"></textarea><div class="chat-actions"><button id="chat-send" class="button primary" type="submit" disabled>Send</button><button id="chat-stop" class="button ghost" type="button" disabled>Stop</button></div></form>
-            <p class="muted">Completed text pairs are saved. Failed, stopped or token-limited responses are discarded. Archiving retains local text and historical exports; it excludes the conversation's collected pairs from future training selection. Physical erasure requires a separate retention decision.</p>
+            <p class="muted">Completed text pairs are saved. Failed, stopped or token-limited responses are discarded. Archiving retains local text and historical exports; it excludes the conversation's collected pairs from future dataset selection. Physical erasure requires a separate retention decision.</p>
           </div>
         </div>
       </section>
@@ -95,7 +96,7 @@
         <div id="dashboard-stats" class="stat-grid" aria-live="polite"></div>
         <div class="dashboard-grid">
           <section class="panel workflow-card"><span class="eyebrow">Workflow</span><h2>From conversation to Gold dataset</h2><div class="workflow-steps"><button data-go="review-queue">Review</button><i aria-hidden="true">→</i><button data-go="dataset-health">Health</button><i aria-hidden="true">→</i><button data-go="balancer">Balance</button><i aria-hidden="true">→</i><button data-go="exports">Build</button></div></section>
-          <section class="panel readiness-card"><span class="eyebrow">System status</span><h2>Phase 1 readiness</h2><ul id="dashboard-readiness"><li><span class="status-dot ok"></span>Local database</li><li><span class="status-dot ok"></span>Review uses an overlay and preserves the original</li><li><span class="status-dot ok"></span>Gold versions cannot be overwritten</li><li><span class="status-dot neutral"></span>Training is external: export a reviewed dataset for Unsloth</li></ul></section>
+          <section class="panel readiness-card"><span class="eyebrow">System status</span><h2>Dataset workflow status</h2><ul id="dashboard-readiness"><li><span class="status-dot ok"></span>Local database</li><li><span class="status-dot ok"></span>Review uses an overlay and preserves the original</li><li><span class="status-dot ok"></span>Gold versions cannot be overwritten</li><li><span class="status-dot neutral"></span>Training is external: export a reviewed dataset for Unsloth</li></ul></section>
           <section class="panel recent-card"><div class="panel-heading"><div><span class="eyebrow">Latest versions</span><h2>Dataset Versions</h2></div><button class="button ghost" data-go="exports">View all</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
         </div>
       </section>
@@ -135,9 +136,9 @@
             <div class="field"><label for="reviewer-identity">Reviewer identity</label><select id="reviewer-identity"><option value="human">Human reviewer</option><option value="ai_suggestion">Machine suggestion reviewed by a human</option><option value="import">Imported decision</option></select></div>
             <div class="field"><label>Error tags <span class="muted">Optional; select multiple</span></label><div id="error-tags" class="tag-picker"></div></div>
             <div class="check-grid">
-              <label><input id="training-eligible" type="checkbox"> Training eligible</label>
+              <label><input id="training-eligible" type="checkbox"> Dataset eligible</label>
               <label><input id="evaluation-only" type="checkbox"> Evaluation only</label>
-              <label><input id="exclude-training" type="checkbox"> Permanently exclude from training</label>
+              <label><input id="exclude-training" type="checkbox"> Permanently exclude from dataset selection</label>
               <label><input id="needs-fact-check" type="checkbox"> Needs fact checking</label>
               <label><input id="contains-personal" type="checkbox"> Contains personal data</label>
               <label><input id="contains-sensitive" type="checkbox"> Contains sensitive data</label>
@@ -174,21 +175,21 @@
         <div class="manual-filters panel">
           <input id="manual-search" type="search" placeholder="Search content, source, or notes…">
           <select id="manual-type"><option value="">All types</option><option value="sft">Conversation / SFT</option><option value="direct">Direct language text</option><option value="dpo">Preference pair / DPO</option></select>
-          <select id="manual-status"><option value="">All active statuses</option><option value="eligible">Training eligible</option><option value="ineligible">Ineligible</option><option value="archived">Archived</option><option value="excluded">Excluded from training</option></select>
+          <select id="manual-status"><option value="">All active statuses</option><option value="eligible">Dataset eligible</option><option value="ineligible">Ineligible</option><option value="archived">Archived</option><option value="excluded">Excluded from dataset selection</option></select>
           <select id="manual-language"><option value="">All language layers</option><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">MSA</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select>
           <input id="manual-source" list="manual-source-options" placeholder="Source"><datalist id="manual-source-options"></datalist>
           <input id="manual-origin" list="manual-origin-options" placeholder="Origin"><datalist id="manual-origin-options"></datalist>
           <input id="manual-domain" list="manual-domain-options" placeholder="Domain"><datalist id="manual-domain-options"></datalist>
           <label class="date-label">From <input id="manual-date-from" type="date"></label>
           <label class="date-label">To <input id="manual-date-to" type="date"></label>
-          <select id="manual-sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="updated">Last modified</option><option value="type">Type</option><option value="domain">Domain</option><option value="language_layer">Language layer</option><option value="eligible">Training eligible</option></select>
+          <select id="manual-sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="updated">Last modified</option><option value="type">Type</option><option value="domain">Domain</option><option value="language_layer">Language layer</option><option value="eligible">Dataset eligible</option></select>
           <label class="inline-check"><input id="manual-show-archived" type="checkbox"> Show archived</label>
           <button id="apply-manual-filters" class="button primary">Apply</button>
           <button id="reset-manual-filters" class="button ghost">Reset</button>
         </div>
         <div id="manual-bulk" class="bulk-bar panel hidden">
           <strong><span id="manual-selected-count">0</span> selected</strong>
-          <select id="manual-bulk-action"><option value="">Choose a bulk action</option><option value="eligible">Make training eligible</option><option value="ineligible">Make ineligible</option><option value="archive">Archive</option><option value="unarchive">Unarchive</option><option value="exclude">Exclude from training</option><option value="include">Remove exclusion</option></select>
+          <select id="manual-bulk-action"><option value="">Choose a bulk action</option><option value="eligible">Make dataset eligible</option><option value="ineligible">Make ineligible</option><option value="archive">Archive</option><option value="unarchive">Unarchive</option><option value="exclude">Exclude from dataset selection</option><option value="include">Remove exclusion</option></select>
           <button id="apply-manual-bulk" class="button primary">Execute</button>
         </div>
         <div class="manual-table-wrap panel">
@@ -209,7 +210,7 @@
           <button id="add-sft-turn" type="button" class="button ghost">＋ Add turn</button>
           <div class="form-grid"><label>Language layer<select name="language_layer"><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">Modern Standard Arabic</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select></label><label>Domain<input name="domain" placeholder="Example: technology"></label><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
-          <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as training eligible</label>
+          <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
           <button class="button primary" type="submit">Save conversation</button>
         </form>
         <form id="form-direct" class="data-form panel">
@@ -217,7 +218,7 @@
           <label class="wide-label">Text<textarea dir="auto" name="text" rows="9" required></textarea></label>
           <div class="form-grid"><label>Language layer<select name="language_layer"><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">Modern Standard Arabic</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select></label><label>Domain<input name="domain"></label><label>Source<input name="source"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="imported">Imported</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
-          <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as training eligible</label>
+          <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
           <button class="button primary" type="submit">Save text</button>
         </form>
         <form id="form-preference" class="data-form panel">
@@ -226,7 +227,7 @@
           <div class="preference-grid"><label>Rejected response<textarea dir="auto" name="rejected_response" rows="7" required></textarea></label><label>Preferred response<textarea dir="auto" name="preferred_response" rows="7" required></textarea></label></div>
           <div class="form-grid"><label>Language layer<select name="language_layer"><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">Modern Standard Arabic</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select></label><label>Domain<input name="domain"></label><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="ai_arena">AI Arena</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
-          <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as training eligible</label>
+          <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
           <button class="button primary" type="submit">Save preference pair</button>
         </form>
       </section>
@@ -250,7 +251,7 @@
 
       <section id="view-balancer" class="view">
         <div class="phase-toolbar panel"><div><span class="eyebrow">Read-only diagnosis</span><h2>Dataset Balancer</h2></div><div class="dataset-picker"><label for="balance-version">Version</label><select id="balance-version" class="technical-select" dir="ltr" aria-label="Dataset version"><option>Loading versions...</option></select></div><button id="run-balance" class="button primary" disabled>Analyze balance</button></div>
-        <div class="safety-banner">Analysis and diagnosis only. Does not modify Gold or Raw Data, change split, or start training.</div>
+        <div class="safety-banner">Analysis and diagnosis only. Does not modify Gold or Raw Data, change the split, or run a model.</div>
         <div id="balance-state" class="panel health-state">Loading versions...</div>
         <div id="balance-results" class="hidden">
           <div class="health-identity"><div><span>Dataset</span><strong id="balance-dataset" dir="ltr">—</strong></div><div><span>State</span><strong id="balance-dataset-state" dir="ltr">—</strong></div><div><span>Last analyzed</span><strong id="balance-timestamp" dir="ltr">—</strong></div></div>
@@ -265,23 +266,16 @@
         <div class="versions-layout"><section class="panel version-list-panel"><div class="panel-heading"><div><span class="eyebrow">Gold Library</span><h2>Dataset Versions</h2></div></div><div id="version-list" class="version-list"></div></section><section id="version-detail" class="panel phase-panel"><div class="empty-inline">Choose a version to view manifest, status, and files.</div></section></div>
       </section>
 
-      <section id="view-retired" class="view"><div class="panel"><h2>Training runs in external Unsloth</h2><p>Review and validate a dataset, create a version, then export it. Training setup, jobs, model downloads, WSL workers and deployment controls are retired. Historical records remain available through read-only APIs.</p><button class="button primary" data-go="exports">Open Export center</button></div></section>
 
       <section id="view-eval-sets" class="view">
-        <div class="phase-toolbar panel"><div><span class="eyebrow">Locked Holdout</span><h2>Isolate evaluation from training</h2></div><select id="eval-version" aria-label="Dataset version"></select><button id="refresh-eval" class="button primary">Check leakage</button></div>
+        <div class="phase-toolbar panel"><div><span class="eyebrow">Locked Holdout</span><h2>Isolate evaluation from eligible records</h2></div><select id="eval-version" aria-label="Dataset version"></select><button id="refresh-eval" class="button primary">Check leakage</button></div>
         <div id="eval-status-card" class="panel phase-panel"></div><div id="eval-files" class="eval-file-grid"></div><div id="leakage-detail" class="panel phase-panel"></div>
       </section>
 
-      <section id="view-human-review" class="view">
-        <div class="phase-toolbar panel"><div><span class="eyebrow">Phase 3 · Human approval</span><h2>Human review</h2></div><label class="inline-check"><input id="phase3-blind" type="checkbox" checked> Blind review</label><select id="phase3-filter"><option value="all">All</option><option value="text">Text</option><option value="tool">Tools</option><option value="ADAPTER_WIN">Adapter win</option><option value="BASE_WIN">Base win</option><option value="TIE">Tie</option><option value="critical">Critical</option><option value="unreviewed">Unresolved</option></select></div>
-        <div id="phase3-progress" class="stat-grid"></div>
-        <div id="phase3-review-state" class="phase3-layout"><section id="phase3-case" class="panel phase-panel"><div class="empty-inline">Loading comparison cases...</div></section><section id="phase3-controls" class="panel phase-panel"></section></div>
-        <section id="phase3-summary" class="panel phase-panel"></section>
-      </section>
 
       <section id="view-phase38-review" class="view">
         <div class="phase38-head panel">
-          <div><span class="eyebrow">Phase 3.8 · New training records only</span><h2>Remediation review</h2><p>This page shows 36 new records only. Holdout data is hidden and is not copied into training.</p></div>
+          <div><span class="eyebrow">Phase 3.8 · New dataset records only</span><h2>Remediation review</h2><p>This page shows 36 new records only. Holdout data is hidden and is not copied into the eligible dataset.</p></div>
           <span class="gate-badge blocked">Draft is not frozen</span>
         </div>
         <div id="phase38-status" class="panel phase38-status" role="status" aria-live="polite">Loading review records…</div>
@@ -347,7 +341,7 @@
   <dialog id="review-delete-dialog" class="confirmation-dialog">
     <div class="confirmation-content">
       <h2>Delete this sample?</h2>
-      <p>It will be excluded from training, preserved in the archive, and can be restored later.</p>
+      <p>It will be excluded from dataset selection, preserved in the archive, and can be restored later.</p>
       <div class="confirmation-actions"><button id="cancel-review-delete" class="button ghost" type="button">Cancel</button><button id="confirm-review-delete" class="button delete-action" type="button">Delete</button></div>
     </div>
   </dialog>

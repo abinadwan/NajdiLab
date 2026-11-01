@@ -1,54 +1,17 @@
-# Documentation inventory
+# Documentation
 
-**Current entry points (2026-10-30):** [README](../README.md) → [install the private original application from `main`](installation.md) → [developer setup](developer-setup.md) or [optional Hermes integration](hermes-integration.md). The reduced, separately built [Public Core engineering candidate](public-core-user-guide.md) has a different install and feature scope. For current GitHub/PR/release status use [PROJECT_STATUS](../PROJECT_STATUS.md); [PR #5](https://github.com/abinadwan/NajdiLab/pull/5) integrated the prior branches into private `main` and those branch refs were deleted. This is not permission to publish.
-
-Supporting historical evidence: [unified verification](unified-readiness-verification.md), [release decision](public-release-decision.md), [history review](privacy-history-review.md), [rights matrix](dependency-licensing-matrix.md) and [source-only asset policy](dataset-model-distribution-policy.md). Dated PR/branch references in those reports reflect their original review periods.
-
-| Audience | Current English entry points |
+| Purpose | Entry points |
 |---|---|
-| New user | [README](../README.md), [installation](installation.md), [requirements](system-requirements.md), [shell commands](shell-commands.md), [configuration](configuration.md), [troubleshooting](troubleshooting.md) |
-| Operator | [security](../SECURITY.md), [Hermes transition](hermes-integration.md), [backup/restore](backup-and-restore.md), [installation proof](installation-verification.md) |
-| Developer | [setup](developer-setup.md), [architecture](architecture.md), [code map](codebase-navigation.md), [API](api-reference.md), [route inventory](api-routes.md), [schema](database-schema.md), [migration guide](database-and-migrations.md) |
-| Researcher | [dataset/training](dataset-and-training.md), [export](training-export.md), [model selection](model-selection-guide.md), [preflight](training-preflight-runbook.md), [tool protocol](tool-runtime-contract.md) |
-| Contributor | [CONTRIBUTING](../CONTRIBUTING.md), [conduct](../CODE_OF_CONDUCT.md), [CHANGELOG](../CHANGELOG.md), issue and PR templates under .github |
-| Maintainer | [PROJECT_STATUS](../PROJECT_STATUS.md), [handover](maintainer-handover.md), [worklog](worklogs/english-open-source-readiness.md), [verification](verification-and-readiness-report.md), [publication gates](open-source-readiness.md) |
-| Rights/release reviewer | [licenses](license-options.md), [dependencies](dependencies-and-attribution.md), [inactive NOTICE proposal](proposals/NOTICE.txt), [GitHub presentation](github-presentation.md), [Arabic exceptions](arabic-localization-exceptions.md) |
-| Historical/design evidence | [engineering record](historical-project-status.md), [board](master-execution-board.md), [Corpus v1.1 approved design](corpus-v1.1/README.md) |
+| Start and use | [README](../README.md), [installation](installation.md), [user guide](user-guide.md), [screenshots](screenshots.md) |
+| Chat and local engines | [Chat contract](chat-workspace.md), [integrations](integrations.md), [engine evidence](chat-completion-results.md), [owner acceptance](chat-windows-acceptance.md) |
+| Review and datasets | [Review/quality](review-and-quality.md), [versions and Unsloth export](dataset-export.md), [schema](database-schema.md) |
+| Safety and recovery | [Security](../SECURITY.md), [Hermes block](hermes-integration.md), [backup](backup-and-restore.md), [migrations](database-and-migrations.md), [Windows update](integrations-windows-update.md) |
+| Develop | [Setup](developer-setup.md), [configuration](configuration.md), [requirements](system-requirements.md), [shell](shell-commands.md), [troubleshooting](troubleshooting.md), [API](api-reference.md), [routes](api-routes.md), [code map](codebase-navigation.md) |
+| Architecture and scope | [Architecture](architecture.md), [diagram](architecture-diagrams.md), [roadmap](roadmap.md), [status](../PROJECT_STATUS.md), [handover](maintainer-handover.md) |
+| Evidence | [Dated verification and retained failures](verification-evidence.md), [integrations validation](integrations-validation.md), [asset provenance](asset-provenance.md) |
+| Rights and publication | [Release decision](public-release-decision.md), [privacy/history](privacy-history-review.md), [source provenance](source-provenance.md), [rights ledger](rights-evidence.md), [dependency evidence](dependency-licensing-matrix.md), [asset/data policy](dataset-model-distribution-policy.md) |
+| Separate Core candidate | [Guide](public-core-user-guide.md), [boundary](public-private-boundary.md), [scope](public-core-release-scope.md) |
 
-Historical documents are preserved dated snapshots. PROJECT_STATUS reconciles them; an old approval/status is not a new action grant. Arabic linguistic examples remain intentional and provisional where specified. No private artifact/evidence location is part of public documentation.
+Removed training procedures and design sets are not supported documentation. Evidence pages retain bounded dated facts and unresolved gates; they do not authorize execution, publication or installed updates.
 
-## Visual and practical navigation by audience
-
-| Audience | Additional entry points |
-|---|---|
-| New users | [Practical user guide](user-guide.md), [screenshots](screenshots.md) |
-| Reviewers | [Correction walkthrough](user-guide.md), [review screens](screenshots.md) |
-| Researchers | [Diagram gallery](architecture-diagrams.md), [source provenance](source-provenance.md), existing historical/design evidence above |
-| Dataset curators | [Data/storage architecture](architecture-diagrams.md), [dataset guide](dataset-and-training.md) |
-| Model-training operators | [Training boundary](architecture-diagrams.md), [existing preflight](training-preflight-runbook.md) |
-| Developers | [Editable diagram and maintenance](architecture-diagrams.md), [architecture](architecture.md) |
-| Maintainers | [Visual verification/no-loss evidence](visual-documentation-verification.md), [asset register](asset-provenance.md) |
-| Contributors | [Source provenance](source-provenance.md), [contribution standards](../CONTRIBUTING.md) |
-| License and security reviewers | [Third-party attribution](third-party-attributions.md), [assets](asset-provenance.md), [release decision](public-release-decision.md), [SECURITY](../SECURITY.md) |
-
-These pages extend navigation; they do not replace existing status, technical references, historical reports or ADRs.
-
-## Source-only candidate engineering
-
-Developers/maintainers: [public/private boundary and blocked compatibility patch](public-private-boundary.md), [exact-candidate build/test/release report](public-source-isolation-report.md). These extend, rather than replace, the original architecture/status and PR #2 documentation.
-
-## Public core scope review
-
-Owner/product reviewers: [original-versus-candidate feature, UI, module and API matrices](public-core-feature-parity.md), [recommended first-release scope, approval gates and prioritized backlog](public-core-release-scope.md). Developers should use the proposed B02–B06 next phase only after scope approval. This dated analysis did not migrate features; the related development branches were subsequently integrated via PR #5 and deleted. Original-interface guides/screenshots/architecture above describe the private full application; the mapped candidate has a smaller interface.
-
-## Public core Phase 5 engineering
-
-Current implementation reviewers/developers: [milestone execution and rollback](public-core-phase5-execution.md), [finding register](public-core-phase5-issue-register.md), [actual verification evidence](public-core-phase5-verification.md). This dated candidate-only work preserved original source and the earlier PR evidence; the resulting changes were later integrated into private `main`.
-
-## Public Core candidate users
-
-[Candidate onboarding, APIs, architecture and actual screenshots](public-core-user-guide.md). This reduced profile has separate documentation; all original full-platform and historical pages above remain discoverable.
-
-Owner/license reviewers: [Phase5 exact candidate source inventory, tagged dependency evidence and inactive decisions](public-core-phase5-rights.md). Package/privacy scans and legal/publication approvals remain independent.
-
-Phase5 current acceptance: [engineering scorecard/rollback](public-core-phase5-execution.md), [31-finding register](public-core-phase5-issue-register.md), [fresh Windows/Ubuntu counts and22-step acceptance](public-core-phase5-verification.md), [exact74-file owner/rights package](public-core-phase5-rights.md). All earlier full-platform/historical material remains discoverable and distinct from Core. Publication gates remain open.
+[Dataset-only cleanup audit/plan](cleanup-plan.md) · [cleanup verification and full change inventory](cleanup-results.md).

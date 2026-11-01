@@ -1,121 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1530" viewBox="0 0 1200 1530" role="img" aria-labelledby="title desc">
-<title id="title">NajdiLab — local platform and optional training architecture</title>
-<desc id="desc">Clients pass loopback Host, Origin, CSRF, Ingest authentication and JSON checks. Python service and review overlays preserve originals in SQLite; dataset files and manifests are separate. Model configuration and preflight govern optional registered WSL training. Artifacts return for evaluation; model export and deployment remain separately blocked. Core operation needs no GPU, Hermes, Ollama or weights.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#456479"/></marker><marker id="blockedArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#9a4c32"/></marker></defs>
-<rect width="1200" height="1530" fill="#fbfcfe"/>
-<style>text{font-family:Arial,Helvetica,sans-serif;fill:#172d43} .heading{font-size:22px;font-weight:700}.body{font-size:17px}.small{font-size:15px;fill:#42586d}.zone{fill:#f0f5fa;stroke:#c4d2df;stroke-width:1.3}.card{fill:#fff;stroke:#a9bfce;stroke-width:1.4}.line{fill:none;stroke:#456479;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:8 6}.blocked{stroke:#9a4c32;stroke-dasharray:2 6;marker-end:url(#blockedArrow)}</style>
-<text x="32" y="45" class="heading">NajdiLab</text>
-<text x="180" y="45" class="heading">System architecture · verified source relationships</text>
-<text x="32" y="76" class="body">Local web platform works without GPU, models, Hermes or Ollama.</text>
-<rect x="28" y="100" width="1144" height="158" rx="14" class="zone"/>
-<text x="48" y="131" class="heading">A  Clients and external sources</text>
-<rect x="52" y="148" width="340" height="94" rx="10" class="card"/>
-<text x="69" y="176" class="heading">Local browser</text>
-<text x="69" y="203" class="body">English UI · Arabic RTL content</text>
-<text x="69" y="226" class="body">static/index.html + app.js</text>
-<rect x="430" y="148" width="340" height="94" rx="10" class="card"/>
-<text x="447" y="176" class="heading">Authorized clients</text>
-<text x="447" y="203" class="body">AI clients and data collectors</text>
-<text x="447" y="226" class="body">Completed-turn JSON ingestion</text>
-<rect x="808" y="148" width="340" height="94" rx="10" class="card"/>
-<text x="825" y="176" class="heading">Optional Hermes</text>
-<text x="825" y="203" class="body">Outbound webhook integration</text>
-<text x="825" y="226" class="body">Separate external installation</text>
-<path d="M222 242 V275" class="line "/>
-<path d="M600 242 V275" class="line "/>
-<path d="M978 242 V275" class="line optional"/>
-<rect x="28" y="278" width="1144" height="154" rx="14" class="zone"/>
-<text x="48" y="309" class="heading">B  Loopback security and HTTP interface · 127.0.0.1</text>
-<rect x="52" y="326" width="340" height="94" rx="10" class="card"/>
-<text x="69" y="354" class="heading">Request boundary</text>
-<text x="69" y="381" class="body">Host / Origin / Fetch Metadata</text>
-<text x="69" y="404" class="body">CSRF for browser mutations</text>
-<rect x="430" y="326" width="340" height="94" rx="10" class="card"/>
-<text x="447" y="354" class="heading">Python HTTP API</text>
-<text x="447" y="381" class="body">JSON and body framing limits</text>
-<text x="447" y="404" class="body">app/server.py · http_security.py</text>
-<rect x="808" y="326" width="340" height="94" rx="10" class="card"/>
-<text x="825" y="354" class="heading">Authenticated Ingest</text>
-<text x="825" y="381" class="body">Bearer or raw-body HMAC</text>
-<text x="825" y="404" class="body">No HMAC replay freshness</text>
-<path d="M222 420 V465" class="line "/>
-<path d="M600 420 V452 H222 V465" class="line "/>
-<path d="M978 420 V458 H222 V465" class="line "/>
-<rect x="28" y="468" width="1144" height="172" rx="14" class="zone"/>
-<text x="48" y="499" class="heading">C  Core application · Python standard-library backend</text>
-<rect x="52" y="516" width="340" height="94" rx="10" class="card"/>
-<text x="69" y="544" class="heading">Service operations</text>
-<text x="69" y="571" class="body">Ingest, validate, transact</text>
-<text x="69" y="594" class="body">app/service.py · app/db.py</text>
-<rect x="430" y="516" width="340" height="94" rx="10" class="card"/>
-<text x="447" y="544" class="heading">Human review</text>
-<text x="447" y="571" class="body">Decisions and correction overlays</text>
-<text x="447" y="594" class="body">Original response stays preserved</text>
-<rect x="808" y="516" width="340" height="94" rx="10" class="card"/>
-<text x="825" y="544" class="heading">Dataset platform</text>
-<text x="825" y="571" class="body">Registry · privacy / eligibility</text>
-<text x="825" y="594" class="body">Quality · dedup / holdout logic</text>
-<path d="M392 563 H430" class="line "/>
-<path d="M770 563 H808" class="line "/>
-<path d="M222 610 V665" class="line "/>
-<path d="M600 610 V650 H300 V665" class="line "/>
-<path d="M978 610 V665" class="line "/>
-<rect x="28" y="668" width="1144" height="172" rx="14" class="zone"/>
-<text x="48" y="699" class="heading">D  Persistent data · database records and dataset files are distinct</text>
-<rect x="52" y="716" width="530" height="94" rx="10" class="card"/>
-<text x="69" y="744" class="heading">SQLite WAL database</text>
-<text x="69" y="771" class="body">Original conversations / messages + review decisions</text>
-<text x="69" y="794" class="body">Foreign keys · transactions · export-version metadata</text>
-<rect x="618" y="716" width="530" height="94" rx="10" class="card"/>
-<text x="635" y="744" class="heading">Filesystem dataset versions</text>
-<text x="635" y="771" class="body">Gold data files · manifests · integrity hashes</text>
-<text x="635" y="794" class="body">Discovery / freeze gates; private artifacts omitted</text>
-<path d="M978 810 V850 H222 V865" class="line "/>
-<rect x="28" y="868" width="1144" height="172" rx="14" class="zone"/>
-<text x="48" y="899" class="heading">E  Training and evaluation control · evidence and explicit gates</text>
-<rect x="52" y="916" width="340" height="94" rx="10" class="card"/>
-<text x="69" y="944" class="heading">Model and job registry</text>
-<text x="69" y="971" class="body">Identity / revision · configuration</text>
-<text x="69" y="994" class="body">app/training_control.py</text>
-<rect x="430" y="916" width="340" height="94" rx="10" class="card"/>
-<text x="447" y="944" class="heading">Preflight and approval</text>
-<text x="447" y="971" class="body">Dataset / model / runtime checks</text>
-<text x="447" y="994" class="body">Dry Run ≠ optimizer training</text>
-<rect x="808" y="916" width="340" height="94" rx="10" class="card"/>
-<text x="825" y="944" class="heading">Evaluation and decision</text>
-<text x="825" y="971" class="body">Adapter evidence · human review</text>
-<text x="825" y="994" class="body">No automatic release on success</text>
-<path d="M392 963 H430" class="line "/>
-<path d="M600 1010 V1065" class="line optional"/>
-<rect x="28" y="1068" width="1144" height="172" rx="14" class="zone" style="fill:#eff8f6;stroke:#80aaa4;stroke-dasharray:8 6"/>
-<text x="48" y="1099" class="heading">F  Optional external training runtime · separately configured</text>
-<rect x="52" y="1116" width="340" height="94" rx="10" class="card"/>
-<text x="69" y="1144" class="heading">Private runtime inputs</text>
-<text x="69" y="1171" class="body">Model weights and tokenizers</text>
-<text x="69" y="1194" class="body">Frozen dataset staging</text>
-<rect x="430" y="1116" width="340" height="94" rx="10" class="card"/>
-<text x="447" y="1144" class="heading">Registered WSL2 runtime</text>
-<text x="447" y="1171" class="body">GPU-dependent approved training</text>
-<text x="447" y="1194" class="body">Distinct Smoke / Full approvals</text>
-<rect x="808" y="1116" width="340" height="94" rx="10" class="card"/>
-<text x="825" y="1144" class="heading">Artifacts and adapters</text>
-<text x="825" y="1171" class="body">Private outputs / checkpoints</text>
-<text x="825" y="1194" class="body">Validation before evaluation</text>
-<path d="M392 1163 H430" class="line optional"/>
-<path d="M770 1163 H808" class="line optional"/>
-<path d="M978 1116 V1010" class="line optional"/>
-<path d="M978 1010 H1185 V1267 H1148" class="line blocked"/>
-<rect x="28" y="1270" width="1144" height="142" rx="14" class="zone"/>
-<text x="48" y="1301" class="heading">G  Future / blocked model operations · separate rights and owner approval</text>
-<rect x="52" y="1318" width="1096" height="94" rx="10" class="card"/>
-<text x="69" y="1346" class="heading">Model merge · quantization / GGUF · export · deployment</text>
-<text x="69" y="1373" class="body">Scripts or designs do not establish approved model release. Rejected adapters remain preserved evidence.</text>
-<text x="40" y="1450" class="heading">Legend</text>
-<path d="M140 1444 H205" class="line "/>
-<text x="220" y="1450" class="small">Implemented relationship</text>
-<path d="M460 1444 H525" class="line optional"/>
-<text x="540" y="1450" class="small">Optional runtime / integration</text>
-<path d="M845 1444 H910" class="line blocked"/>
-<text x="925" y="1450" class="small">Blocked progression</text>
-<text x="40" y="1488" class="small">Scope: source behavior, not production deployment approval. See docs/architecture-diagrams.md for evidence and limits.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1090" viewBox="0 0 1200 1090" role="img" aria-labelledby="title desc">
+<title id="title">NajdiLab: local Chat to reviewed dataset and external Unsloth export</title>
+<desc id="desc">Separately managed inference and authorized local inputs enter request checks. Completed consented Chat pairs enter human review, privacy, quality, deduplication and holdout gates. Immutable dataset versions provide a file handoff. SQLite records and file manifests remain distinct; recovery is private and uses a separate location.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="none" stroke="#35556e" stroke-width="1.5"/></marker></defs>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#18334b}.title{font-size:27px;font-weight:700}.heading{font-size:21px;font-weight:700}.body{font-size:16px}.small{font-size:16px}.card{stroke:#a6bdcd;stroke-width:1.5}.line{fill:none;stroke:#35556e;stroke-width:2;marker-end:url(#arrow)}</style>
+<rect width="1200" height="1090" fill="#f6f9fc"/>
+<text x="40" y="48" class="title">NajdiLab · Chat → Review → Quality → Version → External export</text>
+<text x="40" y="80" class="body">Local dataset preparation · externally managed inference · no internal trainer</text>
+<rect x="40" y="110" width="540" height="116" rx="12" class="card" fill="#ffffff"/>
+<text x="60" y="141" class="heading">Separately managed local inference</text>
+<text x="60" y="170" class="body">LM Studio / Ollama · explicit connection and consent</text>
+<text x="60" y="195" class="body">Exact context admission · immutable model identity</text>
+<rect x="620" y="110" width="540" height="116" rx="12" class="card" fill="#ffffff"/>
+<text x="640" y="141" class="heading">Authorized local inputs</text>
+<text x="640" y="170" class="body">Credentialed completed-turn ingestion / manual data</text>
+<text x="640" y="195" class="body">Hermes BLOCKED · no native application history capture</text>
+<path d="M310 226V262" class="line"/>
+<path d="M890 226V262" class="line"/>
+<rect x="40" y="264" width="1120" height="108" rx="12" class="card" fill="#ffffff"/>
+<text x="60" y="295" class="heading">Loopback request boundary</text>
+<text x="60" y="324" class="body">Host / Origin / Fetch Metadata · bounded JSON · CSRF for browser writes</text>
+<text x="60" y="349" class="body">Native ingestion: bearer OR raw-body HMAC · local trusted operator only</text>
+<path d="M310 372V410" class="line"/>
+<path d="M890 372V390H600V450H580" class="line"/>
+<rect x="40" y="412" width="540" height="140" rx="12" class="card" fill="#edf6f3"/>
+<text x="60" y="443" class="heading">Own Chat and pending human review</text>
+<text x="60" y="472" class="body">Complete-turn receipts · revisions · Stop and rollover</text>
+<text x="60" y="497" class="body">Collection OFF by default / restart; complete pairs only</text>
+<text x="60" y="522" class="body">Correction and explicit eligibility; originals stay</text>
+<rect x="620" y="412" width="540" height="140" rx="12" class="card" fill="#edf6f3"/>
+<text x="640" y="443" class="heading">Dataset quality and privacy</text>
+<text x="640" y="472" class="body">Whole-context privacy / exclusions · review integrity</text>
+<text x="640" y="497" class="body">Dedup · balance · holdout / leakage · masks</text>
+<text x="640" y="522" class="body">PASS does not establish truth, rights or consent</text>
+<path d="M580 490H620" class="line"/>
+<path d="M890 552V592" class="line"/>
+<rect x="40" y="594" width="540" height="140" rx="12" class="card" fill="#ffffff"/>
+<text x="60" y="625" class="heading">SQLite: records and provenance</text>
+<text x="60" y="654" class="body">Original messages · separate corrections and flags</text>
+<text x="60" y="679" class="body">Chat receipts / consent · manual / version metadata</text>
+<text x="60" y="704" class="body">Startup migration caveats remain; no schema cleanup</text>
+<rect x="620" y="594" width="540" height="140" rx="12" class="card" fill="#ffffff"/>
+<text x="640" y="625" class="heading">Immutable dataset versions</text>
+<text x="640" y="654" class="body">Filesystem JSONL + manifest / counts / SHA256</text>
+<text x="640" y="679" class="body">Verified privacy-attested source and holdout snapshot</text>
+<text x="640" y="704" class="body">New versions only; existing exports stay preserved</text>
+<path d="M310 552V594" class="line"/>
+<path d="M310 734V774" class="line"/>
+<path d="M890 734V774" class="line"/>
+<rect x="40" y="776" width="540" height="144" rx="12" class="card" fill="#eef3f8"/>
+<text x="60" y="807" class="heading">Private backup and separate restore</text>
+<text x="60" y="836" class="body">SQLite online snapshot + declared file inventory</text>
+<text x="60" y="861" class="body">Verify hashes / integrity / FKs / counts in a new location</text>
+<text x="60" y="886" class="body">Raw archives stay private; archive is not erasure</text>
+<rect x="620" y="776" width="540" height="144" rx="12" class="card" fill="#eef3f8"/>
+<text x="640" y="807" class="heading">External Unsloth file handoff</text>
+<text x="640" y="836" class="body">Prompt/completion JSONL · provenance · manifest</text>
+<text x="640" y="861" class="body">Sole completion target; no packing or truncation</text>
+<text x="640" y="886" class="body">External operator owns training setup and rights</text>
+<text x="40" y="972" class="small">Arrows are data relationships, not network services. SQLite metadata and dataset files are distinct.</text>
+<text x="40" y="1002" class="small">Limits: no RBAC / HMAC freshness; same-user file access; installed-model acceptance remains separate.</text>
+<text x="40" y="1032" class="small">Source cleanup changes no private data or applied migration. Publication, retention and rights gates stay open.</text>
 </svg>

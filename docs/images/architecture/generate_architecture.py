@@ -1,58 +1,42 @@
-"""Generate the editable, dependency-free NajdiLab architecture SVG.
-Run from any directory: python docs/images/architecture/generate_architecture.py
-Only writes the sibling SVG; does not import or operate NajdiLab.
-"""
-from pathlib import Path
+"""Generate the local dataset workflow SVG; no application imports or operations."""
 from html import escape
+from pathlib import Path
 
-parts=['''<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1530" viewBox="0 0 1200 1530" role="img" aria-labelledby="title desc">
-<title id="title">NajdiLab — local platform and optional training architecture</title>
-<desc id="desc">Clients pass loopback Host, Origin, CSRF, Ingest authentication and JSON checks. Python service and review overlays preserve originals in SQLite; dataset files and manifests are separate. Model configuration and preflight govern optional registered WSL training. Artifacts return for evaluation; model export and deployment remain separately blocked. Core operation needs no GPU, Hermes, Ollama or weights.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#456479"/></marker><marker id="blockedArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#9a4c32"/></marker></defs>
-<rect width="1200" height="1530" fill="#fbfcfe"/>
-<style>text{font-family:Arial,Helvetica,sans-serif;fill:#172d43} .heading{font-size:22px;font-weight:700}.body{font-size:17px}.small{font-size:15px;fill:#42586d}.zone{fill:#f0f5fa;stroke:#c4d2df;stroke-width:1.3}.card{fill:#fff;stroke:#a9bfce;stroke-width:1.4}.line{fill:none;stroke:#456479;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:8 6}.blocked{stroke:#9a4c32;stroke-dasharray:2 6;marker-end:url(#blockedArrow)}</style>''']
-def text(x,y,value,cls='body'):
- parts.append(f'<text x="{x}" y="{y}" class="{cls}">{escape(value)}</text>')
-def zone(y,h,title,optional=False):
- parts.append(f'<rect x="28" y="{y}" width="1144" height="{h}" rx="14" class="zone"'+(' style="fill:#eff8f6;stroke:#80aaa4;stroke-dasharray:8 6"' if optional else '')+'/>');text(48,y+31,title,'heading')
-def card(x,y,w,title,lines):
- parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="94" rx="10" class="card"/>');text(x+17,y+28,title,'heading')
- for i,line in enumerate(lines):text(x+17,y+55+i*23,line,'body')
-def line(d,kind=''):parts.append(f'<path d="{d}" class="line {kind}"/>')
-text(32,45,'NajdiLab','heading');text(180,45,'System architecture · verified source relationships','heading');text(32,76,'Local web platform works without GPU, models, Hermes or Ollama.','body')
-zone(100,158,'A  Clients and external sources')
-card(52,148,340,'Local browser',['English UI · Arabic RTL content','static/index.html + app.js'])
-card(430,148,340,'Authorized clients',['AI clients and data collectors','Completed-turn JSON ingestion'])
-card(808,148,340,'Optional Hermes',['Outbound webhook integration','Separate external installation'])
-line('M222 242 V275');line('M600 242 V275');line('M978 242 V275','optional')
-zone(278,154,'B  Loopback security and HTTP interface · 127.0.0.1')
-card(52,326,340,'Request boundary',['Host / Origin / Fetch Metadata','CSRF for browser mutations'])
-card(430,326,340,'Python HTTP API',['JSON and body framing limits','app/server.py · http_security.py'])
-card(808,326,340,'Authenticated Ingest',['Bearer or raw-body HMAC','No HMAC replay freshness'])
-line('M222 420 V465');line('M600 420 V452 H222 V465');line('M978 420 V458 H222 V465')
-zone(468,172,'C  Core application · Python standard-library backend')
-card(52,516,340,'Service operations',['Ingest, validate, transact','app/service.py · app/db.py'])
-card(430,516,340,'Human review',['Decisions and correction overlays','Original response stays preserved'])
-card(808,516,340,'Dataset platform',['Registry · privacy / eligibility','Quality · dedup / holdout logic'])
-line('M392 563 H430');line('M770 563 H808')
-line('M222 610 V665');line('M600 610 V650 H300 V665');line('M978 610 V665')
-zone(668,172,'D  Persistent data · database records and dataset files are distinct')
-card(52,716,530,'SQLite WAL database',['Original conversations / messages + review decisions','Foreign keys · transactions · export-version metadata'])
-card(618,716,530,'Filesystem dataset versions',['Gold data files · manifests · integrity hashes','Discovery / freeze gates; private artifacts omitted'])
-line('M978 810 V850 H222 V865')
-zone(868,172,'E  Training and evaluation control · evidence and explicit gates')
-card(52,916,340,'Model and job registry',['Identity / revision · configuration','app/training_control.py'])
-card(430,916,340,'Preflight and approval',['Dataset / model / runtime checks','Dry Run ≠ optimizer training'])
-card(808,916,340,'Evaluation and decision',['Adapter evidence · human review','No automatic release on success'])
-line('M392 963 H430');line('M600 1010 V1065','optional')
-zone(1068,172,'F  Optional external training runtime · separately configured',True)
-card(52,1116,340,'Private runtime inputs',['Model weights and tokenizers','Frozen dataset staging'])
-card(430,1116,340,'Registered WSL2 runtime',['GPU-dependent approved training','Distinct Smoke / Full approvals'])
-card(808,1116,340,'Artifacts and adapters',['Private outputs / checkpoints','Validation before evaluation'])
-line('M392 1163 H430','optional');line('M770 1163 H808','optional');line('M978 1116 V1010','optional')
-line('M978 1010 H1185 V1267 H1148','blocked')
-zone(1270,142,'G  Future / blocked model operations · separate rights and owner approval')
-card(52,1318,1096,'Model merge · quantization / GGUF · export · deployment',['Scripts or designs do not establish approved model release. Rejected adapters remain preserved evidence.'])
-text(40,1450,'Legend','heading');line('M140 1444 H205');text(220,1450,'Implemented relationship','small');line('M460 1444 H525','optional');text(540,1450,'Optional runtime / integration','small');line('M845 1444 H910','blocked');text(925,1450,'Blocked progression','small')
-text(40,1488,'Scope: source behavior, not production deployment approval. See docs/architecture-diagrams.md for evidence and limits.','small')
-parts.append('</svg>');Path(__file__).with_name('najdilab-system-architecture.svg').write_text('\n'.join(parts)+'\n',encoding='utf-8')
+
+def render():
+    parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1090" viewBox="0 0 1200 1090" role="img" aria-labelledby="title desc">',
+             '<title id="title">NajdiLab: local Chat to reviewed dataset and external Unsloth export</title>',
+             '<desc id="desc">Separately managed inference and authorized local inputs enter request checks. Completed consented Chat pairs enter human review, privacy, quality, deduplication and holdout gates. Immutable dataset versions provide a file handoff. SQLite records and file manifests remain distinct; recovery is private and uses a separate location.</desc>',
+             '<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="none" stroke="#35556e" stroke-width="1.5"/></marker></defs>',
+             '<style>text{font-family:Arial,Helvetica,sans-serif;fill:#18334b}.title{font-size:27px;font-weight:700}.heading{font-size:21px;font-weight:700}.body{font-size:16px}.small{font-size:16px}.card{stroke:#a6bdcd;stroke-width:1.5}.line{fill:none;stroke:#35556e;stroke-width:2;marker-end:url(#arrow)}</style>',
+             '<rect width="1200" height="1090" fill="#f6f9fc"/>',
+             '<text x="40" y="48" class="title">NajdiLab · Chat → Review → Quality → Version → External export</text>',
+             '<text x="40" y="80" class="body">Local dataset preparation · externally managed inference · no internal trainer</text>']
+    def card(x,y,w,h,title,lines,fill='#ffffff'):
+        parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="12" class="card" fill="{fill}"/>')
+        parts.append(f'<text x="{x+20}" y="{y+31}" class="heading">{escape(title)}</text>')
+        for i,line in enumerate(lines):
+            parts.append(f'<text x="{x+20}" y="{y+60+i*25}" class="body">{escape(line)}</text>')
+    def arrow(d): parts.append(f'<path d="{d}" class="line"/>')
+    card(40,110,540,116,'Separately managed local inference',['LM Studio / Ollama · explicit connection and consent','Exact context admission · immutable model identity'])
+    card(620,110,540,116,'Authorized local inputs',['Credentialed completed-turn ingestion / manual data','Hermes BLOCKED · no native application history capture'])
+    arrow('M310 226V262'); arrow('M890 226V262')
+    card(40,264,1120,108,'Loopback request boundary',['Host / Origin / Fetch Metadata · bounded JSON · CSRF for browser writes','Native ingestion: bearer OR raw-body HMAC · local trusted operator only'])
+    arrow('M310 372V410'); arrow('M890 372V390H600V450H580')
+    card(40,412,540,140,'Own Chat and pending human review',['Complete-turn receipts · revisions · Stop and rollover','Collection OFF by default / restart; complete pairs only','Correction and explicit eligibility; originals stay'],'#edf6f3')
+    card(620,412,540,140,'Dataset quality and privacy',['Whole-context privacy / exclusions · review integrity','Dedup · balance · holdout / leakage · masks','PASS does not establish truth, rights or consent'],'#edf6f3')
+    arrow('M580 490H620'); arrow('M890 552V592')
+    card(40,594,540,140,'SQLite: records and provenance',['Original messages · separate corrections and flags','Chat receipts / consent · manual / version metadata','Startup migration caveats remain; no schema cleanup'])
+    card(620,594,540,140,'Immutable dataset versions',['Filesystem JSONL + manifest / counts / SHA256','Verified privacy-attested source and holdout snapshot','New versions only; existing exports stay preserved'])
+    arrow('M310 552V594'); arrow('M310 734V774'); arrow('M890 734V774')
+    card(40,776,540,144,'Private backup and separate restore',['SQLite online snapshot + declared file inventory','Verify hashes / integrity / FKs / counts in a new location','Raw archives stay private; archive is not erasure'],'#eef3f8')
+    card(620,776,540,144,'External Unsloth file handoff',['Prompt/completion JSONL · provenance · manifest','Sole completion target; no packing or truncation','External operator owns training setup and rights'],'#eef3f8')
+    parts += ['<text x="40" y="972" class="small">Arrows are data relationships, not network services. SQLite metadata and dataset files are distinct.</text>',
+              '<text x="40" y="1002" class="small">Limits: no RBAC / HMAC freshness; same-user file access; installed-model acceptance remains separate.</text>',
+              '<text x="40" y="1032" class="small">Source cleanup changes no private data or applied migration. Publication, retention and rights gates stay open.</text>',
+              '</svg>']
+    return chr(10).join(parts)+chr(10)
+
+
+if __name__ == '__main__':
+    Path(__file__).with_name('najdilab-system-architecture.svg').write_text(render(),encoding='utf-8')

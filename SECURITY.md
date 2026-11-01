@@ -20,8 +20,7 @@ require `X-NajdiLab-CSRF`, for browser and native clients alike. Obtain its valu
 from `GET /api/v1/session` and use the returned `csrf_token`. The token is random,
 process-local, never persisted, and changes when the server restarts. Reload the
 browser or fetch a fresh session after restart. Responses containing tokens use
-`Cache-Control: no-store`. Training authorization and other operation-specific
-confirmation checks remain additional requirements.
+`Cache-Control: no-store`. Operation-specific consent and validation remain additional requirements.
 
 Native programs may omit browser-controlled `Origin` and `Sec-Fetch-*` headers;
 they must still use the correct Host, JSON content type, and session token for
@@ -72,8 +71,7 @@ configuration, and backups out of public repositories. Review generated artifact
 for private content before sharing them. Static files are resolved within the
 static root; traversal outside it is rejected. Dataset version identifiers have
 an allowlist and directory containment checks. Trusted local files and filesystem
-permissions remain important: this is not a sandbox for malicious datasets,
-model files, or training programs.
+permissions remain important: trusted source/data provenance is still required.
 
 Existing read APIs return operational paths and diagnostic details to the trusted
 local client. Avoid sharing responses that contain private paths or corpus data.
@@ -89,4 +87,4 @@ version, a minimal reproduction using synthetic data, and the expected boundary.
 
 ## Public Core Phase5 candidate boundary
 
-The separate allowlisted candidate adds atomic stale-token/flag preservation, contextual privacy gates, single-storage-instance guard, fixed manifest-verified JSONL delivery and bounded coherent backup/new-location restore. It explicitly refuses inherited legacy unauthenticated-ingest override with503 before shared auth/parse/DB. This changes no protected original helper, running integration or production credential setting. Actual Windows/Ubuntu security/browser acceptance and remaining limitations are in [Phase5 verification](docs/public-core-phase5-verification.md). Local single-operator trust, no RBAC/public-network certification, HMAC replay limits, asserted reviewers and migration-loader debt remain; proposed SQL, models and private extensions are not activated.
+The separate allowlisted candidate adds atomic stale-token/flag preservation, contextual privacy gates, single-storage-instance guard, fixed manifest-verified JSONL delivery and bounded coherent backup/new-location restore. It explicitly refuses inherited legacy unauthenticated-ingest override with503 before shared auth/parse/DB. This does not operate a running integration or alter production credentials. Actual Windows/Ubuntu security/browser acceptance and remaining limitations are in [dated verification evidence](docs/verification-evidence.md). Local single-operator trust, no RBAC/public-network certification, HMAC replay limits, asserted reviewers and migration-loader debt remain; no proposed SQL or model execution is activated; the deleted extension interface is not an enablement path.

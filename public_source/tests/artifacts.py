@@ -30,14 +30,20 @@ class ArtifactAccess(CandidateCase):
         self.assertEqual(self.request('/api/v1/dataset-versions/unknown/files/sft.jsonl')[0],404)
 
     def test_linked_file_and_version_cannot_escape(self):
+        self.require_symlink()
+        self.require_symlink(directory=True)
         directory=self.work/'exports'/self.version;file=directory/'sft.jsonl';outside=self.work.parent/'fictional-outside.jsonl';outside.write_bytes(file.read_bytes());saved=self.work.parent/'preserved-sft.jsonl';file.rename(saved)
         try:
             file.symlink_to(outside);self.assertEqual(self.request(f'/api/v1/dataset-versions/{self.version}/files/sft.jsonl')[0],403)
-        finally:file.unlink();saved.rename(file)
+        finally:
+            if file.is_symlink():file.unlink()
+            saved.rename(file)
         outside_dir=self.work.parent/'preserved-version';directory.rename(outside_dir)
         try:
             directory.symlink_to(outside_dir,target_is_directory=True);self.assertEqual(self.request(f'/api/v1/dataset-versions/{self.version}/files/sft.jsonl')[0],403)
-        finally:directory.unlink();outside_dir.rename(directory)
+        finally:
+            if directory.is_symlink():directory.unlink()
+            outside_dir.rename(directory)
 
     def test_changed_bytes_never_download(self):
         file=self.work/'exports'/self.version/'sft.jsonl';file.write_text('fictional tampering')
@@ -62,16 +68,24 @@ class ArtifactAccess(CandidateCase):
             z.writestr('../escape.txt','fictional forbidden path')
         target=self.work.parent/'bad-restore';self.assertNotEqual(subprocess.run([sys.executable,'scripts/restore_backup.py',str(bad),'--output',str(target),'--confirm-disposable'],cwd=self.work,env=self.env,capture_output=True).returncode,0);self.assertFalse(target.exists());self.assertFalse((self.work.parent/'escape.txt').exists())
 
-    def test_backup_ignores_unregistered_staging_and_rejects_links(self):
+    def test_backup_ignores_unregistered_staging(self):
         staging=self.work/'exports/.fictional-stage';staging.mkdir();(staging/'unregistered.jsonl').write_text('{}\n')
         result=subprocess.run([sys.executable,'scripts/backup.py'],cwd=self.work,env=self.env,capture_output=True);self.assertEqual(result.returncode,0)
         archives=list((self.work/'backups').glob('*.zip'))
         with zipfile.ZipFile(archives[0]) as z:self.assertFalse(any('.fictional-stage' in x for x in z.namelist()))
+
+    def test_backup_rejects_linked_registered_source(self):
+        self.require_symlink()
+        result=subprocess.run([sys.executable,'scripts/backup.py'],cwd=self.work,env=self.env,capture_output=True)
+        self.assertEqual(result.returncode,0)
+        archives=list((self.work/'backups').glob('*.zip'))
         file=self.work/'exports'/self.version/'sft.jsonl';saved=self.work.parent/'saved-backup-source';file.rename(saved)
         try:
             file.symlink_to(saved);self.assertNotEqual(subprocess.run([sys.executable,'scripts/backup.py'],cwd=self.work,env=self.env,capture_output=True).returncode,0)
             self.assertEqual(len(list((self.work/'backups').glob('*.zip'))),len(archives))
-        finally:file.unlink();saved.rename(file)
+        finally:
+            if file.is_symlink():file.unlink()
+            saved.rename(file)
 
     def test_restore_incomplete_registered_version_is_not_accepted(self):
         subprocess.run([sys.executable,'scripts/backup.py'],cwd=self.work,env=self.env,check=True,capture_output=True);archive=next((self.work/'backups').glob('*.zip'))

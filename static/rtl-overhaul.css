@@ -44,4 +44,4 @@ body{text-align:start;overflow-x:hidden}
 /* Content direction is determined from stored text, independently of chrome. */
 [dir="auto"],bdi{unicode-bidi:isolate;text-align:start}
 textarea[dir="auto"]{unicode-bidi:plaintext}
-.message p,.phase38-message p,.phase3-compare pre,.full-text{overflow-wrap:anywhere}
+.message p,.phase38-message p,.full-text{overflow-wrap:anywhere}

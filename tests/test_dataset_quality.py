@@ -1,9 +1,6 @@
 import json
 
-import pytest
-
 from app.dataset_quality import analyze_directory, validate_candidate_release
-from app.evaluation_guard import EvaluationGuardError, verify_adapter_evaluation
 
 
 def write_jsonl(path, rows):
@@ -40,13 +37,3 @@ def test_candidate_release_fingerprint_is_reproducible_and_loss_mask_fails_close
     rows[0]["message_loss_mask"] = [1, 1]
     write_jsonl(tmp_path / "sft.jsonl", rows)
     assert validate_candidate_release(tmp_path)["checks"]["response_only_loss_masks"] is False
-
-
-def test_adapter_guard_rejects_silent_fallback_and_binds_configuration(tmp_path):
-    adapter = tmp_path / "adapter"; adapter.mkdir()
-    config = {"base_model_id": "base", "adapter_path": str(adapter), "adapter_revision": "r1", "dataset_version": "v1", "run_id": "run-1", "inference": {"temperature": 0}}
-    with pytest.raises(EvaluationGuardError) as caught:
-        verify_adapter_evaluation(config, {"adapter_active": False, "loaded_adapter_path": str(adapter)})
-    assert caught.value.code == "ADAPTER_FALLBACK_DETECTED"
-    verified = verify_adapter_evaluation(config, {"adapter_active": True, "loaded_adapter_path": str(adapter), "adapter_revision": "r1", "base_output_fingerprint": "a", "adapter_output_fingerprint": "b"})
-    assert verified["status"] == "VERIFIED" and not verified["adapter_fallback"]

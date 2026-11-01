@@ -1,4 +1,5 @@
 """Disposable exact-candidate HTTP fixtures; never imports the parent checkout."""
+import errno
 import json
 import os
 from pathlib import Path
@@ -26,10 +27,13 @@ class CandidateCase(unittest.TestCase):
         copy_candidate(ROOT, cls.work)
         cls.env = {k:v for k,v in os.environ.items() if k not in {'PYTHONPATH','NAJDILAB_PYTHON','NAJDILAB_ALLOW_LEGACY_INGEST','NAJDILAB_INGEST_TOKEN'}}
         cls.env['NAJDILAB_INGEST_TOKEN'] = 'fictional-acceptance-only'
+        cls.proc = None
         cls.start()
 
     @classmethod
     def start(cls):
+        if cls.proc is not None and cls.proc.poll() is None:
+            raise AssertionError('Stop the owned fixture server before starting another')
         with socket.socket() as s:
             s.bind(('127.0.0.1',0)); cls.port=s.getsockname()[1]
         cls.env['NAJDILAB_PORT']=str(cls.port)
@@ -39,13 +43,60 @@ class CandidateCase(unittest.TestCase):
             try:
                 with urlopen(cls.base+'/api/v1/session',timeout=1) as r:cls.csrf=json.loads(r.read())['csrf_token'];return
             except OSError:time.sleep(.05)
+        cls.stop()
         raise AssertionError('Disposable candidate did not start')
 
     @classmethod
     def stop(cls):
-        if cls.proc.poll() is None:
-            cls.proc.terminate() if os.name=='nt' else cls.proc.send_signal(signal.SIGINT)
-            cls.proc.wait(timeout=10)
+        proc = cls.proc
+        if proc is None:
+            return
+        if proc.poll() is None:
+            if os.name == 'nt':
+                # A Windows venv executable can be a redirector with a child
+                # interpreter. Stop only this fixture-owned PID and its children.
+                result = subprocess.run(['taskkill', '/PID', str(proc.pid), '/T', '/F'],
+                                        capture_output=True, timeout=10)
+                if result.returncode != 0:
+                    raise AssertionError('Unable to stop the owned fixture process tree: '
+                                         + result.stderr.decode('utf-8', errors='replace'))
+            else:
+                proc.send_signal(signal.SIGINT)
+        proc.wait(timeout=10)
+        cls.proc = None
+
+    @classmethod
+    def reset_storage(cls):
+        cls.stop()
+        if cls.proc is not None and cls.proc.poll() is None:
+            raise AssertionError('Fixture storage reset requires a stopped server')
+        root = cls.work.resolve()
+        for name in ('data', 'exports', 'datasets', 'backups'):
+            target = cls.work / name
+            if target.resolve().parent != root:
+                raise AssertionError('Fixture reset must stay inside its owned candidate')
+            if target.exists():
+                shutil.rmtree(target)
+        cls.start()
+
+    def require_symlink(self, *, directory=False):
+        # Probe in fresh owned scratch space before renaming any fixture source.
+        with tempfile.TemporaryDirectory(prefix='symlink capability ', dir=self.work.parent) as tmp:
+            target = Path(tmp) / 'target'
+            if directory:
+                target.mkdir()
+            else:
+                target.write_bytes(b'synthetic capability probe')
+            link = Path(tmp) / 'link'
+            try:
+                link.symlink_to(target, target_is_directory=directory)
+            except NotImplementedError:
+                self.skipTest('Symlink creation is unsupported by this platform')
+            except OSError as exc:
+                unavailable = {errno.EPERM, errno.EACCES, errno.ENOSYS, errno.ENOTSUP}
+                if getattr(exc, 'winerror', None) == 1314 or exc.errno in unavailable:
+                    self.skipTest('Symlink creation capability unavailable: ' + str(exc))
+                raise
 
     @classmethod
     def tearDownClass(cls):

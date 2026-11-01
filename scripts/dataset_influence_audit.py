@@ -235,8 +235,8 @@ def analyze_target_dominance(sft_records):
         'top_ngrams': top_ngrams
     }
 
-def classify_targets_with_qwen(sft_records):
-    """4) Category balance using Qwen (simulated - will use rule-based for now)"""
+def classify_targets_by_rules(sft_records):
+    """4) Category balance using deterministic keyword rules"""
     
     # Categories
     categories = [
@@ -511,7 +511,7 @@ def generate_verdict(all_data, category_balance, conv_weighting, eval_representa
     elif imbalance_indicators >= 2:
         verdict = 'DATA_IMBALANCE_LIKELY'
     elif imbalance_indicators <= 1:
-        verdict = 'TRAINING_CONFIG_MORE_LIKELY'
+        verdict = 'NO_DETERMINISTIC_IMBALANCE_FOUND'
     else:
         verdict = 'INCONCLUSIVE'
     
@@ -573,7 +573,7 @@ def main():
     target_dominance = analyze_target_dominance(sft_records)
     
     print("4. Classifying targets (category balance)...")
-    category_balance = classify_targets_with_qwen(sft_records)
+    category_balance = classify_targets_by_rules(sft_records)
     
     print("5. Analyzing response lengths...")
     response_lengths = analyze_response_lengths(sft_records)

@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 from app import phase38_dataset as p38
 from app.native_tool_data import validate_native_tool_record
-from app.tool_runtime import load_registry
-from scripts.train_najdi_sft import IGNORE_INDEX, encode_masked_native_tool_record
+from app.dataset_tools import load_registry
+from app.dataset_masks import IGNORE_INDEX, encode_masked_native_tool_record
 
 class CharTokenizer:
     chat_template="tools tool_calls"

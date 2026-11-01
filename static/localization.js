@@ -10,13 +10,9 @@
       LOCKED: 'Locked', IDLE: 'Idle', BUSY: 'Busy', CLEAN: 'Clean'
     },
     terms: {
-      dataset: 'Dataset', datasetVersion: 'Dataset version', baseModel: 'Base model',
-      trainingMethod: 'Training method', learningRate: 'Learning rate', batchSize: 'Batch size',
-      trainingPlan: 'Training plan', preflight: 'Preflight', runtime: 'Runtime',
+      dataset: 'Dataset', datasetVersion: 'Dataset version', runtime: 'Runtime',
       model: 'Model', fingerprint: 'Fingerprint', blockers: 'Blockers', warnings: 'Warnings',
-      trainingRecords: 'Training records', effectiveBatch: 'Effective batch size',
-      optimizerSteps: 'Optimizer steps', checkpoints: 'Checkpoints', estimate: 'Estimate',
-      job: 'Training job', jobs: 'Training jobs', qualityGate: 'Dataset quality gate'
+      datasetRecords: 'Dataset records', qualityGate: 'Dataset quality gate'
     }
   };
   function status(value) {

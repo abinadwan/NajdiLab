@@ -6,7 +6,7 @@ from pathlib import Path
 def render():
     parts=['''<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1000" viewBox="0 0 1200 1000" role="img" aria-labelledby="title desc">
 <title id="title">NajdiLab Core — verified source-only architecture</title>
-<desc id="desc">Local browser and credentialed ingestion enter loopback request checks. Atomic review and read-only dataset diagnostics use SQLite and private version files. Explicit downloads are restricted to verified JSONL. Coherent backup and separate restore are offline. Models and historical extensions are unavailable.</desc>
+<desc id="desc">Local browser and credentialed ingestion enter loopback request checks. Atomic review and read-only dataset diagnostics use SQLite and private version files. Explicit downloads are restricted to verified JSONL. Coherent backup and separate restore are offline. Models are external; no extension interface is packaged.</desc>
 <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#35647a" stroke-width="1.4"/></marker></defs>
 <style>text{font-family:system-ui,sans-serif;fill:#15394c}.title{font-size:28px;font-weight:700}.subtitle{font-size:15px;fill:#476477}.heading{font-size:18px;font-weight:650}.body{font-size:14px}.zone{font-size:12px;font-weight:700;letter-spacing:1px;fill:#476477}.line{fill:none;stroke:#35647a;stroke-width:2;marker-end:url(#arrow)}</style>
 <rect width="1200" height="1000" fill="#f7fafb"/>
@@ -32,7 +32,7 @@ def render():
     arrow('M892 684 V788');arrow('M308 684 V788');arrow('M892 684 V764 H520 V788')
     card(48,788,520,122,'Private backup and separate restore',['Local CLI · SQLite snapshot + its registered version bytes','ZIP / database / manifest integrity · exclusive new destination','Full archives remain private; no model/runtime recovery'],'#f0f4f7')
     card(632,788,520,122,'Explicit artifact access',['HTTP attachment · selected manifest-authorized JSONL only','No archive, DB, credentials, model or arbitrary path access','Local file retrieval is not permission to redistribute'],'#f0f4f7')
-    parts.append('''<rect x="48" y="938" width="1104" height="42" rx="8" fill="#fff5ed" stroke="#c2a68c" stroke-dasharray="5 4"/><text x="66" y="965" class="body">Unavailable: private historical research · model acquisition / training / deployment · extensions return structured 503</text></svg>''')
+    parts.append('''<rect x="48" y="938" width="1104" height="42" rx="8" fill="#fff5ed" stroke="#c2a68c" stroke-dasharray="5 4"/><text x="66" y="965" class="body">Boundary: local dataset preparation only · external model services · unknown removed routes return 404</text></svg>''')
     return '\n'.join(parts)+'\n'
 
 if __name__=='__main__':

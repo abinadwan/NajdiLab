@@ -17,30 +17,6 @@ def _read_json(path: Path) -> dict[str, Any] | None:
         return None
 
 
-def platform_status(root: Path = ROOT) -> dict[str, Any]:
-    """Derive phase state from immutable artifacts; never infer success from absence."""
-    review = _read_json(root / "reports" / "phase3-train-20261006-001" / "human-review.json")
-    if review is None:
-        candidates = sorted((root / "reports" / "phase3-train-20261006-001").glob("*human*review*.json"))
-        review = _read_json(candidates[0]) if candidates else None
-    jobs = []
-    for path in sorted((root / "training" / "jobs").glob("train-*/job.json")):
-        item = _read_json(path)
-        if item is not None:
-            jobs.append(item)
-    final_gate = (review or {}).get("final_gate") or {}
-    final_decision = final_gate.get("final_decision") or final_gate.get("status") or (review or {}).get("final_decision") or (review or {}).get("decision") or "UNKNOWN"
-    reviewed = (review or {}).get("summary", {}).get("reviewed")
-    total = (review or {}).get("summary", {}).get("total")
-    declared_phase4 = str(final_gate.get("phase4a") or "").upper()
-    phase4 = "BLOCKED" if declared_phase4 == "BLOCKED" or str(final_decision).upper() == "REJECT" else "UNKNOWN"
-    return {
-        "source": "artifacts",
-        "phase3": {"decision": str(final_decision).upper(), "reviewed": reviewed, "total": total},
-        "phase4": {"status": phase4, "reason": "PHASE3_REJECT" if phase4 == "BLOCKED" else "UNVERIFIED"},
-        "training_jobs": [{"id": j.get("job_id") or j.get("id") or "UNKNOWN", "status": j.get("status") or "UNKNOWN"} for j in jobs],
-        "warnings": [] if review is not None else ["PHASE3_REVIEW_ARTIFACT_UNAVAILABLE"],
-    }
 
 
 def dataset_catalog(root: Path = ROOT, db_path: Path = DB_PATH) -> dict[str, Any]:

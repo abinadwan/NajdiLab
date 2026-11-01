@@ -2,8 +2,8 @@ import json, tempfile, unittest
 from pathlib import Path
 from unittest.mock import patch
 from app import dataset_platform as platform
-from app import training_control
-from app.training_control import freeze_readiness_gate, quality_gate
+from app import dataset_validation
+from app.dataset_validation import freeze_readiness_gate, quality_gate
 
 from tests.private_artifacts import requires_private_artifacts
 
@@ -22,8 +22,8 @@ class Phase310GateTests(unittest.TestCase):
 
     def test_freeze_readiness_removes_only_draft_state_blocker(self):
         sample={'status':'BLOCKED','blocking_issues':[{'code':'DATASET_NOT_FROZEN','message':'draft'}],'warnings':[],'checks':{}}
-        with patch.object(training_control,'quality_gate',return_value=sample):
-            result=training_control.freeze_readiness_gate('draft')
+        with patch.object(dataset_validation,'quality_gate',return_value=sample):
+            result=dataset_validation.freeze_readiness_gate('draft')
         self.assertEqual(result['status'],'PASS'); self.assertEqual(result['blocking_issues'],[])
 
     @requires_private_artifacts('datasets/gold-v009-remediation-draft/manifest.json')

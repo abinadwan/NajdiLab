@@ -98,7 +98,7 @@ def test_real_sdk_measure_and_generate_share_loaded_handle_without_load_or_promp
     spec,calls,state=sdk_runtime
     messages=[{'role':'user','content':'  raw question 🙂  '}]
     with open_engine(spec,'fixture') as engine:
-        measured=engine.measure(messages)
+        measured=engine.measure(messages,4096)
         assert measured['loaded_context']==4096
         result=engine.generate(messages,32,threading.Event())
     assert result['content']=='  synthetic answer  '
@@ -120,7 +120,25 @@ def test_instance_replaced_at_prediction_boundary_cannot_run_new_identifier_targ
     from app.integrations import IntegrationError
     spec,calls,state=sdk_runtime
     with open_engine(spec,'fixture') as engine:
-        engine.measure([{'role':'user','content':'synthetic'}])
+        engine.measure([{'role':'user','content':'synthetic'}],4096)
         state['replace_on_predict']=True
         with pytest.raises(IntegrationError):engine.generate([],32,threading.Event())
     assert state['generated']==0
+
+
+def test_real_sdk_limits_read_uses_only_info_calls(sdk_runtime):
+    spec,calls,state=sdk_runtime
+    with open_engine(spec,'fixture') as engine:
+        limits=engine.limits()
+    assert (limits['budget_ceiling'],limits['model_max_context'],limits['weights_bytes'])==(4096,4096,1000)
+    assert limits['model_key']=='fixture-key' and state['generated']==0
+    assert {c.get('endpoint') for c in calls}<={'listLoaded','getModelInfo'}
+
+
+def test_model_not_loaded_is_reported_by_name_not_as_generic_failure(sdk_runtime):
+    from app.integrations import IntegrationError
+    spec,calls,state=sdk_runtime
+    with pytest.raises(IntegrationError) as caught:
+        with open_engine(spec,'not-loaded') as engine:
+            engine.limits()
+    assert caught.value.code=='MODEL_NOT_LOADED'

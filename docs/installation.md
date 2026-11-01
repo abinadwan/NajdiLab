@@ -1,8 +1,8 @@
 # Installation and operation
 
-**Current scope notice (2026-10-31):** training execution is retired. This historical guide does not authorize a trainer, WSL worker, model/GGUF release or installed update. Use the [dataset-first roadmap](roadmap.md) and [Chat/external handoff contract](chat-workspace.md). Existing data/exports remain unchanged.
+Install only a reviewed source revision for local Chat/review/datasets. Follow the [dataset roadmap](roadmap.md) and [Chat/export contract](chat-workspace.md). This cleanup does not update the installed application or alter existing private data.
 
-Read [requirements](system-requirements.md) and [actual verification](installation-verification.md). Core app uses Python 3.11+ and SQLite standard library, independently of Hermes, Ollama, GPU/CUDA and models. GitHub access remains private; source-license approval is pending.
+Read [requirements](system-requirements.md) and [actual verification](verification-evidence.md). Core app uses Python 3.11+ and SQLite standard library, independently of Hermes, Ollama, GPU/CUDA and models. GitHub access remains private; source-license approval is pending.
 
 ## Clone source
 
@@ -11,7 +11,7 @@ git clone https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
 ```
 
-The default `main` branch already contains the private preparation changes through [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5). The deleted `dev/*` branches are not installation targets. A clone downloads code; it does not install dependencies or restore data. These commands operate the preserved original application, **not** the separately built [reduced Core candidate](public-core-user-guide.md). The repository remains private, and public release is not authorized.
+The default `main` branch already contains the private preparation changes through [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5). The deleted `dev/*` branches are not installation targets. A clone downloads code; it does not install dependencies or restore data. These commands operate the main local application, **not** the separately built [reduced Core candidate](public-core-user-guide.md). The repository remains private, and public release is not authorized.
 
 ## Windows PowerShell
 
@@ -29,7 +29,7 @@ If script policy blocks reviewed local scripts, use `python .\scripts\install.py
 
 ## Linux / WSL2
 
-Use an existing approved WSL2 distribution, its Linux filesystem and its own Python. WSL installation is a separate OS operation; do not use training distributions as setup shortcuts. If missing, install Python 3.11+ with sqlite3/venv through normal distribution administration.
+Use an existing approved WSL2 distribution, its Linux filesystem and its own Python. WSL installation is a separate OS operation; use a separate disposable environment for evaluation. If missing, install Python 3.11+ with sqlite3/venv through normal distribution administration.
 
 ```bash
 python3 --version
@@ -51,9 +51,9 @@ Shared scripts/install.py detects Windows/POSIX venv layout, checks Python/SQLit
 
 Launchers choose explicit NAJDILAB_PYTHON, otherwise this checkout's .venv, otherwise available Python only when no venv exists. They validate interpreter/port before server import. Demo seeding defaults off in launchers; explicit NAJDILAB_NO_DEMO=0 enables samples in a disposable instance. Direct `python -m app.server` retains historical demo-on behavior unless NAJDILAB_NO_DEMO=1 is set.
 
-Open http://127.0.0.1:8770 and /api/v1/health. First launch creates data/najdilab.db, applies SQL already in migrations and initializes local registries/version metadata. Proposed plans SQL is not setup. Launch is not read-only and must not target production for evaluation. Collection fails closed until an Ingest secret matches the client.
+Open http://127.0.0.1:8770 and /api/v1/health. First launch creates data/najdilab.db, applies SQL already in migrations and initializes local dataset metadata. It does not initialize a training registry. Proposed plans SQL is not setup. Launch is not read-only and must not target production for evaluation. Collection fails closed until an Ingest secret matches the client.
 
-Choose a separate test port: PowerShell `$env:NAJDILAB_PORT='8870'`, or POSIX `NAJDILAB_PORT=8870 sh ./run.sh`. On conflict choose a free port; never kill an unknown listener. Ctrl+C in the launching terminal stops that instance. No HTTP shutdown/global service installer is provided. Do not stop another production/training process.
+Choose a separate test port: PowerShell `$env:NAJDILAB_PORT='8870'`, or POSIX `NAJDILAB_PORT=8870 sh ./run.sh`. On conflict choose a free port; never kill an unknown listener. Ctrl+C in the launching terminal stops that instance. No HTTP shutdown/global service installer is provided. Do not stop an unrelated application or service.
 
 ## Manual setup, update and reinstall
 
@@ -61,7 +61,7 @@ Without venv creation, select a supported interpreter using NAJDILAB_PYTHON and 
 
 Before updating, verify a full private backup/restore, record git status/revision, preserve edits on a branch, review incoming changes/migrations, then use `git pull --ff-only` on the intended clean branch. Non-fast-forward means stop for review; never reset work. Test setup/checks in isolation, obtain operational approval, then deliberately update the intended instance. This task did not operate production.
 
-A fresh clone does not recover DB, Gold, adapters or runtimes. Follow [restore guide](backup-and-restore.md), restore into a separate directory and verify hashes, integrity/FKs, counts and migrations before launch. Do not copy live WAL/SHM.
+A fresh clone does not recover DB, Chat history, dataset versions or private evidence. Follow [restore guide](backup-and-restore.md), restore into a separate directory and verify hashes, integrity/FKs, counts and migrations before launch. Do not copy live WAL/SHM.
 
 ## Safe uninstallation
 

@@ -48,7 +48,7 @@ from app.service import (
     ValidationError,
 )
 from scripts.backup import create_backup
-from scripts.train_najdi_sft import IGNORE_INDEX, encode_masked_sft_record
+from app.dataset_masks import IGNORE_INDEX, encode_masked_sft_record
 
 
 class NajdiLabTests(unittest.TestCase):

@@ -3,19 +3,34 @@ import json
 import sys
 import threading
 
+# Fixed codes only. SDK exception text may embed prompts or model output.
+REPORTED = {'MODEL_NOT_LOADED', 'MODEL_CHANGED', 'RESULT_MISMATCH', 'NON_TEXT_RESPONSE', 'RESPONSE_TOO_LARGE'}
+
 
 class LoadedModel:
     def __init__(self, client, sdk, identifier):
         matches = [m for m in client.llm.list_loaded() if m.identifier == identifier]
         if len(matches) != 1:
             raise ValueError('MODEL_NOT_LOADED')
-        self.model, self.sdk = matches[0], sdk
-        self.identity = self.model.get_info().instance_reference
+        self.sdk = sdk
+        self.identity = matches[0].get_info().instance_reference
         if not isinstance(self.identity,str) or not self.identity:
             raise ValueError('INSTANCE_REFERENCE_REQUIRED')
-        self.session = client.llm
         self.specifier = {'type':'instanceReference','instanceReference':self.identity}
+        # list_loaded handles are symbolic: SDK 1.5 re-resolves their identifier
+        # on every call. Public handle methods forward `identifier` unchanged as
+        # an AnyModelSpecifier, so this one can only ever reach this instance;
+        # no identifier fallback or get-or-load operation is permitted.
+        self.model = sdk.LLM(self.specifier, client.llm)
         self.stream = None
+
+    def limits(self):
+        info = self.model.get_info()
+        context = self.model.get_context_length()
+        return {'budget_ceiling':context, 'model_max_context':info.max_context_length, 'runtime_context':context,
+                'architecture':info.architecture, 'weights_bytes':info.size_bytes, 'quantization':None, 'kv':None,
+                'loaded':{'context':context, 'size_bytes':None, 'size_vram_bytes':None}, 'other_loaded_models':[],
+                'model_key':info.model_key, 'engine_version':None}
 
     def measure(self, messages):
         if not messages or any(set(m) != {'role','content'} or m['role'] not in {'user','assistant'} or not isinstance(m['content'], str) for m in messages):
@@ -23,34 +38,31 @@ class LoadedModel:
         if [m['role'] for m in messages] != ['user' if i % 2 == 0 else 'assistant' for i in range(len(messages))] or len(messages) % 2 != 1:
             raise ValueError('INVALID_HISTORY')
         self.history = self.sdk.Chat.from_history({'messages':messages})
-        # SDK 1.5 symbolic handles resolve an identifier on every call. Bind
-        # the existing protocol helpers to an immutable instance reference;
-        # no identifier fallback or get-or-load operation is permitted.
-        self.template = self.session._apply_prompt_template(self.specifier,self.history)
+        self.template = self.model.apply_prompt_template(self.history)
         if not isinstance(self.template,str) or not self.template:
             raise ValueError('INVALID_TEMPLATE')
-        self.tokens = self.session._tokenize(self.specifier,self.template)
+        self.tokens = self.model.tokenize(self.template)
         if not isinstance(self.tokens,(list,tuple)) or not 0 < len(self.tokens) <= 1048576 or any(type(x) is not int or x < 0 for x in self.tokens):
             raise ValueError('INVALID_TOKENS')
-        self.context = self.session._get_context_length(self.specifier)
+        self.context = self.model.get_context_length()
         return {'input_tokens':len(self.tokens), 'loaded_context':self.context,
-                'model_key':self.session.get_model_info(self.specifier).model_key,'instance_reference':self.identity}
+                'model_key':self.model.get_info().model_key,'instance_reference':self.identity}
 
     def cancel(self):
         if self.stream is not None:
             self.stream.cancel()
 
     def generate(self, reserve, stop):
-        if (self.session.get_model_info(self.specifier).instance_reference != self.identity or
-            self.session._get_context_length(self.specifier) != self.context or
-            self.session._apply_prompt_template(self.specifier,self.history) != self.template or
-            list(self.session._tokenize(self.specifier,self.template)) != list(self.tokens)):
+        if (self.model.get_info().instance_reference != self.identity or
+            self.model.get_context_length() != self.context or
+            self.model.apply_prompt_template(self.history) != self.template or
+            list(self.model.tokenize(self.template)) != list(self.tokens)):
             raise ValueError('MODEL_CHANGED')
         if stop.is_set():
             raise ValueError('STOPPED')
         # No preset, system message, tools, retrieval, formatting or load config.
         # Engine/template defaults are retained; overflow can never roll history.
-        with self.session._respond_stream(self.specifier,self.history, config={
+        with self.model.respond_stream(self.history, config={
             'maxTokens':reserve, 'contextOverflowPolicy':'stopAtLimit', 'rawTools':{'type':'none'}
         }) as stream:
             self.stream = stream
@@ -70,7 +82,7 @@ class LoadedModel:
                     raise ValueError('RESPONSE_TOO_LARGE')
                 fragments.append(fragment.content)
             result = stream.result()
-        if (self.session.get_model_info(self.specifier).instance_reference != self.identity or result.structured or
+        if (self.model.get_info().instance_reference != self.identity or result.structured or
             result.content != ''.join(fragments) or result.stats.prompt_tokens_count != len(self.tokens)):
             raise ValueError('RESULT_MISMATCH')
         return {'content':result.content, 'input_tokens':result.stats.prompt_tokens_count,
@@ -105,12 +117,18 @@ def main():
         port = setup['port']
         if type(port) is not int or not 1 <= port <= 65535:
             raise ValueError('INVALID_PORT')
-        sdk.set_sync_api_timeout(15)
+        # This is the gap allowed between SDK messages, and a long prompt sends
+        # none while it is processed. The parent enforces the same total limit.
+        sdk.set_sync_api_timeout(setup['deadline'])
         # An explicit numeric host avoids discovery/port scans. list_loaded
         # returns existing handles; `.model()` would auto-load and is forbidden.
         with sdk.Client(f'127.0.0.1:{port}') as client:
             loaded = LoadedModel(client, sdk, setup['model'])
-            emit(loaded.measure(read()['messages']))
+            request = read()
+            if request.get('limits'):
+                emit(loaded.limits())
+                return
+            emit(loaded.measure(request['messages']))
             command = read()
             if command.get('stop'):
                 return
@@ -126,6 +144,8 @@ def main():
                     loaded.cancel()
             threading.Thread(target=controls, daemon=True).start()
             emit(loaded.generate(reserve, stopped))
+    except ValueError as error:
+        emit({'error':str(error) if str(error) in REPORTED else 'ENGINE_UNAVAILABLE'})
     except Exception:
         # Never expose the SDK exception: it may embed prompts or model output.
         emit({'error':'ENGINE_UNAVAILABLE'})

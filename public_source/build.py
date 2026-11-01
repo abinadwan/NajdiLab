@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 
 ROOT=Path(__file__).resolve().parents[1]
 PROFILE='source-only-engineering-candidate'
-IGNORED_DIRS={'.git','__pycache__','.pytest_cache','.venv','data','datasets','exports','reports','training','backups','checkpoints'}
+IGNORED_DIRS={'.test-tmp','.git','__pycache__','.pytest_cache','.venv','data','datasets','exports','reports','training','backups','checkpoints'}
 
 def digest(data):return hashlib.sha256(data).hexdigest()
 
@@ -210,6 +210,6 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);g=parser.add_mutually_exclusive_group(required=True);g.add_argument('--output',type=Path);g.add_argument('--verify',type=Path);args=parser.parse_args()
     try:
         result=verify(args.verify) if args.verify else build(ROOT,args.output)
-        print('PASS:',len(result['files']),'candidate files; private/model extensions blocked; PUBLICATION NOT APPROVED')
+        print('PASS:',len(result['files']),'dataset-only candidate files; model execution unavailable; PUBLICATION NOT APPROVED')
     except (ValueError,OSError,KeyError,SyntaxError) as exc:
         raise SystemExit('CANDIDATE_BLOCKED: '+type(exc).__name__+'; inspect source policy privately.') from None

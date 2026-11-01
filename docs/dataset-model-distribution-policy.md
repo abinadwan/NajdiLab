@@ -35,4 +35,4 @@ This is an exclusion/replacement plan, not an implemented separation or permissi
 
 ## Isolated engineering implementation
 
-The [new boundary specification](public-private-boundary.md) and [candidate report](public-source-isolation-report.md) implement a narrower separate core profile without editing the protected files above. Original full-application separation remains gated; the candidate does not establish rights or sanitize repository history.
+The [new boundary specification](public-private-boundary.md) and [candidate report](verification-evidence.md) implement a narrower separate core profile without editing the protected files above. Original full-application separation remains gated; the candidate does not establish rights or sanitize repository history.

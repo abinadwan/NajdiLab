@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {ChatController}=require('../static/chat.js');
+const {ChatController,hardwareReport}=require('../static/chat.js');
 
 test('collection is separate, send uses only a UUID/revision/text, rollover never replays draft',async()=>{
   const calls=[];
@@ -31,4 +31,24 @@ test('stop remains available during send and only calls own chat endpoint',async
   c.session={id:'s'};c.pending=true;
   await c.stop();
   assert.deepEqual(calls,['/api/v1/chat/sessions/s/stop']);
+});
+
+test('hardware report keeps maximum, runtime, measured and estimated evidence on separate lines',()=>{
+  const text=hardwareReport({ram_total_bytes:32*1024**3,ram_available_bytes:20*1024**3,gpus:[{name:'GPU',free_bytes:10*1024**3,total_bytes:12*1024**3}],
+    model:{architecture:'gemma4',quantization:'Q4',weights_bytes:5*1024**3,other_loaded_models:[]},
+    recommendation:{model_max_context:131072,runtime_context:16384,measured:{context:16384,size_bytes:7*1024**3,size_vram_bytes:7*1024**3},
+      candidates:[{context:8192,estimated_required_bytes:7*1024**3,assessment:'ESTIMATE_FITS_FREE_VRAM'},{context:65536,estimated_required_bytes:20*1024**3,assessment:'ESTIMATE_EXCEEDS_FREE_VRAM'}],
+      recommended_context:8192,label:'Unverified estimate, not a guaranteed safe limit.',reason:'Free VRAM changes.'}});
+  assert.match(text,/Model maximum context: 131072/);
+  assert.match(text,/Runtime context now: 16384/);
+  assert.match(text,/Measured now at 16384: 7\.0 GiB loaded, 7\.0 GiB on GPU/);
+  assert.match(text,/Estimate 65536: likely exceeds free VRAM/);
+  assert.match(text,/Suggested starting context: 8192\. Unverified estimate/);
+});
+
+test('hardware report states when no reliable recommendation exists',()=>{
+  const text=hardwareReport({gpus:[],recommendation:{recommended_context:null,reason:'GPU free memory is unavailable.'}});
+  assert.match(text,/No reliable recommendation\. GPU free memory is unavailable\./);
+  assert.match(text,/Model maximum context: Unknown/);
+  assert.match(text,/Runtime context now: Not loaded/);
 });

@@ -16,13 +16,13 @@ It is for dataset curators, reviewers and developers who want to understand what
 - [Core architecture](docs/architecture.md): editable SVG, storage and security boundaries.
 - [Actual interface screenshots](docs/screenshots.md): real application, synthetic data only.
 - [Exact API scope](docs/api.md), [contributor guidance](CONTRIBUTING.md).
-- [Historical initial profile](docs/initial-profile.md): retained evidence, superseded instructions.
+- [Historical initial profile](../docs/verification-evidence.md): retained evidence, superseded instructions.
 
 ## Included scope
 
 Contextual conversation inspection/search; pending/reviewed/eligible/excluded/evaluation filters; original-preserving corrections, approve/exclude/restore; explicit privacy/eligibility flags; mandatory server-side stale-save protection; read-only readiness/dedup/quality/balance/holdout inspection; version preparation and manifest/hash inspection; selected JSONL downloads; coherent private backup and separate validated restore.
 
-Deferred: manual direct/preference editing/preparation, bulk management, model configuration, offline model planning, general human model comparison, canonical registry/events and proposed SQL. No runtime probing, model acquisition, training, merge, quantization or deployment. Native tool training requires separate support. The original full application's screens, research records and historical evaluations are not included.
+Deferred: manual direct/preference editing/preparation, bulk management, model configuration, offline model planning, general human model comparison, canonical registry/events and proposed SQL. No runtime probing, model acquisition, training, merge, quantization or deployment. Native tool training requires separate support. Private dataset/research evidence is not included.
 
 ## Requirements and official prerequisites
 
@@ -32,7 +32,7 @@ Deferred: manual direct/preference editing/preparation, bulk management, model c
 | SQLite | Minimum: 3.24 via Python sqlite3; observed local 3.53.1, hosted Windows 3.49.1 / Ubuntu 3.45.1 | [SQLite](https://www.sqlite.org/index.html) |
 | Browser | Current Chromium tested; other modern browsers require independent validation | [Chromium](https://www.chromium.org/) |
 | Git | Only needed for authorized engineering checkout, not a generated candidate | [Git downloads](https://git-scm.com/downloads/) |
-| Windows / Linux | Local Linux exercised; Windows/Ubuntu hosted outcomes are recorded separately in verification | [WSL optional](https://learn.microsoft.com/windows/wsl/install) |
+| Windows / Linux | Local Linux exercised; Windows/Ubuntu hosted outcomes are recorded separately in verification | Existing Linux/WSL only; no OS provisioning |
 
 Core uses Python's standard library and HTML/CSS/JavaScript without a frontend build step. No Administrator/sudo is required for an ordinary writable checkout. True minimum CPU/RAM/disk has not been benchmarked. Dataset inspection/backup/restore is bounded to 16 MiB per file and 64 MiB aggregate; this is a safety limit, not a hardware minimum. Keep space for source, venv, DB, each version and separate backups. The optional pytest/Node/browser tools below are development tools, not application dependencies. Python/SQLite versions are distinct from dataset identifiers; no software release number is assigned.
 

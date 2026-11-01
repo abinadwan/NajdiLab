@@ -2,7 +2,7 @@
 
 This private engineering candidate has no active source license. Proposed Apache-2.0 terms remain inactive; contribution authority, copyright holder and redistribution require owner confirmation. Preserve original and third-party notices. Do not infer a patent/license grant from this guide.
 
-Develop in candidate-specific sources under public_source in the engineering repository. Never change protected original source/research, frozen data or proposed migrations without separate approval. Add independently fictional tests first, retain RED evidence, implement the smallest safe change, and test the exact generated candidate. Update explicit source selections/pins only after source and provenance review; unknown paths must continue to fail closed.
+Develop in candidate-specific sources under public_source in the engineering repository. Preserve private data and applied migrations. Source changes must follow the owner's explicitly authorized scope; old source-preservation statements do not override that authorization. Add independently fictional tests first, retain RED evidence, implement the smallest safe change, and test the exact generated candidate. Update explicit source selections/pins only after source and provenance review; unknown paths must continue to fail closed.
 
 Definition of done: functional acceptance, atomic/privacy/conflict and Arabic/HTML regressions, read-only inspection, filesystem/isolation checks, deterministic builds, Windows/Linux checks, accurate candidate docs/assets, reviewed diff and no original-data/source loss. Tests that need unavailable private artifacts are skipped explicitly; never relabel historical results as current.
 
