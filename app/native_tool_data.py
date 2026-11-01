@@ -4,9 +4,9 @@ import json
 from typing import Any
 
 try:
-    from .tool_runtime import ToolContractError, _validate_schema, canonical_json, parse_tool_call
+    from .dataset_tools import ToolContractError, _validate_schema, canonical_json, parse_tool_call
 except ImportError:  # deployed beside the standalone training adapter
-    from tool_runtime import ToolContractError, _validate_schema, canonical_json, parse_tool_call
+    from dataset_tools import ToolContractError, _validate_schema, canonical_json, parse_tool_call
 
 
 class NativeToolDataError(ValueError): pass

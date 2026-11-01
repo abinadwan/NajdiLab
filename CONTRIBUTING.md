@@ -14,7 +14,7 @@ Publication and source-license selection are pending owner approval. Coordinate 
 
 Preserve original messages, review overlays, immutable Gold versions, holdouts and historical decisions. Never add real conversation data, credentials, runtime registries, model weights, backup archives or private machine paths. Arabic linguistic examples and protocol tokens should not be translated as interface text.
 
-Training, downloads, migration execution, adapter reconciliation, merge, quantization and deployment require their own explicit action and evidence. Do not make onboarding, tests or a page visit start them implicitly. SQL proposals stay in `plans/` until separately approved; never edit an applied migration or move a proposal into startup migrations as incidental cleanup.
+The application scope is Chat, review and dataset preparation/export. Do not reintroduce internal model training, acquisition, workers, benchmarking or deployment. External engines remain separately managed; migration and installed-update actions require their own explicit scope. Any retained SQL proposals stay outside startup migrations until separately approved; never edit an applied migration or move a proposal into startup migrations as incidental cleanup.
 
 ## Tests and documentation
 

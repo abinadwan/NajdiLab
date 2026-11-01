@@ -1,33 +1,13 @@
 # Troubleshooting
 
-## Python or launcher fails
+Use the intended checkout's supported Python and a free loopback port. Inspect launcher errors; do not globally kill Python or unrelated local engine processes. A different port alone does not isolate database paths. Empty dataset pages are expected without authorized local records; use synthetic disposable data for tests, never invented historical artifacts.
 
-Check `python --version` (Python 3.11+). Set `NAJDILAB_PYTHON` to an existing executable when using a launcher. If PowerShell blocks script execution, use your approved shell policy or invoke the intended Python executable with `-m app.server`; changing machine-wide policy is not required. Run from the repository root when invoking Python directly.
+For rejected browser writes, reload the intended origin/session, check JSON/framing/CSRF and ingest credentials. CSRF is not reviewer authentication. Hermes409 is deliberate; do not route unsafe events around it. [Security](../SECURITY.md), [integrations](integrations.md).
 
-## Port already in use
+Chat blocks unknown token/context/model identity behavior instead of truncating. Inspect its machine code and [engine contract](chat-workspace.md). Hardware suggestions are unverified; real installed-model acceptance is separate. Missing LM Studio model must be resolved in that application by its operator. No model/training setup screen is supplied.
 
-Check whether the intended instance is already running. Stop only the instance you own, or choose another `NAJDILAB_PORT`. Do not terminate unrelated Python, Hermes, model-serving or WSL processes. Open the same configured port in the browser and collector.
+Export409 requires resolving confirmed review/privacy/mask/conflict/leakage blockers. Do not weaken gates or replace frozen files. Build a new privacy-attested version for [Unsloth export](dataset-export.md). Warnings do not certify correctness or consent.
 
-## Empty pages or UNKNOWN / BLOCKED state
+For database failure, stop additional writes, preserve evidence and rehearse [recovery](backup-and-restore.md) privately. Check integrity/FKs on an isolated copy. Never delete WAL/SHM, ledger rows or tables to clear an error; startup migration auto-application remains [documented debt](database-and-migrations.md).
 
-A fresh checkout has no private operational datasets, reports or model registry. Missing evidence must stay visible. Do not copy arbitrary artifacts into a frozen version or weaken gates. Use the normal collection/review/build flow or an authorized verified restore. Refresh stale cached pages after an interface change.
-
-## Export refused
-
-Read the structured export-readiness findings. Resolve pending/stale/conflicting reviews and privacy/evaluation flags through supported review actions. HTTP 409 is an intentional integrity gate. Correcting a record creates a separate overlay; do not edit source text or a historical export to remove a blocker.
-
-## Migration or database failure
-
-Stop additional writes, preserve the database and diagnostic evidence, and use [backup/restore](backup-and-restore.md). Check `PRAGMA integrity_check` and `PRAGMA foreign_key_check` on an isolated restored copy. Do not run proposed migrations or delete WAL/SHM files to clear an error. Startup automatically applies files already in `migrations/`; this remains a known upgrade limitation.
-
-## Browser writes rejected
-
-Check the current [security contract](../SECURITY.md), local origin and selected port. A cross-origin or malformed request should fail. Do not disable protections or add a wildcard CORS rule. External collectors must follow their supported integration contract.
-
-## Training not READY
-
-Registration is not model validation. Confirm the exact model/revision, available weights/tokenizer, frozen dataset fingerprint, masks, live runtime/CUDA evidence, staging hash, worker freshness and VRAM. Estimates are not fit guarantees. Historic runtime checks/authorization expire and cannot be reused after restore. Read [model selection](model-selection-guide.md) and [preflight](training-preflight-runbook.md).
-
-## Tests need local artifacts
-
-The full suite includes historical integration checks requiring private Gold/holdout/report/model fixtures. Record missing-fixture failures with test names and sanitized diagnostics, and run relevant self-contained fixtures separately. Historical passing counts cannot prove a code-only checkout passes today. Never publish private fixture contents in an issue.
+Missing private fixtures are explicit skips, not passes. Run only relevant tests in disposable storage and report actual failures/limitations. Removed training/model-evaluation/platform-status routes return missing-route responses; replace dataset callers with the [current API](api-reference.md).

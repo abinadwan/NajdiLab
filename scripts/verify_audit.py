@@ -27,18 +27,6 @@ def load_jsonl(path):
                 records.append(json.loads(line))
     return records
 
-def load_qwen_model():
-    """Load Qwen model from Ollama"""
-    try:
-        import subprocess
-        # Try to call Ollama API
-        result = subprocess.run(
-            ['ollama', 'run', 'qwen2.5', '-p', 'exit', '--no-stream'],
-            capture_output=True, text=True, timeout=10
-        )
-        return True
-    except:
-        return False
 
 def classify_target_simple(target):
     """Simple keyword-based classification as fallback"""
@@ -311,7 +299,7 @@ def main():
     elif len(indicators) >= 1:
         verdict = 'DATA_IMBALANCE_LIKELY'
     elif len(indicators) == 0:
-        verdict = 'TRAINING_CONFIG_MORE_LIKELY'
+        verdict = 'NO_DETERMINISTIC_IMBALANCE_FOUND'
     else:
         verdict = 'INCONCLUSIVE'
     

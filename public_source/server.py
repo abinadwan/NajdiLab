@@ -1,6 +1,4 @@
-"""Candidate-only HTTP entry point; staged as app/server.py by the builder.
-Original app/server.py and all research/training implementations are untouched.
-"""
+"""Dataset review HTTP entry point, staged as app/server.py by the builder."""
 import json
 import mimetypes
 import os
@@ -13,7 +11,6 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import service, dataset_platform, dataset_quality, dataset_balancer
 from .db import ROOT, DB_PATH, apply_migrations
-from .extensions import UnavailableExtension
 from .core_reviews import ReviewError, update_review
 from .core_views import list_reviews, get_review
 from . import core_datasets
@@ -27,8 +24,7 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
     allow_reuse_address = False
     daemon_threads = True
 
-    def __init__(self, address, handler, *, extension=None):
-        self.extension = extension if extension is not None else UnavailableExtension()
+    def __init__(self, address, handler):
         self.mutation_lock = threading.RLock()
         super().__init__(address, handler)
 
@@ -100,8 +96,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             return
         try:
             data=self.body() if method=='POST' else {}
-            if path.startswith(('/api/v1/phase','/api/v1/training/','/api/v1/evaluation/')):
-                status,result=self.server.extension.handle(method,path,data);self.respond(result,status);return
             if method=='GET' and not path.startswith('/api/'):
                 self.static(path);return
             query={k:v[-1] for k,v in parse_qs(urlparse(self.path).query).items()}
@@ -110,14 +104,14 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             if method=='GET':
                 if path=='/api/v1/session':result={'ok':True,'csrf_token':CSRF_TOKEN}
                 elif path=='/api/v1/health':result={'ok':True,'service':'NajdiLab','profile':'source-only','storage_scope':'checkout-local'}
-                elif path=='/api/v1/config':result={'local_only':True,'training_actions':False,'error_tags':sorted(service.ERROR_TAGS),'review_statuses':sorted(service.TRAINING_REVIEW_STATUSES)}
+                elif path=='/api/v1/config':result={'local_only':True,'error_tags':sorted(service.ERROR_TAGS),'review_statuses':sorted(service.TRAINING_REVIEW_STATUSES)}
                 elif path=='/api/v1/conversations':result={'items':service.list_conversations(search=query.get('search',''),model=query.get('model',''),channel=query.get('channel',''))}
                 elif path=='/api/v1/reviews':result=list_reviews(query.get('scope','all'),query.get('search',''))
                 elif m:=re.fullmatch(r'/api/v1/reviews/(\d+)',path):result=get_review(int(m[1]))
                 elif m:=re.fullmatch(r'/api/v1/conversations/(\d+)',path):result=service.get_conversation(int(m[1]))
                 elif path=='/api/v1/review-queue':result={'items':service.list_review_queue(include_demo=query.get('include_demo','1')!='0')}
                 elif path=='/api/v1/reviewed':result={'items':service.list_reviewed(query)}
-                elif path=='/api/v1/training-dataset':result=service.training_dataset(include_demo=demo)
+                elif path=='/api/v1/dataset-records':result=service.training_dataset(include_demo=demo)
                 elif path=='/api/v1/analytics':result=service.analytics()
                 elif path=='/api/v1/exports':result={'items':service.list_exports()}
                 elif path=='/api/v1/exports/readiness':result=core_datasets.readiness(demo)
@@ -164,7 +158,7 @@ def main():
             with instance_guard():
                 apply_migrations()
                 for name in ['exports','datasets']: (ROOT/name).mkdir(exist_ok=True)
-                print('NajdiLab Core on loopback; no private extensions loaded.',flush=True)
+                print('NajdiLab Core on loopback.',flush=True)
                 try:http.serve_forever()
                 except KeyboardInterrupt:pass
         except StorageError as exc:raise SystemExit(str(exc)) from None

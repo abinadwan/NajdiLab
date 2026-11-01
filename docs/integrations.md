@@ -1,6 +1,6 @@
 # Settings → Integrations
 
-Open Settings to run a bounded read-only discovery. This release supports two local model-runtime APIs and a blocked Hermes conversation-source connector. No service is installed, started, stopped, configured or downloaded. No training registry, job or dataset is changed.
+Open Settings to run a bounded read-only discovery. This release supports two local model-runtime APIs and a blocked Hermes conversation-source connector. No service is installed, started, stopped, configured or downloaded. No dataset or historical job evidence is changed.
 
 | Connector | Discovery | Approved behavior | Limitations |
 |---|---|---|---|
@@ -38,10 +38,10 @@ Successful actions return a complete snapshot. Upstream failures return HTTP 200
 
 ## Ownership and extension
 
-`app/integrations.py` owns the registry, bounded transport and locked consent/state; `server.py` delegates after request security. `static/integrations.js` reuses `api`, escaping, date formatting and Settings routing; its CSS uses existing theme variables. Keep training runtimes separate. Add a connector at this responsible layer with a bounded protocol parser, explicit capabilities/consent and fixture-only security tests. Do not add arbitrary endpoints or enable conversation collection by reusing a runtime label.
+`app/integrations.py` owns the registry, bounded transport and locked consent/state; `server.py` delegates after request security. `static/integrations.js` reuses `api`, escaping, date formatting and Settings routing; its CSS uses existing theme variables. Keep external inference consent separate from dataset eligibility; do not add an execution registry. Add a connector at this responsible layer with a bounded protocol parser, explicit capabilities/consent and fixture-only security tests. Do not add arbitrary endpoints or enable conversation collection by reusing a runtime label.
 
 ## Verification and remaining gates
 
 Tests use temporary homes and ephemeral fake APIs only. They exercise consent, synthetic wire payloads, auth/error/redirect/oversized/malformed responses, stale selection, proxy/DNS refusal, deadlines, disconnect serialization, restart, CSRF/Origin and Hermes refusal before body reads. Controller tests cover cancellation, confirmation, escaping and load errors. No real runtime/Hermes acceptance or model download is claimed. Actual Windows service compatibility and operator acceptance remain a post-merge, separately consented check.
 
-See [design](superpowers/specs/2026-10-31-integrations-design.md), [plan](superpowers/plans/2026-10-31-integrations.md), [Windows update/rollback](integrations-windows-update.md) and the PR validation record. The Core source-only profile receives the same Hermes receiver block and reviewed source classification/hash updates so its separate CI remains valid. It deliberately does not gain inference integrations or model execution. Candidate verification is not publication/license approval.
+See [design](verification-evidence.md), [plan](verification-evidence.md), [Windows update/rollback](integrations-windows-update.md) and the PR validation record. The Core source-only profile receives the same Hermes receiver block and reviewed source classification/hash updates so its separate CI remains valid. It deliberately does not gain inference integrations or model execution. Candidate verification is not publication/license approval.

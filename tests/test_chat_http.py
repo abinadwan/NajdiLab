@@ -54,16 +54,27 @@ def test_chat_routes_and_security(api):
     assert request(path+'/stop',{})[0]==200
 
 
-def test_training_writes_retired_before_body_and_history_is_read_only(api,tmp_path):
-    request,_=api
-    with patch.object(server.NajdiLabHandler,'_body',side_effect=AssertionError('body must not be read')):
-        for method in ('POST','PATCH','DELETE'):
-            status,result=request('/api/v1/training/jobs/train-20261031-001/start-full-training',{},method=method)
-            assert status==410 and result['code']=='TRAINING_EXTERNAL_ONLY'
-    assert request('/api/v1/training/jobs/train-20261031-001/execution-gate')[0]==410
-    with patch('app.training_control.TRAINING_ROOT',tmp_path/'legacy'), patch('app.training_control.JOBS_ROOT',tmp_path/'legacy/jobs'):
-        assert request('/api/v1/training/jobs')[1]=={'items':[]}
-        assert not (tmp_path/'legacy').exists()
+@pytest.mark.parametrize('method', ['GET', 'POST', 'PATCH', 'DELETE'])
+@pytest.mark.parametrize('path', [
+    '/api/v1/training/jobs',
+    '/api/v1/training/jobs/train-20261031-001/start-full-training',
+    '/api/v1/training/jobs/train-20261031-001/attempts/attempt-001/logs',
+    '/api/v1/training/runtimes',
+    '/api/v1/training/models',
+    '/api/v1/training/model-acquisition/acquire',
+    '/api/v1/evaluation/verify-adapter',
+    '/api/v1/phase3/phase3-train-20261006-001/human-review',
+    '/api/v1/platform/status',
+])
+def test_removed_execution_endpoints_are_ordinary_missing_routes(api, tmp_path, method, path):
+    request, _ = api
+    legacy = tmp_path / 'training/jobs/train-20261031-001/job.json'
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text('{"status":"COMPLETED","historical":true}', encoding='utf-8')
+    before = legacy.read_bytes()
+    status, result = request(path, None if method == 'GET' else {}, method=method)
+    assert status == 404 and result['error'] == 'Route not found'
+    assert legacy.read_bytes() == before
 
 
 def test_hardware_requires_explicit_read_only_approval(api):

@@ -15,24 +15,19 @@
     "app/chat_engine.py",
     "app/chat_engine_worker.py",
     "app/chat_workspace.py",
+    "app/dataset_masks.py",
     "app/dataset_registry.py",
-    "app/generation_hardening.py",
+    "app/dataset_tools.py",
+    "app/dataset_validation.py",
     "app/hardware.py",
     "app/integrations.py",
     "app/native_tool_data.py",
     "app/phase310_freeze.py",
-    "app/phase35_analysis.py",
-    "app/phase36_readiness.py",
-    "app/phase37_hardening.py",
     "app/phase38_dataset.py",
     "app/phase39_edits.py",
     "app/phase39a_resolution.py",
-    "app/phase3_review.py",
     "app/platform_state.py",
-    "app/runtime_control.py",
     "app/server.py",
-    "app/tool_runtime.py",
-    "app/training_control.py",
     "app/unsloth_export.py",
     "config/tool-capabilities.v1.1.json",
     "config/tool-capabilities.v1.json",
@@ -46,43 +41,14 @@
     "docs/chat-completion-results.md",
     "docs/chat-windows-acceptance.md",
     "docs/chat-workspace.md",
+    "docs/cleanup-inventory.json",
+    "docs/cleanup-plan.md",
+    "docs/cleanup-results.md",
     "docs/codebase-navigation.md",
     "docs/configuration.md",
-    "docs/corpus-v1.1/01-behavior-spec.md",
-    "docs/corpus-v1.1/02-component-reuse-map.md",
-    "docs/corpus-v1.1/03-review-lifecycle.md",
-    "docs/corpus-v1.1/04-quality-gates.md",
-    "docs/corpus-v1.1/05-security-prerequisites.md",
-    "docs/corpus-v1.1/06-adapter-drift-k2.md",
-    "docs/corpus-v1.1/07-migration-review-005-007.md",
-    "docs/corpus-v1.1/08-risk-register.md",
-    "docs/corpus-v1.1/09-implementation-roadmap.md",
-    "docs/corpus-v1.1/10-test-plan.md",
-    "docs/corpus-v1.1/11-rollback-plan.md",
-    "docs/corpus-v1.1/12-traceability-matrix.md",
-    "docs/corpus-v1.1/13-decision-register.md",
-    "docs/corpus-v1.1/14-git-working-tree-inventory.md",
-    "docs/corpus-v1.1/15-migration-loader-guard.md",
-    "docs/corpus-v1.1/16-ui-first-confirmation.md",
-    "docs/corpus-v1.1/17-phase1-approval-package.md",
-    "docs/corpus-v1.1/README.md",
-    "docs/corpus-v1.1/adr/ADR-001-najdilab-single-source-of-truth.md",
-    "docs/corpus-v1.1/adr/ADR-002-conversational-sft-objective.md",
-    "docs/corpus-v1.1/adr/ADR-003-tiers-as-provenance.md",
-    "docs/corpus-v1.1/adr/ADR-004-human-approval-required-for-eligibility.md",
-    "docs/corpus-v1.1/adr/ADR-005-g2-deterministic-only.md",
-    "docs/corpus-v1.1/adr/ADR-006-security-before-generation.md",
-    "docs/corpus-v1.1/adr/ADR-007-bronze-deferred.md",
-    "docs/corpus-v1.1/adr/ADR-008-corpus-v1-archive-only.md",
-    "docs/corpus-v1.1/adr/ADR-009-adapter-reconciliation-by-verification.md",
-    "docs/corpus-v1.1/adr/ADR-010-migration-loader-guard.md",
-    "docs/corpus-v1.1/adr/ADR-011-naturalness-without-quotas.md",
-    "docs/data-03-04-06-09-review-management.md",
-    "docs/data-07-08-review-integrity-export-readiness.md",
     "docs/database-and-migrations.md",
     "docs/database-schema.md",
-    "docs/dataset-and-training.md",
-    "docs/dataset-chat-results.md",
+    "docs/dataset-export.md",
     "docs/dataset-model-distribution-policy.md",
     "docs/dependencies-and-attribution.md",
     "docs/dependency-licensing-matrix.md",
@@ -90,78 +56,40 @@
     "docs/documentation-index.md",
     "docs/github-presentation.md",
     "docs/hermes-integration.md",
-    "docs/historical-project-status.md",
     "docs/images/architecture/generate_architecture.py",
-    "docs/images/architecture/najdilab-system-architecture-preview.png",
     "docs/images/architecture/najdilab-system-architecture.svg",
-    "docs/images/architecture/owner-conceptual-architecture.jpg",
     "docs/images/english-ui-arabic-record.jpg",
     "docs/images/screenshots/chat-workspace-synthetic.png",
-    "docs/images/screenshots/conversation-review.png",
-    "docs/images/screenshots/correction-overlay.png",
-    "docs/images/screenshots/dashboard.png",
-    "docs/images/screenshots/dataset-health.png",
-    "docs/images/screenshots/human-review.png",
-    "docs/images/screenshots/training-data.png",
-    "docs/images/screenshots/training-setup.png",
-    "docs/installation-verification.md",
     "docs/installation.md",
     "docs/integrations-validation.md",
     "docs/integrations-windows-update.md",
     "docs/integrations.md",
     "docs/license-options.md",
     "docs/maintainer-handover.md",
-    "docs/master-execution-board.md",
-    "docs/model-selection-guide.md",
-    "docs/next-training-execution-plan.md",
     "docs/open-source-readiness.md",
-    "docs/phase-0-audit.md",
-    "docs/phase-1-foundation-backlog.md",
-    "docs/phase-1.3-registry-runbook.md",
-    "docs/phase-2-4-current-state-audit.md",
     "docs/privacy-history-review.md",
     "docs/proposals/LICENSE-Apache-2.0.txt",
     "docs/proposals/NOTICE.txt",
     "docs/proposals/licensing-approval.md",
-    "docs/public-core-feature-parity.md",
-    "docs/public-core-phase5-execution.md",
-    "docs/public-core-phase5-issue-register.md",
-    "docs/public-core-phase5-rights.md",
-    "docs/public-core-phase5-verification.md",
     "docs/public-core-release-scope.md",
     "docs/public-core-user-guide.md",
     "docs/public-private-boundary.md",
     "docs/public-release-decision.md",
-    "docs/public-source-isolation-report.md",
+    "docs/review-and-quality.md",
+    "docs/rights-evidence.md",
     "docs/roadmap.md",
-    "docs/scope-audit-2026-10-31.md",
     "docs/screenshots.md",
     "docs/shell-commands.md",
     "docs/source-provenance.md",
-    "docs/superpowers/plans/2026-10-26-english-open-source-readiness.md",
-    "docs/superpowers/plans/2026-10-31-dataset-chat.md",
-    "docs/superpowers/plans/2026-10-31-integrations.md",
-    "docs/superpowers/specs/2026-10-31-dataset-chat-design.md",
-    "docs/superpowers/specs/2026-10-31-integrations-design.md",
     "docs/system-requirements.md",
     "docs/third-party-attributions.md",
-    "docs/tool-runtime-contract.md",
-    "docs/training-export.md",
-    "docs/training-preflight-runbook.md",
-    "docs/training-readiness-sprint-report.md",
     "docs/troubleshooting.md",
-    "docs/unified-readiness-verification.md",
     "docs/user-guide.md",
-    "docs/verification-and-readiness-report.md",
-    "docs/visual-documentation-verification.md",
-    "docs/worklogs/english-open-source-readiness.md",
-    "docs/worklogs/public-release-remediation.md",
+    "docs/verification-evidence.md",
     "migrations/005_chat_workspace.sql",
     "migrations/006_chat_session_binding.sql",
     "plans/phase13/005_dataset_registry.sql",
     "plans/phase2/006_review_events.sql",
-    "plans/training-readiness/007_model_training_registry.rollback.sql",
-    "plans/training-readiness/007_model_training_registry.sql",
     "public_source/.policy-generation-note.txt",
     "public_source/__init__.py",
     "public_source/build.py",
@@ -177,15 +105,12 @@
     "scripts/backup.py",
     "scripts/backup.sh",
     "scripts/build_gold_v007_balanced.py",
-    "scripts/build_v007_epoch2_report.py",
-    "scripts/build_v007_eval_report.py",
     "scripts/check_docs.py",
     "scripts/collector_client.py",
     "scripts/complete_review_queue.py",
     "scripts/create_gold_v005_clean.py",
     "scripts/create_gold_v006_clean.py",
     "scripts/dataset_influence_audit.py",
-    "scripts/export_v007_e1_ollama.py",
     "scripts/generate_api_reference.py",
     "scripts/gold_v007_balancing.py",
     "scripts/gold_v007_balancing_new.py",
@@ -193,16 +118,8 @@
     "scripts/inspect_multi_turn_stats.py",
     "scripts/inspect_v006_schema.py",
     "scripts/measure_v006_overlap.py",
-    "scripts/najdilab_training_adapter.py",
     "scripts/phase13_registry.py",
-    "scripts/phase3_benchmark.py",
-    "scripts/run_gold_v004_controlled.py",
-    "scripts/run_gold_v006_controlled.py",
-    "scripts/run_gold_v007_balanced.py",
-    "scripts/run_gold_v007_epoch2.py",
-    "scripts/smoke_train_najdi_sft.py",
-    "scripts/train_najdi_sft.py",
-    "scripts/validate_training_masks.py",
+    "scripts/validate_dataset_masks.py",
     "scripts/verify_audit.py",
     "static/app.js",
     "static/chat.css",
@@ -229,7 +146,6 @@
     "tests/integrations-ui.test.cjs",
     "tests/ollama_disposable.py",
     "tests/private_artifacts.py",
-    "tests/test_arabic_training_ui.py",
     "tests/test_backend_localization.py",
     "tests/test_chat_engine.py",
     "tests/test_chat_hardware.py",
@@ -240,44 +156,35 @@
     "tests/test_chat_workspace.py",
     "tests/test_complete_review_queue.py",
     "tests/test_dataset_balancer.py",
+    "tests/test_dataset_boundary.py",
+    "tests/test_dataset_gates.py",
     "tests/test_dataset_platform.py",
     "tests/test_dataset_registry.py",
     "tests/test_dataset_scope_ui.py",
+    "tests/test_dataset_ui.py",
+    "tests/test_dataset_validation_extraction.py",
+    "tests/test_docs_integrity.py",
     "tests/test_english_localization.py",
     "tests/test_http_security.py",
     "tests/test_ingest_cli.py",
     "tests/test_installation.py",
     "tests/test_integrations.py",
     "tests/test_integrations_http.py",
-    "tests/test_model_selection_contract.py",
     "tests/test_najdilab.py",
+    "tests/test_native_dataset.py",
     "tests/test_phase310_gates.py",
-    "tests/test_phase311_training_adapter.py",
-    "tests/test_phase35_analysis.py",
-    "tests/test_phase36_readiness.py",
-    "tests/test_phase37_tool_hardening.py",
     "tests/test_phase38_dataset.py",
     "tests/test_phase38_ui.py",
     "tests/test_phase39_api.py",
     "tests/test_phase39_edits.py",
     "tests/test_phase39_mt06_repair.py",
-    "tests/test_phase3_benchmark.py",
-    "tests/test_phase3_review.py",
     "tests/test_platform_state.py",
     "tests/test_review_integrity.py",
     "tests/test_review_lifecycle.py",
     "tests/test_review_management.py",
-    "tests/test_runtime_control.py",
-    "tests/test_safe_adapter_deployment.py",
-    "tests/test_safe_adapter_deployment_simple.py",
     "tests/test_script_portability.py",
     "tests/test_select_v007_windows.py",
     "tests/test_theme_support.py",
-    "tests/test_training_adapter.py",
-    "tests/test_training_control.py",
-    "tests/test_training_plan_mismatch_regression.py",
-    "tests/test_training_plan_mismatch_unit.py",
-    "tests/test_training_registry_migration.py",
     "tests/test_unsloth_export.py"
   ],
   "files": {
@@ -303,7 +210,7 @@
     },
     "app/dataset_platform.py": {
       "destination": "app/dataset_platform.py",
-      "sha256": "19dd3205da0c6c272c7148342b3e9b88b98107f21b94972e87b08bbb788e088a"
+      "sha256": "77d53b62a9c50504f630d3ec190b8c8461cefcbc14b3154202b74a0275255115"
     },
     "app/dataset_quality.py": {
       "destination": "app/dataset_quality.py",
@@ -312,10 +219,6 @@
     "app/db.py": {
       "destination": "app/db.py",
       "sha256": "0124721c461f3bf65c68651e15e5a13336cd35ef4bfc013fa43de711ec942bae"
-    },
-    "app/evaluation_guard.py": {
-      "destination": "app/evaluation_guard.py",
-      "sha256": "2f6c3bb6a0e55582f850278fc4e45313afb41a6e150d18e4c4ddf76ccc8629ef"
     },
     "app/http_security.py": {
       "destination": "app/http_security.py",
@@ -351,23 +254,19 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "a8e4a423f2ef288d8d7914422143b9a2a45d158dbc92777ec7a089b82334f0cf"
-    },
-    "public_source/extensions.py": {
-      "destination": "app/extensions.py",
-      "sha256": "2539f07efe87a6763ce928ea4271603cc7aa6961766eb4a4d4e36e494fc81467"
+      "sha256": "04537377771c62fd407ac6d5dd154fbe38ec6e8996266469e9a7ec29bb1242af"
     },
     "public_source/server.py": {
       "destination": "app/server.py",
-      "sha256": "860dbdce1554cb506fbd5c472372a56ddc943df18f4b4a90a1f24181bdebbff6"
+      "sha256": "5f4dcb93d0298793d517bf023286c8d4df72d61513c9ed9761d4298e9dd61e0e"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
-      "sha256": "2fe00c8f2428be7c86a608030214a88fe7293ece74458212fc3628f8986c92a0"
+      "sha256": "306cf632f3f0865a38ca8679a726face342c848dbbe3793f4e6e67d4059a9a07"
     },
     "public_source/static/index.html": {
       "destination": "static/index.html",
-      "sha256": "a7cae133021c412352f1de3f77554ed0d4e0b1e60fb51f8f7f48e6cfa24385ba"
+      "sha256": "38898e437afb656474ab04fe532d4d3b6e1772a379c32389ab1c77696939c1a5"
     },
     "public_source/static/style.css": {
       "destination": "static/style.css",
@@ -383,7 +282,7 @@
     },
     "public_source/tests/contract.py": {
       "destination": "tests/test_candidate_contract.py",
-      "sha256": "45b9cfc8c8c01a36ba9279267ae3be170a18a9096d9e5f7cc8e50765c8d9d2eb"
+      "sha256": "7869da83c5cf602800256ef862812b4984b084b9b1ca228a92f579ef33ddaf60"
     },
     "public_source/tests/security.py": {
       "destination": "tests/test_candidate_security.py",
@@ -423,11 +322,11 @@
     },
     "tests/test_dataset_quality.py": {
       "destination": "tests/test_dataset_quality.py",
-      "sha256": "7848ca33c4abe7d58ef0a3056435a707baccf7c118a88a671c4d5f00610c1431"
+      "sha256": "630a9235aa8aee9107f5ccd930617cf446bc1697a59b9663badd4d5b78404644"
     },
     "public_source/tests/support.py": {
       "destination": "tests/support.py",
-      "sha256": "0bf97c3ab398fb6d51a2d3d2a64c66c7590463336a3bf1c4647164d6e60d977f"
+      "sha256": "11f0a55e9cf3895a7c2cea2463d9592221aa9addd3b35da5c89f4ad187abe0f3"
     },
     "public_source/tests/reviews.py": {
       "destination": "tests/test_candidate_reviews.py",
@@ -447,7 +346,7 @@
     },
     "public_source/tests/browser.cjs": {
       "destination": "tests/browser.cjs",
-      "sha256": "1fc85f7f293e215d4c171651ae09c4118e14e5d7e462eb1f5072dd791929c099"
+      "sha256": "17b3398c41be95bc981fb58ebb88acf41b5d852dd41bd3afa73840528b5e13c5"
     },
     "public_source/read_views.py": {
       "destination": "app/core_views.py",
@@ -455,7 +354,7 @@
     },
     "public_source/tests/datasets.py": {
       "destination": "tests/test_candidate_datasets.py",
-      "sha256": "1dba2853d4fccdac08b0f09b8531d7da25fbf5b7004ca688b072bcc6a501968a"
+      "sha256": "139caca6334910a3661753e50554d05eb36771e08b0eb61e1c395413d4b8528d"
     },
     "public_source/datasets.py": {
       "destination": "app/core_datasets.py",
@@ -475,7 +374,7 @@
     },
     "public_source/tests/artifacts.py": {
       "destination": "tests/test_candidate_artifacts.py",
-      "sha256": "37d0889800164a1d0a148427ea9d14f624d03783c292207fd028b54b1f669590"
+      "sha256": "875bbda2ebeb15886ec1a842d6c0a5bbaad01dad84d1a4be9972afd153a6f8f8"
     },
     "public_source/artifacts.py": {
       "destination": "app/core_artifacts.py",
@@ -491,7 +390,7 @@
     },
     "public_source/CONTRIBUTING.md": {
       "destination": "CONTRIBUTING.md",
-      "sha256": "e6eb14fd2655c05657c96560a01fa435be784c261c01a790d729e2d366797f99"
+      "sha256": "0c54c30dcbfaa29787be000e85682c749c4309ccda10b71170128b112dd267fb"
     },
     "public_source/docs/user-guide.md": {
       "destination": "docs/user-guide.md",
@@ -499,15 +398,11 @@
     },
     "public_source/docs/architecture.md": {
       "destination": "docs/architecture.md",
-      "sha256": "6eb1ff769ba9de664224f288551dc35c3d1457d361997653d3e0ec728767d4ef"
+      "sha256": "ad08d4c597ba386f40b5655e65e3aa2bd038d1b142fb34853ee415fddce76b55"
     },
     "public_source/docs/api.md": {
       "destination": "docs/api.md",
-      "sha256": "2d55dff89f69adb485c64d8db0625cf8906c454f194c09e25b8b2b82b157bb6c"
-    },
-    "public_source/docs/initial-profile.md": {
-      "destination": "docs/initial-profile.md",
-      "sha256": "805ae99aed467c62f820fa8361b80ec2e139d62f9b019e5a9a945075010e2230"
+      "sha256": "21cd59d39c5a08549415a31b75abfe17314a76815e2b5985d7b66f3b89f476c2"
     },
     "public_source/docs/screenshots.md": {
       "destination": "docs/screenshots.md",
@@ -515,11 +410,11 @@
     },
     "public_source/docs/generate_architecture.py": {
       "destination": "docs/generate_architecture.py",
-      "sha256": "c8154c5aaf5b5b1e2bf2e14ea3536bbe54c70cb62b46673d17adb9fb2e0b1883"
+      "sha256": "30f75dc41342f04391484d9ad1433ae7321d6d1fcd1939c99d4850bede845548"
     },
     "public_source/docs/images/core-architecture.svg": {
       "destination": "docs/images/core-architecture.svg",
-      "sha256": "dc5ed76f2d11a1d8385cde2693da4e73859933a6f738a5128b3486be0aeba256"
+      "sha256": "d1b2593d30ea1282918b82b14d35dc69439f080b1cbc93583904acf81ac95f7d"
     },
     "public_source/docs/images/overview.png": {
       "destination": "docs/images/overview.png",

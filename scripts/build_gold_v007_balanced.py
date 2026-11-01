@@ -226,6 +226,9 @@ def copy_required(src: Path, dst: Path, name: str) -> None:
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
+    tokenizer_path = Path(args.tokenizer_path).resolve()
+    if not tokenizer_path.is_dir():
+        raise ValueError("--tokenizer-path must be an existing local directory")
     root = args.root.resolve()
     src = root / "exports" / "gold-v006-clean"
     selected = root / "reports" / "v007-selected-multiturn.jsonl"
@@ -281,10 +284,6 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "source_version": "gold-v006-clean + reports/v007-selected-multiturn.jsonl",
             "database_modified": False,
             "reviewed_gold_responses_modified": False,
-            "training_started": False,
-            "merge_started": False,
-            "gguf_started": False,
-            "ollama_started": False,
             "files": {name: len(read_jsonl(staging / name)) for name in ("sft.jsonl", "multi_turn.jsonl", "direct_language.jsonl", "preference_pairs.jsonl", "text_sft_eval.jsonl", *SEPARATE_EVAL_FILES)},
             "training_files": ["sft.jsonl", "multi_turn.jsonl"],
             "non_training_files": ["direct_language.jsonl", "preference_pairs.jsonl", "text_sft_eval.jsonl", *SEPARATE_EVAL_FILES],
@@ -303,9 +302,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         raise
 
     # Run the canonical tokenizer-based validator over the newly built package.
-    model = args.model
-    validator = root / "scripts" / "validate_training_masks.py"
-    validation = subprocess.run([sys.executable, str(validator), "--export-dir", str(destination), "--model", model], capture_output=True, text=True)
+    validator = root / "scripts" / "validate_dataset_masks.py"
+    validation = subprocess.run([sys.executable, str(validator), "--export-dir", str(destination), "--tokenizer-path", str(tokenizer_path)], capture_output=True, text=True)
     if validation.stdout.strip():
         try:
             loss_validation = json.loads(validation.stdout)
@@ -337,7 +335,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument("--model", default="/home/najdi/najdi-training/models/Ministral-3-3B-Instruct-2512-unsloth-bnb-4bit")
+    parser.add_argument("--tokenizer-path", type=Path, required=True, help="Existing local tokenizer directory (offline only)")
     parser.add_argument("--replace-existing", action="store_true")
     args = parser.parse_args()
     result = build(args)

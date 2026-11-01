@@ -1,6 +1,6 @@
 # Chat completion results
 
-Draft follow-up to PR #11, on branch `feat/chat-workspace-claude`, based on reviewed commit `aa328ff` and targeting `feat/dataset-chat-workspace`. Evidence collected 2026-11-01. This is not merge or installation approval. [Contract](chat-workspace.md) · [owner acceptance](chat-windows-acceptance.md).
+Historical PR #12 record: draft follow-up to PR #11, on branch `feat/chat-workspace-claude`, based on reviewed commit `aa328ff` and targeting `feat/dataset-chat-workspace`. Original evidence collected 2026-11-01; the original result counts and dates below are retained as that history, not current cleanup-head counts. PR #13 now reviews `refactor/remove-legacy-training` against the exact PR #12 head; its hosted results are recorded separately below. This is not merge or installation approval. [Contract](chat-workspace.md) · [owner acceptance](chat-windows-acceptance.md).
 
 ## Independent security review and Codex remediation (2026-11-01)
 
@@ -18,7 +18,13 @@ Codex remediation on the same Claude feature branch:
 - Skips reflect unshipped historical private artifacts, unavailable OS-specific cases, and **nine opt-in tests against a real Ollama binary not run in hosted CI**. All new synthetic security tests are included and not skipped. No installed real Gemma4, real LM Studio or GPU acceptance has run as part of this Codex remediation.
 - This result applies to the listed implementation commit; documentation-only follow-up commits also require a green final-head CI check before merging.
 
-**Owner acceptance for real Gemma4/LM Studio is still NOT TESTED, as is GPU/VRAM feasibility.** Keep Draft PR #12 unmerged and do not install based on synthetic tests alone.
+**Owner acceptance for real Gemma4/LM Studio, GPU/VRAM feasibility and owner Windows acceptance are still NOT VERIFIED.** Neither PR #12 nor PR #13 hosted CI grants merge, installation or operational approval. Hermes remains BLOCKED; the approved scope is Chat/review/dataset preparation and external Unsloth handoff.
+
+## Subsequent PR #13 cleanup CI — 2026-11-01
+
+Cleanup head `f4cff7c5edfd8015f3027eecc9f367c0596239f9` is the direct child of PR #12 head `a04e2ea8e1db7fbc094a6ba5ffc30a99d16110f9`. [Source checks 41287022924](https://github.com/abinadwan/NajdiLab/actions/runs/41287022924) and [Source-only candidate 41287022915](https://github.com/abinadwan/NajdiLab/actions/runs/41287022915) completed successfully on both Windows and Linux. Source: **Windows 417 passed / 31 skipped / 59 subtests passed; Linux 415 passed / 33 skipped / 59 subtests passed**. Core: **78 passed / 0 skipped / 68 subtests passed on each OS**. Builder: **12 passed / 18 subtests passed on each OS**. There were zero failures in these suites. The source Node suites passed **5 integration + 5 Chat tests per OS**; synthetic root/Core browsers and the manifest-copy harness passed. Exact job IDs, skip reasons and the 71-file Core manifest are in [PR #13 verification evidence](verification-evidence.md#pr-13-hosted-cleanup-evidence--2026-11-01).
+
+These counts are new hosted cleanup evidence, not replacements for the historical PR #12 or local cleanup counts below/in the [initial cleanup report](cleanup-results.md). The five Chat/worker/workspace/integration/Unsloth implementation files remain byte-identical to PR #12. Every later documentation commit needs its own hosted status; these runs do not qualify a different head. Real Gemma4, real LM Studio, GPU capacity and owner acceptance remain NOT VERIFIED.
 
 ## What this adds
 
@@ -45,13 +51,13 @@ Defects found and fixed. Each has a regression test.
 
 ## Decisions
 
-- **Prove behavior, do not trust a version.** Ollama's `truncate`/`shift` are in its public Go API types but not on its REST reference page, and old servers silently ignore them. A version gate would be both weaker and broken by each automatic update, so every turn checks that the engine really refuses overflow.
+- **Historical pre-remediation rationale: prove behavior, do not trust a version alone.** Ollama's `truncate`/`shift` are in its public Go API types but not on its REST reference page, and old servers silently ignore them. Every turn still checks refusal of overflow. The later security remediation additionally requires the source-reviewed v0.40.13 resolver allowlist and immutable local digest; overflow probes do not replace those checks, and an update is not permission to bypass them.
 - **A one-token probe, accepted.** PR #11 ruled out inference probes. No tokenize route exists at 0.40.13, and `num_predict:0` is not a dry run. `prompt_eval_count` of a one-token prediction is the only exact count from documented fields. It evaluates the prompt once, and the reply reuses it from cache.
 - **Ollama load approval.** The brief forbids loading without approval, and Ollama loads on request, so each conversation needs an explicit choice.
 - **Thinking models accepted on Ollama, still refused on LM Studio.** The owner's only installed Ollama model has thinking on by default, so refusal would make Ollama Chat unusable. Ollama already separates the final text, so nothing is edited. LM Studio's mixed fragments keep the PR #11 refusal.
 - **Cloud models refused.** They forward prompts off this machine, which local-only forbids.
 - **A new table, not `ALTER TABLE`.** Migration 006 stays idempotent across the loader's crash gap.
-- **Estimates use an upper bound.** KV assumes all layers are full-attention, so sliding-window models are underestimated in capacity, never overestimated.
+- **Estimates use a KV upper-bound assumption.** KV assumes all layers are full-attention, which can overestimate sliding-window KV needs. That modeled component is not measured VRAM consumption or a guarantee of total allocation safety. No 8K/16K/32K context is accepted without separately approved owner trials and actual memory evidence.
 - **LM Studio SDK pin kept.** Public methods are an improvement, but passing a specifier to the handle constructor is verified behavior, not a documented contract.
 
 ## Actual versus synthetic verification
@@ -67,13 +73,13 @@ Defects found and fixed. Each has a regression test.
 | LM Studio wire behavior | Real SDK 1.5.0 against a synthetic WebSocket engine | Synthetic |
 | UI, escaping, Stop, approval, rollover | Real Chrome against synthetic engines | Synthetic |
 
-**Not performed:** any installed model, including `gemma4-local:e4b` (never loaded); any real LM Studio session, since its server was off and starting it would change the owner's runtime; any GPU load or memory measurement, since the disposable engine ran CPU-only; hosted CI. The rendered path for a renderer/parser model like `gemma4-local` is read from source only, so the first real send may block with `CONTEXT_REFUSAL_UNPROVEN`. That is the safe outcome, and owner acceptance decides it. The suggested contexts have never been compared with a real allocation.
+**Not performed by the original local verification:** any installed model, including `gemma4-local:e4b` (never loaded); any real LM Studio session, since its server was off and starting it would change the owner's runtime; any GPU load or memory measurement, since the disposable engine ran CPU-only. Hosted CI had not yet run when that local record was written; the later PR #12 security-fix runs and PR #13 cleanup runs above supersede only that CI absence. Real-model/GPU/owner acceptance remains NOT VERIFIED. The rendered path for a renderer/parser model like `gemma4-local` is read from source only, so the first real send may block with `CONTEXT_REFUSAL_UNPROVEN`. That is the safe outcome, and owner acceptance decides it. The suggested contexts have never been compared with a real allocation.
 
 The owner's running Ollama was checked after each run: same process, no models loaded, same model list. No engine configuration, model or personal conversation was read or changed. Model metadata for `gemma4-local:e4b` was read with `/api/show`.
 
-## Test results
+## Historical PR #12 local test results
 
-All on the final code. Reproduce with the commands in [acceptance](chat-windows-acceptance.md).
+These are the original pre-security-remediation implementation's local observations collected on 2026-11-01, preserved separately from the later `7659c8b` hosted security evidence and PR #13 cleanup results. They do not qualify the current head. The [acceptance guide](chat-windows-acceptance.md) now targets an exact owner-approved cleanup commit rather than replaying the old feature-branch checkout.
 
 | Check | Windows 11, Python 3.12.10 | Linux (WSL Ubuntu 24.04), Python 3.12.3 |
 |---|---|---|
@@ -86,7 +92,7 @@ All on the final code. Reproduce with the commands in [acceptance](chat-windows-
 
 **Skipped, exact reasons.** Windows, 24: 23 private historical artifacts not distributed; 1 symlink creation not permitted for this account. Linux, 34: the same 23; 9 real-engine tests requiring the opt-in and an installed Ollama; 1 Windows PowerShell launcher check; 1 Windows drive type boundary. No existing test was skipped, removed or weakened. Existing tests changed only for new required contracts: `load_approved`, `limits()`, the `measure()` signature, and the public handle.
 
-**Not failures, but not proof:** the Ollama test run is local only and cannot run in hosted CI. The real-engine run was repeated to rule out flakiness after the fixture was made deterministic.
+**Not failures, but not proof:** that recorded real-Ollama-binary run was local only. The hosted workflows did not opt into these nine real-binary checks and reported them as skips. The original real-engine run was repeated to rule out flakiness after the fixture was made deterministic; it used a synthetic CPU-only model and did not establish installed Gemma4/LM Studio or GPU acceptance.
 
 ## Remaining limitations
 
@@ -96,8 +102,8 @@ All on the final code. Reproduce with the commands in [acceptance](chat-windows-
 - Hardware only reads NVIDIA GPUs. The margin in the estimate is a rule of thumb. LM Studio gets no memory estimate.
 - LM Studio remains pinned to SDK 1.5.0; reasoning output is refused there.
 - One-turn-per-runtime means a second tab gets `ENGINE_BUSY` rather than a queue.
-- Hosted CI has not run on this branch.
+- The original local record preceded hosted CI. The PR #12 security-fix runs and PR #13 cleanup runs above are now completed evidence for their cited revisions; later commits require new checks and no CI run establishes owner/model/GPU acceptance.
 
 ## Dependencies and data
 
-No new runtime or test dependencies. Migration 006 is additive and idempotent, with no change to existing rows. Rollback is in [Backup and rollback](chat-workspace.md#backup-and-rollback). The seven new files are classified `excluded` in `public_source/policy.json`, so the source-only candidate stays at the same 74 files.
+Historical PR #12 introduced no new runtime or test dependencies. Migration 006 is additive and idempotent, with no change to existing rows. Rollback is in [Backup and rollback](chat-workspace.md#backup-and-rollback). At that historical stage the seven new files were classified `excluded` in `public_source/policy.json` and the source-only candidate had 74 files. PR #13 intentionally reduced the dataset-only Core map to 71 files; its exact manifest and verified counts are recorded separately above. This documentation correction changes no source, migrations, configuration, dependencies, tests or workflows.

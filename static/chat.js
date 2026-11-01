@@ -109,7 +109,7 @@
     el('chat-stop').onclick=act(async()=>{await controller.stop();notice='Stop requested. No partial response will be saved. Engine cancellation is best effort; its service stays running.';render();});
     el('chat-collect').onchange=act(async()=>{await controller.collect(el('chat-collect').checked);notice='Collection choice saved for this server process. Only future completed pairs can enter PENDING review.';render();});
     el('chat-archive').onclick=act(async()=>{
-      if(!confirm('Archive this conversation and exclude its collected pairs from future training? Local text and previous exports are retained.'))return;
+      if(!confirm('Archive this conversation and exclude its collected pairs from future dataset selection? Local text and previous exports are retained.'))return;
       await controller.refresh();controller.session=await controller.post(controller.path('archive'),{revision:controller.session.revision});notice='Conversation archived. Data and earlier exports are retained.';await saved();render();
     });
     el('chat-hardware').onclick=act(async()=>{

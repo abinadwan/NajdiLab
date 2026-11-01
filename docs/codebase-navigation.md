@@ -1,27 +1,21 @@
-# Codebase navigation and ownership
-
-Responsibilities below identify where changes belong, not assigned people.
+# Codebase navigation
 
 | Component | Responsibility |
 |---|---|
-| app/server.py | Routes, response wrappers, bounded JSON, loopback and static delivery |
-| app/http_security.py | Host/Origin/Fetch Metadata, CSRF and Ingest credential boundary |
-| app/db.py + migrations/ | WAL/connections/transactions/redaction and startup schema |
-| app/service.py | Ingest, review overlays, immutable originals, manual data and exports |
-| app/review_integrity.py | Staleness/decision integrity and export blocking |
-| app/dataset_platform.py | Filesystem version inventory, health, derive/freeze/release |
-| app/dataset_quality.py + dataset_balancer.py | Read-only quality/dedup/balance diagnostics |
-| app/dataset_registry.py + review_lifecycle.py | Prepared registry/event policy; not proof of activated production migrations |
-| app/native_tool_data.py + tool_runtime.py | Tool schemas, authority, protocol contracts |
-| app/training_control.py | Model/config/job/preflight and authorization |
-| app/runtime_control.py | WSL runtime commands, staging, workers, attempts/recovery |
-| app/evaluation_guard.py + phase3* | Provenance/comparison/review/remediation; some source holds protected data |
-| static/ | Plain HTML/CSS/JS; English LTR chrome, independent Arabic direction; no bundler |
-| config/ | Generic catalogs/capabilities/defaults; installation paths belong in ignored state |
-| migrations/ | Startup-executed 001–004 only; no proposed SQL as incidental cleanup |
-| plans/ | Unapproved SQL/proposals, outside loader |
-| scripts/ | Setup/launch/backup and explicit audit/ML utilities; historical imports may have effects |
-| tests/ | Synthetic regression and explicit private historical-artifact checks |
-| docs/ | Current guides/status plus dated historical records, Corpus design and ADRs |
+| app/server.py, http_security.py | Loopback request boundary, JSON/CSRF/ingest checks, routes and static delivery |
+| app/chat_workspace.py, chat_engine.py, chat_engine_worker.py | Own complete Chat receipts, consent, exact context admission and bounded local engine access |
+| app/integrations.py, hardware.py | Session-only connector consent and explicitly labeled device evidence |
+| app/db.py, migrations/ | SQLite originals/overlays/manual/Chat metadata; startup migration caveats |
+| app/service.py, review_integrity.py, review_lifecycle.py | Ingest, review/manual data, export readiness and optional event contracts |
+| app/clean_export.py, dataset_platform.py | Deterministic dataset selection, files, versions, manifests and freeze |
+| app/dataset_masks.py, dataset_validation.py, dataset_tools.py | Shared dataset supervision, validation and pure tool-schema/canonicalization helpers |
+| app/dataset_quality.py, dataset_balancer.py | Read-only diagnostics, duplicate/holdout/balance checks |
+| app/dataset_registry.py, platform_state.py | Prepared dataset registry and local dataset catalog; no platform execution status |
+| app/phase38_dataset.py, phase39_edits.py, phase39a_resolution.py, phase310_freeze.py | Dataset-specific remediation/review/freeze evidence; private records require rights/privacy care |
+| app/unsloth_export.py | Immutable external conversational handoff and provenance |
+| static/ | Framework-free HTML/CSS/JS; English controls, independent Arabic direction |
+| scripts/ | Setup, launch, private backup, documentation and dataset validation utilities |
+| public_source/ | Separately built and hash-reviewed reduced Core profile |
+| tests/, docs/ | Synthetic verification and explicit evidence/limitations |
 
-Generated data/datasets/exports/training/reports/checkpoints/backups are private state, not source assets. WSL models/environments and Hermes are optional external integrations with separate authorization. See [architecture](architecture.md) and [handover](maintainer-handover.md).
+Private operational directories are not source artifacts. Local model services are externally managed; no trainer/runtime deployment path is supplied. [Architecture](architecture.md), [migrations](database-and-migrations.md), [review](review-and-quality.md).

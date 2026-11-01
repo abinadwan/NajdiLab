@@ -5,15 +5,15 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
 from tests.support import CandidateCase
 
 class DatasetWorkflow(CandidateCase):
     def setUp(self):
-        self.stop()
-        for name in ['data','exports','datasets','backups']:
-            p=self.work/name
-            if p.exists():shutil.rmtree(p)
-        self.start()
+        self.reset_storage()
 
     def seed_valid(self,count=28):
         for n in range(count):
@@ -105,12 +105,14 @@ class DatasetWorkflow(CandidateCase):
         self.assertEqual(self.request(f'/api/v1/dataset-versions/{version}/quality-findings')[1]['status'],'BLOCKED')
 
     def test_linked_export_root_is_denied_before_writing(self):
+        self.require_symlink(directory=True)
         self.seed_valid();root=self.work/'exports';saved=self.work/'preserved-empty-exports';root.rename(saved);outside=self.work.parent/'fictional-outside';outside.mkdir()
         try:
             root.symlink_to(outside,target_is_directory=True)
             code,_=self.request('/api/v1/exports',{'include_demo':True});self.assertEqual(code,403);self.assertFalse(list(outside.iterdir()))
         finally:
-            root.unlink();saved.rename(root)
+            if root.is_symlink():root.unlink()
+            saved.rename(root)
 
     def test_demo_inclusion_requires_a_boolean(self):
         for value in ['false',1,None]:
@@ -140,3 +142,71 @@ class DatasetWorkflow(CandidateCase):
         manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'));manifest['sha256']['evaluation_holdout.jsonl']=hashlib.sha256(b'').hexdigest();manifest['files']['evaluation_holdout.jsonl']=0;(directory/'manifest.json').write_text(json.dumps(manifest));c=sqlite3.connect(self.work/'data/najdilab.db');c.execute('UPDATE dataset_versions SET manifest_json=? WHERE version=?',(json.dumps(manifest),version));c.commit();c.close()
         self.assertEqual(self.request(f'/api/v1/dataset-versions/{version}/health')[1]['status'],'BLOCKED')
         self.assertEqual(self.request(f'/api/v1/dataset-versions/{version}/release-validation')[1]['status'],'BLOCKED')
+
+
+class FixtureLifecycleTests(unittest.TestCase):
+    def test_storage_reset_stops_owned_server_before_removing_state_and_restarts(self):
+        events = []
+        class Fixture(CandidateCase):
+            proc = None
+            @classmethod
+            def stop(cls):
+                events.append('stopped')
+            @classmethod
+            def start(cls):
+                events.append('started')
+        with tempfile.TemporaryDirectory(prefix='fixture lifecycle ') as tmp:
+            Fixture.work = Path(tmp) / 'candidate'
+            Fixture.work.mkdir()
+            for name in ('data', 'exports', 'datasets', 'backups'):
+                (Fixture.work / name).mkdir()
+            remove = shutil.rmtree
+            def guarded_remove(path):
+                self.assertEqual(events[0], 'stopped')
+                self.assertNotIn('started', events)
+                events.append(Path(path).name)
+                remove(path)
+            with patch('tests.support.shutil.rmtree', side_effect=guarded_remove):
+                Fixture.reset_storage()
+        self.assertEqual(events, ['stopped', 'data', 'exports', 'datasets', 'backups', 'started'])
+
+    def test_storage_reset_refuses_to_delete_when_owned_server_is_still_running(self):
+        from unittest.mock import Mock
+        class Fixture(CandidateCase):
+            proc = Mock()
+            @classmethod
+            def stop(cls):
+                pass
+        Fixture.proc.poll.return_value = None
+        with patch('tests.support.shutil.rmtree') as remove:
+            with self.assertRaisesRegex(AssertionError, 'stopped server'):
+                Fixture.reset_storage()
+            remove.assert_not_called()
+
+    def test_windows_stop_targets_only_owned_process_tree_and_waits(self):
+        from unittest.mock import Mock
+        class Fixture(CandidateCase):
+            proc = Mock(pid=12345)
+        process = Fixture.proc
+        process.poll.return_value = None
+        result = Mock(returncode=0)
+        with patch('tests.support.os.name', 'nt'), \
+                patch('tests.support.subprocess.run', return_value=result) as terminate:
+            Fixture.stop()
+        terminate.assert_called_once_with(['taskkill', '/PID', '12345', '/T', '/F'],
+                                          capture_output=True, timeout=10)
+        process.wait.assert_called_once_with(timeout=10)
+        self.assertIsNone(Fixture.proc)
+
+    def test_failed_owned_process_tree_stop_cannot_reset_storage(self):
+        from unittest.mock import Mock
+        class Fixture(CandidateCase):
+            proc = Mock(pid=12345)
+        Fixture.proc.poll.return_value = None
+        result = Mock(returncode=1, stderr=b'synthetic stop refusal')
+        with patch('tests.support.os.name', 'nt'), \
+                patch('tests.support.subprocess.run', return_value=result), \
+                patch('tests.support.shutil.rmtree') as remove:
+            with self.assertRaisesRegex(AssertionError, 'Unable to stop'):
+                Fixture.reset_storage()
+            remove.assert_not_called()

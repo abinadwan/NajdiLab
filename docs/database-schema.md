@@ -18,7 +18,7 @@ The database is `data/najdilab.db`. Connections enable `foreign_keys=ON`, `journ
 | `dataset_versions` | Export registry | Unique version name and stored manifest |
 | `settings` | Local settings foundation | JSON key/value |
 
-This describes the foundation schema. Proposed registry and immutable event tables under `plans/` are not evidence of production activation; see [the migration review](corpus-v1.1/07-migration-review-005-007.md).
+This describes the foundation schema. Proposed registry and immutable event tables under `plans/` are not evidence of production activation; see [the migration review](database-and-migrations.md).
 
 ## Original content
 
