@@ -416,13 +416,13 @@ class NajdiLabTests(unittest.TestCase):
         self.assertGreater(sync_manual_export_history(self.db), 0)
         self.assertEqual(get_manual_data("direct", direct["id"], self.db)["exported_versions"], ["gold-v001"])
 
-    def test_21_review_action_helpers_approve_and_correct(self):
+    def test_21_review_action_helpers_with_explicit_eligibility(self):
         approved_source = self.ingest("approve-action", assistant="رد يعتمد")
         corrected_source = self.ingest("correct-action", assistant="رد يحتاج تعديل")
-        approved = approve_review(approved_source["review_id"], {}, self.db)
+        approved = approve_review(approved_source["review_id"], {"training_eligible": True}, self.db)
         corrected = correct_review(
             corrected_source["review_id"],
-            {"review_status": "DIALECT_CORRECTION", "corrected_response": "رد مصحح"},
+            {"review_status": "DIALECT_CORRECTION", "corrected_response": "رد مصحح", "training_eligible": True},
             self.db,
         )
         self.assertEqual(approved["review_status"], "APPROVED")
@@ -542,7 +542,7 @@ class NajdiLabTests(unittest.TestCase):
         approved_source = self.ingest("archive-approved", assistant="نص معتمد")
         ignore_review(ignored_source["review_id"], {"ignored_reason": "للأرشيف"}, self.db)
         delete_review(deleted_source["review_id"], {}, self.db)
-        approve_review(approved_source["review_id"], {}, self.db)
+        approve_review(approved_source["review_id"], {"training_eligible": True}, self.db)
         export = create_export(self.db, self.exports)
         path = Path(export["path"])
         archive = json.loads((path / "full_archive.json").read_text(encoding="utf-8"))
@@ -630,10 +630,10 @@ class NajdiLabTests(unittest.TestCase):
 
     def test_29_all_review_decisions_stay_out_of_queue_after_reload(self):
         records = [self.ingest(f"reload-{index}") for index in range(4)]
-        approve_review(records[0]["review_id"], {}, self.db)
+        approve_review(records[0]["review_id"], {"training_eligible": True}, self.db)
         correct_review(
             records[1]["review_id"],
-            {"review_status": "FULL_CORRECTION", "corrected_response": "نسخة مصححة"},
+            {"review_status": "FULL_CORRECTION", "corrected_response": "نسخة مصححة", "training_eligible": True},
             self.db,
         )
         ignore_review(records[2]["review_id"], {}, self.db)

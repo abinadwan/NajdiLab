@@ -11,7 +11,7 @@ import shutil
 import sqlite3
 import tempfile
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -504,42 +504,52 @@ def _save_review_conn(
         corrected = None
     elif corrected is None or not str(corrected).strip():
         raise ValidationError("The complete corrected response is required")
-    tags = list(dict.fromkeys(data.get("tags") or []))
-    invalid_tags = set(tags) - ERROR_TAGS
-    if invalid_tags:
-        raise ValidationError(f"Invalid tags: {', '.join(sorted(invalid_tags))}")
-    training_eligible = _bool(data.get("training_eligible"))
-    evaluation_only = _bool(data.get("evaluation_only"))
-    exclude = _bool(data.get("exclude_from_training"))
-    if evaluation_only or exclude:
-        training_eligible = 0
-    reviewer = _reviewer(data)
     current = conn.execute("SELECT * FROM reviews WHERE id = ?", (review_id,)).fetchone()
     if not current:
         raise ValidationError("Review not found")
-    expected = data.get("expected_updated_at")
-    if expected is not None and str(expected) != str(current["updated_at"]):
-        raise ValidationError("The review changed after it was loaded; reload before saving")
-    now = utc_now()
+    _check_review_revision(current, data)
+    saved_tags = [row[0] for row in conn.execute("SELECT tag FROM review_tags WHERE review_id=?", (review_id,))]
+    raw_tags = data.get("tags", saved_tags)
+    if not isinstance(raw_tags, list) or any(not isinstance(tag, str) for tag in raw_tags):
+        raise ValidationError("Review tags must be a list of strings")
+    tags = list(dict.fromkeys(raw_tags))
+    invalid_tags = set(tags) - ERROR_TAGS
+    if invalid_tags:
+        raise ValidationError(f"Invalid tags: {', '.join(sorted(invalid_tags))}")
+    flags = {}
+    for key in ("training_eligible", "evaluation_only", "exclude_from_training",
+                "contains_sensitive_data", "contains_personal_data", "needs_fact_check"):
+        value = data.get(key, current[key])
+        if not (type(value) is bool or type(value) is int and value in (0, 1)):
+            raise ValidationError("Review flags must be booleans")
+        flags[key] = int(value)
+    training_eligible = flags["training_eligible"]
+    evaluation_only = flags["evaluation_only"]
+    exclude = flags["exclude_from_training"]
+    if any(value for key, value in flags.items() if key != "training_eligible"):
+        training_eligible = 0
+    reviewer = _reviewer({"reviewer": current["reviewer"], **data})
+    now = _review_revision_time(current)
     conn.execute(
                 """
                 UPDATE reviews SET review_status = ?, corrected_response = ?, review_notes = ?, reviewer = ?,
                     training_eligible = ?, exclude_from_training = ?, evaluation_only = ?,
                     contains_sensitive_data = ?, contains_personal_data = ?, needs_fact_check = ?,
-                    ignored_at = NULL, ignored_reason = NULL, deleted_at = NULL, updated_at = ?
+                    ignored_at = NULL, ignored_reason = ?, deleted_at = NULL, updated_at = ?
                 WHERE id = ?
                 """,
                 (
                     status,
                     corrected,
-                    data.get("review_notes"),
+                    data.get("review_notes", current["review_notes"]),
                     reviewer,
                     training_eligible,
                     exclude,
                     evaluation_only,
-                    _bool(data.get("contains_sensitive_data")),
-                    _bool(data.get("contains_personal_data")),
-                    _bool(data.get("needs_fact_check")),
+                    flags["contains_sensitive_data"],
+                    flags["contains_personal_data"],
+                    flags["needs_fact_check"],
+                    current["ignored_reason"],
                     now,
                     review_id,
                 ),
@@ -554,7 +564,6 @@ def _save_review_conn(
 
 def approve_review(review_id: int, data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     payload = {**data, "review_status": "APPROVED"}
-    payload.setdefault("training_eligible", True)
     return save_review(review_id, payload, db_path)
 
 
@@ -563,7 +572,6 @@ def correct_review(review_id: int, data: dict[str, Any], db_path: Path | str = D
     if status not in CORRECTION_REVIEW_STATUSES:
         raise ValidationError("Invalid correction type")
     payload = {**data, "review_status": status}
-    payload.setdefault("training_eligible", True)
     return save_review(review_id, payload, db_path)
 
 
@@ -616,28 +624,52 @@ def exclude_review(review_id: int, data: dict[str, Any], db_path: Path | str = D
     return ignore_review(review_id, {**data, "ignored_reason": reason}, db_path)
 
 
-def restore_review(review_id: int, data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+def _check_review_revision(current: sqlite3.Row, data: dict[str, Any]) -> None:
+    if "expected_updated_at" in data and data["expected_updated_at"] != current["updated_at"]:
+        raise ValidationError("The review changed after it was loaded; reload before saving")
+
+
+def _review_revision_time(current: sqlite3.Row) -> str:
+    now = datetime.fromisoformat(utc_now().replace("Z", "+00:00"))
+    try:
+        previous = datetime.fromisoformat(current["updated_at"].replace("Z", "+00:00"))
+    except ValueError:
+        # Legacy imported rows may have non-ISO timestamps; do not rewrite them
+        # until an explicit action updates that row.
+        previous = None
+    if previous is not None:
+        if previous.tzinfo is None:
+            previous = previous.replace(tzinfo=timezone.utc)
+        now = max(now, previous + timedelta(microseconds=1))
+    return now.isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def _restore_review_conn(
+    conn: sqlite3.Connection, review_id: int, data: dict[str, Any], db_path: Path | str
+) -> dict[str, Any]:
     reason = _required(data, "reason")
+    current = conn.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
+    if not current:
+        raise ValidationError("Review not found")
+    _check_review_revision(current, data)
+    if current["review_status"] not in {"IGNORED", "DELETED"}:
+        raise ValidationError("Only excluded or deleted reviews can be restored")
+    conn.execute(
+        "UPDATE reviews SET review_status='PENDING',training_eligible=0,ignored_at=NULL,"
+        "ignored_reason=?,deleted_at=NULL,reviewer=?,updated_at=? WHERE id=?",
+        (reason, _reviewer({"reviewer": current["reviewer"], **data}), _review_revision_time(current), review_id),
+    )
+    tags = [row[0] for row in conn.execute("SELECT tag FROM review_tags WHERE review_id=?", (review_id,))]
+    _record_review_event(conn, current, "PENDING", data, reason=reason,
+                         corrected_response=current["corrected_response"], tags=tags)
+    return get_review(review_id, db_path, conn=conn)
+
+
+def restore_review(review_id: int, data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     conn = connect(db_path)
     try:
         with transaction(conn):
-            current = conn.execute("SELECT * FROM reviews WHERE id = ?", (review_id,)).fetchone()
-            if not current:
-                raise ValidationError("Review not found")
-            if current["review_status"] not in {"IGNORED", "DELETED"}:
-                raise ValidationError("Only excluded or deleted reviews can be restored")
-            now = utc_now()
-            conn.execute(
-                """
-                UPDATE reviews SET review_status='PENDING', training_eligible=0,
-                    exclude_from_training=0, evaluation_only=0, ignored_at=NULL,
-                    ignored_reason=NULL, deleted_at=NULL, reviewer=?, updated_at=?
-                WHERE id=?
-                """,
-                (_reviewer(data), now, review_id),
-            )
-            _record_review_event(conn, current, "PENDING", data, reason=reason)
-            return get_review(review_id, db_path, conn=conn)
+            return _restore_review_conn(conn, review_id, data, db_path)
     finally:
         conn.close()
 
@@ -655,35 +687,37 @@ def bulk_review_actions(data: dict[str, Any], db_path: Path | str = DB_PATH) -> 
     action = _required(data, "action").lower()
     if action not in {"approve", "correct", "exclude", "restore"}:
         raise ValidationError("Invalid bulk review action")
+    revisions = data.get("expected_updated_at_by_id")
+    if revisions is not None:
+        if not isinstance(revisions, dict) or any(
+            not isinstance(revisions.get(str(review_id)), str) or not revisions[str(review_id)]
+            for review_id in review_ids
+        ):
+            raise ValidationError("A saved revision is required for every selected review")
     conn = connect(db_path)
     results: list[dict[str, Any]] = []
     try:
         with transaction(conn):
             for review_id in review_ids:
+                item_data = {**data}
+                if revisions is not None:
+                    item_data["expected_updated_at"] = revisions[str(review_id)]
                 if action == "approve":
-                    results.append(_save_review_conn(conn, review_id, {**data, "review_status": "APPROVED", "training_eligible": data.get("training_eligible", True)}, db_path))
+                    results.append(_save_review_conn(conn, review_id, {**item_data, "review_status": "APPROVED"}, db_path))
                 elif action == "correct":
-                    results.append(_save_review_conn(conn, review_id, {**data, "training_eligible": data.get("training_eligible", True)}, db_path))
+                    results.append(_save_review_conn(conn, review_id, item_data, db_path))
                 elif action == "exclude":
                     reason = _required(data, "reason")
                     current = conn.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
                     if not current:
                         raise ValidationError("Review not found")
-                    now = utc_now()
+                    _check_review_revision(current, item_data)
+                    now = _review_revision_time(current)
                     conn.execute("UPDATE reviews SET review_status='IGNORED',training_eligible=0,ignored_at=?,ignored_reason=?,deleted_at=NULL,reviewer=?,updated_at=? WHERE id=?", (now, reason, _reviewer(data), now, review_id))
                     _record_review_event(conn, current, "IGNORED", data, reason=reason)
                     results.append(get_review(review_id, db_path, conn=conn))
                 else:
-                    reason = _required(data, "reason")
-                    current = conn.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
-                    if not current:
-                        raise ValidationError("Review not found")
-                    if current["review_status"] not in {"IGNORED", "DELETED"}:
-                        raise ValidationError(f"Review {review_id} cannot be restored")
-                    now = utc_now()
-                    conn.execute("UPDATE reviews SET review_status='PENDING',training_eligible=0,exclude_from_training=0,evaluation_only=0,ignored_at=NULL,ignored_reason=NULL,deleted_at=NULL,reviewer=?,updated_at=? WHERE id=?", (_reviewer(data), now, review_id))
-                    _record_review_event(conn, current, "PENDING", data, reason=reason)
-                    results.append(get_review(review_id, db_path, conn=conn))
+                    results.append(_restore_review_conn(conn, review_id, item_data, db_path))
         return {"action": action, "count": len(results), "items": results}
     finally:
         conn.close()
