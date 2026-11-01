@@ -478,6 +478,8 @@ def _record_review_event(
     corrected_response: str | None = None,
     tags: list[str] | None = None,
 ) -> None:
+    # The Core profile (migrations 001-004) intentionally has no event table; readiness
+    # reports that as REVIEW_HISTORY_UNAVAILABLE. The full app always has it after startup.
     if not _has_review_events(conn):
         return
     append_event(
@@ -1460,15 +1462,29 @@ def bulk_update_manual_data(data: dict[str, Any], db_path: Path | str = DB_PATH)
     }
     if not isinstance(items, list) or not items or action not in actions:
         raise ValidationError("Invalid bulk action")
+    # SEC-04: reject oversized batches explicitly — silent truncation at 500 hides data loss.
+    if len(items) > 500:
+        raise ValidationError(f"Batch too large: {len(items)} items exceed the 500-item limit")
+    # SEC-04: validate all items before opening a transaction — reject the whole request
+    # if any item is malformed; do not silently ignore bad entries.
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValidationError(f"Item at position {index} is not a dict")
+        item_type = item.get("type")
+        item_id = item.get("id")
+        if item_type not in MANUAL_TABLES:
+            raise ValidationError(f"Item at position {index} has invalid type {item_type!r}")
+        try:
+            int(item_id)
+        except (TypeError, ValueError):
+            raise ValidationError(f"Item at position {index} has invalid id {item_id!r}")
     updated = 0
     # SEC-04: wrap all item updates in one transaction so a failure on item N does not
     # leave items 1..N-1 already committed while the rest are not.
     conn = connect(db_path)
     try:
         with transaction(conn):
-            for item in items[:500]:
-                if not isinstance(item, dict):
-                    continue
+            for item in items:
                 payload = {**actions[action], "change_notes": data.get("change_notes") or "Bulk edit"}
                 _update_manual_data_conn(conn, str(item.get("type")), int(item.get("id")), payload)
                 updated += 1

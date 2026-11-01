@@ -90,6 +90,7 @@
     "docs/verification-evidence.md",
     "migrations/005_chat_workspace.sql",
     "migrations/006_chat_session_binding.sql",
+    "migrations/007_review_events.sql",
     "plans/phase13/005_dataset_registry.sql",
     "plans/phase2/006_review_events.sql",
     "public_source/.policy-generation-note.txt",
@@ -181,6 +182,8 @@
     "tests/test_phase39_api.py",
     "tests/test_phase39_edits.py",
     "tests/test_phase39_mt06_repair.py",
+    "tests/test_phase_a_dataset_acceptance.py",
+    "tests/test_phase_a_regressions.py",
     "tests/test_platform_state.py",
     "tests/test_review_integrity.py",
     "tests/test_review_lifecycle.py",
@@ -210,11 +213,11 @@
     },
     "app/dataset_balancer.py": {
       "destination": "app/dataset_balancer.py",
-      "sha256": "27448d307a8706ac5c4ac30723d5b1a497da0a2289cc562793ec40dc24fd84e3"
+      "sha256": "bc67755deeeebd77317e75db0a8b6d9939cb89d9bd5fa45e28a210e7b2823aed"
     },
     "app/dataset_platform.py": {
       "destination": "app/dataset_platform.py",
-      "sha256": "77d53b62a9c50504f630d3ec190b8c8461cefcbc14b3154202b74a0275255115"
+      "sha256": "7ab62bccf102ec979b5154e96d6a7ae1cba22cfb2d96fa0e51a157b395a5442e"
     },
     "app/dataset_quality.py": {
       "destination": "app/dataset_quality.py",
@@ -222,7 +225,7 @@
     },
     "app/db.py": {
       "destination": "app/db.py",
-      "sha256": "0124721c461f3bf65c68651e15e5a13336cd35ef4bfc013fa43de711ec942bae"
+      "sha256": "2ca844d9a682fe5f41152fd50e8cbd69c0582765d20e6e846aa1a2bfc9c4f07e"
     },
     "app/http_security.py": {
       "destination": "app/http_security.py",
@@ -230,15 +233,15 @@
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
-      "sha256": "bfedf84f3658d43e8a3b39866590d90c9b4a27983d070450afc1b6602ad482ea"
+      "sha256": "182343ed9610d8a4141378a174fc9d3d9effc0eec1f3103cef14db9eca082f4b"
     },
     "app/review_lifecycle.py": {
       "destination": "app/review_lifecycle.py",
-      "sha256": "eff2930396074b17280c250107a2eaa8e7e53203d1d3ad78ecf328274eb37cad"
+      "sha256": "7d561c8f9e7c09e22497fb0254a2f9fdcbde63e1e63bc317683d36b926816413"
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "85ee540d28342faec7d5137ad666ad00cc4599caca847168b0c64ac705ca9fc5"
+      "sha256": "94d4d0f113900c20a445aa9eedf474bbf9d224751e6e440d8cf0d3b08dff052b"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",

@@ -2,46 +2,30 @@
 
 ## Unreleased — Phase A: Data Integrity and Security (11 findings)
 
-### SEC-03 — Deleted review approval bypass
-- `_save_review_conn` in `app/service.py` now calls `validate_transition` directly before the UPDATE, independently of `_record_review_event`. Previously the call chain skipped validation when the `review_events` table was absent, allowing DELETED reviews to be approved.
+Includes the corrections from the independent review of PR #18.
 
-### SEC-04 — Bulk update partial-commit risk
-- `bulk_update_manual_data` refactored to use a single `transaction(conn)` block wrapping all item updates. Previously each item opened its own connection and committed independently, leaving partial state on failure. Extracted `_update_manual_data_conn` for shared logic between single and bulk paths.
+### Review lifecycle and audit trail
+- SEC-03: `_save_review_conn` validates the lifecycle transition before writing, independent of the `review_events` table, so a DELETED or IGNORED review cannot be approved without restoration. Re-saving a decision with the same status (edited correction or restriction flags) is now an allowed, audited transition; without it, `review_events` would have blocked marking an approved review as personal data.
+- SEC-05: `migrations/007_review_events.sql` creates the immutable `review_events` table and a one-row immutable `review_event_baseline` holding the highest pre-upgrade review id. No historical events are fabricated. Readiness reports legacy reviews without events as `REVIEW_HISTORY_UNVERIFIABLE` (warning), post-upgrade reviews without events as `REVIEW_EVENT_MISSING` (blocking), and event conflicts as blocking; a missing baseline fails closed. The public Core profile keeps its 001–004 contract and does not ship 007.
 
-### SEC-05 — `review_events` table never created by migrations
-- Added `migrations/007_review_events.sql` (promoted from `plans/phase2/006_review_events.sql`). The table now exists in every database after `apply_migrations`. Includes FK to `reviews(id) ON DELETE RESTRICT` and immutability triggers (BEFORE UPDATE / BEFORE DELETE raise ABORT).
+### Bulk manual edits
+- SEC-04: `bulk_update_manual_data` validates the whole request first (non-dict items, unknown types and invalid ids are rejected, not skipped), rejects more than 500 items instead of truncating, and applies all updates and version rows in one transaction.
 
-### DB-01 — Migration loader executed non-migration SQL files
-- `apply_migrations` now filters candidates with `re.fullmatch(r"\d{3}_[a-z0-9_]+\.sql", ...)`. Rollback files (e.g. `rollback_001.sql`) and helper scripts are skipped.
+### Migrations and backup
+- DB-01: the loader accepts only `NNN_lowercase_words.sql` names without `rollback`, `revert`, `undo`, `down`, `helper`, `seed` or `fixture`.
+- DB-02: `atomic_migration_script` commits each migration and its ledger row together. It supports two explicit forms and refuses any other before a pending migration runs; failures roll back schema and ledger together.
+- DB-03: `backup_db()` is the single snapshot implementation, now used by `scripts/backup.py`: read-only source, `integrity_check` on the copy, never overwrites, never creates a missing source. Docs make the verified pre-upgrade backup the rollback for 007 and prohibit dropping `review_events`.
 
-### DB-02 — Schema change without ledger entry on crash
-- Each migration's ledger `INSERT INTO schema_migrations` is now injected atomically inside the migration's own `BEGIN…COMMIT` block. Migrations without an explicit transaction are wrapped in `BEGIN; … COMMIT;`. A crash between schema change and ledger entry is no longer possible.
+### Dataset contracts
+- DATA-01: freeze refuses a version with no training records; end-to-end tests prove Frozen manifests carry matching diagnostics and loss-mask metadata and that missing or stale metadata keeps the version Draft.
+- DATA-02: absent diagnostics give an actionable reason distinct from stale diagnostics; a valid Draft reports READY.
+- DATA-03/DATA-04: the Balancer takes evaluation files from `dataset_platform.EVAL_FILES` and now supports `native_tool_use.jsonl`, matching Health, Quality and Unsloth export.
+- DATA-05: a missing exports directory is created; a fresh installation's `/api/v1/dataset-versions` returns an empty list, which the UI shows as "No dataset versions are available to check."
 
-### DB-03 — Undocumented backup scope and recovery boundary
-- Added `backup_db()` to `app/db.py` using SQLite's hot-backup API. Docstring documents backup boundary (the `.db` file covers all application state), recovery procedure (`restore file → apply_migrations`), and the derived nature of export files. `apply_migrations` is idempotent on a restored database.
-
-### DATA-01 — Dataset version freeze with zero training records
-- `freeze_dataset_version` in `app/dataset_platform.py` now raises `DatasetPlatformError("INVALID_MANIFEST", ...)` when `training_count == 0`. All integrity checks passing trivially on an empty version is no longer a valid freeze path.
-
-### DATA-02 — Misleading diagnostics-status message
-- `_diagnostics_status` now returns distinct, actionable messages: "diagnostics have not been generated (run Regenerate Diagnostics first)" when no diagnostics metadata exists; "diagnostics are stale: version or training fingerprint does not match current files" when metadata is present but stale.
-
-### DATA-03 — `evaluation_holdout.jsonl` missing from balancer
-- `DATASET_FILES` in `app/dataset_balancer.py` now derives its evaluation entries from `EVAL_FILES` imported from `app/dataset_platform.py`, which includes `evaluation_holdout.jsonl`.
-
-### DATA-04 — No shared source of truth for eval file names
-- `DATASET_FILES` eval entries are now derived from `EVAL_FILES` via `dict.fromkeys(EVAL_FILES, "evaluation")`, making `dataset_platform.py:EVAL_FILES` the single authority. Divergence between balancer and platform is structurally prevented.
-
-### DATA-05 — `_exports_root` raised on missing directory
-- `_exports_root` now creates the exports directory (with `mkdir(parents=True, exist_ok=True)`) when it does not exist, returning a valid `Path`. `EXPORTS_ROOT_NOT_FOUND` is only raised if creation itself fails (OS error).
-
-### Regression tests
-- `tests/test_phase_a_regressions.py`: 17 new tests covering all 11 findings (443 passed, 28 skipped total; no regressions).
-- `tests/test_review_integrity.py`: Updated to reflect `review_events` table always present after migration. Split `test_approved_review_is_ready_with_history_ambiguity` into two tests distinguishing event-present (READY) from event-absent (BLOCKED, REVIEW_EVENT_MISSING).
-
-### Documentation
-- `docs/remediation/REMEDIATION_ROADMAP.md`: Phase A findings marked FIXED_PENDING_VERIFICATION with per-finding evidence; Phase Status Summary updated (Phase 1 CLOSED, Phase A IN_PROGRESS).
-- `docs/cleanup-inventory.json`: Added `migrations/007_review_events.sql` with SHA256.
+### Tests and policy
+- `tests/test_phase_a_regressions.py` (migration, lifecycle, bulk, legacy-upgrade and backup tests, run against an isolated copy of `migrations/`) and `tests/test_phase_a_dataset_acceptance.py` (freeze, health, balancer and HTTP).
+- `public_source/policy.json`: re-pinned the changed Core-selected modules; classified `migrations/007_review_events.sql` and both new test files as excluded from the Core candidate.
+- Docs: `database-and-migrations.md`, `database-schema.md`, `backup-and-restore.md`, remediation roadmap.
 
 ## Unreleased — Phase 1: Review integrity and QA-01 fix
 
