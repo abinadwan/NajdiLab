@@ -4,6 +4,7 @@
 > **Repository:** `abinadwan/NajdiLab`
 > **Roadmap location:** `docs/remediation/REMEDIATION_ROADMAP.md`
 > **Baseline established:** Phase 0 — 2026-11-01
+> **File and line references:** valid at baseline `3b1405846ab6fdd45151cc163418fb5c0dc0e027`.
 
 ---
 
@@ -11,21 +12,19 @@
 
 | Item | Value |
 |---|---|
-| `main` HEAD SHA | `3b1405846ab6fdd45151cc163418fb5c0dc0e027` |
+| `main` HEAD SHA | `3b1405846ab6fdd45151cc163418fb5c0dc0e027` (unchanged since program initialization) |
 | Merge description | Merge pull request #14 from `fix/review-restriction-integrity` |
 | Merge timestamp | 2026-11-01T17:28:33Z |
 | PR #14 state | **MERGED** |
-| Post-merge Ubuntu CI | **PASS** — Source checks run `41331651850` |
-| Post-merge Windows CI | **FAIL** — Source checks run `41331651850` |
+| Post-merge `tests (ubuntu-latest)` | **PASS** — Source checks run `41331651850` |
+| Post-merge `tests (windows-latest)` | **FAIL** — Source checks run `41331651850` |
 | Failing Windows step | `node --test tests/review-restrictions-browser.cjs` |
-| Failing test (Windows) | `correction and explicit flag change preserve unrelated restrictions` |
+| Failing test | Subtest 5, `correction and explicit flag change preserve unrelated restrictions` |
 | Failure location | `tests/review-restrictions-browser.cjs:68:14` |
-| Failure assertion | `strictEqual(r.contains_personal_data, 0)` — actual `1`, expected `0` |
+| Failure assertion | `assert.equal(r.contains_personal_data, 0)` in strict mode — actual `1`, expected `0` |
+| Browser result | 9 tests: 7 passed, 2 failed (subtest 5 and its parent); subtests 1–4 and 6–8 passed |
 
-**PR #14 browser regression results on Windows:**
-- Subtests passed: 7
-- Subtests failed: 2 (test 5 and its parent)
-- Subtests: test 1 ✓ test 2 ✓ test 3 ✓ test 4 ✓ test 5 **✗** test 6 ✓ test 7 ✓ test 8 ✓
+**The application is not green at this baseline.** `main` has a failing required check. QA-01 stays open until Phase 1 closes it.
 
 **No application changes were made during Phase 0.**
 
@@ -39,18 +38,33 @@
 | Business logic | `app/service.py` |
 | Review lifecycle | `app/review_lifecycle.py` |
 | Review integrity | `app/review_integrity.py` |
-| Frontend SPA | `static/app.js` (90 KB), `static/index.html` |
+| Frontend SPA | `static/app.js`, `static/chat.js`, `static/index.html` |
 | Browser tests | `tests/review-restrictions-browser.cjs`, `tests/chat-browser.cjs` |
-| Python tests | `tests/test_review_restriction_integrity.py`, `tests/test_review_lifecycle.py`, `tests/test_review_management.py`, and ~30 other test modules |
-| CI workflows | `.github/workflows/checks.yml`, `.github/workflows/public-source-candidate.yml` |
+| Python tests | `tests/test_review_restriction_integrity.py`, `tests/test_review_lifecycle.py`, `tests/test_review_management.py`, and the other modules under `tests/` |
+| CI workflows | `.github/workflows/checks.yml` (push to `main`, pull requests), `.github/workflows/public-source-candidate.yml` (pull requests only) |
 | Migrations | `migrations/001_initial.sql` … `migrations/006_chat_session_binding.sql` |
 
-**CI matrix:** Ubuntu + Windows on every push to `main` and on pull requests. Tests include pytest (Python), Node `--test` (JS unit), and Puppeteer (Chromium browser acceptance).
+### 2.1 Skipped tests
 
-**Skip counts (Windows baseline):**
-- 9 intentionally disabled real-Ollama tests
-- 22 absent private-artifact checks
-- 2 Windows-only checks total skips = 31
+**Windows application skip inventory: 32** (`docs/cleanup-results.md:40`).
+
+| Category | Count | Finding | Source |
+|---|---|---|---|
+| Real-Ollama opt-in checks | 9 | QA-02 | `tests/test_chat_ollama_real.py`; requires `NAJDILAB_DISPOSABLE_OLLAMA=1` |
+| Private historical-artifact checks | 22 | QA-03 | `tests/test_dataset_balancer.py`, `tests/test_dataset_platform.py`, `tests/test_phase310_gates.py`, `tests/test_phase38_dataset.py`, `tests/test_phase38_ui.py`, `tests/test_phase39_api.py`, `tests/test_phase39_edits.py`, `tests/test_phase39_mt06_repair.py` |
+| Symlink-capability check | 1 | QA-04 | `tests/test_integrations.py:201`; skips at `:207` when the Windows account cannot create symlinks |
+| **Total** | **32** | | |
+
+**Exact hosted CI counts.** The symlink skip is conditional and did not fire on hosted Windows, so hosted runs report 31 (`docs/verification-evidence.md:42`). This means hosted CI does not exercise the symlink-unavailable path that QA-04 covers.
+
+| Run | Windows | Ubuntu |
+|---|---|---|
+| `41331651850` (`main`) | 448 passed, 31 skipped, 59 subtests passed | 446 passed, 33 skipped, 59 subtests passed |
+| `41334507091` (PR #16, `126d520`) | 448 passed, 31 skipped, 59 subtests passed | 446 passed, 33 skipped, 59 subtests passed |
+
+Ubuntu's 33 are the same 9 + 22 plus two Windows-only checks: the PowerShell launcher check and the drive-type boundary at `tests/test_integrations.py:333`.
+
+**Rule:** A skipped or blocked test is NEVER recorded as PASS.
 
 ---
 
@@ -75,144 +89,227 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 ## 4. Complete Finding Inventory
 
-### 4.1 QA Findings
+### 4.0 Totals
 
-| ID | Description | Phase | Severity | Status | Notes |
-|---|---|---|---|---|---|
-| QA-01 | Windows Chromium regression: `correction and explicit flag change preserve unrelated restrictions` fails (line 68, `contains_personal_data=1` instead of 0) | 1 | P1 | OPEN | Passes on Ubuntu, fails on Windows only; root cause is async or rendering timing on Windows Chrome |
-| QA-02 | 9 intentionally skipped real-Ollama regression tests | 8 | P2 | OPEN | Cannot be verified without owner-authorized hardware; status is UNVERIFIED by design |
-| QA-03 | 22 private-artifact regression tests skipped in distributed repo | 7 | P2 | OPEN | Private historical records unavailable; only synthetic-fixture equivalents can be added |
-| QA-04 | Windows symlink privilege requirement in tests | 7 | P2 | OPEN | Acceptance tests should not require administrator privileges |
-| QA-05 | Additional browser/zoom/keyboard/accessibility acceptance not yet covered | 7 | P2 | OPEN | Phase 6 addresses main accessibility; Phase 7 covers remaining browser checks |
-| QA-06 | Hermes external sender: receiver is BLOCKED but external sender not verified | 7 | P2 | OPEN | Do not configure Hermes; document verification boundary |
-| QA-07 | HMAC freshness/replay limitations documented but not fully mitigated | 7 | P2 | OPEN | Requires compatibility review before any fix |
-| QA-08 | Data retention/deletion semantics not fully tested end-to-end | 7 | P2 | OPEN | Distinguish logical exclusion, soft deletion, physical removal, frozen exports |
+**53 unique finding IDs**, the exact set listed in the program's audit-ID coverage requirements. No IDs were added or removed.
 
-### 4.2 Security and Review Integrity Findings
+| Family | Count |
+|---|---|
+| QA-01 – QA-08 | 8 |
+| SEC-01 – SEC-05 | 5 |
+| DATA-01 – DATA-05 | 5 |
+| DB-01 – DB-03 | 3 |
+| UX-01 – UX-27 | 27 |
+| AI-01 – AI-05 | 5 |
+| **Total** | **53** |
 
-| ID | Description | Phase | Severity | Status | Notes |
-|---|---|---|---|---|---|
-| SEC-01 | UX-01 post-merge verification: load/approve/correct/refresh must preserve all restrictions | 1 | P1 | OPEN | PR #14 claims to fix this; must be independently verified via CI not just local tests |
-| SEC-02 | UX-02 post-merge verification: individual and bulk restore must preserve all restrictions | 1 | P1 | OPEN | PR #14 claims to fix this; must be independently verified via CI |
-| SEC-03 | Deleted-review lifecycle bypass: ordinarily approved deleted review can become APPROVED + eligible without authorized restoration | 2 | P1 | OPEN | Verified defect; valid lifecycle transitions must be enforced |
-| SEC-04 | Non-atomic manual bulk operations: partial commits on mixed valid/invalid requests | 2 | P1 | OPEN | Verified defect; all-or-nothing behavior required |
-| SEC-05 | Review event history: `review_events` table absent from inspected isolated database | 2 | P2 | OPEN | Optional table; historical reconstruction limitations must be documented |
-
-### 4.3 Dataset and Export Findings
-
-| ID | Description | Phase | Severity | Status | Notes |
-|---|---|---|---|---|---|
-| DATA-01 | Missing export diagnostics: Gold exports can be frozen without required `diagnostics` and `loss_mask_validation` manifest fields | 3 | P1 | OPEN | Verified defect |
-| DATA-02 | Health false NOT_READY state: valid export may show NOT_READY due to absent diagnostics | 3 | P1 | OPEN | Verified defect; producer/consumer contract misalignment |
-| DATA-03 | Unsupported holdout classification: Balancer rejects `evaluation_holdout.jsonl` as unsupported | 3 | P1 | OPEN | Verified defect |
-| DATA-04 | Cross-tool contract disagreement: Health, Balancer, Quality Checker, Unsloth Export use different manifest/version interpretations | 3 | P1 | OPEN | Shared contract must be established |
-| DATA-05 | Fresh-install empty states: missing-directory error while version selector shows "Loading versions…" | 3 | P2 | OPEN | Verified defect; accurate empty/unavailable/loading/error states required |
-
-### 4.4 Database and Migration Findings
-
-| ID | Description | Phase | Severity | Status | Notes |
-|---|---|---|---|---|---|
-| DB-01 | Unapproved SQL migration execution: rollback-named file in migrations directory can be executed | 4 | P1 | OPEN | Verified defect; allowlist required |
-| DB-02 | Partial migration persistence: failed migration can leave schema modified without ledger entry | 4 | P1 | OPEN | Verified defect; transaction boundary review required |
-| DB-03 | Backup scope and recovery limitations: assets included/excluded not clearly documented or tested | 4 | P2 | OPEN | Documentation and isolated fixture tests required |
-
-### 4.5 UX Findings
-
-| ID | Description | Phase | Severity | Status | Notes |
-|---|---|---|---|---|---|
-| UX-01 | Review restriction preservation during load/approve/correct/refresh | 1 | P1 | FIXED_PENDING_VERIFICATION | PR #14 merged; Windows CI must verify |
-| UX-02 | Individual and bulk restore restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PR #14 merged; Windows CI must verify |
-| UX-03 | Approval/eligibility conflation: approval must never imply automatic eligibility | 5 | P1 | OPEN | |
-| UX-04 | Collection outcome visibility per Chat pair | 5 | P2 | OPEN | Must not expose data without permission |
-| UX-05 | Review continuity: full permitted content, not truncated previews | 5 | P2 | OPEN | |
-| UX-06 | Readiness blocker display: all blockers, not truncated subset | 5 | P2 | OPEN | |
-| UX-07 | Unsaved correction draft loss during navigation | 5 | P1 | OPEN | |
-| UX-08 | Chat Send clears newer draft when earlier request was in flight | 5 | P1 | OPEN | |
-| UX-09 | Chat controls show wrong provider/model/context/session identity | 5 | P2 | OPEN | |
-| UX-10 | Navigation complexity: 15-destination nav needs meaningful grouping | 6 | P2 | OPEN | Read-only UI audit must precede redesign |
-| UX-11 | Dashboard usefulness: hardcoded readiness claims | 6 | P2 | OPEN | |
-| UX-12 | Unsloth Handoff: error-prone manual version name entry | 5 | P2 | OPEN | Validated selection workflow required |
-| UX-13 | Stale Dataset Version catalog after create/refresh | 5 | P2 | OPEN | |
-| UX-14 | Shared tab state hides Add Data forms after Manual Data dialog interaction | 5 | P2 | OPEN | |
-| UX-15 | Empty SFT turns and invalid form state cause uncaught JS exceptions | 5 | P1 | OPEN | |
-| UX-16 | Manual save lacks pending/success/failure/retry states | 5 | P1 | OPEN | Draft must not be lost on failure |
-| UX-17 | Exclusion-reason field labeling inconsistency | 5 | P2 | OPEN | |
-| UX-18 | Historical remediation UI: Phase39 shared state and hardcoded 7-record assumption | 6 | P2 | OPEN | Private historical workflows may be unavailable |
-| UX-19 | Transient toast messages used where persistent error states required | 5 | P2 | OPEN | |
-| UX-20 | Record display limits not exposed; no pagination | 5 | P2 | OPEN | |
-| UX-21 | Arabic and RTL interface support | 6 | P2 | OPEN | Saudi Arabic required; technical identifiers must stay LTR |
-| UX-22 | Accessibility: keyboard navigation, focus, labels, dialogs | 6 | P2 | OPEN | |
-| UX-23 | Responsive layout overflow on narrow viewports (documented at 390px–497px) | 6 | P2 | OPEN | |
-| UX-24 | Sidebar collapse: visual collapse does not actually change layout width | 6 | P2 | OPEN | |
-| UX-25 | Dark-mode text contrast insufficient (~2.13:1 and ~2.45:1 measured) | 6 | P2 | OPEN | WCAG AA required for ordinary text |
-| UX-26 | Misleading status labels: hardcoded port 8770, static "Passed" assertions, lifecycle terminology | 6 | P2 | OPEN | |
-| UX-27 | Evaluation results show stale version identity | 5 | P2 | OPEN | |
-
-### 4.6 AI Integration Findings
-
-| ID | Description | Phase | Severity | Status | Notes |
-|---|---|---|---|---|---|
-| AI-01 | LM Studio RESULT_MISMATCH: `google/gemma-4-e4b` generates output that NajdiLab rejects | 8 | P2 | OPEN | Local observation only; cloud-testable portion is contract/adapter testing |
-| AI-02 | Failed invariant unknown: which of four integrity predicates caused RESULT_MISMATCH is unconfirmed | 8 | P2 | OPEN | Content-free diagnostics only |
-| AI-03 | Real-model Ollama acceptance: 9 intentionally disabled tests (same as QA-02) | 8 | P2 | OPEN | Owner-authorized hardware required; cannot be confirmed in cloud CI |
-| AI-04 | Runtime behavior contracts: identity, token accounting, cancellation, context overflow | 8 | P2 | OPEN | Synthetic adapter tests in cloud CI |
-| AI-05 | Collection privacy: OFF by default, no retroactive collection, no automatic eligibility | 8 | P1 | OPEN | Must be independently verified in Phase 8 |
-
----
-
-## 5. Known Test Limitations
-
-| Limitation | ID | Impact |
+| Phase | Findings | IDs |
 |---|---|---|
-| 9 real-Ollama regression tests are intentionally disabled | QA-02, AI-03 | UNVERIFIED until owner provides hardware-authorized evidence |
-| 22 private historical-artifact tests cannot run in distributed CI | QA-03 | Synthetic equivalents may partially substitute but are not equivalent |
-| Real-model AI acceptance requires owner's local Ollama/LM Studio | AI-01–AI-04 | Cloud CI can only verify synthetic adapter contracts, not real inference |
-| Windows symlink creation may require admin privileges | QA-04 | Tests that create symlinks may behave differently in CI |
+| 0 | 0 | — |
+| 1 | 5 | QA-01, SEC-01, SEC-02, UX-01, UX-02 |
+| 2 | 3 | SEC-03, SEC-04, SEC-05 |
+| 3 | 5 | DATA-01 – DATA-05 |
+| 4 | 3 | DB-01, DB-02, DB-03 |
+| 5 | 16 | UX-03 – UX-09, UX-12 – UX-17, UX-19, UX-20, UX-27 |
+| 6 | 9 | UX-10, UX-11, UX-18, UX-21 – UX-26 |
+| 7 | 6 | QA-03 – QA-08 |
+| 8 | 6 | QA-02, AI-01 – AI-05 |
+| 9 | 0 | Acceptance only |
+| **Total** | **53** | |
 
-**Rule:** A skipped or blocked test is NEVER recorded as PASS.
+### 4.1 Verification classification
+
+| Classification | Meaning | Count | IDs |
+|---|---|---|---|
+| **VERIFIED** (verified defect) | Observed in CI, or stated as verified, reproduced, or measured in the audit | 11 | QA-01, SEC-03, SEC-04, DATA-01, DATA-02, DATA-03, DATA-05, DB-01, DB-02, UX-23, UX-25 |
+| **PARTIALLY VERIFIED** | Some evidence exists, but it does not cover the full finding | 5 | SEC-01, SEC-02, UX-01, UX-02, AI-01 |
+| **SOURCE-SUPPORTED** (source-supported risk) | Phase 0 located code or documentation consistent with the finding; the behavior was not run | 20 | QA-07, SEC-05, DATA-04, UX-04, UX-06, UX-07, UX-08, UX-10, UX-11, UX-12, UX-14, UX-15, UX-16, UX-17, UX-18, UX-19, UX-20, UX-21, UX-24, UX-26 |
+| **NOT TESTED** (untested requirement) | No acceptance evidence exists yet, and Phase 0 found nothing decisive in source | 17 | QA-02, QA-03, QA-04, QA-05, QA-06, QA-08, DB-03, UX-03, UX-05, UX-09, UX-13, UX-22, UX-27, AI-02, AI-03, AI-04, AI-05 |
+| **Total** | | **53** | |
+
+**Limits of these labels:**
+- "Audit" below means the finding's own text in the remediation program. Phase 0 did not re-run those reproductions. `main` is unchanged since the audit baseline, so nothing has been fixed since then.
+- SOURCE-SUPPORTED is not a confirmed defect. Each phase must reproduce the finding before fixing it.
+- Severity values are proposed by this roadmap for owner review. The audit did not assign P1/P2 per finding.
+- As of Phase 0, none of the 53 has a related GitHub Issue, and only UX-01 and UX-02 have a fix PR (#14). Remaining-risk and closure fields are completed in each finding's phase.
+
+### 4.2 QA Findings
+
+| ID | Finding | Phase | Severity | Status | Classification | Evidence |
+|---|---|---|---|---|---|---|
+| QA-01 | Windows Chromium regression: `contains_personal_data` stays `1` after explicit uncheck | 1 | P1 | OPEN | VERIFIED | Failure observed in run `41331651850`, passed in `41334507091`; **cause unconfirmed**, see Section 5 |
+| QA-02 | 9 real-Ollama regression tests intentionally skipped | 8 | P2 | OPEN | NOT TESTED | `tests/test_chat_ollama_real.py`; unverified until genuine acceptance evidence exists |
+| QA-03 | 22 regression tests need private historical artifacts | 7 | P2 | OPEN | NOT TESTED | Skip reasons in CI logs; private records must not be recreated |
+| QA-04 | Safe behavior when symlink creation is unavailable | 7 | P2 | OPEN | NOT TESTED | `tests/test_integrations.py:207`, `public_source/tests/support.py:94,98`; path not exercised on hosted CI |
+| QA-05 | Additional browser, zoom, keyboard and accessibility acceptance | 7 | P2 | OPEN | NOT TESTED | No acceptance evidence yet |
+| QA-06 | Hermes receiver is BLOCKED, but external sender disconnect is unproven | 7 | P2 | OPEN | NOT TESTED | `docs/open-source-readiness.md:7`; do not configure Hermes |
+| QA-07 | HMAC freshness and replay limitations | 7 | P2 | OPEN | SOURCE-SUPPORTED | `SECURITY.md:58`, `docs/open-source-readiness.md:7` |
+| QA-08 | Retention and deletion semantics | 7 | P2 | OPEN | NOT TESTED | No end-to-end evidence across exclusion, soft deletion, removal, exports and backups |
+
+### 4.3 Security and Review Integrity Findings
+
+| ID | Finding | Phase | Severity | Status | Classification | Evidence |
+|---|---|---|---|---|---|---|
+| SEC-01 | Verify UX-01: load, approve, correct, refresh, concurrency and failed requests preserve restrictions; explicit edits still work | 1 | P1 | OPEN | PARTIALLY VERIFIED | `tests/test_review_restriction_integrity.py` passes in CI; the explicit-edit browser path is QA-01 |
+| SEC-02 | Verify UX-02: individual and bulk restore preserve restrictions | 1 | P1 | OPEN | PARTIALLY VERIFIED | Python tests and browser subtests 7–8 passed in both runs; independent Phase 1 verification still required |
+| SEC-03 | Deleted review can reach APPROVED and eligible without restoration | 2 | P1 | OPEN | VERIFIED | Audit |
+| SEC-04 | Non-atomic manual bulk operations can partially commit | 2 | P1 | OPEN | VERIFIED | Audit |
+| SEC-05 | `review_events` may be absent; historical reconstruction is limited | 2 | P2 | OPEN | SOURCE-SUPPORTED | Not created by any file in `migrations/`; defined in `plans/phase2/006_review_events.sql`; `app/review_integrity.py:100-106` handles its absence |
+
+### 4.4 Dataset and Export Findings
+
+| ID | Finding | Phase | Severity | Status | Classification | Evidence |
+|---|---|---|---|---|---|---|
+| DATA-01 | Gold exports can freeze without `diagnostics` and `loss_mask_validation` | 3 | P1 | OPEN | VERIFIED | Audit |
+| DATA-02 | Valid export may show NOT_READY because diagnostics are absent | 3 | P1 | OPEN | VERIFIED | Audit |
+| DATA-03 | Balancer reports `evaluation_holdout.jsonl` as unsupported | 3 | P1 | OPEN | VERIFIED | Audit; `app/dataset_balancer.py:15-18,132` |
+| DATA-04 | Health, Balancer, Quality Checker and Unsloth Export lack one shared contract | 3 | P1 | OPEN | SOURCE-SUPPORTED | File inventories differ: `app/dataset_balancer.py:15-18` versus `app/dataset_platform.py:25` |
+| DATA-05 | Missing-directory error alongside "Loading versions…" | 3 | P2 | OPEN | VERIFIED | Audit |
+
+### 4.5 Database and Migration Findings
+
+| ID | Finding | Phase | Severity | Status | Classification | Evidence |
+|---|---|---|---|---|---|---|
+| DB-01 | Rollback-named SQL file can be executed by the migration loader | 4 | P1 | OPEN | VERIFIED | Audit |
+| DB-02 | Failed migration can leave schema changed with no ledger entry | 4 | P1 | OPEN | VERIFIED | Audit |
+| DB-03 | Backup scope and recovery boundary | 4 | P2 | OPEN | NOT TESTED | Requirement to document and test; no isolated recovery evidence yet |
+
+### 4.6 UX Findings
+
+| ID | Finding | Phase | Severity | Status | Classification | Evidence |
+|---|---|---|---|---|---|---|
+| UX-01 | Review restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 merged; merged code is not a closed finding; verified through SEC-01 |
+| UX-02 | Individual and bulk restoration restriction preservation | 1 | P1 | FIXED_PENDING_VERIFICATION | PARTIALLY VERIFIED | PR #14 merged; verified through SEC-02 |
+| UX-03 | Distinguish approval from training eligibility | 5 | P1 | OPEN | NOT TESTED | Backend separation has tests; the UI distinction has no acceptance evidence |
+| UX-04 | Collection outcome per completed Chat pair | 5 | P2 | OPEN | SOURCE-SUPPORTED | `app/chat_workspace.py:103` exposes `collected`; `static/chat.js` shows no per-pair outcome |
+| UX-05 | Continuity and complete permitted content | 5 | P2 | OPEN | NOT TESTED | Nothing decisive in source |
+| UX-06 | All readiness blockers shown | 5 | P2 | OPEN | SOURCE-SUPPORTED | `static/app.js:420` shows `blockers.slice(0,3)`; `app/review_integrity.py:21` uses `blockers[:5]` |
+| UX-07 | Unsaved correction draft loss during navigation | 5 | P1 | OPEN | SOURCE-SUPPORTED | Navigation guards cover only Phase 3.8 state: `static/app.js:72,502` |
+| UX-08 | Completed Send clears a newer draft | 5 | P1 | OPEN | SOURCE-SUPPORTED | `static/chat.js:105-107` clears `chat-draft` after the awaited send |
+| UX-09 | Chat controls reflect correct provider, model, context and session | 5 | P2 | OPEN | NOT TESTED | Nothing decisive in source |
+| UX-10 | 15-destination navigation needs grouping | 6 | P2 | OPEN | SOURCE-SUPPORTED | 15 `data-view` destinations in `static/index.html`; read-only UI audit comes first |
+| UX-11 | Dashboard hardcoded readiness claims | 6 | P2 | OPEN | SOURCE-SUPPORTED | Static status text at `static/index.html:99` and `static/app.js:170` |
+| UX-12 | Manual version-name entry in Unsloth Handoff | 5 | P2 | OPEN | SOURCE-SUPPORTED | Free-text input at `static/index.html:306`, read at `static/chat.js:129` |
+| UX-13 | Stale Dataset Version catalog | 5 | P2 | OPEN | NOT TESTED | Known mutation paths reset the cache (`static/app.js:155,158,159`); the reported stale path was not located |
+| UX-14 | Shared tab state hides Add Data forms | 5 | P2 | OPEN | SOURCE-SUPPORTED | `static/app.js:436` binds all `.subtabs button`, which includes the dialog tabs at `static/index.html:337` |
+| UX-15 | Empty SFT turns cause uncaught exceptions | 5 | P1 | OPEN | SOURCE-SUPPORTED | `static/app.js:437` reads `.value` of a query that is null if every turn was removed |
+| UX-16 | Manual save lacks pending, failure and retry states | 5 | P1 | OPEN | SOURCE-SUPPORTED | `saveManualEdit` at `static/app.js:377-381` has no busy state or error handling |
+| UX-17 | Exclusion-reason labeling and validation | 5 | P2 | OPEN | SOURCE-SUPPORTED | Label says "Optional" at `static/index.html:126`; `static/app.js:238` requires a reason |
+| UX-18 | Phase39 shared state and seven-record assumption | 6 | P2 | OPEN | SOURCE-SUPPORTED | `app/phase39_edits.py:21`; source-only because private workflows are unavailable |
+| UX-19 | Transient toasts where persistent errors are needed | 5 | P2 | OPEN | SOURCE-SUPPORTED | `toast()` at `static/app.js:61` is the general error path |
+| UX-20 | Record limits not exposed; no pagination | 5 | P2 | OPEN | SOURCE-SUPPORTED | Fixed limits at `app/service.py:854` and `app/chat_workspace.py:109`; no pagination found |
+| UX-21 | Arabic and RTL interface support | 6 | P2 | OPEN | SOURCE-SUPPORTED | `static/index.html:2` is fixed to `lang="en" dir="ltr"` |
+| UX-22 | Keyboard, focus, labels and dialog accessibility | 6 | P2 | OPEN | NOT TESTED | No acceptance evidence yet |
+| UX-23 | Horizontal overflow at 390px viewport | 6 | P2 | OPEN | VERIFIED | Audit: Add Data 497px, Conversations 413px, Review 402px |
+| UX-24 | Sidebar collapse does not change layout width | 6 | P2 | OPEN | SOURCE-SUPPORTED | `static/rtl-overhaul.css:4` loads after `static/phase1.css:11` and sets the same property at equal specificity |
+| UX-25 | Insufficient dark-mode text contrast | 6 | P2 | OPEN | VERIFIED | Audit: approximately 2.13:1 and 2.45:1 |
+| UX-26 | Hardcoded port and static status labels | 6 | P2 | OPEN | SOURCE-SUPPORTED | `127.0.0.1:8770` at `static/index.html:50`; static "Passed" at `static/index.html:329` |
+| UX-27 | Evaluation results versus selected dataset identity | 5 | P2 | OPEN | NOT TESTED | Nothing decisive in source |
+
+### 4.7 AI Integration Findings
+
+| ID | Finding | Phase | Severity | Status | Classification | Evidence |
+|---|---|---|---|---|---|---|
+| AI-01 | LM Studio `RESULT_MISMATCH` for `google/gemma-4-e4b` | 8 | P2 | OPEN | PARTIALLY VERIFIED | Prior local observation only; not reproduced; cloud scope is contract and adapter testing |
+| AI-02 | Which of four integrity predicates failed | 8 | P2 | OPEN | NOT TESTED | Unknown; content-free diagnostics only |
+| AI-03 | Real-model Ollama acceptance | 8 | P2 | OPEN | NOT TESTED | Requires owner-authorized evidence; the same 9 skipped tests as QA-02 |
+| AI-04 | Runtime contracts: identity, token accounting, cancellation, context overflow | 8 | P2 | OPEN | NOT TESTED | Synthetic adapter tests do not prove real-model behavior |
+| AI-05 | Collection privacy | 8 | P1 | OPEN | NOT TESTED | Independent Phase 8 verification required |
 
 ---
 
-## 6. QA-01 Root Cause Analysis (Phase 0 Evidence)
+## 5. QA-01 Evidence and Unconfirmed Hypotheses
 
-**Test:** `correction and explicit flag change preserve unrelated restrictions`
-**File:** `tests/review-restrictions-browser.cjs` lines 60–71
-**Failure:** `assert.equal(r.contains_personal_data, 0)` — actual `1`
+> **The root cause of QA-01 is NOT confirmed.** H1, H2 and H3 are hypotheses. No application fix may be written until Phase 1 isolates the actual mechanism.
 
-**Test sequence:**
-1. Reload page → 3 PENDING records in queue (records 2–4 seeded with all flags=1)
-2. Assert all flags checked = `[true,true,true,true,true]` ✓
-3. `page.click('#contains-personal')` — intent: uncheck (1→0)
-4. Open correction editor, select DIALECT_CORRECTION
-5. Set corrected response text
-6. `page.click('#save-review')` → POST `/api/v1/reviews/{id}/correct`
-7. Database query: `contains_personal_data` = **1** (expected 0)
+### 5.1 Observed evidence
 
-**Investigated code paths:**
-- `reviewPayload()` in `static/app.js:38832` reads `$('#contains-personal').checked` directly
-- Backend `_save_review_conn` in `app/service.py` uses `data.get('contains_personal_data', current[key])` — explicit false in payload should produce 0
-- `openEditReview()` and `selectReviewStatus()` do NOT reset checkboxes
-- No background polling or `setInterval` that would re-initialize checkboxes
-- No CSS `pointer-events: none` or `opacity: 0` on the checkbox
+| Run | Code | Windows browser step | Ubuntu browser step |
+|---|---|---|---|
+| `41331651850` (`main` push) | `3b14058` | **FAIL** — 7 passed, 2 failed | PASS — 9 of 9 |
+| `41334507091` (PR #16) | `126d520`: `3b14058` plus one documentation file | PASS — 9 of 9 | PASS — 9 of 9 |
 
-**Hypotheses (to be confirmed in Phase 1):**
-- **H1 (MOST LIKELY):** Windows Chrome renders the checkbox center at a different viewport coordinate, and Puppeteer's `page.click('#contains-personal')` clicks at the center of the INPUT element's bounding box. If a CSS layout difference on Windows places overlapping content at that coordinate, the click hits the wrong element and the checkbox stays checked.
-- **H2:** Async page-load timing: on Windows the page may be slower to fully render and a subsequent internal render pass re-initializes the checkbox after the `waitForFunction` resolves but before the click registers.
-- **H3:** The click registers correctly in the browser but the change event is not propagated synchronously before `reviewPayload()` reads the state. (Less likely; Puppeteer awaits click completion.)
+- **The failure is intermittent on hosted Windows.** The same application and test code both failed and passed there.
+- "Fails only on Windows" is not established. Ubuntu has not failed in these runs, but the sample is too small to exclude it.
+- The only recorded symptom is the persisted value. The request payload was never captured, so frontend and backend are not yet separated.
 
-**Phase 1 investigation plan:**
-- Add a screenshot capture on test 5 failure to observe the checkbox state at time of click
-- Log the actual request payload sent to `/correct` to determine whether UI sends false or true
-- Test without `openEditReview()` step to isolate whether that call is re-rendering anything
-- Run the test with an explicit `page.waitForFunction(() => !document.querySelector('#contains-personal').checked)` after the click to confirm the uncheck lands before proceeding
+### 5.2 Test sequence
+
+From `tests/review-restrictions-browser.cjs:60-72`:
+
+1. Reload and wait until `#queue-position` contains `of 3` (line 61). All five fixture records were seeded with every flag set to `1`.
+2. Assert all five flags are checked (line 62).
+3. `page.click('#contains-personal')` to uncheck (line 63).
+4. Open the editor and select `DIALECT_CORRECTION` (line 64).
+5. Set the corrected text (line 65), then save and wait for `of 2` (line 66).
+6. Read the saved record (line 67) and assert `contains_personal_data` is `0` (line 68). **Observed: `1`.**
+
+### 5.3 Code paths inspected
+
+Source facts only. None of these was observed at runtime.
+
+- `reviewPayload()` at `static/app.js:211-213` reads `.checked` directly.
+- `_save_review_conn()` at `app/service.py:496` uses `data.get(key, current[key])` at line 522, so an explicit `false` should produce `0`.
+- `selectReviewStatus()` (`static/app.js:202`) and `openEditReview()` (`static/app.js:240`) do not touch the checkboxes.
+- `renderReview()` resets every checkbox from fetched data (`static/app.js:197`) and sets `#queue-position` (`static/app.js:199`).
+- `init()` awaits `loadQueue()`, then `switchView()` runs `loadView()`, which calls `loadQueue()` again without awaiting it (`static/app.js:453,81,87`). On `/review`, the queue therefore renders twice during page load.
+- `static/app.js` contains no `setInterval`.
+
+### 5.4 Hypotheses
+
+- **H1 — Click lands elsewhere.** `page.click` may hit a different element. The viewport is fixed at 1440×1000 (test line 20), and the same step passed on Windows in run `41334507091`, so a constant layout difference alone would not explain the result. Not eliminated.
+- **H2 — A later render overwrites the click.** Step 1 can resolve after the first render. If the click lands before the second `loadQueue()` finishes, `renderReview()` would re-check the box, and the save would send `true`. This fits both the symptom and the intermittency, but it has not been observed.
+- **H3 — State differs when the payload is read.** The click registers, but a different state is sent or persisted. `reviewPayload()` does not depend on a `change` event, so event propagation alone looks unlikely. Not eliminated, because the payload was never captured.
+
+Other causes named by the program, including optimistic concurrency and backend persistence, also remain open.
+
+### 5.5 Phase 1 diagnostics
+
+- Record, in content-free form, the chain: checkbox before click → checkbox after click → submitted fields → API result → persisted value.
+- Repeat the browser regression on hosted Windows and Ubuntu.
+- If the cause is timing, use deterministic state synchronization. Do not add arbitrary delays or rewrite assertions.
+
+---
+
+## 6. Phase 0 Baseline CI Exception
+
+> **Status: PROPOSED. Takes effect only when the owner explicitly approves it.**
+
+### 6.1 Why it is needed
+
+Phase closure normally requires passing Windows and Ubuntu CI, including on `main` after merge. `main` already failed QA-01 before Phase 0 began, and Phase 0 may not change application code. Without this exception, Phase 0 could not be guaranteed to close, and Phase 1 could not begin.
+
+### 6.2 What it covers
+
+Only this failure: the `Run node --test tests/review-restrictions-browser.cjs` step of `tests (windows-latest)`, where the failures are exactly subtest 5 and its parent, at line 68, with expected `0` and actual `1`.
+
+| Check | PR #16 head | Post-merge `main` |
+|---|---|---|
+| `candidate (ubuntu-latest)` | Must pass | Does not run on push |
+| `candidate (windows-latest)` | Must pass | Does not run on push |
+| `tests (ubuntu-latest)` | Must pass | Must pass |
+| `tests (windows-latest)`, all other steps | Must pass | Must pass |
+| `tests (windows-latest)`, browser step above | Covered failure allowed | Covered failure allowed |
+
+### 6.3 What it does not cover
+
+- Any other failed step, subtest, assertion, or expected or actual value. Any of these keeps Phase 0 open.
+- It does not make the application green, and it does not record QA-01 as PASS.
+- A passing run does not close QA-01, because the failure is intermittent.
+- It waives nothing in Phase 1, including the requirement for Windows PASS, Ubuntu PASS and post-merge `main` PASS.
+- **It ends when Phase 0 closes.** Phase 1 and every later phase require successful post-merge Windows and Ubuntu CI.
+
+### 6.4 Recorded risk
+
+Until QA-01 is resolved, `main` keeps an intermittent failing check, and SEC-01's requirement that explicit edits persist remains unproven. The observed failure retained the restriction (`1`, not `0`), but the cause is unconfirmed, so no general safety conclusion follows from that.
 
 ---
 
 ## 7. Phase Status Summary
 
-| Phase | Title | Status | Owner-Decision Required |
+| Phase | Title | Status | Owner decision required |
 |---|---|---|---|
-| **Phase 0** | Baseline and Remediation Inventory | **IN_PROGRESS** | Owner approval of this roadmap → transition to Phase 1 |
+| **Phase 0** | Baseline and Remediation Inventory | **IN_PROGRESS** | Approve this roadmap and the Section 6 exception, approve merge, then approve closure |
 | Phase 1 | Restore Green CI and Close PR #14 Verification | NOT_STARTED | — |
 | Phase 2 | Review Lifecycle and Data Integrity | NOT_STARTED | — |
 | Phase 3 | Dataset Quality, Export and Handoff Consistency | NOT_STARTED | — |
@@ -245,31 +342,56 @@ The following must not be weakened by any remediation change:
 
 ---
 
-## 9. Phase 0 Closure Checklist
+## 9. Pull Request Policy
 
-| Condition | Result |
-|---|---|
-| Current baseline SHA verified | ✓ `3b1405846ab6fdd45151cc163418fb5c0dc0e027` |
-| PR #14 confirmed merged | ✓ MERGED 2026-11-01T17:28:33Z |
-| Current CI status inspected | ✓ Ubuntu PASS / Windows FAIL on run `41331651850` |
-| All findings inventoried with IDs | ✓ 50 findings mapped |
-| Phase dependency graph produced | ✓ Phases 0–9 sequential |
-| Test limitations identified | ✓ 3 categories documented |
-| No application changes made | ✓ Phase 0 is documentation only |
-| Architecture invariants listed | ✓ 13 invariants listed |
-| Owner approves roadmap | **PENDING** |
+Group findings that share a root cause, component, or transactional workflow into one focused PR. Split a phase into sequential PRs only when safe review, independent testing, or rollback needs it.
 
-**Owner decision required:** Review this roadmap for completeness and accuracy, then explicitly approve the transition to Phase 1.
+- Only one active implementation PR at a time.
+- Every PR lists the finding IDs it addresses.
+- Each PR requires relevant regression tests, documentation, and green CI.
+- Owner approval is required before merging.
+- After merging, verify `main` CI before opening the next implementation PR.
+- Do not start another phase until all findings in the current phase meet their closure criteria.
+- Avoid oversized PRs and unnecessary micro-PRs.
 
 ---
 
-## 10. Finding Status Legend
+## 10. Phase 0 Closure Checklist
+
+| Condition | Result |
+|---|---|
+| Baseline SHA verified | ✓ `3b1405846ab6fdd45151cc163418fb5c0dc0e027` |
+| PR #14 confirmed merged | ✓ MERGED 2026-11-01T17:28:33Z |
+| Windows and Ubuntu CI inspected | ✓ Section 1 and Section 5.1 |
+| All findings inventoried, classified and mapped | ✓ 53 of 53, Section 4 |
+| Phase dependency graph produced | ✓ Section 3 |
+| Test limitations identified | ✓ Section 2.1 |
+| Invariants listed | ✓ 13, Section 8 |
+| QA-01 cause recorded as unconfirmed | ✓ Section 5 |
+| New documentation classified for the source builder | ✓ Excluded in `public_source/policy.json` |
+| No application changes | ✓ Documentation and source policy only |
+| PR-level CI on the final head | See Section 11 |
+| Baseline exception approved | **PENDING OWNER** |
+| Roadmap approved after human review | **PENDING OWNER** |
+| PR merged with owner approval | **PENDING OWNER** |
+| Post-merge `main` CI meets Section 6.2 | **PENDING** |
+| Owner approves closure and the transition to Phase 1 | **PENDING OWNER** |
+
+---
+
+## 11. Phase 0 Verification Evidence
+
+CI results for this corrective commit are recorded once its runs complete.
+
+---
+
+## 12. Finding Status Legend
 
 | Status | Meaning |
 |---|---|
-| `OPEN` | Finding confirmed; not yet fixed |
+| `OPEN` | Finding recorded; not yet resolved |
 | `IN_PROGRESS` | Fix is being developed in the active phase |
-| `FIXED_PENDING_VERIFICATION` | Fix is merged; CI verification not yet complete |
+| `FIXED_PENDING_VERIFICATION` | Fix is merged; verification not yet complete |
 | `BLOCKED` | Cannot proceed; owner action or unavailable resource required |
 | `CLOSED` | Fix verified in CI, documented, and owner-approved |
 | `ACCEPTED_RISK` | Owner has explicitly accepted the remaining risk |
