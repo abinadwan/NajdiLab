@@ -46,6 +46,7 @@ jobs:
               stream.write('NODE_PATH=' + str(Path(os.environ['GITHUB_WORKSPACE']).parent / 'chat-browser-tools/node_modules') + '\n')
               stream.write('NAJDILAB_BROWSER_ARTIFACTS=browser-evidence\n')
       - run: node tests/chat-browser.cjs
+      - run: node --test tests/review-restrictions-browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

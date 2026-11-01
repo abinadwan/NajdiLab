@@ -107,7 +107,7 @@ def test_exclude_restore_preserves_original_and_prior_correction(tmp_path):
 def test_bulk_approve_is_atomic_and_integrates_with_readiness(tmp_path):
     db = fixture_db(tmp_path)
     ids = [add_pending(db, str(index)) for index in range(3)]
-    result = bulk_review_actions({"action": "approve", "review_ids": ids, "reviewer": "human"}, db)
+    result = bulk_review_actions({"action": "approve", "review_ids": ids, "reviewer": "human", "training_eligible": True}, db)
     assert result["count"] == 3
     assert {get_review(review_id, db)["review_status"] for review_id in ids} == {"APPROVED"}
     assert export_readiness(db)["status"] == "READY"
@@ -185,7 +185,7 @@ def test_http_bulk_and_restore_actions_use_structured_contract(tmp_path):
 
         restored = post(f"/api/v1/reviews/{first}/restore", {"reason": "إعادة HTTP"})
         assert restored["review"]["review_status"] == "PENDING"
-        bulk = post("/api/v1/reviews/bulk", {"action": "approve", "review_ids": [first, second]})
+        bulk = post("/api/v1/reviews/bulk", {"action": "approve", "review_ids": [first, second], "training_eligible": True})
         assert bulk["ok"] is True and bulk["count"] == 2
         assert export_readiness(db)["status"] == "READY"
     finally:

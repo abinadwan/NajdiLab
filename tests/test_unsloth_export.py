@@ -63,7 +63,14 @@ def test_real_database_export_blocks_private_target_or_excluded_prefix(tmp_path,
     from app.review_integrity import ExportReadinessError
     db=tmp_path/'source.db';apply_migrations(db)
     first=ingest_turn({'conversation_id':'c','user_message':'PRIVATE USER','assistant_response':'PRIVATE ANSWER'},db)
-    approve_review(first['review_id'],{'training_eligible':True,**flags},db)
+    saved=approve_review(first['review_id'],{'training_eligible':True,**flags},db)
+    assert saved['training_eligible']==0
+    if not prior:
+        # New decisions fail closed before selection. Keep testing the export
+        # privacy backstop against a legacy inconsistent row in this temp DB.
+        import sqlite3
+        with sqlite3.connect(db) as conn:
+            conn.execute('UPDATE reviews SET training_eligible=1 WHERE id=?',(first['review_id'],))
     if prior:
         second=ingest_turn({'conversation_id':'c','user_message':'later question','assistant_response':'later answer'},db)
         approve_review(second['review_id'],{'training_eligible':True},db)

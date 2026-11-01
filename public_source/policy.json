@@ -76,6 +76,7 @@
     "docs/public-private-boundary.md",
     "docs/public-release-decision.md",
     "docs/review-and-quality.md",
+    "docs/review-restriction-integrity.md",
     "docs/rights-evidence.md",
     "docs/roadmap.md",
     "docs/screenshots.md",
@@ -146,6 +147,7 @@
     "tests/integrations-ui.test.cjs",
     "tests/ollama_disposable.py",
     "tests/private_artifacts.py",
+    "tests/review-restrictions-browser.cjs",
     "tests/test_backend_localization.py",
     "tests/test_chat_engine.py",
     "tests/test_chat_hardware.py",
@@ -182,6 +184,7 @@
     "tests/test_review_integrity.py",
     "tests/test_review_lifecycle.py",
     "tests/test_review_management.py",
+    "tests/test_review_restriction_integrity.py",
     "tests/test_script_portability.py",
     "tests/test_select_v007_windows.py",
     "tests/test_theme_support.py",
@@ -234,7 +237,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "966955aa388316f60be16efd009c7ff84a8a3afbb61e055a720868fd41d3b4bd"
+      "sha256": "85ee540d28342faec7d5137ad666ad00cc4599caca847168b0c64ac705ca9fc5"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",
