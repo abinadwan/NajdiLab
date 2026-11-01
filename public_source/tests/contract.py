@@ -60,9 +60,14 @@ class CandidateContract(unittest.TestCase):
                 self.assertEqual(request('/api/v1/conversations',{}, {**headers,'Content-Type':'text/plain'})[0],415)
                 self.assertEqual(request('/api/v1/conversations',[],headers)[0],400)
                 self.assertEqual(request('/%2e%2e/app/db.py')[0],403)
-                for path in ['/api/v1/phase38/v009/human-review','/api/v1/training/models','/api/v1/phase39/readiness']:
-                    st,data=request(path);self.assertEqual(st,503);self.assertEqual(data['code'],'EXTENSION_UNAVAILABLE')
-                self.assertEqual(request('/api/v1/training/model-acquisition/acquire',{},headers)[0],503)
+                config=request('/api/v1/config')[1]
+                self.assertNotIn('training_actions',config)
+                self.assertEqual(config['review_statuses'],['APPROVED','CONTENT_CORRECTION','DIALECT_CORRECTION','FULL_CORRECTION'])
+                for path in ['/api/v1/phase38/v009/human-review','/api/v1/training/models',
+                             '/api/v1/phase39/readiness','/api/v1/evaluation/jobs','/api/v1/training-dataset']:
+                    st,data=request(path);self.assertEqual(st,404);self.assertEqual(data['code'],'ROUTE_UNAVAILABLE')
+                st,data=request('/api/v1/training/model-acquisition/acquire',{},headers)
+                self.assertEqual(st,404);self.assertEqual(data['code'],'ROUTE_UNAVAILABLE')
                 q=request('/api/v1/review-queue')[1]['items'];self.assertTrue(q)
                 rid=q[0]['id'];original=q[0]['original_response'];correction='رقّم البطاقة واكتب عنوانها بخط واضح.'
                 st,_=request(f'/api/v1/reviews/{rid}/correct',{'expected_updated_at':q[0]['updated_at'],'review_status':'FULL_CORRECTION','corrected_response':correction,'reviewer_identity':'human','training_eligible':True},headers);self.assertEqual(st,200)
@@ -76,7 +81,7 @@ class CandidateContract(unittest.TestCase):
                     self.assertEqual(request('/api/v1/turn',extra,{'Content-Type':'application/json','Authorization':'Bearer synthetic-test-only'})[0],201)
                 # Approve remaining synthetic rows so the existing export-integrity gate is satisfied.
                 for row in request('/api/v1/review-queue')[1]['items']:self.assertEqual(request(f"/api/v1/reviews/{row['id']}/approve",{'expected_updated_at':row['updated_at'],'training_eligible':True},headers)[0],200)
-                self.assertTrue(request('/api/v1/training-dataset?include_demo=1')[1]['reviews'])
+                self.assertTrue(request('/api/v1/dataset-records?include_demo=1')[1]['reviews'])
                 st,export=request('/api/v1/exports',{'include_demo':True},headers);self.assertEqual(st,201,export)
                 versions=request('/api/v1/dataset-versions')[1]['items'];self.assertTrue(versions)
                 version=versions[0]['version'];self.assertEqual(request(f'/api/v1/dataset-versions/{version}/health')[0],200)
@@ -89,5 +94,5 @@ class CandidateContract(unittest.TestCase):
                 else:p.send_signal(signal.SIGINT)
                 p.wait(timeout=10)
             # A fresh isolated import must never touch historical modules.
-            probe=run('-c',"import app.server,sys; assert not any(x.startswith(('app.phase','app.training_control','app.runtime_control','app.platform_state')) for x in sys.modules)")
+            probe=run('-c',"import app.server,inspect,sys; assert not any(x.startswith(('app.phase','app.training_control','app.runtime_control','app.platform_state','app.extensions')) for x in sys.modules); assert 'extension' not in inspect.signature(app.server.NajdiLabHTTPServer).parameters")
             self.assertEqual(probe.returncode,0)

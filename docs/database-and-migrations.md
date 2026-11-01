@@ -1,21 +1,17 @@
-# Database and migration development
+# Database and migration safety
 
-[Schema](database-schema.md) and [loader](../app/db.py) are the implementation references. State lives under data/najdilab.db. Connections enable FKs, WAL, synchronous NORMAL and 15-second busy timeout. Composite mutations use BEGIN IMMEDIATE and rollback on exception where implemented. Corrections overlay originals; frozen Gold stays immutable.
+SQLite stores original conversations/messages, review overlays, manual versions, export metadata and Chat receipts. Dataset files and manifests live separately. Connections use FKs, WAL, synchronous NORMAL and a 15-second busy timeout; supported composite changes use BEGIN IMMEDIATE and rollback on failure. [Schema](database-schema.md) and `app/db.py` are implementation references.
 
-## Existing loader and limits
+## Startup loader caveat
 
-Startup apply_migrations creates schema_migrations, sorts migrations/*.sql lexically, executes absent filenames and records each afterward. It is a filename ledger, not a checksum/approval system. executescript plus subsequent ledger insertion are **not one guaranteed atomic migration+ledger transaction**. An interrupted/non-idempotent script can leave partial state. The future guarded loader is not implemented.
+The existing loader sorts every `migrations/*.sql`, executes filenames absent from `schema_migrations`, then records them. This is a filename ledger, not a hash/approval allowlist. `executescript` and ledger insertion are not one guaranteed atomic transaction: interruption after schema commit can leave the ledger behind. Startup still applies unapplied SQL; no guarded startup-only verifier has been implemented. Copying a proposal or rollback SQL into that directory can execute it on the next restart. A `.rollback.sql` can sort before its forward script.
 
-001–004 are existing startup migrations. `migrations/005_chat_workspace.sql` and `migrations/006_chat_session_binding.sql` are additive Chat migrations on the feature branch ([Chat rollback](chat-workspace.md#backup-and-rollback)). The separately numbered **005/006/007/008 under `plans/` remain blocked**, never onboarding steps. 007 risks a competing registry; 008 is lifecycle design. See [migration review](corpus-v1.1/07-migration-review-005-007.md) and [guard specification](corpus-v1.1/15-migration-loader-guard.md). Do not edit applied SQL or move blocked proposals into migrations.
+Applied 001–004 and additive Chat `005_chat_workspace.sql` / `006_chat_session_binding.sql` remain intact. Chat migrations use replay-safe additions for the schema/ledger crash gap. These are distinct from separately numbered proposed dataset-registry005, review-events006, model-registry007 and draft lifecycle008 from earlier designs. Cleanup does not apply, edit or renumber migrations, move proposals into startup, or remove existing tables/ledger rows. Removal of obsolete source proposals does not alter their already-existing private evidence.
 
-## Separately authorized migration process
+## Future schema change requirements
 
-1. Review exact compatibility/transaction scope. Parameterize values; allowlist dynamic identifiers; never interpolate user SQL.
-2. Create a consistent online snapshot plus external artifact hash/count/schema baseline; rehearse restore privately.
-3. Implement guarded execution under its own approval, bound to source/script hashes; fail on wrong DB/schema or missing restore proof.
-4. Test forward/repeated application, mid-script failure, writer contention, integrity/FKs, original/Gold preservation and rollback in isolation. IF NOT EXISTS alone is not idempotency.
-5. Resolve K12 and relevant OA/PRQ gates before production. Never delete ledger rows to force reruns.
+Any later schema change needs a separately reviewed exact script, compatibility scope, verified SQLite online snapshot, restore proof and isolated rehearsal. A future guard would need approved filenames/hashes, refusal of unknown or rollback files, an explicit apply path and recorded source/backup evidence; these properties are requirements, not current behavior.
 
-Integrity_check must be ok; foreign_key_check empty. Compare tables/indexes/triggers, counts and applied filenames; verify content hashes separately. Active SQLite file hashes can change with checkpoints. Never mix another instance's WAL/SHM.
+Rehearsals must cover forward/repeat application, interruption, writer contention, integrity/FKs, existing counts/content and rollback. IF NOT EXISTS alone is not proof of idempotency. The prepared dataset registry used BEGIN IMMEDIATE for DDL+backfill and rejected duplicate IDs/paths, stale hashes/counts/state and missing manifests before writes. Its old nine-version observation is not a current production target. The unactivated review-event design has no complete production runner and covers conversation reviews, not all manual history; restrictive FKs can also prevent hard deletion. The removed model-registry proposal had no consumers and would have created a competing empty source of truth.
 
-A source revert cannot undo schema changes. Restore a verified snapshot into a separate installation and reconcile newer writes only with approval; preserve failed state privately. No down migration or restore-over-live is authorized here.
+Integrity_check must return ok and foreign_key_check no rows. Compare schema, counts, filenames and content hashes independently; a live SQLite file hash can change after checkpoint. Never mix WAL/SHM from another instance or delete ledger entries to force reruns. Test restoration into a new private location, never over live data. This source-only cleanup requires no data rollback; a source revert must still be reviewed before launch because earlier source may reintroduce removed interfaces or unsafe Hermes ingress. [Recovery](backup-and-restore.md).

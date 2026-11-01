@@ -10,7 +10,7 @@ Prefix below: /api/v1. Numeric review/conversation IDs and bounded local version
 | GET | /conversations, /conversations/{id} | Search/model/channel filter and full context |
 | GET | /reviews?scope=all, /reviews/{id} | Candidate read-only review list/detail; scope all/pending/reviewed/eligible/excluded/evaluation, search; list limit 500 |
 | GET | /review-queue, /reviewed | Reused core inspection; reviewed default excludes inactive rows, use candidate scopes for those |
-| GET | /training-dataset, /analytics | Eligibility/statistics inspection; this does not run training |
+| GET | /dataset-records, /analytics | Eligibility/statistics inspection; this does not run training |
 | GET | /exports, /exports/readiness, /exports/dedup-report | Local metadata, actionable gates and duplicates; include_demo=0 or1 |
 | GET | /dataset-versions, /dataset-versions/{version} | Registered local versions, files, counts, manifest and hashes |
 | GET | /dataset-versions/{version}/{health,quality-findings,balance,eval-sets,release-validation} | Read-only verified-byte diagnostics, actual holdout and dataset checks; no publication clearance |
@@ -25,7 +25,7 @@ Review mutation body requires nonempty string expected_updated_at. Correction re
 
 Saved overlays cannot be discarded through approval. Exclude keeps an existing correction and marks it excluded; restore preserves restrictions and is pending/ineligible. A restored pending correction must be resolved explicitly with the intended flags before re-excluding. Ignore/delete of a retained correction refuse and direct the user to Exclude. These conservative semantics are deliberately not a drop-in private-application API promise.
 
-Missing revision: 428. Stale revision: 409 REVIEW_CONFLICT with zero writes. Invalid fields/JSON: 400; wrong media type: 415; path/file denied: 403; unknown core routes/IDs: 404; integrity mismatch: 409. Private/historical /phase*, /training/* and /evaluation/* remain 503 EXTENSION_UNAVAILABLE. Unsupported methods perform no mutation. No auto-loaded extensions or model execution.
+Missing revision: 428. Stale revision: 409 REVIEW_CONFLICT with zero writes. Invalid fields/JSON: 400; wrong media type: 415; path/file denied: 403; unknown core routes/IDs: 404; integrity mismatch: 409. Removed execution/extension paths return ordinary404; no extension interface is packaged. Unsupported methods perform no mutation. No model execution or extension loader.
 
 Version source is managed candidate-local exports only. Registered manifest equality, exact filename inventory, size/count/SHA and regular-file checks apply before diagnosis/delivery. Only selected JSONL files download; full_archive.json, dedup reports, manifest downloads, DBs, backups, secrets and model files are denied. Data is private by default regardless of these checks.
 

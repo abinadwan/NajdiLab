@@ -311,8 +311,7 @@ def create_derived_version(source_version: str, target_version: str) -> dict[str
         manifest = _json(temp / "manifest.json", {}, dataset=target_version, required=True)
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         manifest.update({"version": target_version, "state": "Draft", "created_at": now, "source_version": source_version,
-            "provenance": {"kind": "derived", "source_version": source_version, "source_fingerprint": source_fingerprint, "created_at": now},
-            "training_started": False, "merge_started": False, "gguf_started": False, "ollama_started": False})
+            "provenance": {"kind": "derived", "source_version": source_version, "source_fingerprint": source_fingerprint, "created_at": now}})
         manifest.pop("protected_hashes_before", None)
         _refresh_manifest(temp, manifest); _generate_training_diagnostics(temp, manifest); _write_json(temp / "manifest.json", manifest)
         os.replace(temp, target)

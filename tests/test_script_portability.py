@@ -8,7 +8,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PATHS = {
-    "export_v007_e1_ollama.py": {"PROJECT": "", "REPORT_JSON": "reports/v007-e1-export-report.json", "REPORT_MD": "reports/v007-e1-export-report.md"},
     "audit_v006_metrics.py": {"DATA_DIR": "exports/gold-v006-clean", "REPORT_DIR": "reports"},
     "audit_v006_metrics_v2.py": {"DATA_DIR": "exports/gold-v006-clean", "REPORT_DIR": "reports"},
     "audit_v006_metrics_v3.py": {"DATA_DIR": "exports/gold-v006-clean", "REPORT_DIR": "reports"},

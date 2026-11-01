@@ -1,9 +1,5 @@
-# Proposed GitHub presentation
+# Proposed repository presentation
 
-Recommendations only; no description/topics/settings/visibility/Pages/Release change.
+Description: Local model conversations, human review and correction, quality checks and immutable dataset versions with external Unsloth export.
 
-Description: An integrated local platform for managing and reviewing Arabic training data, building Gold datasets, validating data quality and integrity, and managing secure model evaluation and training workflows.
-
-Suggested topics: arabic, najdi, datasets, data-curation, sqlite, python, fine-tuning, evaluation, local-first. Review against implemented scope before applying.
-
-Use CHANGELOG Unreleased as draft release notes only after all gates close. No tag/release is authorized. Public conduct/security contacts need owner designation. Screenshots must contain synthetic data only. Original source: https://github.com/abinadwan/NajdiLab .
+Topics may describe Python, SQLite, Arabic datasets, data quality and local-first tools. Do not advertise built-in training, model deployment, public availability or an active source license. Any publication needs the [release gates](public-release-decision.md).

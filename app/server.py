@@ -34,21 +34,8 @@ from .dataset_platform import (
 )
 from .dataset_balancer import analyze_dataset_balance
 from .dataset_quality import dataset_quality, validate_candidate_release
-from .evaluation_guard import EvaluationGuardError, verify_adapter_evaluation
-from .platform_state import dataset_catalog, platform_status
+from .platform_state import dataset_catalog
 from .review_integrity import ExportReadinessError, export_readiness
-from .training_control import (
-    TrainingControlError, cancel_job, create_job, create_production_job, get_job, initialize_training_control,
-    discover_models, list_jobs, list_models, mark_job_ready, quality_gate, register_model, training_datasets, validate_model,
-    training_preflight, update_job, model_acquisition_catalog, prepare_model_acquisition, acquire_model,
-)
-from .runtime_control import (
-    attempt_logs, attempt_metrics, cancel_attempt, check_runtime as check_runtime_target, deploy_adapter, dry_run,
-    authorize_full_training, execution_gate, full_training_disabled, get_attempt, get_runtime_result, get_worker_state,
-    initialize_runtime_control, list_runtimes, register_runtime, stage_dataset, staging_status,
-    prepare_full_recovery, resume_full_training, start_full_training, start_smoke, start_worker, validate_trained_adapter, worker_heartbeat,
-)
-from .phase3_review import Phase3ReviewError, get_review as get_phase3_review, save_case as save_phase3_case, submit_final_decision as submit_phase3_decision
 from .phase38_dataset import get_review as get_phase38_review, save_review as save_phase38_review, freeze_gate as phase38_freeze_gate
 from .phase39_edits import apply_phase39, PHASE39, get_post_edit_verification, save_post_edit_verification
 from .service import (
@@ -132,16 +119,6 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 class NajdiLabHandler(BaseHTTPRequestHandler):
     server_version = "NajdiLab/1.1"
 
-    def _training_retired(self, path):
-        if not (path == '/api/v1/training' or path.startswith('/api/v1/training/')):
-            return False
-        history = re.fullmatch(r'/api/v1/training/jobs(?:/train-\d{8}-\d{3}(?:/attempts/attempt-\d{3}(?:/(?:logs|metrics))?)?)?', path)
-        dataset_read = path in {'/api/v1/training/datasets', '/api/v1/training/quality-gate'}
-        if self.command == 'GET' and (history or dataset_read):
-            return False
-        self.close_connection = True
-        self._error('Training execution is retired. Export a reviewed dataset for external Unsloth; historical job reads remain available.', HTTPStatus.GONE, code='TRAINING_EXTERNAL_ONLY')
-        return True
 
     def parse_request(self) -> bool:
         if not super().parse_request():
@@ -186,8 +163,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         status = HTTPStatus.NOT_FOUND if error.code in {"PROJECT_ROOT_NOT_FOUND", "EXPORTS_ROOT_NOT_FOUND", "DATASET_NOT_FOUND", "MANIFEST_NOT_FOUND"} else HTTPStatus.CONFLICT if error.code in {"VERSION_ALREADY_EXISTS", "SOURCE_NOT_FROZEN", "TARGET_NOT_DRAFT", "OVERLAP_PLAN_STALE"} else HTTPStatus.FORBIDDEN if error.code == "ACCESS_DENIED" else HTTPStatus.UNPROCESSABLE_ENTITY if error.code in {"INVALID_MANIFEST", "INVALID_DATASET", "UNSUPPORTED_DATASET_FORMAT", "INVALID_VERSION_NAME"} else HTTPStatus.INTERNAL_SERVER_ERROR
         self._json(error.as_dict(), status)
 
-    def _training_error(self, error: TrainingControlError) -> None:
-        self._json(error.as_dict(), error.status)
 
     def _body(self) -> dict:
         raw_length = self.headers.get("Content-Length", "0")
@@ -229,8 +204,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        if self._training_retired(parsed.path):
-            return
         if not parsed.path.startswith("/api/"):
             self._serve_static(parsed.path)
             return
@@ -250,8 +223,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.integrations.snapshot())
             elif parsed.path == "/api/v1/health":
                 self._json({"ok": True, "service": "NajdiLab", "version": "1.1", "database": str(DB_PATH)})
-            elif parsed.path == "/api/v1/platform/status":
-                self._json(platform_status())
             elif parsed.path == "/api/v1/dataset-catalog":
                 self._json(dataset_catalog())
             elif parsed.path == "/api/v1/review-integrity":
@@ -272,42 +243,12 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json({"items": list_review_queue(include_demo=query.get("include_demo", "1") != "0")})
             elif parsed.path == "/api/v1/reviewed":
                 self._json({"items": list_reviewed(query)})
-            elif parsed.path == "/api/v1/training-dataset":
+            elif parsed.path == "/api/v1/dataset-records":
                 self._json(training_dataset(include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/exports":
                 self._json({"items": list_exports()})
             elif parsed.path == "/api/v1/dataset-versions":
                 self._json({"items": list_dataset_versions()})
-            elif parsed.path == "/api/v1/training/datasets":
-                self._json({"items": training_datasets()})
-            elif parsed.path == "/api/v1/training/quality-gate":
-                self._json(quality_gate(query.get("dataset", "")))
-            elif parsed.path == "/api/v1/training/models":
-                self._json({"items": list_models()})
-            elif parsed.path == "/api/v1/training/model-acquisition/catalog":
-                self._json(model_acquisition_catalog())
-            elif parsed.path == "/api/v1/training/runtimes":
-                self._json({"items": list_runtimes()})
-            elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/latest-check", parsed.path):
-                self._json({"runtime_id": match.group(1), "result": get_runtime_result(match.group(1))})
-            elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/worker", parsed.path):
-                self._json(get_worker_state(match.group(1)))
-            elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/staging/([A-Za-z0-9._-]+)", parsed.path):
-                self._json(staging_status(match.group(1), match.group(2)))
-            elif parsed.path == "/api/v1/training/jobs":
-                self._json({"items": list_jobs()})
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/execution-gate", parsed.path):
-                self._json(execution_gate(match.group(1)))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/attempts/(attempt-\d{3})", parsed.path):
-                self._json(get_attempt(match.group(1),match.group(2)))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/attempts/(attempt-\d{3})/logs", parsed.path):
-                self._json(attempt_logs(match.group(1),match.group(2),query.get("stream","stdout"),int(query.get("offset","0"))))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/attempts/(attempt-\d{3})/metrics", parsed.path):
-                self._json(attempt_metrics(match.group(1),match.group(2),int(query.get("offset","0"))))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})", parsed.path):
-                self._json(get_job(match.group(1)))
-            elif match := re.fullmatch(r"/api/v1/phase3/(phase3-train-\d{8}-\d{3})/human-review", parsed.path):
-                self._json(get_phase3_review(match.group(1)))
             elif parsed.path == "/api/v1/phase38/v009/human-review":
                 self._json(get_phase38_review())
             elif parsed.path == "/api/v1/phase38/v009/freeze-gate":
@@ -355,7 +296,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                             "format_failure", "factual_error", "other"
                         ],
                         "local_only": True,
-                        "training_actions": False,
                     }
                 )
             else:
@@ -364,12 +304,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
-        except EvaluationGuardError as exc:
-            self._json({"ok": False, "code": exc.code, "message": str(exc)}, HTTPStatus.UNPROCESSABLE_ENTITY)
-        except TrainingControlError as exc:
-            self._training_error(exc)
-        except Phase3ReviewError as exc:
-            self._json(exc.as_dict(),exc.status)
         except ExportReadinessError as exc:
             self._json({"ok": False, "code": "EXPORT_NOT_READY", "error": str(exc), "readiness": exc.readiness}, HTTPStatus.CONFLICT)
         except ValidationError as exc:
@@ -380,8 +314,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        if self._training_retired(parsed.path):
-            return
         # Fail closed before reading or parsing any potentially overbroad event.
         # Closing prevents unread body bytes becoming another request.
         if parsed.path == "/api/v1/hermes-hook":
@@ -438,11 +370,11 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "review": handlers[action](review_id, data)})
             elif parsed.path == "/api/v1/reviews/bulk":
                 self._json({"ok": True, **bulk_review_actions(data)})
-            elif parsed.path == "/api/v1/training-data/sft":
+            elif parsed.path == "/api/v1/manual-data/sft":
                 self._json({"ok": True, "item": add_manual_sft(data)}, HTTPStatus.CREATED)
-            elif parsed.path == "/api/v1/training-data/direct":
+            elif parsed.path == "/api/v1/manual-data/direct":
                 self._json({"ok": True, "item": add_direct_text(data)}, HTTPStatus.CREATED)
-            elif parsed.path == "/api/v1/training-data/preference":
+            elif parsed.path == "/api/v1/manual-data/preference":
                 self._json({"ok": True, "item": add_preference_pair(data)}, HTTPStatus.CREATED)
             elif parsed.path == "/api/v1/exports":
                 include_demo = bool(data.get("include_demo"))
@@ -457,66 +389,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                     },
                     HTTPStatus.CREATED,
                 )
-            elif parsed.path == "/api/v1/training/models":
-                self._json({"ok": True, "model": register_model(data)}, HTTPStatus.CREATED)
-            elif parsed.path == "/api/v1/training/model-acquisition/prepare":
-                self._json(prepare_model_acquisition(data))
-            elif parsed.path == "/api/v1/training/model-acquisition/acquire":
-                self._json(acquire_model(data))
-            elif parsed.path == "/api/v1/training/models/discover":
-                self._json(discover_models(data))
-            elif match := re.fullmatch(r"/api/v1/training/models/([A-Za-z0-9._-]+)/validate", parsed.path):
-                self._json({"ok": True, "model": validate_model(match.group(1))})
-            elif parsed.path == "/api/v1/training/runtimes":
-                self._json({"ok": True, "runtime": register_runtime(data)}, HTTPStatus.CREATED)
-            elif parsed.path == "/api/v1/training/preflight":
-                self._json(training_preflight(data))
-            elif parsed.path == "/api/v1/evaluation/verify-adapter":
-                self._json({"ok": True, "verification": verify_adapter_evaluation(data.get("configuration") or {}, data.get("load_evidence") or {})})
-            elif parsed.path == "/api/v1/training/runtime-check":
-                self._json(check_runtime_target(str(data.get("runtime_id") or "najditrain-wsl")))
-            elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/stage", parsed.path):
-                self._json(stage_dataset(match.group(1),str(data.get("dataset_version") or "")))
-            elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/deploy-adapter", parsed.path):
-                self._json(deploy_adapter(match.group(1)))
-            elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/worker/start", parsed.path):
-                self._json(start_worker(match.group(1)))
-            elif match := re.fullmatch(r"/api/v1/training/runtimes/([A-Za-z0-9._-]+)/worker/heartbeat", parsed.path):
-                self._json(worker_heartbeat(match.group(1)))
-            elif parsed.path == "/api/v1/training/jobs":
-                self._json({"ok": True, "job": create_job(data)}, HTTPStatus.CREATED)
-            elif parsed.path == "/api/v1/training/production-jobs":
-                self._json({"ok":True,"job":create_production_job(str(data.get("derived_from_job") or ""))},HTTPStatus.CREATED)
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/ready", parsed.path):
-                self._json({"ok": True, "job": mark_job_ready(match.group(1), data)})
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/cancel", parsed.path):
-                self._json({"ok": True, "job": cancel_job(match.group(1))})
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/dry-run", parsed.path):
-                self._json(dry_run(match.group(1)))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/full-dry-run", parsed.path):
-                self._json(dry_run(match.group(1),attempt_type="FULL"))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/authorize-full-training", parsed.path):
-                self._json(authorize_full_training(match.group(1),str(data.get("acknowledgement") or "")))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/start-full-training", parsed.path):
-                self._json({"ok":True,"attempt":start_full_training(match.group(1),str(data.get("authorization_token") or ""))},HTTPStatus.ACCEPTED)
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/prepare-recovery", parsed.path):
-                self._json({"ok":True,**prepare_full_recovery(match.group(1))})
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/attempts/(attempt-\d{3})/resume", parsed.path):
-                resume_full_training(match.group(1),match.group(2),str(data.get("checkpoint") or ""))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/attempts/(attempt-\d{3})/validate-adapter", parsed.path):
-                self._json(validate_trained_adapter(match.group(1),match.group(2)))
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/smoke", parsed.path):
-                if data.get("confirm_smoke_only") is not True or data.get("max_steps") != 2:
-                    raise TrainingControlError("SMOKE_CONFIRMATION_REQUIRED", "Smoke-only confirmation with max_steps=2 is required", status=409)
-                self._json({"ok":True,"attempt":start_smoke(match.group(1))},HTTPStatus.ACCEPTED)
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})/attempts/(attempt-\d{3})/cancel", parsed.path):
-                self._json({"ok":True,"attempt":cancel_attempt(match.group(1),match.group(2))})
-            elif parsed.path == "/api/v1/training/full-start":
-                full_training_disabled()
-            elif match := re.fullmatch(r"/api/v1/phase3/(phase3-train-\d{8}-\d{3})/human-review/cases/([^/]+)", parsed.path):
-                self._json({"ok":True,"review":save_phase3_case(match.group(1),unquote(match.group(2)),data)})
-            elif match := re.fullmatch(r"/api/v1/phase3/(phase3-train-\d{8}-\d{3})/human-review/final-decision", parsed.path):
-                self._json({"ok":True,"review":submit_phase3_decision(match.group(1),str(data.get("decision") or ""))})
             elif match := re.fullmatch(r"/api/v1/phase38/v009/human-review/([^/]+)", parsed.path):
                 self._json({"ok":True,"review":save_phase38_review(unquote(match.group(1)),data)})
             elif parsed.path == "/api/v1/phase39/apply-edits":
@@ -565,12 +437,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
-        except TrainingControlError as exc:
-            self._training_error(exc)
-        except Phase3ReviewError as exc:
-            self._json(exc.as_dict(),exc.status)
-        except EvaluationGuardError as exc:
-            self._json({"ok": False, "code": exc.code, "message": str(exc)}, HTTPStatus.CONFLICT)
         except ExportReadinessError as exc:
             self._json({"ok": False, "code": "EXPORT_NOT_READY", "error": str(exc), "readiness": exc.readiness}, HTTPStatus.CONFLICT)
         except ValidationError as exc:
@@ -581,18 +447,12 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_PATCH(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        if self._training_retired(parsed.path):
-            return
         try:
             data = self._body()
             if match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)", parsed.path):
                 self._json({"ok": True, "item": update_manual_data(match.group(1), int(match.group(2)), data)})
-            elif match := re.fullmatch(r"/api/v1/training/jobs/(train-\d{8}-\d{3})", parsed.path):
-                self._json({"ok": True, "job": update_job(match.group(1), data)})
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
-        except TrainingControlError as exc:
-            self._training_error(exc)
         except ValidationError as exc:
             self._error(str(exc))
         except Exception:
@@ -601,8 +461,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        if self._training_retired(parsed.path):
-            return
         try:
             data = self._body()
             if match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)", parsed.path):

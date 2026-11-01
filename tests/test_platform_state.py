@@ -1,24 +1,11 @@
 import json
 import sqlite3
 
-from app.platform_state import dataset_catalog, platform_status
+from app.platform_state import dataset_catalog
 
 
-def test_status_unknown_when_review_evidence_missing(tmp_path):
-    (tmp_path / "training" / "jobs").mkdir(parents=True)
-    result = platform_status(tmp_path)
-    assert result["phase3"]["decision"] == "UNKNOWN"
-    assert result["phase4"]["status"] == "UNKNOWN"
-    assert "PHASE3_REVIEW_ARTIFACT_UNAVAILABLE" in result["warnings"]
 
 
-def test_status_reject_blocks_phase4(tmp_path):
-    report = tmp_path / "reports" / "phase3-train-20261006-001"
-    report.mkdir(parents=True)
-    (report / "human-review.json").write_text(json.dumps({"final_gate": {"final_decision": "REJECT", "phase4a": "BLOCKED"}, "summary": {"reviewed": 24, "total": 24}}), encoding="utf-8")
-    (tmp_path / "training" / "jobs").mkdir(parents=True)
-    result = platform_status(tmp_path)
-    assert result["phase4"] == {"status": "BLOCKED", "reason": "PHASE3_REJECT"}
 
 
 def test_catalog_has_one_item_and_reports_cross_root_duplicate(tmp_path):

@@ -26,7 +26,7 @@ NAJDILAB_PORT=8870 NAJDILAB_NO_DEMO=1 sh ./run.sh
 
 The host remains `127.0.0.1`; changing the port does not enable remote access. Configure external local collectors to use the same port. Check [SECURITY.md](../SECURITY.md) before integration; the interface can launch without an ingest secret, but collection is disabled until `NAJDILAB_INGEST_TOKEN` is configured. Same-user local processes remain outside the isolation boundary.
 
-Data paths are based on the repository root (`data/najdilab.db`, `exports/`, `datasets/`, `training/`). Generated model/runtime registries store installation-specific paths. Do not commit them or assume historical default paths exist on a new machine. Configure the actual model/runtime through the platform, validate compatibility and retain fresh evidence for each job.
+Data paths are based on the repository root (`data/najdilab.db`, `exports/`, `datasets/`, `training/`). Historical training/ state is retained privately but not read as an active model/runtime registry. Chat selection/consent is session-only in Settings; external engines are separately managed. Do not commit private installation paths or assume old paths exist on a new machine.
 
 `.gitignore` keeps generated/private material out of normal staging; it does not remove previously tracked files or sanitize Git history. Never put credentials or personal conversation text in public examples, logs or issue attachments.
 

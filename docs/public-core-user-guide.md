@@ -8,6 +8,6 @@ This is the reduced source-only candidate, distinct from the preserved full Najd
 - [Core architecture and editable SVG](../public_source/docs/architecture.md)
 - [Actual synthetic-only screenshots](../public_source/docs/screenshots.md)
 - [Contributor guidance](../public_source/CONTRIBUTING.md)
-- [Milestones](public-core-phase5-execution.md), [verification](public-core-phase5-verification.md), [findings](public-core-phase5-issue-register.md)
+- [Milestones](verification-evidence.md), [verification](verification-evidence.md), [findings](verification-evidence.md)
 
 The builder maps these files into the candidate and pins their reviewed bytes. Existing full-platform user guide, screenshots, architecture, Mermaid and historical reports remain available unchanged; they are not evidence of candidate features. Windows/Ubuntu acceptance belongs to Goal6, separate from local Linux evidence. Do not install the original research checkout as a substitute for testing the generated candidate.

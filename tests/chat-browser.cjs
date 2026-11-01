@@ -70,10 +70,13 @@ const puppeteer=require('puppeteer-core');
     // Reading specs must not stale the conversation that is already open.
     await page.type('#chat-draft','Second question after reading specs');await page.click('#chat-send');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===4);
-    await page.goto(base+'/training/setup');await page.waitForSelector('#view-retired.active');
+    await page.goto(base+'/training/setup');await page.waitForSelector('#view-dashboard.active');
+    assert.equal(await page.$('#view-retired'),null);
+    assert.equal(await page.$('#view-human-review'),null);
+    assert.equal((await page.evaluate(async()=>fetch('/api/v1/training/jobs').then(r=>r.status))),404);
     assert.equal(await page.$('#training-setup-form'),null);
     assert.deepEqual(errors,[]);
-    console.log('PASS: real browser raw text/HTML escaping, opt-in pending queue/privacy, reload/history, overflow/no replay, Stop, Ollama load approval and retired training view. Synthetic engines only.');
+    console.log('PASS: real browser raw text/HTML escaping, opt-in pending queue/privacy, reload/history, overflow/no replay, Stop, Ollama load approval and absent training views/routes. Synthetic engines only.');
   }finally{
     if(browser)await browser.close();child.kill();
   }

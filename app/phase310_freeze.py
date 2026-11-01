@@ -3,7 +3,7 @@ import hashlib, json
 from pathlib import Path
 from typing import Any
 from .dataset_platform import DATASETS_ROOT, freeze_dataset_version, regenerate_training_diagnostics, dataset_health, dataset_version_detail, _sha256, _training_fingerprint
-from .training_control import freeze_readiness_gate, quality_gate
+from .dataset_validation import freeze_readiness_gate, quality_gate
 from .phase38_dataset import V008, HOLDOUT, PHASE3, now, write_json
 from .phase39_edits import PHASE39
 
@@ -41,8 +41,8 @@ def run():
     manifest_sha=_sha256(V009/'manifest.json'); protected_after={'v008':tree_hashes(V008),'fresh_holdout':tree_hashes(HOLDOUT),'phase3':tree_hashes(PHASE3)}
     if protected_before!=protected_after: raise RuntimeError('historical protected asset changed')
     freeze_result={'stage':'Phase 3.10 Freeze Result','status':'PASS','version':VERSION,'state':frozen['state'],'manifest_sha256':manifest_sha,'training_fingerprint':_training_fingerprint(V009),'content_fingerprints':content_after,'capability_registry_fingerprint':json.loads((V009/'manifest.json').read_text(encoding='utf-8'))['capability_registry']['fingerprint'],'human_review':review['summary'],'post_edit_verification':post['summary'],'contamination_status':contam['status'],'historical_assets_unchanged':True,'generated_at':now()}; emit('freeze-result',freeze_result)
-    post_health=dataset_health(VERSION); training_gate=quality_gate(VERSION)
-    post_report={'stage':'Phase 3.10 Post-freeze Validation','status':'PASS' if post_health['training_readiness']['status']=='READY' and training_gate['status'] in {'PASS','PASS_WITH_WARNINGS'} else 'FAIL','dataset_health':post_health,'training_quality_gate':training_gate,'content_immutable':content_before==content_after,'historical_assets_unchanged':protected_before==protected_after,'generated_at':now()}; emit('post-freeze-validation',post_report)
+    post_health=dataset_health(VERSION); dataset_gate=quality_gate(VERSION)
+    post_report={'stage':'Phase 3.10 Post-freeze Validation','status':'PASS' if post_health['training_readiness']['status']=='READY' and dataset_gate['status'] in {'PASS','PASS_WITH_WARNINGS'} else 'FAIL','dataset_health':post_health,'dataset_quality_gate':dataset_gate,'content_immutable':content_before==content_after,'historical_assets_unchanged':protected_before==protected_after,'generated_at':now()}; emit('post-freeze-validation',post_report)
     return {'status':post_report['status'],'freeze':freeze_result,'post':post_report}
 
 if __name__=='__main__': print(json.dumps(run(),ensure_ascii=False,indent=2))

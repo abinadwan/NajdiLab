@@ -9,7 +9,7 @@ from .native_tool_data import validate_native_tool_record
 from .phase38_dataset import (REPORTS, V009, V008, HOLDOUT, PHASE3, COVERAGE_TARGETS,
                               read_jsonl, write_json, write_jsonl, sha, fp, norm, scan,
                               now, health, contamination)
-from .tool_runtime import load_registry
+from .dataset_tools import load_registry
 
 PHASE39 = REPORTS.parent / "phase39"
 REVIEW = REPORTS / "v009-human-review.json"

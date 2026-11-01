@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .native_tool_data import validate_native_tool_record
-from .tool_runtime import canonical_json, load_registry
+from .dataset_tools import canonical_json, load_registry
 
 ROOT=Path(__file__).resolve().parents[1]; REPORTS=ROOT/"reports"/"phase38"; HOLDOUT=ROOT/"datasets"/"eval"/"fresh-remediation-holdout-v001"; V008=ROOT/"exports"/"gold-v008-split-clean"; V009=ROOT/"datasets"/"gold-v009-remediation-draft"
 REGISTRY_SOURCE=ROOT/"config"/"tool-capabilities.v1.1.json"; PHASE3=ROOT/"reports"/"phase3-train-20261006-001"

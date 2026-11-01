@@ -12,6 +12,16 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 
 class BuilderTests(unittest.TestCase):
+    def test_fallback_inventory_excludes_disposable_test_artifacts(self):
+        spec=importlib.util.spec_from_file_location('candidate_builder',ROOT/'public_source/build.py')
+        mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            (root/'source.py').write_text('pass')
+            (root/'.test-tmp/browser-tools').mkdir(parents=True)
+            (root/'.test-tmp/browser-tools/dependency.py').write_text('synthetic disposable dependency')
+            self.assertEqual(mod.source_files(root), {'source.py'})
+
     def test_builder_exists(self):
         self.assertTrue((ROOT / 'public_source/build.py').is_file(), 'deterministic candidate builder missing')
 
@@ -35,7 +45,7 @@ class BuilderTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('candidate_builder',ROOT/'public_source/build.py')
         mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
         with tempfile.TemporaryDirectory() as temp:
-            clone=Path(temp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
+            clone=Path(temp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.test-tmp','.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
             (clone/'unclassified.py').write_text('print("unexpected")')
             with self.assertRaises(ValueError):mod.build(clone,Path(temp)/'out')
             (clone/'unclassified.py').unlink()
@@ -60,7 +70,7 @@ class BuilderTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('candidate_builder',ROOT/'public_source/build.py')
         mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
         with tempfile.TemporaryDirectory() as temp:
-            clone=Path(temp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
+            clone=Path(temp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.test-tmp','.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
             policy=json.loads((clone/'public_source/policy.json').read_text())
             for name in policy['files']:
                 if name.lower().endswith('.png'):continue
@@ -95,7 +105,7 @@ class BuilderTests(unittest.TestCase):
         def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
         data=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',1,1,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(b'\x00\x20\x40\x60'))+chunk(b'IEND',b'')
         with tempfile.TemporaryDirectory() as tmp:
-            clone=Path(tmp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
+            clone=Path(tmp)/'source';shutil.copytree(ROOT,clone,ignore=shutil.ignore_patterns('.test-tmp','.git','.venv','__pycache__','data','datasets','exports','reports','training','backups','checkpoints'))
             image=clone/'public_source/test-screen.png';image.write_bytes(data);p=clone/'public_source/policy.json';policy=json.loads(p.read_text());policy['files']['public_source/test-screen.png']={'destination':'docs/images/demo.png','sha256':hashlib.sha256(data).hexdigest()};p.write_text(json.dumps(policy))
             mod.build(clone,Path(tmp)/'output');self.assertEqual((Path(tmp)/'output/docs/images/demo.png').read_bytes(),data)
 

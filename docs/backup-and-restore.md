@@ -1,28 +1,15 @@
-# Backup and restore
+# Private backup and separate restore
 
-Source history and private operational state are separate recovery requirements. A source-only clone does not contain the database, Gold/holdout datasets, runtime/model registry, weights, adapters, checkpoints or audit reports. Keep backups and their manifests private; do not publish installation identities, archive names, credentials or storage locations.
+Source history and operational state are separate recovery requirements. A clone contains no local database, Chat history, dataset versions, previous job/log evidence or external engine state. Keep archives/manifests private; they can include excluded or archived text. Archive is not erasure.
 
-## Built-in data backup
+From the intended checkout, `python scripts/backup.py` (or `scripts/backup.ps1` / `.sh`) creates a timestamped ZIP under local backups/. It uses SQLite's online backup API and copies exports/. It does not include all datasets/, reports/, historical training/ state, external models/interpreters or credentials. Export copying is not globally atomic with concurrent mutation: freeze immutable files and verify their hashes. Preserve separately inventoried private evidence without loading it into the application.
 
-From the intended local checkout:
+For recovery, record authorized source revision, archive/member SHA256, database table counts/schema/ledger and export manifests in a private record. Keep secrets separately in approved private storage. A valid ZIP, push or old successful rehearsal is not complete recovery proof.
 
-```bash
-python scripts/backup.py
-```
+1. Verify ZIP/member integrity and reject absolute/traversal/link paths before extraction. Restore into a new empty private checkout, never over live state.
+2. Restore a consistent database snapshot without another instance's WAL/SHM. Require integrity_check=ok, no foreign_key_check rows, and matching schema/counts/ledger. Verify every dataset/holdout/manifest hash separately. Retain mismatched/failed evidence privately and stop.
+3. Restore other inventoried private artifacts only from verified sources. Keep historical external-runtime copies distinct; this backup does not certify or authorize their restoration/reconciliation. Copied environments can depend on permissions, symlinks, interpreter and original paths; no complete OS image is supplied.
+4. Recreate only authorized secrets; never reuse transient session/CSRF/connector consent. Set NAJDILAB_NO_DEMO=1 and inspect source migrations before launch: startup applies unrecorded SQL, with [known loader debt](database-and-migrations.md).
+5. Test the restored local review/version/Chat state in isolation, record actual missing fixtures and ensure no unrelated process is operated. The separate [Core profile](../public_source/README.md) has its own coherent registered-version backup/restore contract and limits.
 
-The Windows and shell wrappers are `scripts/backup.ps1` and `scripts/backup.sh`. The script writes a new timestamped ZIP under local `backups/`. It uses SQLite's online backup API for a consistent database snapshot and includes files under `exports/`. **It does not back up the entire application or ML environment:** `datasets/`, `training/`, `reports/`, checkpoints, model weights, external scripts, interpreter installations and credentials require a separately planned private backup. Exports copied during concurrent mutation are not a globally atomic archive; frozen exports must remain immutable and be hash-verified.
-
-For full recovery, preserve an authorized source revision plus separate inventories of all required state. Record per-file SHA-256 hashes, database table counts, schema migration state, selected model revisions, package versions and restore-test results in a private manifest. Verify scope rather than assuming every directory is included. Restrict archive access and protect any credentials separately in authorized secret storage.
-
-## Isolated restore rehearsal
-
-1. Verify archive and member hashes against the private manifest. Clone the recorded source revision into a new empty directory; never test restoration by overwriting a live installation.
-2. Inspect archive member paths and reject absolute paths or traversal before extraction. Restore the database snapshot and immutable export files into the new private recovery checkout. Restore additional datasets, reports and runtime artifacts from their separately verified sources only after comparing existing files.
-3. Do not mix a consistent database snapshot with WAL/SHM files from another running instance. Run `PRAGMA integrity_check` (must return `ok`) and `PRAGMA foreign_key_check` (must return no rows) on the restored copy, and compare counts/schema state with the manifest.
-4. Verify every declared Gold, holdout, model and adapter hash. Missing files or mismatched fingerprints block use. Preserve Windows and WSL adapter versions independently; an archive does not authorize reconciliation of known adapter drift.
-5. Recover Linux artifacts onto a Linux filesystem with tools that preserve permissions and symlinks. A copied virtual environment may depend on an external interpreter, system libraries and original paths. Record those requirements or recreate an isolated environment from verified versions; a project archive is not a full WSL operating-system image.
-6. Recreate authorized secrets from secret storage; rotate/reconfigure the ingest secret through [the integration guide](hermes-integration.md). Do not restore transient session/CSRF values as credentials. Runtime checks, READY evidence and training authorizations must be regenerated after restore.
-7. Before launch, compare source migrations to the restored schema and set `NAJDILAB_NO_DEMO=1`. Startup automatically applies SQL already in `migrations/`; planned migrations remain separately gated. Reconfigure local paths and external collector/autostart references for the new installation.
-8. Run appropriate tests in isolation and record missing private fixtures separately. Start only the restored local instance after review, check health and read-only catalog state, and verify no workload begins automatically.
-
-A successful push or valid ZIP alone does not prove recovery. Require verified source, complete private artifact inventory and a successful isolated restore rehearsal before decommissioning an installation. Preserve existing instances until recovery is proved. This guide grants no migration, training, deployment, export, service-control or deletion approval.
+This source-only cleanup changes no database/schema/private export, so its rollback is a reviewed source revert, not a data restore. Earlier source may reopen removed interfaces or unsafe Hermes ingress: inspect before launch. Any later installed update or operational recovery is a separate deliberate action. Do not decommission existing state until recovery is proved.

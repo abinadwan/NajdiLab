@@ -42,7 +42,7 @@ def render():
     for method, route, fields, wrapper, dispatch, line in rows:
         route = route.replace('|', '&#124;')
         text += '| '+method+' | `'+route+'` | '+(', '.join(fields) or 'domain payload / none')+' | '+wrapper+' | '+', '.join(dispatch)+'; [source](../app/server.py#L'+str(line)+') |\n'
-    text += '\nTotal implemented route branches: '+str(len(rows))+'. Response status and field details are defined at the linked handler/domain code; special execution actions retain their independent approval tokens and gates. No catch-all static route is an API operation.\n'
+    text += '\nTotal implemented route branches: '+str(len(rows))+'. Response status and field details are defined at the linked handler/domain code; all mutations retain the documented request security and dataset integrity gates. No catch-all static route is an API operation.\n'
     return text
 
 
