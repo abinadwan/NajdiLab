@@ -60,3 +60,10 @@ test('newer typing is never cleared by an older completed Send; rollover and fai
   assert.equal(shouldClearDraft('old question','old question','CONTEXT_LIMIT'),false);
   assert.equal(shouldClearDraft('old question','old question','FAILED'),false);
 });
+
+test('Phase B manual turn and Add Data tabs operate on element collections',()=>{
+  const source=require('node:fs').readFileSync('static/app.js','utf8');
+  assert.match(source,/document\.querySelectorAll\('#view-add-data \.subtabs \[data-add-tab\]'\)\.forEach/);
+  assert.match(source,/const rows=Array\.from\(document\.querySelectorAll\('#sft-turns \.turn-row'\)\)/);
+  assert.match(source,/payload\.messages=Array\.from\(document\.querySelectorAll\('#manual-edit-turns \.turn-row'\)\)\.map/);
+});
