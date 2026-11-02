@@ -91,3 +91,12 @@ Five more original findings now have source changes and dedicated synthetic acce
 New acceptance sources: \`tests/phase39-ui.test.cjs\`, \`tests/dataset-identity-ui.test.cjs\`, and extended \`tests/chat-browser.cjs\`. Both new test files are explicitly classified as full-product-only exclusions in the Core source policy. We must verify the **same final branch HEAD** with both Windows and Ubuntu Source checks and packaged Core candidate; no success claim until those runs finish green.
 
 Rollback is a code-only branch revert. There is no schema migration, model download, GPU load, local Windows modification, or third-party app configuration change in this increment.
+
+## Fifth implementation increment — quality decision and recoverable errors (2026-11-02)
+
+- **UX-03:** The review screen visibly distinguishes the human review decision (Approve) from the separately selected dataset export eligibility checkbox, and labels its assistive help via `aria-describedby`. Existing server-side privacy, fact-check and holdout gates still take precedence. Browser assertions verify text/help and prove that an approved restricted sample remains ineligible; no data is automatically approved for training.
+- **UX-19:** General UI error notifications no longer silently disappear after 2.8 seconds; they use `role="alert"`, assertive announcement and an explicit accessible Dismiss error button. Informational/success notifications continue to expire automatically. The hosted Chat browser test demonstrates persistence after 3.1 seconds and dismissal, using synthetic no-turn validation only. Persistent errors must still be audited screen-by-screen for contextual messaging and recoverable state.
+
+Both findings remain **IMPLEMENTED_PENDING_VERIFICATION** until final same-SHA Windows/Ubuntu CI, complete Arabic/English UI localization and full accessibility/zoom acceptance. Existing Node synthetic-DOM tests were updated to emulate `createElement`, `append`, and ARIA setters rather than hiding browser behavior behind a no-op production shim.
+
+**Phase B tally:** 20 of the 31 original finding IDs have code changes pending full verification; 11 findings remain open. None is marked finally fixed by this increment. No native application or user's local files were touched.
