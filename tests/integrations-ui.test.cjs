@@ -39,12 +39,15 @@ test('synthetic test approval is explicit and sends no prompt or credentials', a
   await f.click('select'); assert.deepEqual(JSON.parse(f.calls[1][1].body),{approved:true,model:'synthetic-model'});
 });
 
-test('untrusted model text is escaped and Hermes never claims sender disconnect', async()=>{
-  const f=fixture(); f.state.items[0].models=['<img src=x onerror=alert(1)>'];await f.ui.load();
+test('model content is escaped and legacy conversation sources are absent from Settings', async()=>{
+  const f=fixture(); f.state.items[0].models=['<img src=x onerror=alert(1)>']; await f.ui.load();
   const html=f.elements['integration-cards'].innerHTML;
-  assert.ok(!html.includes('<img'));assert.ok(html.includes('&lt;img'));
-  assert.match(html,/External sender: UNVERIFIED/);
-  await f.click('disconnect','hermes');assert.match(f.confirmations[0],/does not stop Hermes/);
+  assert.ok(!html.includes('<img')); assert.ok(html.includes('&lt;img'));
+  assert.match(html,/LM Studio/); assert.doesNotMatch(html,/Hermes/);
+  f.calls.length=0;
+  await f.click('disconnect','hermes');
+  assert.equal(f.calls.length,0, 'a hidden connector must never receive a UI action');
+  assert.equal(f.confirmations.length,0);
 });
 
 test('failed loads remain visible and controls recover', async()=>{
