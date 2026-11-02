@@ -49,6 +49,11 @@ test('review restriction integrity in Chromium',async t=>{
       await page.click('#refresh-view');await page.waitForFunction(()=>document.querySelector('#toast').textContent==='Data refreshed.');
       assert.deepEqual(await checked(),[true,true,true,true,true]);
     });
+    await t.test('UX-03 approval explicitly differs from dataset eligibility',async()=>{
+      assert.match(await page.$eval('#review-eligibility-help',el=>el.textContent),/independent decision/);
+      assert.equal(await page.$eval('#training-eligible',el=>el.checked),false);
+      assert.equal(await page.$eval('#training-eligible',el=>el.getAttribute('aria-describedby')),'review-eligibility-help');
+    });
     await t.test('eligibility selection never clears saved restrictions',async()=>{
       await page.click('#training-eligible');
       assert.deepEqual(await checked(),[true,true,true,true,true]);
