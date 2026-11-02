@@ -32,6 +32,45 @@ const puppeteer=require('puppeteer-core');
     }
     assert.equal(await page.$('[data-view="training"]'),null);
     assert.equal(await page.$eval('#local-address',e=>e.textContent),new URL(base).host);
+
+    // UX-23: 390px layout acceptance for visible workflow panes.
+    await page.setViewport({width:390,height:844});
+    for(const [view,selector] of [
+      ['add-data','#view-add-data .subtabs'],
+      ['conversations','#view-conversations .split-list'],
+      ['review-queue','#view-review-queue .review-workspace']
+    ]){
+      await page.$eval('[data-view="'+view+'"]',e=>e.click());
+      await page.waitForFunction(v=>document.querySelector('#view-'+v).classList.contains('active'),{},view);
+      const rect=await page.$eval(selector,e=>({right:e.getBoundingClientRect().right,left:e.getBoundingClientRect().left,width:e.getBoundingClientRect().width}));
+      assert.ok(rect.right<=391&&rect.left>=-1&&rect.width<=391,view+' mobile content must fit: '+JSON.stringify(rect));
+    }
+    await page.setViewport({width:1280,height:1000});
+    await page.$eval('[data-view="chat"]',e=>e.click());
+    await page.waitForSelector('#chat-provider option');
+    // UX-25: measure rendered dark-mode foreground/background pair, not string presence.
+    const contrasts=await page.evaluate(()=>{
+      const previous=document.documentElement.getAttribute('data-theme');
+      document.documentElement.setAttribute('data-theme','dark');
+      const host=document.createElement('div');
+      host.innerHTML='<article class="phase38-message assistant"><span class="role">Assistant</span></article><div class="phase38-summary"><span>Summary</span></div>';
+      document.body.append(host);
+      const contrast=(a,b)=>{
+        const rgb=text=>text.match(/[\d.]+/g).slice(0,3).map(x=>Number(x)/255);
+        const lum=text=>rgb(text).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);
+        const v=[lum(a),lum(b)].sort((x,y)=>y-x);return (v[0]+.05)/(v[1]+.05);
+      };
+      const pairs=['.phase38-message.assistant','.phase38-summary span'].map(selector=>{
+        const style=getComputedStyle(host.querySelector(selector));
+        return {selector,ratio:contrast(style.color,style.backgroundColor)};
+      });
+      host.remove();
+      if(previous===null)document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme',previous);
+      return pairs;
+    });
+    for(const row of contrasts)assert.ok(row.ratio>=4.5,row.selector+' dark-mode ratio '+row.ratio);
+
     // UX-24: collapsing navigation must change the shell grid, not just hide text.
     const expanded=await page.$eval('.shell',e=>parseFloat(getComputedStyle(e).gridTemplateColumns.split(' ')[0]));
     await page.click('#collapse-sidebar');
