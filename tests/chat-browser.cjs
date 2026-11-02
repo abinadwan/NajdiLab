@@ -31,10 +31,19 @@ const puppeteer=require('puppeteer-core');
       throw error;
     }
     assert.equal(await page.$('[data-view="training"]'),null);
+    assert.equal(await page.$eval('#local-address',e=>e.textContent),new URL(base).host);
+    // UX-24: collapsing navigation must change the shell grid, not just hide text.
+    const expanded=await page.$eval('.shell',e=>parseFloat(getComputedStyle(e).gridTemplateColumns.split(' ')[0]));
+    await page.click('#collapse-sidebar');
+    const collapsed=await page.$eval('.shell',e=>parseFloat(getComputedStyle(e).gridTemplateColumns.split(' ')[0]));
+    assert.ok(collapsed<expanded, `sidebar widths expanded=${expanded}, collapsed=${collapsed}`);
+    await page.click('#collapse-sidebar');
     assert.equal(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
     await page.click('#chat-new');await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
     assert.equal(await page.$eval('#chat-collect',e=>e.checked),false);
     const sid=await page.$eval('#chat-saved',e=>e.value);
+    assert.match(await page.$eval('#chat-session-identity',e=>e.textContent),/OPEN · lmstudio \/ fixture · Context 4096/);
+    assert.match(await page.$eval('#chat-session-identity',e=>e.textContent),new RegExp(sid));
     const raw='  <img src=x onerror=alert(1)> synthetic private-before-optin 🙂  ';
     await page.type('#chat-draft',raw);await page.click('#chat-send');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2);
@@ -117,6 +126,10 @@ const puppeteer=require('puppeteer-core');
     await page.waitForFunction(()=>document.querySelectorAll('.export-blockers li').length===5);
     assert.equal(await page.$('.export-blockers img'),null);
     assert.match(await page.$eval('.export-blockers li:last-child',e=>e.textContent),/<img src=x onerror/);
+    // UX-26: Settings must not pretend /health checks SQLite corruption/backups.
+    await page.click('[data-view="settings"]');
+    await page.waitForFunction(()=>document.querySelector('#sqlite-status').textContent.includes('Application responding'));
+    assert.match(await page.$eval('#sqlite-status',e=>e.textContent),/database not verified/);
     await page.goto(base+'/training/setup');await page.waitForSelector('#view-dashboard.active');
     assert.equal(await page.$('#view-retired'),null);
     assert.equal(await page.$('#view-human-review'),null);
