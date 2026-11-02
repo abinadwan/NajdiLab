@@ -15,3 +15,22 @@
 :root[data-theme="dark"] .safety-banner{background:var(--surface-raised);color:var(--ink);border-color:var(--line)}
 @media (prefers-contrast:more){:root{--line:#53645f}.button,input,select,textarea,.panel{border-width:2px}.muted,small{color:var(--ink)!important}}
 @media(max-width:760px){.theme-control label{display:none}.theme-control select{min-width:78px}.theme-setting{grid-column:auto}}
+
+/* Phase B UX-25 — dark mode text contrast on real review/workflow surfaces.
+   Dark chrome must not inherit light-only background values from other CSS. */
+:root[data-theme="dark"] :is(.phase38-message,.phase38-summary span,.phase38-tool-call,.phase38-tool-result,.readonly-tool-note,.phase38-criteria select){
+  background:var(--surface-soft);color:var(--ink);border-color:var(--line)
+}
+:root[data-theme="dark"] .phase38-message.user{background:#19382f;color:var(--ink)}
+:root[data-theme="dark"] .phase38-message.assistant{background:#332e20;color:var(--ink)}
+:root[data-theme="dark"] :is(.phase38-message .role,.phase38-criteria label,.phase38-technical summary,.nav-label small,.nav-group,.phase38-status,.status-neutral){
+  color:#c6d4cf
+}
+:root[data-theme="dark"] .phase38-summary span{background:var(--surface-raised);color:var(--ink)}
+:root[data-theme="dark"] .phase38-tool-call,:root[data-theme="dark"] .phase38-tool-result{background:var(--surface-raised);color:var(--ink)}
+:root[data-theme="dark"] .coverage-chips span{background:var(--status-ready-bg);color:var(--status-ready-text)}
+:root[data-theme="dark"] .phase38-status.error-state{background:var(--status-blocked-bg);color:var(--status-blocked-text);border-color:var(--line)}
+:root[data-theme="dark"] :is(.field label,.wide-label,.form-grid label,.preference-grid label,.label-row,.locked){
+  color:var(--ink)
+}
+:root[data-theme="dark"] .status-neutral{background:var(--surface-raised);color:var(--ink)}
