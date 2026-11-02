@@ -57,11 +57,11 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const elements = new Map();
 const element = selector => {
-    if (!elements.has(selector)) elements.set(selector, {checked: false, innerHTML: '', textContent: '', className: '',style:{},classList:{toggle(){},add(){},remove(){},contains(){return false;}}});
+    if (!elements.has(selector)) elements.set(selector, {checked: false, innerHTML: '', textContent: '', className: '',style:{},setAttribute(){},append(){},classList:{toggle(){},add(){},remove(){},contains(){return false;}}});
     return elements.get(selector);
 };
 const context = {console, Intl, Date, URLSearchParams, setTimeout: () => 0, clearTimeout: () => {},
-    document: {querySelector: element, querySelectorAll: () => [], addEventListener: () => {}},
+    document: {querySelector: element, querySelectorAll: () => [], addEventListener: () => {}, createElement: () => ({setAttribute(){},append(){},textContent:'',className:''})},
     window: {}, location: {search: '', pathname: '/'}, assert, element};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('static/app.js', 'utf8'), context);
