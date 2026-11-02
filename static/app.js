@@ -379,7 +379,7 @@ async function saveManualEdit(event){
   const item=state.manualCurrent,form=event.currentTarget,payload=formPayload(form);
   const button=form.querySelector('button[type=submit]'),feedback=form.querySelector('#manual-save-state');
   if(button.disabled)return;
-  if(item.item_type==='sft')payload.messages=$('#manual-edit-turns .turn-row').map(row=>({role:row.querySelector('.turn-role').value,content:row.querySelector('.turn-content').value}));
+  if(item.item_type==='sft')payload.messages=Array.from(document.querySelectorAll('#manual-edit-turns .turn-row')).map(row=>({role:row.querySelector('.turn-role').value,content:row.querySelector('.turn-content').value}));
   button.disabled=true;button.textContent='Saving…';feedback.textContent='Saving a new version…';feedback.className='save-state';
   try{
     const result=await api(`/api/v1/manual-data/${item.item_type}/${item.id}`,{method:'PATCH',body:JSON.stringify(payload)});
@@ -490,10 +490,10 @@ function bindEvents(){
   restrictionControls.forEach(selector=>$(selector).addEventListener('change',e=>{if(e.target.checked)$('#training-eligible').checked=false;}));
   $('#training-eligible').addEventListener('change',e=>{if(e.target.checked&&restrictionControls.some(selector=>$(selector).checked)){e.target.checked=false;toast('Resolve dataset restrictions explicitly before marking this record eligible.',true);}});
   $('#conversation-list').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)showConversation(b.dataset.id).catch(x=>toast(x.message,true));});$('#search-conversations').addEventListener('click',()=>loadConversations().catch(e=>toast(e.message,true)));$('#conversation-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadConversations();});$('#apply-reviewed-filters').addEventListener('click',()=>loadReviewed().catch(e=>toast(e.message,true)));$('#reviewed-list').addEventListener('change',e=>{if(!e.target.matches('.reviewed-row-check'))return;const id=Number(e.target.dataset.reviewId);e.target.checked?state.reviewedSelected.add(id):state.reviewedSelected.delete(id);updateReviewedBulk();});$('#reviewed-list').addEventListener('click',e=>{const restore=e.target.closest('[data-restore-review]'),exclude=e.target.closest('[data-exclude-review]');if(restore)bulkReviewed('restore',[Number(restore.dataset.restoreReview)]).catch(x=>toast(x.message,true));if(exclude)bulkReviewed('exclude',[Number(exclude.dataset.excludeReview)]).catch(x=>toast(x.message,true));});$('#bulk-exclude-reviews').addEventListener('click',()=>bulkReviewed('exclude').catch(e=>toast(e.message,true)));$('#bulk-restore-reviews').addEventListener('click',()=>bulkReviewed('restore').catch(e=>toast(e.message,true)));
-  $('#view-add-data .subtabs [data-add-tab]').forEach(button=>button.addEventListener('click',()=>{$('#view-add-data .subtabs [data-add-tab]').forEach(b=>b.classList.toggle('active',b===button));$('#view-add-data .data-form').forEach(form=>form.classList.toggle('active',form.id===`form-${button.dataset.addTab}`));}));$('#add-sft-turn').addEventListener('click',()=>addSftTurn($('#sft-turns .turn-row:last-child .turn-role')?.value==='user'?'assistant':'user'));
+  document.querySelectorAll('#view-add-data .subtabs [data-add-tab]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('#view-add-data .subtabs [data-add-tab]').forEach(b=>b.classList.toggle('active',b===button));document.querySelectorAll('#view-add-data .data-form').forEach(form=>form.classList.toggle('active',form.id===`form-${button.dataset.addTab}`));}));$('#add-sft-turn').addEventListener('click',()=>addSftTurn($('#sft-turns .turn-row:last-child .turn-role')?.value==='user'?'assistant':'user'));
   $('#form-sft').addEventListener('submit',async e=>{
     e.preventDefault();
-    const rows=$('#sft-turns .turn-row');
+    const rows=Array.from(document.querySelectorAll('#sft-turns .turn-row'));
     // UX-15: deleted/all-empty turns cannot produce a valid conversation.
     if(!rows.length){toast('Add at least a user turn and an assistant turn before saving.',true);return;}
     const messages=rows.map(row=>({role:row.querySelector('.turn-role').value,content:row.querySelector('.turn-content').value}));
