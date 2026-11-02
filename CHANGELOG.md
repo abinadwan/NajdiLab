@@ -13,6 +13,39 @@ Initial increment only; **31 original Phase B findings are not yet complete**. A
 
 
 
+### Phase B operational QA (local, pending hosted verification)
+- QA-07: optional timestamped ingest signatures (`X-NajdiLab-Timestamp`) refuse stale and replayed requests; `NAJDILAB_REQUIRE_FRESH_SIGNATURE=1` makes them mandatory. Existing senders keep working.
+- QA-06: `GET /api/v1/hermes-hook/refusals` shows whether anything still delivers to the blocked Hermes hook, without storing request content.
+- QA-04: symlink and junction refusal is tested without needing permission to create links.
+- QA-08: retention and deletion semantics are tested end to end and documented in `docs/data-retention.md`; nothing is physically erased, and erasure awaits an owner decision.
+- QA-03 stays blocked on private historical files that must not be recreated.
+
+### Phase B UX-05 complete content (local, pending hosted verification)
+- Reviewed cards and dataset records keep their short preview and add "Show full text" with the exact stored text; review context continuity is now covered by a test.
+
+### Phase B UX-22 / QA-05 accessibility and zoom (local, pending hosted verification)
+- Every control now has an accessible name in English and Arabic; filter and sort menus are named; skip link added.
+- Single-key review shortcuts (4 approves) are off by default and never act behind an open dialog or in a field; enable them in Settings.
+- No page-level horizontal scrolling at 200% and 400% zoom in either language.
+- New check: `tests/a11y-browser.cjs`. See `docs/accessibility.md`. Other browsers and real screen readers are not verified.
+
+### Phase B UX-10 navigation (local, pending hosted verification)
+- Sidebar regrouped in workflow order (Overview, Chat, Review, Data entry, Datasets, Export, Administration); all 15 destinations and routes kept.
+- Groups are announced as labelled groups, icons are hidden from screen readers, the current page is marked with `aria-current`, and collapsed items keep their names.
+- Blocked browser storage no longer stops the interface from starting.
+
+### Phase B UX-21 Arabic and English interface (local, pending hosted verification)
+- Complete right-to-left Arabic and left-to-right English interface with a language selector in the top bar and Settings; the choice is remembered in the browser and switching needs no reload.
+- Dynamic messages, errors, confirmations, dates and server validation messages are translated; unknown server messages are labelled and shown isolated.
+- Conversation and dataset content, identifiers and model names are never translated.
+- Fixed while doing this: top-bar overflow at 390px, unguarded theme storage, and browser fixtures that could read project exports or the default database.
+- New checks: `tests/i18n-catalog.test.cjs`, `tests/i18n-browser.cjs`. See `docs/localization.md`.
+
+### Phase B UX-20 record paging (local, pending hosted verification)
+- Conversations, reviewed records, manual data and saved chat sessions are paged by the server with `limit`/`offset` and `page` metadata; invalid values return 400. The silent 500/200 caps and the unbounded conversation list are gone.
+- Shared UI pager with exact "Showing a–b of N" ranges; saved sessions show "N of M loaded" with Load more.
+- Browser fixtures now fail loudly if a route would use the default application database.
+
 ### Phase B CI repair and Actions cost control
 - Fixed the `review-restrictions-browser.cjs` failures that kept `Source checks` red since UX-07: the test assumed an empty restored note and did not handle the intentional `beforeunload`/`confirm` guards. The test now asserts the restored server value and each guard prompt.
 - UX-19: the error toast's dismiss glyph is hidden from screen readers so alerts announce only the message; the message has its own `.toast-message` element.

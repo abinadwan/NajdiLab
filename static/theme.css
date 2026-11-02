@@ -34,3 +34,39 @@
   color:var(--ink)
 }
 :root[data-theme="dark"] .status-neutral{background:var(--surface-raised);color:var(--ink)}
+
+/* Phase B UX-20 — server-side list paging. Logical properties keep it correct in RTL. */
+.list-column{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-block:12px;color:var(--ink)}
+.pager:empty{display:none}
+.pager-summary{margin-inline-end:auto;font-size:.82rem;font-variant-numeric:tabular-nums}
+.pager .button:disabled{opacity:.5;cursor:not-allowed}
+#chat-saved-count:empty{display:none}
+
+/* Phase B UX-10 — workflow-ordered navigation groups. */
+.nav-section{display:flex;flex-direction:column;gap:2px}
+/* Collapsed: names are hidden visually but stay available to assistive technology. */
+.sidebar-collapsed .nav-item>.nav-label{display:block;position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.sidebar-collapsed .nav-section+.nav-section{border-block-start:1px solid rgba(255,255,255,.1);margin-block-start:4px;padding-block-start:4px}
+
+/* Phase B UX-22 — skip link and shortcut hint. */
+.skip-link{position:absolute;inset-inline-start:12px;top:-60px;z-index:100;background:var(--deep-2,#1b3731);color:#fff;padding:10px 14px;border-radius:9px;font-weight:700;text-decoration:none}
+.skip-link:focus{top:12px;outline:3px solid var(--gold,#d9a83d);outline-offset:2px}
+#main-content:focus{outline:none}
+.review-progress .kbd-hint{font:inherit;border:1px solid var(--line);border-bottom-width:2px;padding:2px 6px;border-radius:5px;background:var(--surface-soft,#fafbfa)}
+@media(max-width:760px){.review-progress .kbd-hint{display:none}}
+
+/* Phase B QA-05 — reflow at 320 CSS px (400% zoom). Data tables scroll inside their panel. */
+.analytics-grid>.panel{overflow-x:auto;min-width:0}
+.cards-grid{grid-template-columns:repeat(auto-fill,minmax(min(310px,100%),1fr))}
+@media(max-width:480px){
+  .settings-card{grid-template-columns:1fr;justify-items:start}
+  .settings-card select,.settings-card .inline-check{min-width:0;max-width:100%}
+}
+
+/* Phase B UX-05 — complete text behind a preview. */
+.full-text{margin-block-start:4px}
+.full-text summary{cursor:pointer;color:var(--ink);font-size:.78rem;font-weight:700}
+.full-text p{white-space:pre-wrap;margin-block:6px 0}
+/* Long option text (e.g. reviewer identity) must not widen the page at 320 px. */
+.view select{max-width:100%}

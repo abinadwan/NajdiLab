@@ -60,9 +60,13 @@
   const el=id=>document.getElementById(id);
   let integrations=[],bound=false,notice='';
   const controller=new ChatController((...args)=>api(...args),render);
-  function option(select,value,label){select.add(new Option(label,value));}
+  // literal=true marks identifiers (model, provider, session) that the localizer must not translate.
+  function option(select,value,label,literal=false){const item=new Option(label,value);if(literal)item.setAttribute('translate','no');select.add(item);}
+  const i18n=text=>window.NajdiI18n?window.NajdiI18n.t(text):text;
+  function compose(target,parts){target.replaceChildren(...parts.map(part=>{if(typeof part==='string')return document.createTextNode(part);const id=document.createElement('bdi');id.dir='ltr';id.textContent=part.id;return id;}));}
+  const sessionStatus={OPEN:'Open',CONTEXT_LIMIT:'Context limit reached',ARCHIVED:'Archived'};
   function provider(){return integrations.find(x=>x.id===el('chat-provider').value);}
-  function models(){const p=provider();el('chat-model').replaceChildren();for(const model of p?.models||[])option(el('chat-model'),model,model);if(p?.selected_model)el('chat-model').value=p.selected_model;el('chat-load-row').hidden=p?.id!=='ollama';el('chat-load-approved').checked=false;}
+  function models(){const p=provider();el('chat-model').replaceChildren();for(const model of p?.models||[])option(el('chat-model'),model,model,true);if(p?.selected_model)el('chat-model').value=p.selected_model;el('chat-load-row').hidden=p?.id!=='ollama';el('chat-load-approved').checked=false;}
   /* A select bumps the revision, so reuse a current one: it would otherwise stale the open conversation. */
   async function select(p,model){
     if(p.selected_model===model)return p.selection_revision;
@@ -98,19 +102,37 @@
     const last=s?.turns?.at(-1);
     // UX-09: never imply the "new conversation" selectors will change a saved
     // session's immutable provider, model or context. Show the actual binding.
-    el('chat-session-identity').textContent=s
-      ? `Current conversation: ${s.id} · ${s.status} · ${s.provider} / ${s.model} · Context ${s.context_budget}, reserved reply ${s.reply_reserve} tokens.`
-      : 'No active conversation selected. Choose a provider/model above for a new conversation.';
-    el('chat-usage').textContent=s?`${s.provider} / ${s.model} · Budget ${s.context_budget} · Reply reserve ${s.reply_reserve}${last?` · Last turn: ${last.input_tokens} input + ${last.output_tokens} output tokens (${last.input_tokens+last.output_tokens} of ${s.context_budget})`:''}`:'';
+    if(s){
+      // UX-21: identifiers are isolated left-to-right; the surrounding text stays translatable.
+      compose(el('chat-session-identity'),['Current conversation: ',{id:s.id},' · ',s.status,' · ',{id:s.provider},' / ',{id:s.model},
+        ` · Context ${s.context_budget}, reserved reply ${s.reply_reserve} tokens.`]);
+      compose(el('chat-usage'),[{id:s.provider},' / ',{id:s.model},
+        ` · Budget ${s.context_budget} · Reply reserve ${s.reply_reserve}${last?` · Last turn: ${last.input_tokens} input + ${last.output_tokens} output tokens (${last.input_tokens+last.output_tokens} of ${s.context_budget})`:''}`]);
+    }else{
+      el('chat-session-identity').textContent='No active conversation selected. Choose a provider/model above for a new conversation.';
+      el('chat-usage').textContent='';
+    }
     el('chat-notice').textContent=notice||(busy?'Waiting for the model. Stop discards this turn.'
       : open&&!sessionModelReady?'This saved conversation is pinned to its original model. Connect and select that exact model in Settings to continue; no model was changed automatically.'
       : s?'Ready. Complete history is sent unchanged.':'Connect a runtime in Settings, then create a conversation.');
   }
-  async function saved(){const data=await api('/api/v1/chat/sessions');el('chat-saved').replaceChildren();option(el('chat-saved'),'','Choose a saved conversation');for(const s of data.items)option(el('chat-saved'),s.id,`${s.model} · ${s.created_at} · ${s.status}`);if(controller.session)el('chat-saved').value=controller.session.id;}
+  // UX-20: saved sessions are paged; the count line states how many are loaded out of how many exist.
+  let savedLoaded=0;
+  async function saved(more=false){
+    const offset=more?savedLoaded:0;
+    const data=await api(`/api/v1/chat/sessions?limit=100&offset=${offset}`);
+    if(!more){el('chat-saved').replaceChildren();option(el('chat-saved'),'','Choose a saved conversation');}
+    const when=value=>window.NajdiI18n?window.NajdiI18n.date(value):value;
+    for(const s of data.items)option(el('chat-saved'),s.id,`${s.model} · ${when(s.created_at)} · ${i18n(sessionStatus[s.status]||s.status)}`,true);
+    savedLoaded=offset+data.items.length;
+    el('chat-saved-count').textContent=data.page.total?`${savedLoaded} of ${data.page.total} saved conversations loaded`:'No saved conversations';
+    el('chat-saved-more').hidden=!data.page.has_more;
+    if(controller.session)el('chat-saved').value=controller.session.id;
+  }
   async function load(){
     if(!bound)bind();
     integrations=(await api('/api/v1/integrations')).items.filter(x=>x.kind==='model_runtime'&&x.connection==='CONNECTED');
-    const previous=el('chat-provider').value;el('chat-provider').replaceChildren();for(const p of integrations)option(el('chat-provider'),p.id,p.name);
+    const previous=el('chat-provider').value;el('chat-provider').replaceChildren();for(const p of integrations)option(el('chat-provider'),p.id,p.name,true);
     if(integrations.some(p=>p.id===previous))el('chat-provider').value=previous;models();
     if(controller.session){const p=integrations.find(x=>x.id===controller.session.provider);controller.selectionRevision=p?.selection_revision;await controller.refresh();}
     await saved();render();
@@ -127,6 +149,8 @@
     });
     el('chat-saved').onchange=act(async()=>{const id=el('chat-saved').value;if(!id)return;controller.session=await api(`/api/v1/chat/sessions/${id}`);controller.selectionRevision=integrations.find(x=>x.id===controller.session.provider)?.selection_revision;notice='';render();});
     el('chat-refresh').onclick=act(async()=>{notice='';await load();});
+    el('chat-saved-more').onclick=act(async()=>{await saved(true);});
+    window.addEventListener('najdilab:languagechange',()=>{saved().catch(()=>{});});
     el('chat-form').onsubmit=act(async event=>{
       event.preventDefault();notice='';
       const submitted=el('chat-draft').value;
@@ -138,7 +162,7 @@
     el('chat-stop').onclick=act(async()=>{await controller.stop();notice='Stop requested. No partial response will be saved. Engine cancellation is best effort; its service stays running.';render();});
     el('chat-collect').onchange=act(async()=>{await controller.collect(el('chat-collect').checked);notice='Collection choice saved for this server process. Only future completed pairs can enter PENDING review.';render();});
     el('chat-archive').onclick=act(async()=>{
-      if(!confirm('Archive this conversation and exclude its collected pairs from future dataset selection? Local text and previous exports are retained.'))return;
+      if(!confirm(window.NajdiI18n?window.NajdiI18n.t('Archive this conversation and exclude its collected pairs from future dataset selection? Local text and previous exports are retained.'):'Archive this conversation and exclude its collected pairs from future dataset selection? Local text and previous exports are retained.'))return;
       await controller.refresh();controller.session=await controller.post(controller.path('archive'),{revision:controller.session.revision});notice='Conversation archived. Data and earlier exports are retained.';await saved();render();
     });
     el('chat-hardware').onclick=act(async()=>{

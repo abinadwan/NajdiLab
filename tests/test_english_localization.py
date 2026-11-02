@@ -5,13 +5,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_english_ltr_document_shell_and_localization_api():
+    # English is the source language and the default; Arabic is applied at runtime (UX-21).
     for name in ("index.html", "phase38-review.html"):
         html = (ROOT / "static" / name).read_text(encoding="utf-8")
         assert '<html lang="en" dir="ltr">' in html
+        assert html.index('src="/i18n-ar.js"') < html.index('src="/localization.js"')
     source = (ROOT / "static/localization.js").read_text(encoding="utf-8")
     assert "global.NajdiI18n" in source
-    assert "locale:'en-US'" in source
-    assert "direction:'ltr'" in source
+    assert "en: Object.freeze({locale: 'en-US', dir: 'ltr'" in source
+    assert "ar: Object.freeze({locale: 'ar-SA-u-ca-gregory-nu-latn', dir: 'rtl'" in source
+    assert "const STORAGE_KEY = 'najdilab.language';" in source
     assert "READY: 'Ready'" in source
 
 
@@ -40,8 +43,11 @@ def test_chrome_has_no_arabic_literals_outside_api_decision_values():
     for decision in ("\u0627\u0639\u062a\u0645\u0627\u062f \u0627\u0644\u062a\u0639\u062f\u064a\u0644", "\u064a\u062d\u062a\u0627\u062c \u062a\u0639\u062f\u064a\u0644 \u0625\u0636\u0627\u0641\u064a", "\u0631\u0641\u0636"):
         source = source.replace('data-phase39-decision="' + decision + '"', '')
     assert not re.search(r"[\u0600-\u06ff]", source)
-    for name in ("index.html", "localization.js", "theme.js", "phase38-review.html"):
-        assert not re.search(r"[\u0600-\u06ff]", (ROOT / "static" / name).read_text(encoding="utf-8"))
+    # Arabic UI text lives only in static/i18n-ar.js; the one exception is the language's own
+    # name in the language selector, which is shown in Arabic in every interface language.
+    for name in ("index.html", "localization.js", "theme.js", "phase38-review.html", "chat.js", "integrations.js"):
+        text = (ROOT / "static" / name).read_text(encoding="utf-8").replace("العربية", "")
+        assert not re.search(r"[\u0600-\u06ff]", text), name
 
 
 def run_browser_script(script):

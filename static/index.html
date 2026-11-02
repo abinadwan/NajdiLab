@@ -7,6 +7,7 @@
   <title>NajdiLab — Gold dataset laboratory</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script src="/theme-init.js"></script>
+  <script src="/i18n-ar.js"></script>
   <script src="/localization.js"></script>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/manual-data.css">
@@ -16,41 +17,52 @@
   <link rel="stylesheet" href="/theme.css">
   <link rel="stylesheet" href="/integrations.css">
   <link rel="stylesheet" href="/chat.css">
+  <link rel="stylesheet" href="/i18n.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="shell">
-    <aside class="sidebar" aria-label="Main navigation">
+    <aside class="sidebar" aria-label="Application sidebar">
       <div class="brand" aria-label="NajdiLab">
         <img src="/favicon.svg" width="38" height="38" alt="">
         <div><strong>NajdiLab</strong><span>Gold dataset laboratory</span></div>
         <button id="collapse-sidebar" class="collapse-sidebar" type="button" aria-label="Collapse menu" title="Collapse menu">‹</button>
       </div>
-      <nav id="main-nav">
-        <span class="nav-group">Home</span>
-        <button class="nav-item" data-view="chat"><span class="nav-icon">◫</span> Chat Workspace</button>
-        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">◈</span><span class="nav-label">Dashboard</span></button>
-        <span class="nav-group">Dataset</span>
-        <button class="nav-item" data-view="review-queue"><span class="nav-icon">⌁</span><span class="nav-label">Review queue</span> <b id="nav-pending">—</b></button>
-        <button class="nav-item" data-view="conversations"><span class="nav-icon">◫</span> Conversations</button>
-        <button class="nav-item" data-view="reviewed"><span class="nav-icon">✓</span> Reviewed</button>
-        <button class="nav-item" data-view="add-data"><span class="nav-icon">＋</span> Add data</button>
-        <button class="nav-item" data-view="manual-data"><span class="nav-icon">▦</span> Manual data</button>
-        <button class="nav-item" data-view="dataset"><span class="nav-icon">▤</span> Dataset records</button>
-        <button class="nav-item" data-view="dataset-health"><span class="nav-icon">♥</span> Dataset health</button>
-        <button class="nav-item" data-view="balancer"><span class="nav-icon">≋</span><span class="nav-label">Dataset balancer<small>Dataset Balancer</small></span></button>
-        <button class="nav-item" data-view="dataset-versions"><span class="nav-icon">◇</span> Dataset versions</button>
-        <span class="nav-group">Evaluation</span>
-        <button class="nav-item" data-view="eval-sets"><span class="nav-icon">⌕</span> Evaluation sets</button>
-        <span class="nav-group">Export</span>
-        <button class="nav-item" data-view="exports"><span class="nav-icon">⇩</span> Export center</button>
-        <span class="nav-group">System</span>
-        <button class="nav-item" data-view="analytics"><span class="nav-icon">⌁</span> Analytics</button>
-        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span> Settings</button>
+      <nav id="main-nav" aria-label="Main navigation">
+        <div class="nav-section" role="group" aria-labelledby="nav-group-overview"><span class="nav-group" id="nav-group-overview">Overview</span>
+          <button class="nav-item active" aria-current="page" data-view="dashboard" title="Dashboard"><span class="nav-icon" aria-hidden="true">◈</span><span class="nav-label">Dashboard</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-chat"><span class="nav-group" id="nav-group-chat">Chat</span>
+          <button class="nav-item" data-view="chat" title="Chat Workspace"><span class="nav-icon" aria-hidden="true">◫</span><span class="nav-label">Chat Workspace</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-review"><span class="nav-group" id="nav-group-review">Review</span>
+          <button class="nav-item" data-view="review-queue" title="Review queue"><span class="nav-icon" aria-hidden="true">⌁</span><span class="nav-label">Review queue</span> <b id="nav-pending">—</b></button>
+          <button class="nav-item" data-view="conversations" title="Conversations"><span class="nav-icon" aria-hidden="true">☰</span><span class="nav-label">Conversations</span></button>
+          <button class="nav-item" data-view="reviewed" title="Reviewed"><span class="nav-icon" aria-hidden="true">✓</span><span class="nav-label">Reviewed</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-data"><span class="nav-group" id="nav-group-data">Data entry</span>
+          <button class="nav-item" data-view="add-data" title="Add data"><span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Add data</span></button>
+          <button class="nav-item" data-view="manual-data" title="Manual data"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-label">Manual data</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-datasets"><span class="nav-group" id="nav-group-datasets">Datasets</span>
+          <button class="nav-item" data-view="dataset" title="Dataset records"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Dataset records</span></button>
+          <button class="nav-item" data-view="dataset-health" title="Dataset health"><span class="nav-icon" aria-hidden="true">♥</span><span class="nav-label">Dataset health</span></button>
+          <button class="nav-item" data-view="balancer" title="Dataset balancer"><span class="nav-icon" aria-hidden="true">≋</span><span class="nav-label">Dataset balancer</span></button>
+          <button class="nav-item" data-view="dataset-versions" title="Dataset versions"><span class="nav-icon" aria-hidden="true">◇</span><span class="nav-label">Dataset versions</span></button>
+          <button class="nav-item" data-view="eval-sets" title="Evaluation sets"><span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Evaluation sets</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-export"><span class="nav-group" id="nav-group-export">Export</span>
+          <button class="nav-item" data-view="exports" title="Export center"><span class="nav-icon" aria-hidden="true">⇩</span><span class="nav-label">Export center</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-system"><span class="nav-group" id="nav-group-system">Administration</span>
+          <button class="nav-item" data-view="analytics" title="Analytics"><span class="nav-icon" aria-hidden="true">▥</span><span class="nav-label">Analytics</span></button>
+          <button class="nav-item" data-view="settings" title="Settings"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-label">Settings</span></button>
+        </div>
       </nav>
       <div class="local-badge"><i></i><span>Local only<br><small id="local-address">Checking current origin…</small></span></div>
     </aside>
 
-    <main class="main">
+    <main class="main" id="main-content" tabindex="-1" aria-labelledby="page-title">
       <header class="topbar">
         <button id="mobile-menu" class="icon-button" aria-label="Open menu">☰</button>
         <div>
@@ -58,7 +70,7 @@
           <h1 id="page-title">Dashboard</h1>
           <p id="page-subtitle">Dataset status and local workflows in one place.</p>
         </div>
-        <div class="top-actions"><div class="theme-control"><label for="theme-select">Appearance</label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip">● Local storage</span><button id="refresh-view" class="button ghost">Refresh</button></div>
+        <div class="top-actions"><div class="language-control"><label for="language-select"><span aria-hidden="true">🌐</span> Language</label><select id="language-select" data-language-select aria-label="Interface language"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="theme-control"><label for="theme-select">Appearance</label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip">● Local storage</span><button id="refresh-view" class="button ghost">Refresh</button></div>
       </header>
 
       <section id="view-chat" class="view">
@@ -73,7 +85,8 @@
             <label id="chat-load-row" class="inline-check" hidden><input id="chat-load-approved" type="checkbox"> Let Ollama load this model at this context</label>
             <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending. Ollama loads models on request, and a different context reloads the model, so it needs this approval.</p>
             <button id="chat-new" class="button primary" type="button">New conversation</button>
-            <label for="chat-saved">Saved conversations</label><select id="chat-saved"><option value="">Choose a saved conversation</option></select>
+            <label for="chat-saved">Saved conversations</label><select id="chat-saved" aria-describedby="chat-saved-count"><option value="">Choose a saved conversation</option></select>
+            <p id="chat-saved-count" class="muted" role="status"></p><button id="chat-saved-more" class="button ghost" type="button" hidden>Load more saved conversations</button>
             <button id="chat-refresh" class="button ghost" type="button">Refresh saved state</button>
             <button id="chat-archive" class="button ghost" type="button" disabled>Archive conversation</button>
             <button id="chat-hardware" class="button ghost" type="button">Read device specs</button>
@@ -112,7 +125,7 @@
             <div id="context-messages" class="chat-stream"></div>
           </section>
           <section class="review-column panel">
-            <div class="review-progress"><span id="queue-position">—</span><div class="progress"><i id="queue-progress"></i></div><kbd>Ctrl + Enter to save the edit</kbd></div>
+            <div class="review-progress"><span id="queue-position">—</span><div class="progress"><i id="queue-progress"></i></div><span id="review-shortcut-hint" class="kbd-hint">Ctrl + Enter to save the edit</span></div>
             <div class="original-card">
               <div class="label-row"><span>Original response</span><span class="locked">🔒 Preserved and immutable</span></div>
               <p dir="auto" id="original-response"></p>
@@ -150,40 +163,41 @@
       </section>
 
       <section id="view-conversations" class="view">
-        <div class="toolbar panel"><input id="conversation-search" type="search" placeholder="Search title, identifier, or message content…"><select id="conversation-channel"><option value="">All channels</option></select><button id="search-conversations" class="button primary">Search</button></div>
+        <div class="toolbar panel"><input id="conversation-search" aria-label="Search conversations" type="search" placeholder="Search title, identifier, or message content…"><select id="conversation-channel" aria-label="Filter conversations by channel"><option value="">All channels</option></select><button id="search-conversations" class="button primary">Search</button></div>
         <div class="split-list">
-          <div id="conversation-list" class="panel list-panel"></div>
+          <div class="list-column"><div id="conversation-list" class="panel list-panel"></div><nav id="conversations-pager" class="pager" aria-label="Conversation pages"></nav></div>
           <div id="conversation-detail" class="panel detail-panel"><div class="empty-inline">Choose a conversation to view it in full.</div></div>
         </div>
       </section>
 
       <section id="view-reviewed" class="view">
         <div class="filters panel">
-          <input id="reviewed-search" type="search" placeholder="Search responses and notes…">
-          <select id="filter-status"><option value="">Approved and corrected statuses</option><option value="APPROVED">Approved</option><option value="FULL_CORRECTION">Full correction</option><option value="DIALECT_CORRECTION">Dialect correction</option><option value="CONTENT_CORRECTION">Content correction</option><option value="IGNORED">Ignored</option><option value="DELETED">Deleted</option></select>
-          <select id="filter-channel"><option value="">All channels</option></select>
-          <select id="filter-tag"><option value="">All tags</option></select>
-          <select id="filter-eligible"><option value="">All eligibility</option><option value="1">Eligible</option><option value="0">Ineligible</option></select>
+          <input id="reviewed-search" aria-label="Search reviewed records" type="search" placeholder="Search responses and notes…">
+          <select id="filter-status" aria-label="Filter by review status"><option value="">Approved and corrected statuses</option><option value="APPROVED">Approved</option><option value="FULL_CORRECTION">Full correction</option><option value="DIALECT_CORRECTION">Dialect correction</option><option value="CONTENT_CORRECTION">Content correction</option><option value="IGNORED">Ignored</option><option value="DELETED">Deleted</option></select>
+          <select id="filter-channel" aria-label="Filter by channel"><option value="">All channels</option></select>
+          <select id="filter-tag" aria-label="Filter by error tag"><option value="">All tags</option></select>
+          <select id="filter-eligible" aria-label="Filter by dataset eligibility"><option value="">All eligibility</option><option value="1">Eligible</option><option value="0">Ineligible</option></select>
           <label class="date-label">From <input id="filter-date-from" type="date"></label><label class="date-label">To <input id="filter-date-to" type="date"></label>
           <button id="apply-reviewed-filters" class="button primary">Apply</button>
         </div>
         <div class="panel bulk-review-toolbar"><span id="bulk-review-count">No reviews selected</span><input id="bulk-review-reason" maxlength="300" placeholder="Reason for exclusion or restoration"><button id="bulk-exclude-reviews" class="button ignore-action">Exclude selected</button><button id="bulk-restore-reviews" class="button ghost">Restore selected</button></div>
         <div id="reviewed-list" class="cards-grid"></div>
+        <nav id="reviewed-pager" class="pager" aria-label="Reviewed record pages"></nav>
       </section>
 
       <section id="view-manual-data" class="view">
         <div id="manual-stats" class="stat-grid"></div>
         <div class="manual-filters panel">
-          <input id="manual-search" type="search" placeholder="Search content, source, or notes…">
-          <select id="manual-type"><option value="">All types</option><option value="sft">Conversation / SFT</option><option value="direct">Direct language text</option><option value="dpo">Preference pair / DPO</option></select>
-          <select id="manual-status"><option value="">All active statuses</option><option value="eligible">Dataset eligible</option><option value="ineligible">Ineligible</option><option value="archived">Archived</option><option value="excluded">Excluded from dataset selection</option></select>
-          <select id="manual-language"><option value="">All language layers</option><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">MSA</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select>
-          <input id="manual-source" list="manual-source-options" placeholder="Source"><datalist id="manual-source-options"></datalist>
-          <input id="manual-origin" list="manual-origin-options" placeholder="Origin"><datalist id="manual-origin-options"></datalist>
-          <input id="manual-domain" list="manual-domain-options" placeholder="Domain"><datalist id="manual-domain-options"></datalist>
+          <input id="manual-search" aria-label="Search data records" type="search" placeholder="Search content, source, or notes…">
+          <select id="manual-type" aria-label="Filter by record type"><option value="">All types</option><option value="sft">Conversation / SFT</option><option value="direct">Direct language text</option><option value="dpo">Preference pair / DPO</option></select>
+          <select id="manual-status" aria-label="Filter by status"><option value="">All active statuses</option><option value="eligible">Dataset eligible</option><option value="ineligible">Ineligible</option><option value="archived">Archived</option><option value="excluded">Excluded from dataset selection</option></select>
+          <select id="manual-language" aria-label="Filter by language layer"><option value="">All language layers</option><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">MSA</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select>
+          <input id="manual-source" aria-label="Filter by source" list="manual-source-options" placeholder="Source"><datalist id="manual-source-options"></datalist>
+          <input id="manual-origin" aria-label="Filter by origin" list="manual-origin-options" placeholder="Origin"><datalist id="manual-origin-options"></datalist>
+          <input id="manual-domain" aria-label="Filter by domain" list="manual-domain-options" placeholder="Domain"><datalist id="manual-domain-options"></datalist>
           <label class="date-label">From <input id="manual-date-from" type="date"></label>
           <label class="date-label">To <input id="manual-date-to" type="date"></label>
-          <select id="manual-sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="updated">Last modified</option><option value="type">Type</option><option value="domain">Domain</option><option value="language_layer">Language layer</option><option value="eligible">Dataset eligible</option></select>
+          <select id="manual-sort" aria-label="Sort records"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="updated">Last modified</option><option value="type">Type</option><option value="domain">Domain</option><option value="language_layer">Language layer</option><option value="eligible">Dataset eligible</option></select>
           <label class="inline-check"><input id="manual-show-archived" type="checkbox"> Show archived</label>
           <button id="apply-manual-filters" class="button primary">Apply</button>
           <button id="reset-manual-filters" class="button ghost">Reset</button>
@@ -195,10 +209,11 @@
         </div>
         <div class="manual-table-wrap panel">
           <table class="manual-table">
-            <thead><tr><th><input id="manual-select-all" type="checkbox" aria-label="Select all"></th><th>ID</th><th>Type and content</th><th>Language / domain</th><th>Source / origin</th><th>Created / modified</th><th>Status</th><th>Version</th><th>Actions</th></tr></thead>
+            <thead><tr><th><input id="manual-select-all" type="checkbox" aria-label="Select all records on this page"></th><th>ID</th><th>Type and content</th><th>Language / domain</th><th>Source / origin</th><th>Created / modified</th><th>Status</th><th>Version</th><th>Actions</th></tr></thead>
             <tbody id="manual-list"></tbody>
           </table>
         </div>
+        <nav id="manual-pager" class="pager" aria-label="Data record pages"></nav>
       </section>
 
       <section id="view-add-data" class="view">
@@ -331,7 +346,7 @@
             <p>Optional future feature: choose, download and run compatible models directly in NajdiLab. No model is downloaded, installed or started by this preview.</p>
           </article>
         </section>
-        <div class="settings-grid"><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>Interface theme</h2><p>Choose light, dark, or system. This choice is saved only in this browser.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="Choose interface theme in settings"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>Secure local operation</h2><p>The server listens on 127.0.0.1 only. No API keys appear in logs, and sensitive fields are redacted from metadata.</p></div><span class="status-ok">Enabled</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>Local database</h2><p>Live application health check; this does not certify a database integrity test or backup.</p></div><span id="sqlite-status" class="status-neutral" role="status">Not checked</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>External training</h2><p>NajdiLab prepares datasets; Unsloth runs training separately.</p></div><span class="status-neutral">EXTERNAL ONLY</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>Data from Demo</h2><p>is labeled and logically isolated. Exports exclude it by default.</p></div><span class="status-demo">Isolated</span></div></div>
+        <div class="settings-grid"><div class="panel settings-card language-setting"><div class="setting-icon" aria-hidden="true">🌐</div><div><h2>Interface language</h2><p>Choose English (left to right) or Arabic (right to left). This choice is saved only in this browser.</p></div><select id="language-select-settings" data-language-select aria-label="Interface language in settings"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="panel settings-card shortcut-setting"><div class="setting-icon" aria-hidden="true">⌨</div><div><h2>Review keyboard shortcuts</h2><p id="review-shortcuts-help">Single keys 1–3 choose a correction type and 4 approves the current response. Off by default so a stray key press cannot approve a review. Ctrl + Enter always saves an open correction. Saved only in this browser.</p></div><label class="inline-check"><input id="review-shortcuts" type="checkbox" aria-describedby="review-shortcuts-help"> Enable single-key shortcuts</label></div><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>Interface theme</h2><p>Choose light, dark, or system. This choice is saved only in this browser.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="Choose interface theme in settings"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>Secure local operation</h2><p>The server listens on 127.0.0.1 only. No API keys appear in logs, and sensitive fields are redacted from metadata.</p></div><span class="status-ok">Enabled</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>Local database</h2><p>Live application health check; this does not certify a database integrity test or backup.</p></div><span id="sqlite-status" class="status-neutral" role="status">Not checked</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>External training</h2><p>NajdiLab prepares datasets; Unsloth runs training separately.</p></div><span class="status-neutral">EXTERNAL ONLY</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>Data from Demo</h2><p>is labeled and logically isolated. Exports exclude it by default.</p></div><span class="status-demo">Isolated</span></div></div>
       </section>
       <footer class="app-footer">© <span id="copyright-year"></span> <span id="copyright-owner">NajdiLab</span>. All rights reserved.</footer>
     </main>

@@ -13,7 +13,34 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from .db import DB_PATH, ROOT, apply_migrations
+from .db import DB_PATH, ROOT, apply_migrations, utc_now
+
+
+class HookRefusals:
+    """QA-06: local evidence about the external legacy sender, without reading its requests.
+
+    Counts refused POSTs to the blocked Hermes hook since this process started. Nothing from
+    the request (headers, body, address) is stored.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.since = utc_now()
+        self.count = 0
+        self.last = None
+
+    def record(self) -> None:
+        with self._lock:
+            self.count += 1
+            self.last = utc_now()
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            return {"refused": self.count, "last_refused_at": self.last, "since": self.since, "receiver": "BLOCKED"}
+
+
+HERMES_REFUSALS = HookRefusals()
+from .chat_history import saved_sessions_page
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .chat_workspace import ChatWorkspace, fields
@@ -68,6 +95,10 @@ from .service import (
     list_manual_versions,
     list_review_queue,
     list_reviewed,
+    page_info,
+    page_request,
+    reviewed_page,
+    conversations_page,
     save_review,
     restore_review,
     seed_demo_data,
@@ -212,7 +243,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/v1/session":
                 self._json({"ok": True, "csrf_token": CSRF_TOKEN})
             elif parsed.path == '/api/v1/chat/sessions':
-                self._json({'items':self.server.workspace().list()})
+                limit, offset = page_request(query)
+                items, total = saved_sessions_page(self.server.workspace().db_path, limit, offset)
+                self._json({'items': items, 'page': page_info(total, limit, offset, len(items))})
             elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})', parsed.path):
                 self._json(self.server.workspace().get(match.group(1)))
             elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
@@ -221,6 +254,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self.wfile.write(raw)
             elif parsed.path == "/api/v1/integrations":
                 self._json(self.server.integrations.snapshot())
+            elif parsed.path == "/api/v1/hermes-hook/refusals":
+                self._json(HERMES_REFUSALS.snapshot())
             elif parsed.path == "/api/v1/health":
                 self._json({"ok": True, "service": "NajdiLab", "version": "1.1", "database": str(DB_PATH)})
             elif parsed.path == "/api/v1/dataset-catalog":
@@ -230,19 +265,13 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/v1/exports/readiness":
                 self._json(export_readiness(DB_PATH, include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/conversations":
-                self._json(
-                    {
-                        "items": list_conversations(
-                            search=query.get("search", ""), model=query.get("model", ""), channel=query.get("channel", "")
-                        )
-                    }
-                )
+                self._json(conversations_page(query))
             elif match := re.fullmatch(r"/api/v1/conversations/(\d+)", parsed.path):
                 self._json(get_conversation(int(match.group(1))))
             elif parsed.path == "/api/v1/review-queue":
                 self._json({"items": list_review_queue(include_demo=query.get("include_demo", "1") != "0")})
             elif parsed.path == "/api/v1/reviewed":
-                self._json({"items": list_reviewed(query)})
+                self._json(reviewed_page(query))
             elif parsed.path == "/api/v1/dataset-records":
                 self._json(training_dataset(include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/exports":
@@ -318,6 +347,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         # Closing prevents unread body bytes becoming another request.
         if parsed.path == "/api/v1/hermes-hook":
             self.close_connection = True
+            HERMES_REFUSALS.record()
             self._error(HERMES_BLOCK, HTTPStatus.CONFLICT, code="HERMES_UNSAFE_SOURCE")
             return
         try:

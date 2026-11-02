@@ -14,6 +14,7 @@
     "SECURITY.md",
     "app/chat_engine.py",
     "app/chat_engine_worker.py",
+    "app/chat_history.py",
     "app/chat_workspace.py",
     "app/dataset_masks.py",
     "app/dataset_registry.py",
@@ -31,6 +32,7 @@
     "app/unsloth_export.py",
     "config/tool-capabilities.v1.1.json",
     "config/tool-capabilities.v1.json",
+    "docs/accessibility.md",
     "docs/api-reference.md",
     "docs/api-routes.md",
     "docs/arabic-localization-exceptions.md",
@@ -46,6 +48,7 @@
     "docs/cleanup-results.md",
     "docs/codebase-navigation.md",
     "docs/configuration.md",
+    "docs/data-retention.md",
     "docs/database-and-migrations.md",
     "docs/database-schema.md",
     "docs/dataset-export.md",
@@ -65,6 +68,7 @@
     "docs/integrations-windows-update.md",
     "docs/integrations.md",
     "docs/license-options.md",
+    "docs/localization.md",
     "docs/maintainer-handover.md",
     "docs/open-source-readiness.md",
     "docs/privacy-history-review.md",
@@ -130,6 +134,8 @@
     "static/chat.css",
     "static/chat.js",
     "static/favicon.svg",
+    "static/i18n-ar.js",
+    "static/i18n.css",
     "static/index.html",
     "static/integrations.css",
     "static/integrations.js",
@@ -144,8 +150,13 @@
     "static/theme-init.js",
     "static/theme.css",
     "static/theme.js",
+    "tests/a11y-browser.cjs",
     "tests/chat-browser.cjs",
     "tests/chat-ui.test.cjs",
+    "tests/fixture_safety.py",
+    "tests/i18n-browser.cjs",
+    "tests/i18n-catalog.test.cjs",
+    "tests/pagination-ui.test.cjs",
     "tests/phase39-ui.test.cjs",
     "tests/dataset-identity-ui.test.cjs",
     "tests/chat_browser_fixture.py",
@@ -154,6 +165,7 @@
     "tests/ollama_disposable.py",
     "tests/private_artifacts.py",
     "tests/review-restrictions-browser.cjs",
+    "tests/synthetic_datasets.py",
     "tests/test_backend_localization.py",
     "tests/test_chat_engine.py",
     "tests/test_chat_hardware.py",
@@ -190,6 +202,10 @@
     "tests/test_phase_a_dataset_acceptance.py",
     "tests/test_phase_a_regressions.py",
     "tests/test_platform_state.py",
+    "tests/test_qa04_symlink_unavailable.py",
+    "tests/test_qa06_hermes_refusals.py",
+    "tests/test_qa07_signed_freshness.py",
+    "tests/test_qa08_retention.py",
     "tests/test_review_integrity.py",
     "tests/test_review_lifecycle.py",
     "tests/test_review_management.py",
@@ -197,7 +213,9 @@
     "tests/test_script_portability.py",
     "tests/test_select_v007_windows.py",
     "tests/test_theme_support.py",
-    "tests/test_unsloth_export.py"
+    "tests/test_unsloth_export.py",
+    "tests/test_ux10_navigation.py",
+    "tests/test_ux20_pagination.py"
   ],
   "files": {
     ".env.example": {
@@ -234,7 +252,7 @@
     },
     "app/http_security.py": {
       "destination": "app/http_security.py",
-      "sha256": "75b729b35c4127ad97996a05b99234338315e9b6a30ac0d7a6c2864eefb0343e"
+      "sha256": "d1ebdf43a5c8196713fff903dbf8fb4565191a314c42c0048a97d5aa2bb5c75c"
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
@@ -246,7 +264,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "94d4d0f113900c20a445aa9eedf474bbf9d224751e6e440d8cf0d3b08dff052b"
+      "sha256": "b5f3d44897cc919ed08a4779545efa3cd6d618777abac287edb7f4ddbc6976db"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",

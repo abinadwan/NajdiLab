@@ -8,6 +8,7 @@ NajdiLab is a dataset preparation platform, not a trainer or a model runtime. LM
 
 This source cleanup implements the dataset-only scope. It performs no installed update, external-service/configuration change, data/schema rollback, push/PR/merge or publication. Removed execution APIs have no compatibility shim; stored private evidence remains separate.
 
+- **Arabic and English interface:** full right-to-left Arabic and left-to-right English, switchable from the top bar or Settings and remembered in the browser; conversation and dataset content is never translated. [Details](docs/localization.md). Keyboard, screen-reader names and zoom: [accessibility](docs/accessibility.md).
 - **Chat Workspace:** simple text-only multi-turn conversations created inside NajdiLab; no NajdiLab system/developer prompts, tools, RAG, external memory or response rewriting. Complete raw history is retained and sent unchanged through the normal engine template.
 - **Exact context admission:** input template/token count + reserved reply must fit the selected budget and loaded context. Overflow closes/preserves the chat and opens an empty one, without silent truncation, summarization or draft replay.
 - **Separate collection:** OFF by default/restart. Only newly completed consented pairs enter PENDING review, never training-approved automatically. Saved Chat history is separate; native application chats are not harvested. **Hermes stays BLOCKED.**

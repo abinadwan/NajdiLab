@@ -1,0 +1,109 @@
+// UX-21: static coverage of the Arabic catalog using the real translation function.
+// Hidden markup (dialogs, edit panels) and state-dependent messages (toasts, confirms, titles)
+// are not all visible during a browser walk, so they are checked here from source.
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+
+function loadI18n(){
+  const listeners={};
+  const documentElement={attributes:{},setAttribute(k,v){this.attributes[k]=v;},removeAttribute(k){delete this.attributes[k];}};
+  const window={localStorage:{getItem:()=>null,setItem(){}},document:{documentElement,readyState:'complete',title:'',
+    querySelectorAll:()=>[],body:null,createTreeWalker(){return {nextNode:()=>false};}},
+    NodeFilter:{SHOW_ELEMENT:1,SHOW_TEXT:4},MutationObserver:class{observe(){}},addEventListener(t,f){listeners[t]=f;},
+    dispatchEvent(){},CustomEvent:class{},Intl};
+  window.window=window;
+  vm.createContext(window);
+  vm.runInContext(fs.readFileSync('static/i18n-ar.js','utf8'),window);
+  vm.runInContext(fs.readFileSync('static/localization.js','utf8'),window);
+  return window.NajdiI18n;
+}
+const I18N=loadI18n();
+// Strings that are product/format names in every language.
+const LITERAL=new Set(['NajdiLab','SFT','DPO','JSONL','SFT JSONL']);
+const arabic=/[؀-ۿ]/;
+function untranslated(strings){
+  return [...new Set(strings)].filter(text=>{
+    if(LITERAL.has(text)||!/[A-Za-z]{2,}/.test(text))return false;
+    const shown=I18N.translate(text,'ar');
+    return shown===text||!arabic.test(shown);
+  });
+}
+
+// Minimal tokenizer for the generated index.html: text nodes and UI attributes, skipping the
+// same containers the runtime localizer skips.
+function htmlStrings(html){
+  const out=[],stack=[];
+  const SKIP_TAGS=new Set(['script','style','code','pre','textarea','bdi','kbd','samp']);
+  const VOID=new Set(['br','img','input','meta','link','hr','source']);
+  const skipping=()=>stack.some(e=>SKIP_TAGS.has(e.tag)||e.attrs.dir==='auto'||e.attrs.translate==='no');
+  const re=/<!--[\s\S]*?-->|<![^>]*>|<\/?([a-zA-Z0-9-]+)((?:\s+[^\s=>\/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>|([^<]+)/g;
+  let m;
+  while((m=re.exec(html))){
+    if(m[3]!==undefined){const text=m[3].replace(/\s+/g,' ').trim();if(text&&!skipping())out.push(text.replace(/&amp;/g,'&').replace(/&gt;/g,'>').replace(/&lt;/g,'<'));continue;}
+    if(!m[1])continue;
+    const tag=m[1].toLowerCase(),closing=m[0].startsWith('</');
+    if(closing){const i=stack.map(e=>e.tag).lastIndexOf(tag);if(i>=0)stack.length=i;continue;}
+    const attrs={};for(const a of (m[2]||'').matchAll(/([^\s=]+)(?:\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+)))?/g))attrs[a[1].toLowerCase()]=a[3]??a[4]??a[5]??'';
+    const inheritedNo=stack.some(e=>e.attrs.translate==='no')||attrs.translate==='no';
+    for(const name of ['placeholder','aria-label','title','alt'])if(attrs[name]&&!inheritedNo)out.push(attrs[name]);
+    if(!VOID.has(tag)&&!m[0].endsWith('/>'))stack.push({tag,attrs});
+  }
+  return out;
+}
+
+// String arguments of UI message sinks in the scripts; ${...} becomes a sample value.
+function sinkStrings(source){
+  const out=[];
+  const literal=String.raw`'((?:[^'\\\n]|\\.)*)'|\x60((?:[^\x60\\]|\\.|\$\{(?:[^{}]|\{[^{}]*\})*\})*)\x60`;
+  const sinks=[String.raw`toast\(`,String.raw`\btr\(`,String.raw`NajdiI18n\.t\(`,String.raw`textContent\s*=\s*`,String.raw`\bstatus\(`,String.raw`notice\s*=\s*`];
+  for(const sink of sinks){
+    for(const m of source.matchAll(new RegExp(sink+'(?:'+literal+')','g'))){
+      let text=m[1]??m[2];if(text==null)continue;
+      text=text.replace(/\$\{(?:[^{}]|\{[^{}]*\})*\}/g,'7').replace(/\\'/g,"'").replace(/\s+/g,' ').trim();
+      if(text&&!/[<>]/.test(text))out.push(text);
+    }
+  }
+  return out;
+}
+
+test('every text in index.html has an Arabic translation',()=>{
+  const missing=untranslated(htmlStrings(fs.readFileSync('static/index.html','utf8')));
+  assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
+});
+
+test('every toast, confirm, status and fixed message in the scripts has an Arabic translation',()=>{
+  const strings=['static/app.js','static/chat.js','static/integrations.js','static/theme.js'].flatMap(f=>sinkStrings(fs.readFileSync(f,'utf8')));
+  assert.ok(strings.length>60,'expected to find the UI message sinks');
+  const missing=untranslated(strings);
+  assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
+});
+
+test('view titles, review statuses and error tags are translated',()=>{
+  const src=fs.readFileSync('static/app.js','utf8');
+  const block=name=>src.slice(src.indexOf(name),src.indexOf('};',src.indexOf(name)));
+  const values=[...block('const titles = {').matchAll(/'([^']+)'/g)].map(m=>m[1]).filter(v=>v.includes(' ')||/^[A-Z]/.test(v));
+  const maps=['const statusArabic = {','const tagArabic = {'].flatMap(name=>[...block(name).matchAll(/:'([^']+)'/g)].map(m=>m[1]));
+  const missing=untranslated([...values,...maps]);
+  assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
+});
+
+test('patterns translate embedded values and keep free text as is',()=>{
+  assert.equal(I18N.translate('Showing 1–100 of 250','ar'),'عرض 1–100 من 250');
+  assert.equal(I18N.translate('Current theme: Dark','ar'),'السمة الحالية: داكن');
+  assert.equal(I18N.translate('Unable to save: Disk full','ar'),'تعذّر الحفظ: Disk full');
+  assert.equal(I18N.translate('  Approve  ','ar'),'  اعتماد  ','surrounding whitespace is preserved');
+  assert.equal(I18N.translate('Approve','en'),'Approve');
+  assert.equal(I18N.translate('A sentence nobody translated','ar'),'A sentence nobody translated');
+});
+
+test('every Arabic value contains Arabic script or is a declared literal',()=>{
+  const catalog=vm.runInNewContext(fs.readFileSync('static/i18n-ar.js','utf8')+';window.NajdiI18nCatalogs.ar',{window:{}});
+  const bad=Object.entries(catalog.exact).filter(([en,ar])=>!arabic.test(ar)&&!LITERAL.has(en)).map(([en])=>en);
+  assert.deepEqual(bad,[]);
+  for(const [en,ar] of catalog.patterns){
+    const names=s=>[...s.matchAll(/\{(\w+)\}/g)].map(m=>m[1]).sort().join();
+    assert.equal(names(en),names(ar),'placeholders must match: '+en);
+  }
+});

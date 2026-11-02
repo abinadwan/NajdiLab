@@ -37,13 +37,13 @@ window.NajdiIntegrations = (() => {
         ${service.endpoint ? `<code>${esc(service.endpoint)}</code>` : ''}
         <dl><div><dt>Known installation marker</dt><dd>${esc(service.installation)}</dd></div>
           <div><dt>API availability</dt><dd>${esc(service.availability)}</dd></div>
-          <div><dt>Last check</dt><dd>${esc(fmtDate(service.last_checked_at))}</dd></div>
-          <div><dt>Last success</dt><dd>${esc(fmtDate(service.last_success_at))}</dd></div>
-          <div><dt>Synthetic test</dt><dd>${esc(service.last_test?.status || 'NOT_RUN')} ${esc(service.last_test?.at ? fmtDate(service.last_test.at) : '')}</dd></div>
-          <div><dt>Local disconnect</dt><dd>${service.disconnect?.local_verified ? 'VERIFIED' : 'NOT_VERIFIED'} ${esc(service.disconnect?.verified_at ? fmtDate(service.disconnect.verified_at) : '')}</dd></div></dl>
-        <p>Selected model: <b>${esc(service.selected_model || 'None')}</b></p>
+          <div><dt>Last check</dt><dd>${fmtDate(service.last_checked_at)}</dd></div>
+          <div><dt>Last success</dt><dd>${fmtDate(service.last_success_at)}</dd></div>
+          <div><dt>Synthetic test</dt><dd>${esc(service.last_test?.status || 'NOT_RUN')} ${service.last_test?.at ? fmtDate(service.last_test.at) : ''}</dd></div>
+          <div><dt>Local disconnect</dt><dd>${service.disconnect?.local_verified ? 'VERIFIED' : 'NOT_VERIFIED'} ${service.disconnect?.verified_at ? fmtDate(service.disconnect.verified_at) : ''}</dd></div></dl>
+        <p>Selected model: ${service.selected_model ? `<b><bdi dir="ltr">${esc(service.selected_model)}</bdi></b>` : '<b>None</b>'}</p>
         <label for="integration-model-${id}">Available models (${models.length})</label>
-        <select id="integration-model-${id}" ${connected ? '' : 'disabled'}><option value="">Choose a model</option>${models.map(model => `<option value="${esc(model)}" ${model === service.selected_model ? 'selected' : ''}>${esc(model)}</option>`).join('')}</select>
+        <select id="integration-model-${id}" ${connected ? '' : 'disabled'}><option value="">Choose a model</option>${models.map(model => `<option translate="no" value="${esc(model)}" ${model === service.selected_model ? 'selected' : ''}>${esc(model)}</option>`).join('')}</select>
         ${service.last_error ? `<p class="integration-error">${esc(service.last_error.code)}: ${esc(service.last_error.message)}</p>` : ''}
         <div class="integration-actions">${button('connect', 'Connect', connected)}${button('select', 'Use model', !connected || !models.length)}${button('test', 'Test connection', !connected || !service.selected_model)}${button('disconnect', 'Disconnect', !connected)}</div>
       </article>`;
@@ -89,7 +89,7 @@ window.NajdiIntegrations = (() => {
       test: `Send only the synthetic prompt "Reply with OK." to ${service.name}, model ${service.selected_model}? This may load the selected model and use local compute. NajdiLab stores no conversation or generated text.`,
       disconnect: `Disconnect ${service.name} from NajdiLab? This waits for any in-flight test and revokes local test access. It does not stop or unload the runtime.`
     };
-    if (!messages[action] || !confirm(messages[action])) return;
+    if (!messages[action] || !confirm(window.NajdiI18n?window.NajdiI18n.t(messages[action]):messages[action])) return;
     setBusy(true);
     status('Applying approved action…');
     try {

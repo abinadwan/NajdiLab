@@ -73,6 +73,31 @@ class ValidationError(ValueError):
     pass
 
 
+PAGE_DEFAULT_LIMIT = 100
+PAGE_MAX_LIMIT = 500
+
+
+def page_request(query: dict[str, Any]) -> tuple[int, int]:
+    """Read `limit`/`offset` from a query; out-of-range values are rejected, never clamped."""
+    def number(name: str, default: int, low: int, high: int) -> int:
+        raw = query.get(name)
+        if raw is None or raw == "":
+            return default
+        try:
+            value = int(str(raw))
+        except ValueError:
+            raise ValidationError(f"{name} must be an integer") from None
+        if not low <= value <= high:
+            raise ValidationError(f"{name} must be between {low} and {high}")
+        return value
+    return number("limit", PAGE_DEFAULT_LIMIT, 1, PAGE_MAX_LIMIT), number("offset", 0, 0, 10**9)
+
+
+def page_info(total: int, limit: int, offset: int, returned: int) -> dict[str, Any]:
+    return {"total": total, "limit": limit, "offset": offset, "returned": returned,
+            "has_more": offset + returned < total, "max_limit": PAGE_MAX_LIMIT}
+
+
 def _bool(value: Any) -> int:
     return int(bool(value))
 
@@ -758,36 +783,58 @@ def get_review(
             conn.close()
 
 
+def _conversation_filter(search: str, model: str, channel: str) -> tuple[str, list[Any]]:
+    params: list[Any] = []
+    clauses = ["1=1"]
+    if search:
+        clauses.append("(c.title LIKE ? OR c.external_conversation_id LIKE ? OR EXISTS (SELECT 1 FROM messages sm WHERE sm.conversation_id = c.id AND sm.content LIKE ?))")
+        q = f"%{search}%"
+        params.extend([q, q, q])
+    if model:
+        clauses.append("c.model_name = ?")
+        params.append(model)
+    if channel:
+        clauses.append("c.channel = ?")
+        params.append(channel)
+    return " AND ".join(clauses), params
+
+
+def _conversation_rows(conn: sqlite3.Connection, where: str, params: list[Any], page: tuple[int, int] | None) -> list[dict[str, Any]]:
+    window = " LIMIT ? OFFSET ?" if page else ""
+    rows = conn.execute(
+        f"""
+        SELECT c.*, COUNT(DISTINCT m.id) AS message_count,
+               SUM(CASE WHEN r.review_status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count
+        FROM conversations c
+        LEFT JOIN messages m ON m.conversation_id = c.id
+        LEFT JOIN reviews r ON r.message_id = m.id
+        WHERE {where}
+        GROUP BY c.id ORDER BY c.updated_at DESC, c.id DESC{window}
+        """,
+        [*params, *(page or ())],
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def list_conversations(
     db_path: Path | str = DB_PATH, search: str = "", model: str = "", channel: str = ""
 ) -> list[dict[str, Any]]:
     conn = connect(db_path)
     try:
-        params: list[Any] = []
-        clauses = ["1=1"]
-        if search:
-            clauses.append("(c.title LIKE ? OR c.external_conversation_id LIKE ? OR EXISTS (SELECT 1 FROM messages sm WHERE sm.conversation_id = c.id AND sm.content LIKE ?))")
-            q = f"%{search}%"
-            params.extend([q, q, q])
-        if model:
-            clauses.append("c.model_name = ?")
-            params.append(model)
-        if channel:
-            clauses.append("c.channel = ?")
-            params.append(channel)
-        rows = conn.execute(
-            f"""
-            SELECT c.*, COUNT(DISTINCT m.id) AS message_count,
-                   SUM(CASE WHEN r.review_status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count
-            FROM conversations c
-            LEFT JOIN messages m ON m.conversation_id = c.id
-            LEFT JOIN reviews r ON r.message_id = m.id
-            WHERE {' AND '.join(clauses)}
-            GROUP BY c.id ORDER BY c.updated_at DESC
-            """,
-            params,
-        ).fetchall()
-        return [dict(row) for row in rows]
+        where, params = _conversation_filter(search, model, channel)
+        return _conversation_rows(conn, where, params, None)
+    finally:
+        conn.close()
+
+
+def conversations_page(query: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+    limit, offset = page_request(query)
+    conn = connect(db_path)
+    try:
+        where, params = _conversation_filter(query.get("search", ""), query.get("model", ""), query.get("channel", ""))
+        total = conn.execute(f"SELECT COUNT(*) FROM conversations c WHERE {where}", params).fetchone()[0]
+        items = _conversation_rows(conn, where, params, (limit, offset))
+        return {"items": items, "page": page_info(total, limit, offset, len(items))}
     finally:
         conn.close()
 
@@ -812,64 +859,89 @@ def get_conversation(conversation_id: int, db_path: Path | str = DB_PATH) -> dic
         conn.close()
 
 
+def _reviewed_filter(filters: dict[str, str]) -> tuple[str, list[Any]]:
+    requested_status = str(filters.get("review_status") or "").upper()
+    params: list[Any] = []
+    if requested_status:
+        if requested_status not in REVIEW_STATUSES:
+            raise ValidationError("Invalid review status")
+        clauses = ["r.review_status = ?"]
+        params.append(requested_status)
+    else:
+        placeholders = ",".join("?" for _ in TRAINING_REVIEW_STATUSES)
+        clauses = [f"r.review_status IN ({placeholders})"]
+        params.extend(sorted(TRAINING_REVIEW_STATUSES))
+    mapping = {
+        "model": "c.model_name",
+        "provider": "c.provider",
+        "channel": "c.channel",
+    }
+    for key, column in mapping.items():
+        if filters.get(key):
+            clauses.append(f"{column} = ?")
+            params.append(filters[key])
+    for key in ("training_eligible", "evaluation_only"):
+        if filters.get(key) in {"0", "1"}:
+            clauses.append(f"r.{key} = ?")
+            params.append(int(filters[key]))
+    if filters.get("tag"):
+        clauses.append("EXISTS (SELECT 1 FROM review_tags rt WHERE rt.review_id = r.id AND rt.tag = ?)")
+        params.append(filters["tag"])
+    if filters.get("date_from"):
+        clauses.append("r.updated_at >= ?")
+        params.append(filters["date_from"])
+    if filters.get("date_to"):
+        clauses.append("r.updated_at <= ?")
+        params.append(filters["date_to"] + "T23:59:59Z")
+    if filters.get("search"):
+        clauses.append("(r.original_response LIKE ? OR r.corrected_response LIKE ? OR r.review_notes LIKE ? OR c.title LIKE ?)")
+        q = f"%{filters['search']}%"
+        params.extend([q, q, q, q])
+    return " AND ".join(clauses), params
+
+
+_REVIEWED_FROM = """FROM reviews r JOIN messages m ON m.id = r.message_id
+            JOIN conversations c ON c.id = m.conversation_id"""
+
+
+def _reviewed_rows(conn: sqlite3.Connection, where: str, params: list[Any], limit: int, offset: int) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        f"""
+        SELECT r.*, c.title AS conversation_title, c.model_name, c.provider, c.channel, c.demo,
+               m.turn_index, GROUP_CONCAT(rt.tag) AS tags_csv
+        {_REVIEWED_FROM}
+        LEFT JOIN review_tags rt ON rt.review_id = r.id
+        WHERE {where}
+        GROUP BY r.id ORDER BY r.updated_at DESC, r.id DESC LIMIT ? OFFSET ?
+        """,
+        [*params, limit, offset],
+    ).fetchall()
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["tags"] = item.pop("tags_csv").split(",") if item.get("tags_csv") else []
+        result.append(item)
+    return result
+
+
 def list_reviewed(filters: dict[str, str], db_path: Path | str = DB_PATH) -> list[dict[str, Any]]:
+    # Core profile contract: a plain list of at most 500 items. The full app uses reviewed_page.
+    where, params = _reviewed_filter(filters)
     conn = connect(db_path)
     try:
-        requested_status = str(filters.get("review_status") or "").upper()
-        params: list[Any] = []
-        if requested_status:
-            if requested_status not in REVIEW_STATUSES:
-                raise ValidationError("Invalid review status")
-            clauses = ["r.review_status = ?"]
-            params.append(requested_status)
-        else:
-            placeholders = ",".join("?" for _ in TRAINING_REVIEW_STATUSES)
-            clauses = [f"r.review_status IN ({placeholders})"]
-            params.extend(sorted(TRAINING_REVIEW_STATUSES))
-        mapping = {
-            "model": "c.model_name",
-            "provider": "c.provider",
-            "channel": "c.channel",
-        }
-        for key, column in mapping.items():
-            if filters.get(key):
-                clauses.append(f"{column} = ?")
-                params.append(filters[key])
-        for key in ("training_eligible", "evaluation_only"):
-            if filters.get(key) in {"0", "1"}:
-                clauses.append(f"r.{key} = ?")
-                params.append(int(filters[key]))
-        if filters.get("tag"):
-            clauses.append("EXISTS (SELECT 1 FROM review_tags rt WHERE rt.review_id = r.id AND rt.tag = ?)")
-            params.append(filters["tag"])
-        if filters.get("date_from"):
-            clauses.append("r.updated_at >= ?")
-            params.append(filters["date_from"])
-        if filters.get("date_to"):
-            clauses.append("r.updated_at <= ?")
-            params.append(filters["date_to"] + "T23:59:59Z")
-        if filters.get("search"):
-            clauses.append("(r.original_response LIKE ? OR r.corrected_response LIKE ? OR r.review_notes LIKE ? OR c.title LIKE ?)")
-            q = f"%{filters['search']}%"
-            params.extend([q, q, q, q])
-        rows = conn.execute(
-            f"""
-            SELECT r.*, c.title AS conversation_title, c.model_name, c.provider, c.channel, c.demo,
-                   m.turn_index, GROUP_CONCAT(rt.tag) AS tags_csv
-            FROM reviews r JOIN messages m ON m.id = r.message_id
-            JOIN conversations c ON c.id = m.conversation_id
-            LEFT JOIN review_tags rt ON rt.review_id = r.id
-            WHERE {' AND '.join(clauses)}
-            GROUP BY r.id ORDER BY r.updated_at DESC LIMIT 500
-            """,
-            params,
-        ).fetchall()
-        result = []
-        for row in rows:
-            item = dict(row)
-            item["tags"] = item.pop("tags_csv").split(",") if item.get("tags_csv") else []
-            result.append(item)
-        return result
+        return _reviewed_rows(conn, where, params, PAGE_MAX_LIMIT, 0)
+    finally:
+        conn.close()
+
+
+def reviewed_page(filters: dict[str, str], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+    limit, offset = page_request(filters)
+    where, params = _reviewed_filter(filters)
+    conn = connect(db_path)
+    try:
+        total = conn.execute(f"SELECT COUNT(*) {_REVIEWED_FROM} WHERE {where}", params).fetchone()[0]
+        items = _reviewed_rows(conn, where, params, limit, offset)
+        return {"items": items, "page": page_info(total, limit, offset, len(items))}
     finally:
         conn.close()
 
@@ -1129,6 +1201,7 @@ def sync_manual_export_history(db_path: Path | str = DB_PATH) -> int:
 
 
 def list_manual_data(filters: dict[str, str], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+    limit, offset = page_request(filters)
     conn = connect(db_path)
     try:
         all_items: list[dict[str, Any]] = []
@@ -1207,7 +1280,9 @@ def list_manual_data(filters: dict[str, str], db_path: Path | str = DB_PATH) -> 
             key: sorted({str(item.get(key)) for item in all_items if item.get(key)})
             for key in ("source", "origin", "domain")
         }
-        return {"items": all_items[:500], "summary": summary, "facets": facets}
+        items = all_items[offset:offset + limit]
+        return {"items": items, "summary": summary, "facets": facets,
+                "page": page_info(len(all_items), limit, offset, len(items))}
     finally:
         conn.close()
 

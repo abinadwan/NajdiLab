@@ -120,3 +120,81 @@ They now run in `Source checks`, and `tests/test_ci_workflows.py` fails if any `
 
 **Local evidence (Linux container, synthetic data only), on the uncommitted working tree:** Python `pytest -q tests` 556 passed, 37 skipped (private-artifact prerequisites); new CI guard 7 passed; Node unit tests 4 files, 18 tests, all pass in one `node --test` invocation (the CI form); `chat-browser.cjs` pass; `review-restrictions-browser.cjs` 11/11 subtests; Core builder tests, build, verify, candidate 78 tests, harness and browser pass. **Windows not verified** (no hosted run yet). Nothing was pushed; findings keep their status.
 
+## Seventh increment — UX-20 record paging (2026-11-02, local only, not pushed)
+
+**Problem.** Four lists cut data silently: conversations had no limit at all (every row on every request), reviewed records stopped at 500, manual data at 500, saved chat sessions at 200. Nothing told the user records were hidden.
+
+**Design.**
+- `service.page_request` reads `limit` (1–500, default 100) and `offset`; invalid values raise `ValidationError` (HTTP 400). `service.page_info` returns `{total, limit, offset, returned, has_more, max_limit}`.
+- New `reviewed_page` and `conversations_page`; `list_manual_data` pages its results; saved chat sessions are paged by the new read-only `app/chat_history.py`. `app/chat_workspace.py` is hash-pinned as a protected Chat security implementation (`tests/test_dataset_boundary.py`), so it is deliberately left unchanged rather than re-pinned. Totals use the same filter as the page query. Ordering gains an id tie-breaker so equal timestamps cannot repeat or skip rows across pages.
+- The Core profile still calls `list_reviewed` / `list_conversations`, which keep their plain-list contracts.
+- UI: one shared pager (`listPage`, `renderPager`, `correctedPage`) for conversations, reviewed and manual data. Filters reset to page 1; if deletions leave the current page empty, the UI moves to the last real page. "Select all" now says it selects the records on this page. Saved chat sessions show "N of M loaded" and a Load more button.
+
+**Safety change found on the way.** Browser fixtures bound the database by redirecting individual server functions; any route they did not redirect silently fell back to `data/najdilab.db`. Both fixtures now bind the new paged functions, and `tests/fixture_safety.py` makes any unredirected database access raise instead.
+
+**Tests (local, Linux, synthetic):** `tests/test_ux20_pagination.py` 23 passed (bounds, rejection, exactly-once coverage across pages, filters, Core contracts, empty past-the-end page, archived sessions excluded, HTTP 400 and metadata on all four routes); `tests/pagination-ui.test.cjs` 5 passed (wired into Source checks); `review-restrictions-browser.cjs` 11/11 including a pager assertion; `chat-browser.cjs` pass.
+
+**Limits and risks.** Offset paging is not a snapshot: records added or removed between page loads can shift later pages. Pager labels are English until UX-21. Rollback is a code revert; no schema change.
+
+## Eighth increment — UX-21 Arabic and English interface (2026-11-02, local only, not pushed)
+
+**Decision.** English stays the source language of markup and scripts; Arabic is applied at runtime from a catalog. Rewriting ~1,000 strings into keyed lookups across `index.html`, `app.js`, `chat.js` and `integrations.js` would have been a large, regression-prone rewrite; a catalog-driven DOM localizer covers static markup, dynamic templates, toasts and late-rendered views with one mechanism, and leaves English almost unchanged: the only English changes are readable labels instead of raw values (`Yes`/`No` instead of `YES`/`NO`, origin labels such as `Manual` instead of `manual`, "Select all records on this page"). All English browser suites still pass. Design, rules and how to add text: [localization](../localization.md).
+
+**Changes.** `static/localization.js` (engine; same `NajdiI18n` API plus `t`, `setLanguage`, `language`), `static/i18n-ar.js` (catalog), `static/i18n.css` (selector and RTL rules), language selectors in the top bar and Settings, `<time datetime>` dates, `confirm()` texts through `t()`, identifiers isolated with `bdi`/`translate="no"` in version lists, file lists, chat status lines, model menus and data tables. Balancer warnings and recommendations are server text, so they moved out of `dir="auto"` and are translated; raw source names stay isolated.
+
+**Defects found and fixed during this work.**
+- My first version of `fmtDate` returned markup that `integrations.js` then escaped, printing `<time …>` as text in Settings. Fixed before any push; the Chromium scan caught it.
+- Adding the language selector overflowed the top bar at 390px in **both** languages (scroll width 624 / 550). Fixed with wrapping and visually hidden labels (selects keep accessible names); the scan and the UX-23 width check both cover it.
+- `theme-init.js`/`theme.js` called `localStorage` unguarded, so a browser that blocks storage threw at startup. Guarded; covered by a blocked-storage test.
+- The chat browser fixture bound only some service functions to its disposable database and read the project's real `exports/`. It now binds every service function and uses a synthetic dataset catalog (`tests/synthetic_datasets.py`); `tests/fixture_safety.py` makes any remaining default-database access fail.
+
+**Tests (local, Linux, Chromium, synthetic only).** `tests/i18n-catalog.test.cjs` 5/5; `tests/i18n-browser.cjs` 9/9; English suites unchanged: `chat-browser.cjs` pass, `review-restrictions-browser.cjs` 11/11; Python 587 passed, 37 skipped; Core candidate build/verify, 78 tests, harness and browser pass.
+
+**Not verified.** Real screen readers, Firefox/Safari, 200% zoom in Arabic (QA-05), second-speaker review of the Arabic text. Rollback: code revert; no data or schema change.
+
+## Ninth increment — UX-10 navigation grouping (2026-11-02, local only, not pushed)
+
+**Audit (read-only, before changes).** 15 destinations in 5 groups; "Dataset" alone held 9, mixing review, data entry and dataset preparation. Group labels were `span`s not tied to their items. Icon glyphs (◫ ◈ ⌁) were part of each button's accessible name. No `aria-current`. Collapsed sidebar (UX-24): `.nav-label{display:none}`, but 10 of 15 items had no `.nav-label`, so their text stayed visible; the other 5 lost their accessible name. The sidebar `aside` and the `nav` had the same accessible name.
+
+**Change.** Same 15 destinations and routes, regrouped in workflow order — Overview · Chat · Review (queue, conversations, reviewed) · Data entry (add, manual data) · Datasets (records, health, balancer, versions, evaluation sets) · Export · Administration (analytics, settings). Each group is `role="group"` labelled by its heading; icons are `aria-hidden`; every item has a `.nav-label` and a matching `title`; `switchView` maintains `aria-current="page"`; collapsed labels are visually hidden, not removed. "Administration" replaces "System" because the catalog already uses "System" for the theme option.
+
+**Also fixed.** `app.js` used `localStorage` unguarded for the sidebar state, so with storage blocked `init()` stopped before binding events and the interface did not respond. My first blocked-storage test passed anyway because the dashboard is active in the static markup; it now proves navigation works and no startup error is shown.
+
+**Tests.** `tests/test_ux10_navigation.py` 5/5; `chat-browser.cjs`, `review-restrictions-browser.cjs` 11/11 and `i18n-browser.cjs` 9/9 pass after the change. Rollback: markup/CSS revert.
+
+## Tenth increment — UX-22 and QA-05 accessibility and zoom (2026-11-02, local only, not pushed)
+
+**Method.** Measured, not inspected by eye: Chromium's accessibility tree (CDP `Accessibility.getFullAXTree`, the source screen readers read) for every focusable control in all 15 views, a focus-indicator check per control, and page scroll width per view at several widths.
+
+**Findings and fixes.**
+- 9 filter and sort menus had no accessible name (the first option only looked like a label); search fields relied on `placeholder`. All named; Arabic names added.
+- No skip link; added, with the main region named by the page title.
+- Review shortcuts: single keys fired while a modal dialog was open — "4" approved the review behind the delete confirmation — and could not be turned off (WCAG 2.1.4). Now off by default, opt-in in Settings, never active behind a dialog or while focus is in a field, button or link, and shown on screen. A stray key press can no longer decide a review.
+- The shortcut hint was a `<kbd>`, which the localizer skips; it is now a styled `span` so it is translated.
+- Reflow at 320 px (400% zoom) overflowed on Analytics (table), Reviewed (310 px grid minimum) and Settings (wide selects). Fixed; 640 px already passed.
+- Focus indicators and image alternatives already passed everywhere.
+
+**Tests.** `tests/a11y-browser.cjs` 11/11 subtests (wired into Source checks with a step timeout). Full local run after the change: Python 593 passed, 37 skipped; Node 28/28; `chat-browser.cjs`, `review-restrictions-browser.cjs` 11/11, `i18n-browser.cjs` 9/9; Core candidate build/verify, 78 tests, harness and browser pass.
+
+**Blocked / not verified.** Firefox and WebKit are not installed in this environment (only Chromium), so other-browser acceptance is BLOCKED here. Screen-reader speech output is NOT VERIFIED. See `docs/accessibility.md`.
+
+## Eleventh increment — UX-05 continuity and complete content (2026-11-02, local only, not pushed)
+
+**Definition used.** The roadmap gives only the title and "nothing decisive in source"; no fuller text was found in the repository or PR #19. Read as two requirements: the reviewer sees the conversation continuously (every earlier turn, in order, up to the response under review), and permitted content is never cut off without a way to read it.
+
+**Findings.** Continuity was already correct at the data layer and on the review screen. Two lists truncated with no way to see the rest: Reviewed cards (original and saved correction at 220 characters) and Dataset records (preview at 180). The manual-data table preview already had a full View dialog.
+
+**Change.** `fullText()` in `app.js` keeps the preview and adds `<details>`/`<summary>` with the exact stored text (`dir="auto"`, never translated). Dataset records show translated origin/language labels and isolate domain/model identifiers. The reviewer-identity menu no longer widens the page at 320 px (`.view select{max-width:100%}`).
+
+**Tests.** UX-05 subtest in `tests/a11y-browser.cjs`; whole file 12/12 subtests.
+
+## Twelfth increment — operational QA (QA-03, QA-04, QA-06, QA-07, QA-08) (2026-11-02, local only, not pushed)
+
+- **QA-03 — BLOCKED.** Exactly 22 skips declare private historical prerequisites; they cannot run here and are not recreated. Inventory and unblock steps are in the roadmap row.
+- **QA-04.** Symlink and junction refusal now has deterministic tests that do not need the right to create links (`tests/test_qa04_symlink_unavailable.py`, 12; junction branch mutation-checked). One of my own tests first depended on every repository file being classified for the source candidate; it is now isolated so it tests only the symlink refusal.
+- **QA-06 — evidence, not proof.** `GET /api/v1/hermes-hook/refusals` reports refused deliveries to the blocked hook (count and last time, nothing stored from requests). Not added to Settings, which no longer shows Hermes. `app/integrations.py` is hash-pinned and was not changed. The owner's verification procedure is in `docs/hermes-integration.md`; external disconnect stays NOT VERIFIED.
+- **QA-07.** Optional timestamped signatures with a 300-second window and replay refusal; existing senders unaffected; `NAJDILAB_REQUIRE_FRESH_SIGNATURE=1` enforces it. Documented in `SECURITY.md`, `docs/configuration.md`, `docs/api-reference.md`. `app/http_security.py` is Core-selected and was re-pinned; Core suites pass. Access-policy impact: none by default; enforcement is an explicit operator choice.
+- **QA-08.** Retention semantics proven end to end and documented in `docs/data-retention.md`, including that deleted text remains in every new export's `full_archive.json`. Physical erasure is BLOCKED pending an owner decision.
+
+**Phase B tally (2026-11-02, from the roadmap rows):** 30 of 31 findings are IMPLEMENTED_PENDING_VERIFICATION and 1 is BLOCKED (QA-03). None is PASS: every finding still needs a hosted Windows/Ubuntu run on the final HEAD and the owner's review. Within the 30, these parts remain open: QA-05 other browsers (BLOCKED here, only Chromium installed) and real screen readers (NOT VERIFIED); QA-06 external sender disconnect (NOT VERIFIED, owner procedure); QA-08 physical erasure (BLOCKED, owner decision); UX-21 second-speaker review of the Arabic text.
+

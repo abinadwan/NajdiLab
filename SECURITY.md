@@ -55,10 +55,27 @@ credentials and prints a startup warning. This weakens ingestion protection;
 remove it after migration. Supplied invalid credentials still fail. Host, Origin,
 JSON content type, and browser CSRF checks remain enforced in compatibility mode.
 
-The signature authenticates body contents; it does not provide freshness or
-replay prevention. Do not assume all ingestion payloads are idempotent. Protect
-secrets and avoid replaying events unless the relevant event identity and dedup
-behavior have been verified. Payload sizes are bounded before authentication.
+### Freshness and replay (QA-07)
+
+A body-only signature (`X-Hermes-Signature-256` over the raw body) and a bearer
+token authenticate the sender but do not prove freshness: a captured request can be
+replayed. Replays of a turn that carries `source_message_id` are deduplicated; other
+replays create a duplicate turn and a new PENDING review.
+
+Senders that can be updated should use a **timestamped signature**: send
+`X-NajdiLab-Timestamp: <unix seconds>` and sign `"<timestamp>.<raw body>"` with
+HMAC-SHA256 in `X-Hermes-Signature-256: sha256=<hex>`. The server refuses a
+timestamp more than 300 seconds from its clock (401 `STALE_SIGNATURE`) and a
+signature it has already accepted within that window (409 `INGEST_REPLAY`); sign
+each attempt, including retries, with a new timestamp. The replay record is kept in
+memory only: after a restart, a captured request is still refused once its
+timestamp leaves the window. Only valid signatures are recorded.
+
+Body-only signatures and bearer tokens keep working so existing senders do not
+break. Set `NAJDILAB_REQUIRE_FRESH_SIGNATURE=1` once every sender uses timestamps;
+the server then refuses body-only signatures, bearer tokens and the credential-less
+legacy mode (401 `FRESH_SIGNATURE_REQUIRED`). Keep server and sender clocks
+synchronized. Payload sizes are bounded before authentication.
 
 ## Local runtime integrations
 

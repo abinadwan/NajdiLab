@@ -131,6 +131,10 @@ test('review restriction integrity in Chromium',async t=>{
       assert.deepEqual(prompts,[['confirm','You have unsaved review changes. Leave and discard this draft?']]);
       await page.select('#filter-status','IGNORED');await page.click('#apply-reviewed-filters');
       await page.waitForSelector(`[data-restore-review="${pending[0].id}"]`);
+      // UX-20: the reviewed list states its range and total from the server page.
+      const shown=await page.$$eval('[data-restore-review]',els=>els.length);
+      assert.equal(await page.$eval('#reviewed-pager .pager-summary',e=>e.textContent),`Showing 1–${shown} of ${shown}`);
+      assert.equal(await page.$eval('#reviewed-pager [data-page="next"]',e=>e.disabled),true);
       await page.type('#bulk-review-reason','Synthetic single-card restoration');
       await page.click(`[data-restore-review="${pending[0].id}"]`);
       await page.waitForFunction(()=>document.querySelectorAll('[data-restore-review]').length===1);

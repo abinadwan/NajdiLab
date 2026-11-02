@@ -2,10 +2,10 @@
 
 | Purpose | Entry points |
 |---|---|
-| Start and use | [README](../README.md), [installation](installation.md), [user guide](user-guide.md), [screenshots](screenshots.md) |
+| Start and use | [README](../README.md), [installation](installation.md), [user guide](user-guide.md), [interface language](localization.md), [accessibility](accessibility.md), [screenshots](screenshots.md) |
 | Chat and local engines | [Chat contract](chat-workspace.md), [integrations](integrations.md), [engine evidence](chat-completion-results.md), [owner acceptance](chat-windows-acceptance.md) |
 | Review and datasets | [Review/quality](review-and-quality.md), [versions and Unsloth export](dataset-export.md), [schema](database-schema.md) |
-| Safety and recovery | [Security](../SECURITY.md), [Hermes block](hermes-integration.md), [backup](backup-and-restore.md), [migrations](database-and-migrations.md), [Windows update](integrations-windows-update.md) |
+| Safety and recovery | [Security](../SECURITY.md), [Hermes block](hermes-integration.md), [backup](backup-and-restore.md), [retention and deletion](data-retention.md), [migrations](database-and-migrations.md), [Windows update](integrations-windows-update.md) |
 | Develop | [Setup](developer-setup.md), [configuration](configuration.md), [requirements](system-requirements.md), [shell](shell-commands.md), [troubleshooting](troubleshooting.md), [API](api-reference.md), [routes](api-routes.md), [code map](codebase-navigation.md) |
 | Architecture and scope | [Architecture](architecture.md), [diagram](architecture-diagrams.md), [roadmap](roadmap.md), [status](../PROJECT_STATUS.md), [handover](maintainer-handover.md) |
 | Evidence | [Dated verification and retained failures](verification-evidence.md), [integrations validation](integrations-validation.md), [asset provenance](asset-provenance.md) |

@@ -9,6 +9,7 @@ Set variables in the launching shell. `.env.example` is a reference only; the ap
 | `NAJDILAB_NO_DEMO` | `1` disables demo seeding | Off in launchers; on for direct app.server unless set |
 | `NAJDILAB_INGEST_TOKEN` | Private shared ingest secret | Unset: ingestion fails closed (HTTP 503) |
 | `NAJDILAB_ALLOW_LEGACY_INGEST` | Explicit `1` permits native ingest without credentials | Disabled |
+| `NAJDILAB_REQUIRE_FRESH_SIGNATURE` | Explicit `1` accepts only timestamped signatures (`X-NajdiLab-Timestamp`); refuses body-only signatures, bearer tokens and credential-less legacy mode | Disabled |
 
 Windows example:
 

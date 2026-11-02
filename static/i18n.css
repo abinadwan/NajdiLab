@@ -1,0 +1,33 @@
+/* Phase B UX-21 — language selector and right-to-left layout. Loaded last.
+   English stays left-to-right; Arabic flips the application shell. Technical values
+   (identifiers, hashes, code, dataset versions) keep their explicit dir="ltr". */
+
+html[data-i18n-pending] body{visibility:hidden}
+
+.language-control{display:flex;align-items:center;gap:6px}
+.language-control label{font-size:.78rem;color:var(--muted);white-space:nowrap}
+.language-control select,.language-setting select{min-width:8.5rem}
+
+:root[dir="rtl"],:root[dir="rtl"] body{direction:rtl}
+:root[dir="rtl"] :is(.shell,.sidebar,.main){direction:rtl}
+:root[dir="rtl"] body{font-family:"Segoe UI","Noto Naskh Arabic","Noto Sans Arabic",Tahoma,Arial,sans-serif}
+:root[dir="rtl"] .nav-item.active{box-shadow:inset -3px 0 var(--gold)}
+
+@media (max-width:760px){
+  :root[dir="rtl"] .sidebar{transform:translateX(105%)}
+  :root[dir="rtl"] .sidebar.open{transform:translateX(0)}
+}
+
+/* Arabic letters lose meaning when letter-spaced or uppercased. */
+:root[lang="ar"] :is(.eyebrow,.nav-group,.label-row,.status-badge,.health-pill,.balance-notice header span){letter-spacing:0;text-transform:none}
+
+/* Padding follows the reading direction so the native arrow keeps its space in RTL. */
+.theme-control select,.language-control select{padding-block:7px;padding-inline:8px 28px}
+
+@media (max-width:760px){
+  .topbar{flex-wrap:wrap;row-gap:8px}
+  .top-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+  /* The selects keep their accessible names (aria-label); only the visible label is dropped. */
+  .language-control label{display:none}
+  .language-control select{min-width:78px}
+}

@@ -1,4 +1,4 @@
-const state = { view: 'dashboard', queue: [], queueIndex: 0, reviewStatus: null, reviewActionPending: false, reviewDraftBaseline: null, channels: new Set(), tags: [], reviewedSelected: new Set(), manualItems: [], manualSelected: new Set(), manualCurrent: null, datasetVersions: [], phase38:null, phase38Index:0, phase38Dirty:false, phase38Saving:false, phase38Decision:null };
+const state = { view: 'dashboard', pages: {}, queue: [], queueIndex: 0, reviewStatus: null, reviewActionPending: false, reviewDraftBaseline: null, channels: new Set(), tags: [], reviewedSelected: new Set(), manualItems: [], manualSelected: new Set(), manualCurrent: null, datasetVersions: [], phase38:null, phase38Index:0, phase38Dirty:false, phase38Saving:false, phase38Decision:null };
 
 const titles = {
   chat: ['Chat Workspace', 'Raw local model conversations, saved here. Collection for review is a separate choice.'],
@@ -19,13 +19,23 @@ const titles = {
   analytics: ['Analytics', 'A quick overview of quality, models, channels, and errors.'],
   settings: ['Settings', 'Local security status and boundaries of NajdiLab v1.']
 };
-const statusArabic = {PENDING:'Pending review',APPROVED:'Approved',FULL_CORRECTION:'Full correction',DIALECT_CORRECTION:'Dialect correction',CONTENT_CORRECTION:'Content correction',IGNORED:'Ignored',DELETED:'Deleted'};
+const statusArabic = {MULTI_TURN:'Multi-turn conversation',UNSPECIFIED:'Unspecified',PREFERENCE_PAIR:'Preference pair',MANUAL_ADDITION:'Manual addition',PENDING:'Pending review',APPROVED:'Approved',FULL_CORRECTION:'Full correction',DIALECT_CORRECTION:'Dialect correction',CONTENT_CORRECTION:'Content correction',IGNORED:'Ignored',DELETED:'Deleted'};
 const tagArabic = {forgot_previous_constraint:'Forgot previous constraint',ignored_user_instruction:'Ignored user instruction',wrong_context:'Wrong context',repeated_rejected_option:'Repeated rejected option',contradiction:'Contradiction',instruction_following:'Instruction following',constraint_failure:'Constraint failure',context_failure:'Context failure',tool_behavior:'Tool behavior',repetition:'Repetition',verbosity:'Verbosity',formatting:'Formatting',safety:'Safety',hallucination:'Hallucination',dialect_issue:'Dialect issue',grammar_issue:'Grammar issue',unnatural_arabic:'Unnatural Arabic',too_verbose:'Too verbose',too_short:'Too short',format_failure:'Format failure',factual_error:'Factual error',other:'Other'};
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector,root=document) => [...root.querySelectorAll(selector)];
 const esc = (value='') => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+// UX-05: a preview never hides content; long text keeps a native disclosure with the complete text.
+const fullText = (value='', max=220) => {
+  const text=String(value ?? '');
+  if(text.length<=max)return `<p dir="auto">${esc(text)}</p>`;
+  return `<p dir="auto">${esc(compact(text,max))}</p><details class="full-text"><summary>Show full text</summary><p dir="auto">${esc(text)}</p></details>`;
+};
 const compact = (value='', max=130) => String(value ?? '').length > max ? `${String(value).slice(0,max)}…` : String(value ?? '');
-const fmtDate = (value) => value ? new Intl.DateTimeFormat('en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value)) : '—';
+// UX-21: <time> keeps the machine value, so a language switch re-formats it without reloading data.
+const fmtDate = (value) => value ? `<time datetime="${esc(value)}">${esc(window.NajdiI18n?window.NajdiI18n.date(value):value)}</time>` : '—';
+// Browser storage can be blocked (private mode, site policy); it must never stop the interface.
+const prefs = {get(key){try{return localStorage.getItem(key);}catch{return null;}}, set(key,value){try{localStorage.setItem(key,value);}catch{}}};
+const tr = (text) => window.NajdiI18n ? window.NajdiI18n.t(text) : text;
 const uiStatus = (value) => window.NajdiI18n?.status(value) || String(value || 'Unknown');
 
 let sessionTokenPromise = null;
@@ -62,7 +72,13 @@ function toast(message, error=false) {
   // UX-19: successful notifications may expire, but actionable errors must
   // remain visible until the user dismisses them or an updated status replaces.
   const el=$('#toast');clearTimeout(toast.timer);el.textContent='';
-  const text=document.createElement('span');text.className='toast-message';text.textContent=String(message);
+  const text=document.createElement('span');text.className='toast-message';
+  const source=String(message),shown=tr(source);
+  // UX-21: a server message missing from the catalog is labelled and isolated, not mixed into Arabic.
+  if(window.NajdiI18n&&window.NajdiI18n.language!=='en'&&shown===source&&/[A-Za-z]{3}/.test(source)){
+    const raw=document.createElement('bdi');raw.dir='ltr';raw.textContent=source;
+    text.append(document.createTextNode(tr('Server message:')+' '),raw);
+  }else text.textContent=source;
   el.append(text);
   el.className=error?'toast show error':'toast show';
   el.setAttribute('role',error?'alert':'status');
@@ -100,7 +116,7 @@ function hasUnsavedReviewDraft(){
     state.reviewDraftBaseline!==null && reviewDraftSnapshot()!==state.reviewDraftBaseline;
 }
 function confirmDiscardReviewDraft(){
-  return !hasUnsavedReviewDraft() || confirm('You have unsaved review changes. Leave and discard this draft?');
+  return !hasUnsavedReviewDraft() || confirm(tr('You have unsaved review changes. Leave and discard this draft?'));
 }
 function switchView(view,options={}) {
   if(!titles[view])view='dashboard';
@@ -108,12 +124,12 @@ function switchView(view,options={}) {
     if(options.fromHistory)updateLocation(state.view,state.selectedDataset||'',true);
     return;
   }
-  if(state.view==='phase38-review'&&view!==state.view&&state.phase38Dirty&&!confirm('You have unsaved remediation changes. Leave this page and discard them?'))return;
+  if(state.view==='phase38-review'&&view!==state.view&&state.phase38Dirty&&!confirm(tr('You have unsaved remediation changes. Leave this page and discard them?')))return;
   // An accepted navigation discards this in-memory review snapshot; otherwise
   // returning to the queue would wrongly compare the old DOM before reloading.
   if(view!==state.view&&state.view==='review-queue')state.reviewDraftBaseline=null;
   state.view = view;
-  $$('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  $$('.nav-item').forEach(b=>{const current=b.dataset.view===view;b.classList.toggle('active',current);if(current)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   $$('.view').forEach(v=>v.classList.toggle('active', v.id===`view-${view}`));
   $('#page-title').textContent = titles[view][0]; $('#page-subtitle').textContent = titles[view][1];
   $('#page-breadcrumb').textContent = view==='dataset-health'?'Datasets > Health':view==='balancer'?'Datasets > Balancer':`NajdiLab / ${titles[view][0]}`;
@@ -172,7 +188,7 @@ async function loadPhase39Verification(){
   }
 }
 function phase39Navigate(delta){
-  if(state.phase39Dirty&&!confirm('You have unsaved verification changes. Discard them?'))return;
+  if(state.phase39Dirty&&!confirm(tr('You have unsaved verification changes. Discard them?')))return;
   state.phase39Index=Math.max(0,Math.min(state.phase39.records.length-1,state.phase39Index+delta));
   state.phase39Dirty=false;renderPhase39Verification();
 }
@@ -271,7 +287,7 @@ async function loadHealth(force=false){
 
 function showHealthDetail(kind){const d=state.health;if(!d)return;const r=d.highest_record_share?.[1]||{},c=d.highest_context_word_share?.[1]||{},t=d.highest_target_word_share?.[1]||{};const key=d.highest_record_share?.[0]||'—';const details={training:[['Status',d.training_readiness.status],['Invalid target indices',d.training_readiness.invalid_target_indices],['Invalid loss masks',d.training_readiness.invalid_loss_masks]],evaluation:[['Status',d.evaluation_integrity.status],['Conversation overlap',d.evaluation_integrity.conversation_overlap_count],['Exact target overlap',d.evaluation_integrity.exact_target_overlap_count],...d.evaluation_integrity.by_file.map(x=>[x.name,`${x.status} · ${x.conversation_overlap_count} overlap`])],balance:[['Conversation',key],['Records',r.total_records??'—'],['Record share',pct(r.record_share)],['Target-word share',pct(t.target_word_share)],['Context-word share',pct(c.context_word_share)]],conversation_concentration:[['Conversation',key],['Records',r.total_records??'—'],['Record share',pct(r.record_share)]],context_concentration:[['Conversation',d.highest_context_word_share?.[0]||'—'],['Context-word share',pct(c.context_word_share)]],phrases:[['Longest-10 target share',pct(d.longest_10_target_word_share)],...Object.entries(d.phrase_counts||{})],duplicates:[['Exact duplicate extra',d.exact_duplicate_extra]],masks:[['Passed',d.loss_mask_validation?.passed??0],['Total',d.loss_mask_validation?.total??0]],warnings:d.warnings.map(x=>[x.code,x.message]),records:[['SFT',d.counts['sft.jsonl']||0],['Multi-turn',d.counts['multi_turn.jsonl']||0],['Total',d.training_count]],eval_leakage:[['Conversation overlap',d.evaluation_integrity.conversation_overlap_count],['Exact target overlap',d.evaluation_integrity.exact_target_overlap_count]]};const rows=details[kind]||details.warnings;$('#health-detail-panel').classList.remove('hidden');$('#health-detail-panel').innerHTML=`<div class="panel-heading"><h2>Check details</h2><button class="button ghost" data-close-health-detail>Close</button></div><dl class="metric-list">${rows.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd class="technical-value">${esc(v)}</dd></div>`).join('')}</dl>`;$('#health-detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});}
 
-function balanceBars(title,items,labels={}){const max=Math.max(1,...items.map(x=>x.count));return `<section class="panel phase-panel balance-panel"><h2>${esc(title)}</h2><div class="balance-bars">${items.length?items.map(x=>`<div class="balance-bar"><header><span>${esc(labels[x.name]||x.name)}</span><strong>${x.count} · ${pct(x.share)}</strong></header><div><i style="width:${x.count/max*100}%"></i></div></div>`).join(''):'<div class="empty-inline">No data available.</div>'}</div></section>`;}
+function balanceBars(title,items,labels={}){const max=Math.max(1,...items.map(x=>x.count));return `<section class="panel phase-panel balance-panel"><h2>${esc(title)}</h2><div class="balance-bars">${items.length?items.map(x=>`<div class="balance-bar"><header><span>${labels[x.name]?esc(labels[x.name]):`<bdi>${esc(x.name)}</bdi>`}</span><strong>${x.count} · ${pct(x.share)}</strong></header><div><i style="width:${x.count/max*100}%"></i></div></div>`).join(''):'<div class="empty-inline">No data available.</div>'}</div></section>`;}
 function balanceMetricPanel(title,items){return `<section class="panel phase-panel balance-panel"><h2>${esc(title)}</h2><dl class="metric-list">${items.map(([key,value])=>`<div><dt>${esc(key)}</dt><dd class="technical-value">${esc(value)}</dd></div>`).join('')}</dl></section>`;}
 function showBalanceError(message){$('#balance-results').classList.add('hidden');$('#balance-state').className='panel health-state error-state';$('#balance-state').innerHTML=`<strong>Unavailable</strong><p dir="auto">${esc(message)}. The version remains visible and no files were changed.</p><button id="balance-retry" class="button primary">Retry</button>`;$('#balance-retry').onclick=()=>loadBalancer(true);}
 async function loadBalancer(force=false){
@@ -283,14 +299,14 @@ async function loadBalancer(force=false){
     const counts=data.record_types.counts;const cards=[['Total Records',data.summary.total_records,'INFO'],['SFT',counts.sft||0,'INFO'],['Multi-turn',counts.multi_turn||0,'INFO'],['Preference',counts.preference||0,'INFO'],['Balance Status',data.balance_status,data.balance_status],['Warnings',data.warnings.length,data.warnings.length?'WARNING':'CLEAN']];$('#balance-overview').innerHTML=cards.map(([label,value,status])=>`<article class="health-card static-card"><span class="health-card-status ${esc(String(status).toLowerCase())}">${esc(status)}</span><h3>${esc(label)}</h3><strong>${esc(value)}</strong></article>`).join('');
     const typeLabels={sft:'SFT',multi_turn:'Multi-turn',preference:'Preference / DPO',direct_language:'Direct Language',evaluation:'Evaluation',unknown:'Unknown'},turnLabels={'1':'1 turn','2-3':'2–3 turns','4-6':'4–6 turns','7-10':'7–10 turns','11+':'11+ turns'},lengthLabels={very_short:'Very short',short:'Short',medium:'Medium',long:'Long',very_long:'Very long'};
     $('#balance-panels').innerHTML=balanceBars('Record type distribution',data.record_types.distribution.items,typeLabels)+balanceBars('Conversation turns',data.conversation_structure.distribution.items,turnLabels)+balanceBars('Assistant text length',Object.entries(data.length_distribution.assistant.buckets).map(([name,value])=>({name,...value})),lengthLabels)+balanceBars('Source distribution',data.sources.items)+balanceBars('Review type distribution',data.review_types.items,statusArabic)+balanceBars('Error tags',data.error_tags.items,tagArabic)+balanceBars('Language Signal',data.language_signals.items,{arabic_dominant:'Arabic-dominant',english_dominant:'English-dominant',mixed:'Mixed',empty_invalid:'Empty / invalid'})+balanceMetricPanel('Conversation structure',[['Single-turn',data.conversation_structure.single_turn],['Multi-turn',data.conversation_structure.multi_turn],['Mean turns',data.conversation_structure.mean_turns],['Median turns',data.conversation_structure.median_turns],['Minimum',data.conversation_structure.min_turns],['Maximum',data.conversation_structure.max_turns]])+balanceMetricPanel('Length statistics',[['User min / mean / median / max',`${data.length_distribution.user.min} / ${data.length_distribution.user.mean} / ${data.length_distribution.user.median} / ${data.length_distribution.user.max}`],['User p90 / p95',`${data.length_distribution.user.p90} / ${data.length_distribution.user.p95}`],['Assistant min / mean / median / max',`${data.length_distribution.assistant.min} / ${data.length_distribution.assistant.mean} / ${data.length_distribution.assistant.median} / ${data.length_distribution.assistant.max}`],['Assistant p90 / p95',`${data.length_distribution.assistant.p90} / ${data.length_distribution.assistant.p95}`],['Total p90 / p95',`${data.length_distribution.conversation_total.p90} / ${data.length_distribution.conversation_total.p95}`],['Unit','characters']])+balanceMetricPanel('Duplicate & integrity signals',[['Exact records',data.duplicates.exact_records],['Exact user inputs',data.duplicates.exact_user_inputs],['Exact assistant targets',data.duplicates.exact_assistant_targets],['Conversation ID extra',data.duplicates.conversation_id_extra],['Eval conversation overlap',data.duplicates.evaluation_conversation_overlap],['Eval target overlap',data.duplicates.evaluation_target_overlap]]);
-    $('#balance-warning-count').textContent=data.warnings.length;$('#balance-warnings').innerHTML=data.warnings.length?data.warnings.map(x=>`<article class="balance-notice ${esc(x.severity)}"><header><span>${esc(x.severity)}</span><code>${esc(x.code)}</code></header><h3>${esc(x.title)}</h3><p dir="auto">${esc(x.description)}</p><small>${esc(x.dimension)} · observed: ${esc(x.observed)}${x.recommended_min!=null?` · recommended ≥ ${esc(x.recommended_min)}`:''}${x.recommended_max!=null?` · recommended ≤ ${esc(x.recommended_max)}`:''}</small></article>`).join(''):'<div class="success-state">No balance rules triggered a warning.</div>';
-    $('#balance-recommendations').innerHTML=data.recommendations.map(x=>`<article class="balance-notice recommendation"><header><span>${esc(x.priority)}</span><code>${esc(x.category)}</code></header><h3>${esc(x.reason)}</h3><p dir="auto">${esc(x.suggested_action)}</p><small>Evidence: ${esc(JSON.stringify(x.evidence))}</small></article>`).join('');
+    $('#balance-warning-count').textContent=data.warnings.length;$('#balance-warnings').innerHTML=data.warnings.length?data.warnings.map(x=>`<article class="balance-notice ${esc(x.severity)}"><header><span>${esc(x.severity)}</span><code>${esc(x.code)}</code></header><h3>${esc(x.title)}</h3><p>${esc(x.description)}</p><small><code>${esc(x.dimension)}</code> · observed: ${esc(x.observed)}${x.recommended_min!=null?` · recommended ≥ ${esc(x.recommended_min)}`:''}${x.recommended_max!=null?` · recommended ≤ ${esc(x.recommended_max)}`:''}</small></article>`).join(''):'<div class="success-state">No balance rules triggered a warning.</div>';
+    $('#balance-recommendations').innerHTML=data.recommendations.map(x=>`<article class="balance-notice recommendation"><header><span>${esc(x.priority)}</span><code>${esc(x.category)}</code></header><h3>${esc(x.reason)}</h3><p>${esc(x.suggested_action)}</p><small>Evidence: <code>${esc(JSON.stringify(x.evidence))}</code></small></article>`).join('');
   }catch(error){showBalanceError(error.message);}finally{button.disabled=false;button.textContent=force?'Analyze again':'Analyze balance';}
 }
 
-async function loadDatasetVersions(){await ensureDatasetVersions(true);$('#version-list').innerHTML=state.datasetVersions.length?state.datasetVersions.map(x=>`<button data-version-name="${esc(x.version)}"><strong>${esc(x.version)}</strong><span>${esc(x.state)}</span><small>${x.created_at?fmtDate(x.created_at):'Unverified date'}</small></button>`).join(''):'<div class="empty-inline">No versions.</div>';const preferred=state.datasetVersions.find(x=>x.version===state.selectedDataset&&x.readable!==false)?.version||state.datasetVersions.find(x=>x.version==='gold-v007-balanced'&&x.readable!==false)?.version||state.datasetVersions.find(x=>x.readable!==false)?.version;
+async function loadDatasetVersions(){await ensureDatasetVersions(true);$('#version-list').innerHTML=state.datasetVersions.length?state.datasetVersions.map(x=>`<button data-version-name="${esc(x.version)}"><strong><bdi dir="ltr">${esc(x.version)}</bdi></strong><span>${esc(x.state)}</span><small>${x.created_at?fmtDate(x.created_at):'Unverified date'}</small></button>`).join(''):'<div class="empty-inline">No versions.</div>';const preferred=state.datasetVersions.find(x=>x.version===state.selectedDataset&&x.readable!==false)?.version||state.datasetVersions.find(x=>x.version==='gold-v007-balanced'&&x.readable!==false)?.version||state.datasetVersions.find(x=>x.readable!==false)?.version;
   if(preferred)await showVersionDetail(preferred);else $('#version-detail').innerHTML='<div class="empty-inline">No readable dataset versions are available.</div>';}
-async function showVersionDetail(version){state.selectedDataset=version;updateLocation('dataset-versions',version,true);const data=await api(`/api/v1/dataset-versions/${encodeURIComponent(version)}`);$$('[data-version-name]').forEach(x=>x.classList.toggle('active',x.dataset.versionName===version));const counts=data.manifest.files||{},provenance=typeof data.provenance==='string'?data.provenance:(data.provenance?.source_version||'Derived version');const canFreeze=data.health.training_readiness.status==='READY'&&data.health.evaluation_integrity.status==='CLEAN';const derived=data.state==='Draft'?`<section class="derived-workflow"><div class="safety-banner">The frozen source version will remain unchanged.</div><div class="workflow-actions"><button class="button ghost" data-overlap-analysis="${esc(version)}">Check Overlaps</button><button class="button primary" data-overlap-plan="${esc(version)}">Create Dry Run</button><button class="button ghost" data-freeze-version="${esc(version)}" ${canFreeze?'':'disabled'}>Freeze version later</button></div><div id="overlap-workflow-result" class="overlap-result"></div></section>`:`<section class="derive-box"><div class="safety-banner">The frozen source version will remain unchanged.</div><label>Derived version name<input id="derived-version-name" dir="ltr" value="${version==='gold-v007-balanced'?'gold-v008-split-clean':esc(version+'-derived')}"></label><button class="button primary" data-derive-version="${esc(version)}">Create derived version</button></section>`;$('#version-detail').innerHTML=`<div class="version-hero"><div><span class="eyebrow">${esc(provenance)}</span><h2 dir="ltr">${esc(data.version)}</h2></div><div><button class="button ghost" data-health-version="${esc(version)}">Check dataset health</button> <span class="frozen-badge ${data.state==='Draft'?'draft':''}">${esc(data.state)}</span></div></div><div class="version-summary"><span>Dataset Readiness <b>${esc(data.health.training_readiness.status)}</b></span><span>Dataset records <b>${data.health.training_count}</b></span><span>Eval Integrity <b>${esc(data.health.evaluation_integrity.status)}</b></span><span>Leakage <b>${data.eval.conversation_overlap_count}</b></span></div>${derived}<h3>Counts</h3><div class="count-grid">${Object.entries(counts).map(([k,v])=>`<span><code>${esc(k)}</code><b>${v}</b></span>`).join('')}</div><h3>Files & SHA-256</h3><div class="hash-list">${data.files.map(f=>`<div><strong>${esc(f.name)}</strong><span>${f.count==null?'—':f.count} records · ${f.bytes} bytes</span><code>${esc(f.sha256)}</code></div>`).join('')}</div><details><summary>Manifest JSON</summary><pre>${esc(JSON.stringify(data.manifest,null,2))}</pre></details>`;}
+async function showVersionDetail(version){state.selectedDataset=version;updateLocation('dataset-versions',version,true);const data=await api(`/api/v1/dataset-versions/${encodeURIComponent(version)}`);$$('[data-version-name]').forEach(x=>x.classList.toggle('active',x.dataset.versionName===version));const counts=data.manifest.files||{},source=typeof data.provenance==='string'?data.provenance:data.provenance?.source_version,provenance=source?`<bdi dir="ltr">${esc(source)}</bdi>`:'Derived version';const canFreeze=data.health.training_readiness.status==='READY'&&data.health.evaluation_integrity.status==='CLEAN';const derived=data.state==='Draft'?`<section class="derived-workflow"><div class="safety-banner">The frozen source version will remain unchanged.</div><div class="workflow-actions"><button class="button ghost" data-overlap-analysis="${esc(version)}">Check Overlaps</button><button class="button primary" data-overlap-plan="${esc(version)}">Create Dry Run</button><button class="button ghost" data-freeze-version="${esc(version)}" ${canFreeze?'':'disabled'}>Freeze version later</button></div><div id="overlap-workflow-result" class="overlap-result"></div></section>`:`<section class="derive-box"><div class="safety-banner">The frozen source version will remain unchanged.</div><label>Derived version name<input id="derived-version-name" dir="ltr" value="${version==='gold-v007-balanced'?'gold-v008-split-clean':esc(version+'-derived')}"></label><button class="button primary" data-derive-version="${esc(version)}">Create derived version</button></section>`;$('#version-detail').innerHTML=`<div class="version-hero"><div><span class="eyebrow">${provenance}</span><h2 dir="ltr">${esc(data.version)}</h2></div><div><button class="button ghost" data-health-version="${esc(version)}">Check dataset health</button> <span class="frozen-badge ${data.state==='Draft'?'draft':''}">${esc(data.state)}</span></div></div><div class="version-summary"><span>Dataset Readiness <b>${esc(data.health.training_readiness.status)}</b></span><span>Dataset records <b>${data.health.training_count}</b></span><span>Eval Integrity <b>${esc(data.health.evaluation_integrity.status)}</b></span><span>Leakage <b>${data.eval.conversation_overlap_count}</b></span></div>${derived}<h3>Counts</h3><div class="count-grid">${Object.entries(counts).map(([k,v])=>`<span><code>${esc(k)}</code><b>${v}</b></span>`).join('')}</div><h3>Files & SHA-256</h3><div class="hash-list">${data.files.map(f=>`<div><strong><bdi dir="ltr">${esc(f.name)}</bdi></strong><span>${f.count==null?'—':f.count} records · ${f.bytes} bytes</span><code>${esc(f.sha256)}</code></div>`).join('')}</div><details><summary>Manifest JSON</summary><pre>${esc(JSON.stringify(data.manifest,null,2))}</pre></details>`;}
 
 function overlapTable(data){const items=data.items||[];return `<div class="overlap-summary">${items.length} overlapping conversations</div>${items.length?`<div class="overlap-table">${items.map(x=>`<article><code>${esc(x.conversation_id)}</code><div><span>Dataset records: <b>${x.train_records}</b></span><span>Evaluation: <b>${x.eval_records}</b></span><span>Turns: <b>${x.turn_count}</b></span><span>Destination: <b>${esc(x.proposed_destination)}</b></span></div><small>${esc(x.source_files.join(', '))}</small><p dir="auto">${esc(x.reason)}</p></article>`).join('')}</div>`:'<div class="success-state">No conversations are shared between eligible records and evaluation.</div>'}`;}
 async function deriveVersion(source){const input=$('#derived-version-name'),target=input?.value.trim();if(!target)return toast('Enter the derived version name.',true);const button=$(`[data-derive-version="${source}"]`);button.disabled=true;button.textContent='Creating...';try{await api(`/api/v1/dataset-versions/${encodeURIComponent(source)}/derive`,{method:'POST',body:JSON.stringify({target_version:target})});state.datasetVersions=[];await loadDatasetVersions();await showVersionDetail(target);toast('Derived version created as Draft.');}catch(e){toast(e.message,true);}finally{if(button){button.disabled=false;button.textContent='Create derived version';}}}
@@ -303,14 +319,14 @@ async function loadEvalSets(){
   await ensureDatasetVersions();
   const version=$('#eval-version').value,identity=$('#eval-version-identity');
   if(!version){identity.textContent='No dataset version selected.';return;}
-  identity.textContent='Checking evaluation integrity for '+version+'…';
+  identity.textContent=`Checking evaluation integrity for ${version}…`;
   let data;
   try{data=await api(`/api/v1/dataset-versions/${encodeURIComponent(version)}/eval-sets`);}
-  catch(error){identity.textContent='Unable to check '+version+': '+error.message;throw error;}
+  catch(error){identity.textContent=`Unable to check ${version}: ${error.message}`;throw error;}
   // UX-27: a slow response from version A must never overwrite version B's UI.
   if($('#eval-version').value!==version)return;
-  identity.textContent='Evaluation results for '+version+' · '+(data.leakage_free?'No leakage detected':'Leakage detected');
-$('#eval-status-card').innerHTML=`<div class="eval-lock"><span>🔒</span><div><span class="eyebrow">Locked Holdout</span><h2>${data.leakage_free?'Isolated from eligible records':'Detected Leakage'}</h2><p>${data.train_count} eligible records versus ${data.eval_count} evaluation records.</p></div><span class="health-pill ${data.leakage_free?'healthy':'critical'}">${data.leakage_free?'PASS':'FAIL'}</span></div>`;$('#eval-files').innerHTML=data.eval_files.map(x=>`<div class="stat-card"><span>${esc(x.name)}</span><strong>${x.count}</strong></div>`).join('');$('#leakage-detail').innerHTML=`<div class="panel-heading"><h2>Leakage Detection</h2><span class="locked-chip">Locked</span></div><dl class="metric-list"><div><dt>Conversation overlap</dt><dd>${data.conversation_overlap_count}</dd></div><div><dt>Exact target overlap</dt><dd>${data.exact_target_overlap_count}</dd></div></dl>${data.leakage_free?'<div class="success-state">No leakage detected between eligible records and evaluation files.</div>':`<pre>${esc(JSON.stringify({conversation_overlap:data.conversation_overlap,exact_target_overlap:data.exact_target_overlap},null,2))}</pre>`}`;}
+  identity.textContent=`Evaluation results for ${version} · ${data.leakage_free?'No leakage detected':'Leakage detected'}`;
+$('#eval-status-card').innerHTML=`<div class="eval-lock"><span>🔒</span><div><span class="eyebrow">Locked Holdout</span><h2>${data.leakage_free?'Isolated from eligible records':'Detected Leakage'}</h2><p>${data.train_count} eligible records versus ${data.eval_count} evaluation records.</p></div><span class="health-pill ${data.leakage_free?'healthy':'critical'}">${data.leakage_free?'PASS':'FAIL'}</span></div>`;$('#eval-files').innerHTML=data.eval_files.map(x=>`<div class="stat-card"><span><bdi dir="ltr">${esc(x.name)}</bdi></span><strong>${x.count}</strong></div>`).join('');$('#leakage-detail').innerHTML=`<div class="panel-heading"><h2>Leakage Detection</h2><span class="locked-chip">Locked</span></div><dl class="metric-list"><div><dt>Conversation overlap</dt><dd>${data.conversation_overlap_count}</dd></div><div><dt>Exact target overlap</dt><dd>${data.exact_target_overlap_count}</dd></div></dl>${data.leakage_free?'<div class="success-state">No leakage detected between eligible records and evaluation files.</div>':`<pre>${esc(JSON.stringify({conversation_overlap:data.conversation_overlap,exact_target_overlap:data.exact_target_overlap},null,2))}</pre>`}`;}
 
 async function loadDashboard(){
   const [analyticsData,exportsData,datasetData]=await Promise.all([api('/api/v1/analytics'),api('/api/v1/exports'),api('/api/v1/dataset-records')]);
@@ -423,11 +439,34 @@ async function confirmDeleteReview(){
   if(!state.queue.some(item=>Number(item.id)===Number(currentId)))$('#review-delete-dialog').close();
 }
 
-async function loadConversations() {
+// UX-20: lists are paged by the server; the pager states exactly which records are shown
+// and how many exist, so nothing is silently cut off.
+function listPage(key){return state.pages[key]||(state.pages[key]={offset:0,limit:100});}
+function pageQuery(key){const page=listPage(key);return `limit=${page.limit}&offset=${page.offset}`;}
+function pageSummary(page){
+  if(!page.total)return 'No records';
+  return `Showing ${page.offset+1}–${page.offset+page.returned} of ${page.total}`;
+}
+// Returns true when the requested page is past the end (e.g. after deletions) and was corrected.
+function correctedPage(key,page){
+  if(page.returned||!page.total||!page.offset)return false;
+  listPage(key).offset=Math.floor((page.total-1)/page.limit)*page.limit;return true;
+}
+function renderPager(key,page,reload){
+  const el=$(`#${key}-pager`);if(!el)return;
+  el.innerHTML=`<span class="pager-summary" role="status">${esc(pageSummary(page))}</span><button type="button" class="button ghost" data-page="prev" ${page.offset>0?'':'disabled'}>Previous page</button><button type="button" class="button ghost" data-page="next" ${page.has_more?'':'disabled'}>Next page</button>`;
+  el.querySelector('[data-page="prev"]').onclick=()=>{listPage(key).offset=Math.max(0,page.offset-page.limit);reload().catch(error=>toast(error.message,true));};
+  el.querySelector('[data-page="next"]').onclick=()=>{listPage(key).offset=page.offset+page.limit;reload().catch(error=>toast(error.message,true));};
+}
+
+async function loadConversations(options={}) {
+  if(options.fresh)listPage('conversations').offset=0;
   const search=encodeURIComponent($('#conversation-search').value||'');const channel=encodeURIComponent($('#conversation-channel').value||'');
-  const data=await api(`/api/v1/conversations?search=${search}&channel=${channel}`);
+  const data=await api(`/api/v1/conversations?search=${search}&channel=${channel}&${pageQuery('conversations')}`);
+  if(correctedPage('conversations',data.page))return loadConversations();
   data.items.forEach(item=>state.channels.add(item.channel));populateChannelFilters();
-  $('#conversation-list').innerHTML=data.items.length?data.items.map(item=>`<button class="conversation-item" data-id="${item.id}"><small>${item.message_count} messages</small><strong dir="auto">${esc(item.title||item.external_conversation_id)}</strong><span>${esc(item.model_name||'Unspecified')} · ${esc(item.channel)} · ${item.pending_count||0} Pending</span></button>`).join(''):'<div class="empty-inline">No results.</div>';
+  $('#conversation-list').innerHTML=data.items.length?data.items.map(item=>`<button class="conversation-item" data-id="${item.id}"><small>${item.message_count} messages</small><strong dir="auto">${esc(item.title||item.external_conversation_id)}</strong><span>${item.model_name?`<bdi>${esc(item.model_name)}</bdi>`:'Unspecified'} · <bdi>${esc(item.channel)}</bdi> · ${item.pending_count||0} Pending</span></button>`).join(''):'<div class="empty-inline">No results.</div>';
+  renderPager('conversations',data.page,loadConversations);
 }
 
 function populateChannelFilters(){['#conversation-channel','#filter-channel'].forEach(selector=>{const select=$(selector),current=select.value,first=select.options[0].outerHTML;select.innerHTML=first+[...state.channels].sort().map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');select.value=current;});}
@@ -437,11 +476,15 @@ async function showConversation(id) {
   $('#conversation-detail').innerHTML=`<header class="conversation-header"><h2 dir="auto">${esc(data.conversation.title)}</h2><p dir="ltr">${esc(data.conversation.external_conversation_id)}</p><div class="meta-row"><span><bdi>${esc(data.conversation.model_name||'Unspecified')}</bdi></span><span><bdi>${esc(data.conversation.provider||'Unspecified')}</bdi></span><span><bdi>${esc(data.conversation.channel)}</bdi></span>${data.conversation.demo?'<span class="badge demo">Demo</span>':''}</div></header><div class="chat-stream">${data.messages.map(message=>`<article class="message ${esc(message.role)}"><span class="role">${message.role==='user'?'User':message.role==='assistant'?'Assistant':esc(message.role)} ${message.review_status?`· <span class="status-badge status-${esc(message.review_status)}">${esc(statusArabic[message.review_status])}</span>`:''}</span><p dir="auto">${esc(message.content)}</p>${message.corrected_response?`<div class="answer corrected"><strong>Correction:</strong><p dir="auto">${esc(message.corrected_response)}</p></div>`:''}</article>`).join('')}</div>`;
 }
 
-async function loadReviewed(){
+async function loadReviewed(options={}){
+  if(options.fresh)listPage('reviewed').offset=0;
   const params=new URLSearchParams({search:$('#reviewed-search').value,status:'',review_status:$('#filter-status').value,channel:$('#filter-channel').value,tag:$('#filter-tag').value,training_eligible:$('#filter-eligible').value,date_from:$('#filter-date-from').value,date_to:$('#filter-date-to').value});
-  const data=await api(`/api/v1/reviewed?${params}`);state.reviewedItems=data.items;data.items.forEach(i=>state.channels.add(i.channel));populateChannelFilters();
+  const data=await api(`/api/v1/reviewed?${params}&${pageQuery('reviewed')}`);
+  if(correctedPage('reviewed',data.page))return loadReviewed();
+  state.reviewedItems=data.items;data.items.forEach(i=>state.channels.add(i.channel));populateChannelFilters();
   state.reviewedSelected.clear();updateReviewedBulk();
-  $('#reviewed-list').innerHTML=data.items.length?data.items.map(item=>`<article class="reviewed-card"><header><label class="inline-check"><input class="reviewed-row-check" type="checkbox" data-review-id="${item.id}"> Select</label><h3 dir="auto">${esc(item.conversation_title)}</h3><span class="status-badge status-${esc(item.review_status)}">${esc(statusArabic[item.review_status])}</span></header><div class="answer"><strong>Original:</strong><p dir="auto">${esc(compact(item.original_response,220))}</p></div>${item.corrected_response?`<div class="answer corrected"><strong>Saved correction:</strong><p dir="auto">${esc(compact(item.corrected_response,220))}</p></div>`:''}<div class="tag-picker">${item.tags.map(tag=>`<span class="status-badge status-FULL_CORRECTION">${esc(tagArabic[tag]||tag)}</span>`).join('')}</div><footer><span>${esc(item.reviewer||'—')} · ${fmtDate(item.updated_at)} · ${esc(item.model_name||'—')} · ${esc(item.channel)}</span><span>${item.training_eligible?'Eligible':'Ineligible'}${item.evaluation_only?' · Evaluation':''}</span></footer>${['IGNORED','DELETED'].includes(item.review_status)?`<button class="button ghost" data-restore-review="${item.id}">Restore for review</button>`:`<button class="button ignore-action" data-exclude-review="${item.id}">Exclude</button>`}</article>`).join(''):'<div class="empty-state"><h2>No results</h2><p>Change filters or start reviewing responses.</p></div>';
+  $('#reviewed-list').innerHTML=data.items.length?data.items.map(item=>`<article class="reviewed-card"><header><label class="inline-check"><input class="reviewed-row-check" type="checkbox" data-review-id="${item.id}"> Select</label><h3 dir="auto">${esc(item.conversation_title)}</h3><span class="status-badge status-${esc(item.review_status)}">${esc(statusArabic[item.review_status])}</span></header><div class="answer"><strong>Original:</strong>${fullText(item.original_response,220)}</div>${item.corrected_response?`<div class="answer corrected"><strong>Saved correction:</strong>${fullText(item.corrected_response,220)}</div>`:''}<div class="tag-picker">${item.tags.map(tag=>`<span class="status-badge status-FULL_CORRECTION">${esc(tagArabic[tag]||tag)}</span>`).join('')}</div><footer><span>${esc(item.reviewer||'—')} · ${fmtDate(item.updated_at)} · ${esc(item.model_name||'—')} · ${esc(item.channel)}</span><span>${item.training_eligible?'Eligible':'Ineligible'}${item.evaluation_only?' · Evaluation':''}</span></footer>${['IGNORED','DELETED'].includes(item.review_status)?`<button class="button ghost" data-restore-review="${item.id}">Restore for review</button>`:`<button class="button ignore-action" data-exclude-review="${item.id}">Exclude</button>`}</article>`).join(''):'<div class="empty-state"><h2>No results</h2><p>Change filters or start reviewing responses.</p></div>';
+  renderPager('reviewed',data.page,loadReviewed);
 }
 
 function updateReviewedBulk(){const count=state.reviewedSelected.size;$('#bulk-review-count').textContent=count?`${count} reviews selected`:'No reviews selected';$('#bulk-exclude-reviews').disabled=!count;$('#bulk-restore-reviews').disabled=!count;}
@@ -454,6 +497,7 @@ function addSftTurn(role='user',content=''){
 function formPayload(form){const raw=Object.fromEntries(new FormData(form));$$('input[type=checkbox]',form).forEach(input=>raw[input.name]=input.checked);return raw;}
 async function submitDataForm(form,endpoint,extra={}){const button=form.querySelector('button[type=submit]');button.disabled=true;try{await api(endpoint,{method:'POST',body:JSON.stringify({...formPayload(form),...extra})});toast('Record saved with source information.');form.reset();}catch(error){toast(error.message,true);}finally{button.disabled=false;}}
 
+const originLabels={real_conversation:'Real conversation',manual:'Manual',human_corrected:'Human corrected',synthetic_reviewed:'Reviewed synthetic',ai_arena:'AI Arena',imported:'Imported'};
 const manualTypeLabels={sft:'Conversation / SFT',direct:'Direct language text',dpo:'Preference pair / DPO'};
 const languageLabels={najdi_riyadh:'Najdi / Riyadh',saudi_neutral:'Saudi neutral',msa:'MSA',technical_arabic:'Technical Arabic',formal_arabic:'Formal Arabic'};
 
@@ -466,8 +510,11 @@ function manualParams(){
   });
 }
 
-async function loadManualData(){
-  const data=await api(`/api/v1/manual-data?${manualParams()}`);state.manualItems=data.items;state.manualSelected.clear();updateManualBulk();
+async function loadManualData(options={}){
+  if(options.fresh)listPage('manual').offset=0;
+  const data=await api(`/api/v1/manual-data?${manualParams()}&${pageQuery('manual')}`);
+  if(correctedPage('manual',data.page))return loadManualData();
+  state.manualItems=data.items;state.manualSelected.clear();updateManualBulk();
   const labels=[['total','Total items'],['sft','SFT'],['direct','Direct language text'],['dpo','DPO'],['eligible','Dataset eligible'],['ineligible','Ineligible'],['archived','Archived'],['excluded','Excluded from dataset selection'],['ignored','Ignored'],['deleted','Deleted']];
   $('#manual-stats').innerHTML=labels.map(([key,label])=>`<div class="stat-card"><span>${label}</span><strong>${data.summary[key]||0}</strong></div>`).join('');
   for(const key of ['source','origin','domain'])$(`#manual-${key}-options`).innerHTML=(data.facets[key]||[]).map(x=>`<option value="${esc(x)}"></option>`).join('');
@@ -476,13 +523,14 @@ async function loadManualData(){
     <td><code>${esc(item.item_type)}:${item.id}</code>${item.parent_item_id?`<small>Copy of #${item.parent_item_id}</small>`:''}</td>
     <td><strong>${esc(manualTypeLabels[item.item_type])}</strong><p dir="auto">${esc(compact(item.preview,150))}</p></td>
     <td><span>${esc(languageLabels[item.language_layer]||item.language_layer||'—')}</span><small>${esc(item.domain||'—')}</small></td>
-    <td><span>${esc(item.source||'—')}</span><small>${esc(item.origin||'—')}</small></td>
+    <td><span><bdi>${esc(item.source||'—')}</bdi></span><small>${esc(originLabels[item.origin]||item.origin||'—')}</small></td>
     <td><span>${fmtDate(item.created_at)}</span><small>${fmtDate(item.updated_at)}</small></td>
     <td><div class="status-stack"><span class="status-pill ${item.training_eligible_effective?'ok':'neutral'}">${item.training_eligible_effective?'Eligible':'Ineligible'}</span>${item.archived?'<span class="status-pill archived">Archived</span>':''}${item.exclude_from_training?'<span class="status-pill danger">Excluded</span>':''}${item.exported_before?`<span class="status-pill exported">Previously exported</span>`:''}</div></td>
     <td><bdi>v${item.version_number}</bdi></td>
     <td><div class="row-actions"><button data-action="view" data-type="${item.item_type}" data-id="${item.id}">View</button><button data-action="edit" data-type="${item.item_type}" data-id="${item.id}">Edit</button><button data-action="clone" data-type="${item.item_type}" data-id="${item.id}">Duplicate as new</button><button data-action="archive" data-type="${item.item_type}" data-id="${item.id}">${item.archived?'Unarchive':'Archive'}</button><button data-action="exclude" data-type="${item.item_type}" data-id="${item.id}">${item.exclude_from_training?'Remove exclusion':'Exclude from dataset selection'}</button><button data-action="ignore" data-type="${item.item_type}" data-id="${item.id}">Ignore</button><button class="danger" data-action="delete" data-type="${item.item_type}" data-id="${item.id}">Delete</button></div></td>
   </tr>`).join(''):'<tr><td colspan="9"><div class="empty-inline">No items match the current filters.</div></td></tr>';
   $('#manual-select-all').checked=false;
+  renderPager('manual',data.page,loadManualData);
 }
 
 function updateManualBulk(){
@@ -497,7 +545,7 @@ function manualContent(item){
 }
 
 function manualStatusHtml(item){
-  return `<span class="status-pill ${item.training_eligible_effective?'ok':'neutral'}">${item.training_eligible_effective?'Dataset eligible':'Not eligible for the dataset'}</span>${item.archived?'<span class="status-pill archived">Archived</span>':''}${item.exclude_from_training?'<span class="status-pill danger">Excluded from dataset selection</span>':''}${item.evaluation_only?'<span class="status-pill neutral">Evaluation only</span>':''}<span class="status-pill exported">Exported before: ${item.exported_before?'YES':'NO'}</span>`;
+  return `<span class="status-pill ${item.training_eligible_effective?'ok':'neutral'}">${item.training_eligible_effective?'Dataset eligible':'Not eligible for the dataset'}</span>${item.archived?'<span class="status-pill archived">Archived</span>':''}${item.exclude_from_training?'<span class="status-pill danger">Excluded from dataset selection</span>':''}${item.evaluation_only?'<span class="status-pill neutral">Evaluation only</span>':''}<span class="status-pill exported">Exported before: ${item.exported_before?'Yes':'No'}</span>`;
 }
 
 function renderManualDetails(item){
@@ -528,7 +576,7 @@ function manualTurnRow(role,content){return `<div class="turn-row"><select class
 
 async function showManualItem(type,id,edit=false){
   const item=await api(`/api/v1/manual-data/${type}/${id}`);state.manualCurrent=item;
-  $('#manual-dialog-kind').textContent=manualTypeLabels[type];$('#manual-dialog-title').textContent=`${type}:${id} · v${item.version_number}`;$('#manual-dialog-status').innerHTML=manualStatusHtml(item);
+  $('#manual-dialog-kind').textContent=manualTypeLabels[type];$('#manual-dialog-title').innerHTML=`<bdi dir="ltr">${esc(type)}:${id} · v${item.version_number}</bdi>`;$('#manual-dialog-status').innerHTML=manualStatusHtml(item);
   renderManualDetails(item);$('#manual-tab-versions').innerHTML='<div class="empty-inline">Open this tab to load version history.</div>';
   $$('.dialog-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.manualTab==='details'));$$('.manual-tab').forEach(x=>x.classList.toggle('active',x.id==='manual-tab-details'));
   if(edit)renderManualEdit(item);if(!$('#manual-dialog').open)$('#manual-dialog').showModal();
@@ -545,7 +593,7 @@ async function saveManualEdit(event){
     const result=await api(`/api/v1/manual-data/${item.item_type}/${item.id}`,{method:'PATCH',body:JSON.stringify(payload)});
     state.manualCurrent=result.item;
     renderManualDetails(result.item);
-    $('#manual-dialog-title').textContent=`${item.item_type}:${item.id} · v${result.item.version_number}`;
+    $('#manual-dialog-title').innerHTML=`<bdi dir="ltr">${esc(item.item_type)}:${item.id} · v${result.item.version_number}</bdi>`;
     $('#manual-dialog-status').innerHTML=manualStatusHtml(result.item);
     toast('New version saved in change history.');
     try{await loadManualData();}catch(error){toast('Saved successfully, but the list could not refresh: '+error.message,true);}
@@ -574,8 +622,8 @@ async function manualAction(action,type,id){
     await api(`/api/v1/manual-data/${type}/${id}/ignore`,{method:'POST',body:'{}'});toast('Record ignored and preserved in the archive.');$('#manual-dialog').close();
   }
   if(action==='delete'){
-    if(item.exported_before&&!confirm(`This record was previously included in a Dataset Version previous version (${item.exported_versions.join(', ')}). Older versions will remain unchanged. Continue?`))return;
-    if(!confirm('Delete this record? It will be excluded from dataset selection, preserved in the archive, and can be restored later.'))return;
+    if(item.exported_before&&!confirm(tr(`This record was previously included in a Dataset Version previous version (${item.exported_versions.join(', ')}). Older versions will remain unchanged. Continue?`)))return;
+    if(!confirm(tr('Delete this record? It will be excluded from dataset selection, preserved in the archive, and can be restored later.')))return;
     await api(`/api/v1/manual-data/${type}/${id}`,{method:'DELETE',body:JSON.stringify({confirm_exported:item.exported_before})});toast('Record moved to deleted items; versions of Gold remain unchanged.');$('#manual-dialog').close();
   }
   await loadManualData();if($('#manual-dialog').open&&action!=='delete')await showManualItem(type,id);
@@ -591,7 +639,7 @@ async function loadDataset(){
   const include=$('#dataset-demo').checked?'1':'0';const data=await api(`/api/v1/dataset-records?include_demo=${include}`);const labels={total:'Total',total_approved:'Approved as is',full_corrections:'Full correction',dialect_corrections:'Dialect correction',content_corrections:'Content correction',manual_additions:'Manual additions',multi_turn_conversations:'Multi-turn',direct_language_texts:'Direct texts',preference_pairs:'Preference pairs'};
   $('#dataset-stats').innerHTML=Object.entries(labels).map(([key,label])=>`<div class="stat-card"><span>${label}</span><strong>${data.stats[key]||0}</strong></div>`).join('');
   const items=[...data.reviews.map(i=>({...i,type:'Review',preview:i.messages.at(-1)?.content})),...data.manual_sft.map(i=>({...i,type:'Manual SFT',preview:i.messages?.at(-1)?.content})),...data.direct_language.map(i=>({...i,type:'Direct text',preview:i.text})),...data.preference_pairs.map(i=>({...i,type:'Preference',preview:i.preferred_response}))];
-  $('#dataset-list').innerHTML=items.length?items.map(item=>`<div class="dataset-item"><span class="status-badge status-APPROVED">${esc(item.type)}</span><div><p dir="auto">${esc(compact(item.preview,180))}</p><small>${esc(item.origin||'—')} · ${esc(item.language_layer||item.model_name||'—')} · ${esc(item.domain||'—')}</small></div><code>${esc(item.id)}</code></div>`).join(''):'<div class="empty-inline">No eligible records. Human approval is required first.</div>';
+  $('#dataset-list').innerHTML=items.length?items.map(item=>`<div class="dataset-item"><span class="status-badge status-APPROVED">${esc(item.type)}</span><div>${fullText(item.preview,180)}<small>${esc(originLabels[item.origin]||item.origin||'—')} · ${item.language_layer?esc(languageLabels[item.language_layer]||item.language_layer):`<bdi>${esc(item.model_name||'—')}</bdi>`} · <bdi>${esc(item.domain||'—')}</bdi></small></div><code>${esc(item.id)}</code></div>`).join(''):'<div class="empty-inline">No eligible records. Human approval is required first.</div>';
 }
 
 async function previewDedup(){
@@ -645,12 +693,12 @@ function bindEvents(){
   window.addEventListener('beforeunload',e=>{if(hasUnsavedReviewDraft()){e.preventDefault();e.returnValue='';}});
   $('#main-nav').addEventListener('click',e=>{const button=e.target.closest('[data-view]');if(button)switchView(button.dataset.view);});$('#mobile-menu').addEventListener('click',()=>$('.sidebar').classList.toggle('open'));$('#refresh-view').addEventListener('click',()=>loadView(state.view).then(()=>toast('Data refreshed.')).catch(e=>toast(e.message,true)));
   document.addEventListener('click',e=>{const button=e.target.closest('[data-go]');if(button)switchView(button.dataset.go);});
-  $('#collapse-sidebar').addEventListener('click',()=>{const collapsed=$('.shell').classList.toggle('sidebar-collapsed');localStorage.setItem('najdilab.sidebar',collapsed?'collapsed':'expanded');$('#collapse-sidebar').textContent=collapsed?'›':'‹';});
+  $('#collapse-sidebar').addEventListener('click',()=>{const collapsed=$('.shell').classList.toggle('sidebar-collapsed');prefs.set('najdilab.sidebar',collapsed?'collapsed':'expanded');$('#collapse-sidebar').textContent=collapsed?'›':'‹';});
   $('.status-grid').addEventListener('click',e=>{const b=e.target.closest('[data-status]');if(b)selectReviewStatus(b.dataset.status);});$('#approve-review').addEventListener('click',approveReview);$('#edit-review').addEventListener('click',openEditReview);$('#exclude-review').addEventListener('click',excludeReview);$('#delete-review').addEventListener('click',openDeleteReview);$('#save-review').addEventListener('click',saveReview);$('#cancel-edit-review').addEventListener('click',cancelEditReview);$('#cancel-review-delete').addEventListener('click',()=>$('#review-delete-dialog').close());$('#confirm-review-delete').addEventListener('click',confirmDeleteReview);
   const restrictionControls=['#evaluation-only','#exclude-training','#needs-fact-check','#contains-personal','#contains-sensitive'];
   restrictionControls.forEach(selector=>$(selector).addEventListener('change',e=>{if(e.target.checked)$('#training-eligible').checked=false;}));
   $('#training-eligible').addEventListener('change',e=>{if(e.target.checked&&restrictionControls.some(selector=>$(selector).checked)){e.target.checked=false;toast('Resolve dataset restrictions explicitly before marking this record eligible.',true);}});
-  $('#conversation-list').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)showConversation(b.dataset.id).catch(x=>toast(x.message,true));});$('#search-conversations').addEventListener('click',()=>loadConversations().catch(e=>toast(e.message,true)));$('#conversation-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadConversations();});$('#apply-reviewed-filters').addEventListener('click',()=>loadReviewed().catch(e=>toast(e.message,true)));$('#reviewed-list').addEventListener('change',e=>{if(!e.target.matches('.reviewed-row-check'))return;const id=Number(e.target.dataset.reviewId);e.target.checked?state.reviewedSelected.add(id):state.reviewedSelected.delete(id);updateReviewedBulk();});$('#reviewed-list').addEventListener('click',e=>{const restore=e.target.closest('[data-restore-review]'),exclude=e.target.closest('[data-exclude-review]');if(restore)bulkReviewed('restore',[Number(restore.dataset.restoreReview)]).catch(x=>toast(x.message,true));if(exclude)bulkReviewed('exclude',[Number(exclude.dataset.excludeReview)]).catch(x=>toast(x.message,true));});$('#bulk-exclude-reviews').addEventListener('click',()=>bulkReviewed('exclude').catch(e=>toast(e.message,true)));$('#bulk-restore-reviews').addEventListener('click',()=>bulkReviewed('restore').catch(e=>toast(e.message,true)));
+  $('#conversation-list').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)showConversation(b.dataset.id).catch(x=>toast(x.message,true));});$('#search-conversations').addEventListener('click',()=>loadConversations({fresh:true}).catch(e=>toast(e.message,true)));$('#conversation-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadConversations({fresh:true}).catch(x=>toast(x.message,true));});$('#apply-reviewed-filters').addEventListener('click',()=>loadReviewed({fresh:true}).catch(e=>toast(e.message,true)));$('#reviewed-list').addEventListener('change',e=>{if(!e.target.matches('.reviewed-row-check'))return;const id=Number(e.target.dataset.reviewId);e.target.checked?state.reviewedSelected.add(id):state.reviewedSelected.delete(id);updateReviewedBulk();});$('#reviewed-list').addEventListener('click',e=>{const restore=e.target.closest('[data-restore-review]'),exclude=e.target.closest('[data-exclude-review]');if(restore)bulkReviewed('restore',[Number(restore.dataset.restoreReview)]).catch(x=>toast(x.message,true));if(exclude)bulkReviewed('exclude',[Number(exclude.dataset.excludeReview)]).catch(x=>toast(x.message,true));});$('#bulk-exclude-reviews').addEventListener('click',()=>bulkReviewed('exclude').catch(e=>toast(e.message,true)));$('#bulk-restore-reviews').addEventListener('click',()=>bulkReviewed('restore').catch(e=>toast(e.message,true)));
   document.querySelectorAll('#view-add-data .subtabs [data-add-tab]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('#view-add-data .subtabs [data-add-tab]').forEach(b=>b.classList.toggle('active',b===button));document.querySelectorAll('#view-add-data .data-form').forEach(form=>form.classList.toggle('active',form.id===`form-${button.dataset.addTab}`));}));$('#add-sft-turn').addEventListener('click',()=>addSftTurn($('#sft-turns .turn-row:last-child .turn-role')?.value==='user'?'assistant':'user'));
   $('#form-sft').addEventListener('submit',async e=>{
     e.preventDefault();
@@ -661,8 +709,8 @@ function bindEvents(){
     if(messages.some(m=>!m.content.trim())){toast('Every conversation turn needs text before saving.',true);return;}
     await submitDataForm(e.target,'/api/v1/manual-data/sft',{messages});
   });$('#form-direct').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/direct');});$('#form-preference').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/preference');});
-  $('#apply-manual-filters').addEventListener('click',()=>loadManualData().catch(e=>toast(e.message,true)));$('#manual-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadManualData().catch(x=>toast(x.message,true));});
-  $('#reset-manual-filters').addEventListener('click',()=>{$$('#view-manual-data input').forEach(input=>{if(input.type==='checkbox')input.checked=false;else input.value='';});$$('#view-manual-data select').forEach(select=>select.selectedIndex=0);loadManualData().catch(e=>toast(e.message,true));});
+  $('#apply-manual-filters').addEventListener('click',()=>loadManualData({fresh:true}).catch(e=>toast(e.message,true)));$('#manual-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadManualData({fresh:true}).catch(x=>toast(x.message,true));});
+  $('#reset-manual-filters').addEventListener('click',()=>{$$('#view-manual-data input').forEach(input=>{if(input.type==='checkbox')input.checked=false;else input.value='';});$$('#view-manual-data select').forEach(select=>select.selectedIndex=0);loadManualData({fresh:true}).catch(e=>toast(e.message,true));});
   $('#manual-list').addEventListener('click',e=>{const button=e.target.closest('[data-action]');if(button)manualAction(button.dataset.action,button.dataset.type,Number(button.dataset.id)).catch(x=>toast(x.message,true));});
   $('#manual-list').addEventListener('change',e=>{if(!e.target.matches('.manual-row-check'))return;e.target.checked?state.manualSelected.add(e.target.dataset.key):state.manualSelected.delete(e.target.dataset.key);updateManualBulk();});
   $('#manual-select-all').addEventListener('change',e=>{$$('.manual-row-check').forEach(box=>{box.checked=e.target.checked;e.target.checked?state.manualSelected.add(box.dataset.key):state.manualSelected.delete(box.dataset.key);});updateManualBulk();});
@@ -673,10 +721,24 @@ function bindEvents(){
   $('#dataset-demo').addEventListener('change',()=>loadDataset().catch(e=>toast(e.message,true)));$('#preview-dedup').addEventListener('click',()=>previewDedup().catch(e=>toast(e.message,true)));$('#create-export').addEventListener('click',createExport);
   $('#health-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('dataset-health',state.selectedDataset,true);loadHealth(false);});$('#refresh-health').addEventListener('click',()=>loadHealth(true));$('#health-summary').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-checks').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-warnings').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-detail-panel').addEventListener('click',e=>{if(e.target.closest('[data-close-health-detail]'))$('#health-detail-panel').classList.add('hidden');});$('#health-version-details').addEventListener('click',()=>switchView('dataset-versions',{version:state.selectedDataset}));
   $('#balance-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('balancer',state.selectedDataset,true);loadBalancer();});$('#run-balance').addEventListener('click',()=>loadBalancer(true));$('#refresh-eval').addEventListener('click',()=>loadEvalSets().catch(e=>toast(e.message,true)));$('#version-list').addEventListener('click',e=>{const button=e.target.closest('[data-version-name]');if(button)showVersionDetail(button.dataset.versionName).catch(x=>toast(x.message,true));});$('#version-detail').addEventListener('click',e=>{const health=e.target.closest('[data-health-version]'),derive=e.target.closest('[data-derive-version]'),analysis=e.target.closest('[data-overlap-analysis]'),plan=e.target.closest('[data-overlap-plan]'),apply=e.target.closest('[data-apply-plan]'),freeze=e.target.closest('[data-freeze-version]');if(health){state.selectedDataset=health.dataset.healthVersion;switchView('dataset-health',{version:state.selectedDataset});}else if(derive)deriveVersion(derive.dataset.deriveVersion);else if(analysis)analyzeOverlaps(analysis.dataset.overlapAnalysis);else if(plan)dryRunOverlaps(plan.dataset.overlapPlan);else if(apply)applyOverlapPlan(apply.dataset.applyPlan);else if(freeze)freezeVersion(freeze.dataset.freezeVersion);});
-  document.addEventListener('keydown',e=>{if(state.view!=='review-queue'||!state.queue.length)return;if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();if(!$('#save-review').disabled)saveReview();}if(!e.ctrlKey&&!e.altKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){const status={1:'FULL_CORRECTION',2:'DIALECT_CORRECTION',3:'CONTENT_CORRECTION'}[e.key];if(status){openEditReview();selectReviewStatus(status);}if(e.key==='4')approveReview();}});
+  // UX-22: shortcuts never act behind an open dialog; single-key shortcuts (WCAG 2.1.4) are opt-in
+  // because "4" approves immediately and a stray key press must not decide a review.
+  const shortcutsEnabled=()=>prefs.get('najdilab.reviewShortcuts')==='on';
+  const syncShortcutHint=()=>{$('#review-shortcuts').checked=shortcutsEnabled();$('#review-shortcut-hint').textContent=shortcutsEnabled()?'Ctrl + Enter saves · 1–3 correction type · 4 approve':'Ctrl + Enter to save the edit';};
+  syncShortcutHint();
+  $('#review-shortcuts').addEventListener('change',e=>{prefs.set('najdilab.reviewShortcuts',e.target.checked?'on':'off');syncShortcutHint();});
+  document.addEventListener('keydown',e=>{
+    if(state.view!=='review-queue'||!state.queue.length||document.querySelector('dialog[open]'))return;
+    if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();if(!$('#save-review').disabled)saveReview();return;}
+    if(!shortcutsEnabled()||e.ctrlKey||e.altKey||e.metaKey||e.repeat)return;
+    if(e.target.closest('input,textarea,select,button,a,summary,[contenteditable],[role="button"]'))return;
+    const status={1:'FULL_CORRECTION',2:'DIALECT_CORRECTION',3:'CONTENT_CORRECTION'}[e.key];
+    if(status){e.preventDefault();openEditReview();selectReviewStatus(status);}
+    if(e.key==='4'){e.preventDefault();approveReview();}
+  });
 }
 
-async function init(){try{$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(localStorage.getItem('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').textContent='›';}await loadConfig();bindEvents();addSftTurn('user');addSftTurn('assistant');const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
+async function init(){try{$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(prefs.get('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').textContent='›';}await loadConfig();bindEvents();addSftTurn('user');addSftTurn('assistant');const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
 const phase38Criteria={factual_correctness:'Factual correctness',instruction_following:'Instruction following',dialect_quality:'Dialect quality',natural_arabic:'Natural Arabic',concision:'Concision',context_continuity:'Context continuity',tool_correctness:'Tool correctness',hallucination_risk:'Hallucination risk',repetition_risk:'Repetition risk',contamination_concern:'Evaluation contamination concern'};
 const phase38Coverage={instruction_following:'Instruction following',verbosity_focus:'Verbosity control',constraint_following:'Constraint following',tool_behavior:'Tool behavior',capability_understanding:'Capability understanding',fabricated_tool_prevention:'Prevent fabricated tool execution',hallucination_prevention:'Prevent hallucinations',context_understanding:'Context handling',conversational_continuity:'Conversation continuity',najdi_saudi_dialect:'Saudi/Najdi dialect',natural_arabic:'Natural Arabic',repetition_prevention:'Prevent repetition',factual_accuracy:'Factual accuracy'};
 const phase38Types={sft:'Short conversation (SFT)',multi_turn:'Multi-turn conversation',native_tool_use:'Native tool use'};
@@ -715,7 +777,7 @@ async function loadPhase38Review(){
   try{const data=await api('/api/v1/phase38/v009/human-review');phase38Validate(data);state.phase38=data;state.phase38Dirty=false;state.phase38Index=Math.min(state.phase38Index,35);renderPhase38();if(!state.phase38Bound)bindPhase38();}
   catch(error){showPhase38Error(error.message);}
 }
-function phase38Navigate(delta){if(state.phase38Dirty&&!confirm('You have unsaved changes. Continue and discard them?'))return;state.phase38Index=Math.max(0,Math.min(35,state.phase38Index+delta));state.phase38Dirty=false;renderPhase38();}
+function phase38Navigate(delta){if(state.phase38Dirty&&!confirm(tr('You have unsaved changes. Continue and discard them?')))return;state.phase38Index=Math.max(0,Math.min(35,state.phase38Index+delta));state.phase38Dirty=false;renderPhase38();}
 function bindPhase38(){
   state.phase38Bound=true;const view=$('#view-phase38-review');
   view.addEventListener('input',e=>{if(e.target.matches('textarea,[data-phase38-field]')){state.phase38Dirty=true;$('#phase38-save-state').textContent='There are unsaved changes.';}});
