@@ -63,3 +63,17 @@ UX-03 remains open: changing a label to clarify that dataset eligibility differs
 - Hosted CI is the acceptance source; intermediate commits are not the final head and their results do not establish final acceptance. The browser test initially timed out during initial provider discovery on intermediate commits; final-head diagnostics and rerun evidence must be checked before concluding PASS.
 - Existing Core candidate remains separate from the full product; source-policy exclusions are preserved and not weakened.
 - No migration, physical data wipe, live API operation, GPU load, model download, Hermes/Gateway change, local pull or merge.
+
+## Third implementation increment — review-draft integrity and UI truthfulness (2026-11-02)
+
+Five further original findings are implemented in source **PENDING final acceptance**, and remain separate from the still-open findings:
+
+- **UX-07:** Snapshots the current review's editable fields in memory (correction, status, notes, reviewer identity, exclusion reason, tags, eligibility/restriction flags). Navigation to another view and queue refresh require explicit discard consent when changed. The beforeunload guard protects against accidental tab closure; it does not store the draft to disk or submit it. Browser acceptance checks cancel and accept and restoration from trusted server data.
+- **UX-09:** The Chat panel explicitly labels selectors as *new-conversation setup*. Active/saved conversation identity shows the pinned provider, model, context budget, reserve and status without pretending that changing the new-conversation selectors mutates the saved session. Sending is disabled when that session's original runtime/model is not selected; no automatic model change or loading.
+- **UX-11:** Dashboard no longer advertises static readiness. Counts are labeled as API snapshots and export gate status is deferred to the actual Export center readiness endpoint.
+- **UX-24:** Fixed specificity regression that kept the sidebar column at 240px when only the contents visually collapsed. Explicit 76px collapsed grid wins on desktop; small-screen breakpoint preserves single-column shell. Synthetic Chromium test measures computed width.
+- **UX-26:** Removed fixed 127.0.0.1:8770 UI badge; it now displays the browser's actual host/port, without using it as an access-control input. Replaced the hardcoded SQLite “Passed” status with a bounded live /api/v1/health *service reachable* check that explicitly does **not** certify SQLite integrity, migration state or backup availability.
+
+The newly added tests were written for disposable hosted fixtures only; initial source acceptance is **not** claimed for the latest head until both Windows and Ubuntu Source checks and Core candidate workflows are green. UX-07 does not yet cover every editable form/dialog in the product; full unsaved-change acceptance remains open for broader Phase B QA.
+
+No migrations, third-party-service edits, local PC access or destructive actions. Rollback is the feature branch diff only; the backend Hermes safety block stays active.
