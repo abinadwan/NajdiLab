@@ -51,7 +51,12 @@
     lines.push('No stress test was run.');
     return lines.join('\n');
   }
-  if(typeof module!=='undefined'&&module.exports){module.exports={ChatController,hardwareReport};return;}
+  // Clear only the exact draft submitted to this request. A user may continue
+  // typing during inference; a later completion must never erase that newer draft.
+  function shouldClearDraft(submitted,current,status){
+    return status==='COMPLETED' && current===submitted;
+  }
+  if(typeof module!=='undefined'&&module.exports){module.exports={ChatController,hardwareReport,shouldClearDraft};return;}
   const el=id=>document.getElementById(id);
   let integrations=[],bound=false,notice='';
   const controller=new ChatController((...args)=>api(...args),render);
@@ -66,7 +71,16 @@
     if(controller.session?.provider===p.id)controller.selectionRevision=p.selection_revision;
     return p.selection_revision;
   }
-  function message(role,content){const article=document.createElement('article'),label=document.createElement('strong'),text=document.createElement('p');article.className='chat-message';label.textContent=role;text.dir='auto';text.textContent=content;article.append(label,text);el('chat-messages').append(article);}
+  function message(role,content,reviewStatus=''){
+    const article=document.createElement('article'),label=document.createElement('strong'),text=document.createElement('p');
+    article.className='chat-message';label.textContent=role;text.dir='auto';text.textContent=content;
+    article.append(label,text);
+    if(reviewStatus){
+      const state=document.createElement('small');state.className='chat-review-status';
+      state.textContent=reviewStatus;article.append(state);
+    }
+    el('chat-messages').append(article);
+  }
   function render(){
     const s=controller.session,busy=controller.pending||s?.busy,open=s?.status==='OPEN';
     el('chat-new').disabled=!!busy||!provider();el('chat-saved').disabled=!!busy;el('chat-hardware').disabled=!!busy;
@@ -75,7 +89,10 @@
     el('chat-collect').disabled=!open;el('chat-collect').checked=!!s?.collect;
     el('chat-archive').disabled=!s||s.status==='ARCHIVED';
     el('chat-messages').replaceChildren();
-    for(const t of s?.turns||[]){message('You',t.user);message('Model',t.assistant);}
+    for(const t of s?.turns||[]){
+      message('You',t.user);
+      message('Model',t.assistant,t.collected ? 'Collected for human review (not training-approved)' : 'Not collected for review');
+    }
     const last=s?.turns?.at(-1);
     el('chat-usage').textContent=s?`${s.provider} / ${s.model} · Budget ${s.context_budget} · Reply reserve ${s.reply_reserve}${last?` · Last turn: ${last.input_tokens} input + ${last.output_tokens} output tokens (${last.input_tokens+last.output_tokens} of ${s.context_budget})`:''}`:'';
     el('chat-notice').textContent=notice||(busy?'Waiting for the model. Stop discards this turn.':s?'Ready. Complete history is sent unchanged.':'Connect a runtime in Settings, then create a conversation.');
@@ -102,9 +119,12 @@
     el('chat-saved').onchange=act(async()=>{const id=el('chat-saved').value;if(!id)return;controller.session=await api(`/api/v1/chat/sessions/${id}`);controller.selectionRevision=integrations.find(x=>x.id===controller.session.provider)?.selection_revision;notice='';render();});
     el('chat-refresh').onclick=act(async()=>{notice='';await load();});
     el('chat-form').onsubmit=act(async event=>{
-      event.preventDefault();notice='';const result=await controller.send(el('chat-draft').value);
+      event.preventDefault();notice='';
+      const submitted=el('chat-draft').value;
+      const result=await controller.send(submitted);
       if(result.status==='CONTEXT_LIMIT')notice=`Context limit reached: ${result.input_tokens} prompt tokens + ${result.reply_reserve} reserved for the reply exceed the ${result.context_budget} budget. The conversation was saved and a new empty conversation opened. Your unsent draft remains below; it was not sent or copied automatically.`;
-      else el('chat-draft').value='';await saved();render();
+      else if(shouldClearDraft(submitted,el('chat-draft').value,result.status))el('chat-draft').value='';
+      await saved();render();
     });
     el('chat-stop').onclick=act(async()=>{await controller.stop();notice='Stop requested. No partial response will be saved. Engine cancellation is best effort; its service stays running.';render();});
     el('chat-collect').onchange=act(async()=>{await controller.collect(el('chat-collect').checked);notice='Collection choice saved for this server process. Only future completed pairs can enter PENDING review.';render();});
