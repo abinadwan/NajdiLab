@@ -41,3 +41,25 @@ Blocked/unavailable private artifacts remain explicitly unverified. Do not fabri
 - Phase A main: merged and green; no local pull is authorized by this Phase B start.
 - Phase B: branch/PR development authorized. No merge until a **separate owner decision** on the completed PR.
 - Phase C: not started or authorized. Real GPU/model download tests remain blocked until explicit permission.
+
+## Second implementation increment — functional UX (2026-11-02)
+
+The following **eight finding IDs** have code changes but remain `IMPLEMENTED_PENDING_VERIFICATION` until all applicable CI/browser and owner gates pass. No finding is represented as fully accepted merely because code was pushed:
+
+- UX-04: explicit per-completed-pair collection state in NajdiLab's own Chat UI, based on persisted `turn.collected`. A collected pair is **not** automatically training-approved; there is no imported native-app capture.
+- UX-08: a COMPLETED Send clears the composer only if its content still equals the submitted text. Newer user typing, failures and context rollover retain the draft. Unit and delayed synthetic browser tests added.
+- UX-06: the export readiness panel shows **every** returned blocking finding with escaped identifiers and reasons, as a persistent list instead of only the first three.
+- UX-14: Add Data subtab event binding is limited to Add Data controls; the manual edit dialog's own tabs remain independent.
+- UX-15: no-turn and blank-turn manual SFT submission is rejected visibly before API dispatch; no dereference of a missing textarea.
+- UX-16: manual item PATCH has a disabled/pending Save button, persistent failure message, retry preserving form edits, and a distinct message for a post-commit list-refresh error. Browser failure/retry proof remains to be built.
+- UX-17: the exclusion reason is labeled as required; existing backend/frontend rejection of empty reasons is preserved.
+- UX-12: Unsloth handoff now offers a catalogue of existing readable **Frozen** versions only; the action is disabled without a valid choice. No free-text version input or auto-export.
+
+UX-03 remains open: changing a label to clarify that dataset eligibility differs from human approval is not enough to prove the full review-flow semantics. No blanket claim is made on UX-03, UX-05, UX-07, UX-09, or the remaining UI/a11y/QA findings.
+
+### Test and operational limits
+
+- Regression additions: `tests/chat-ui.test.cjs`, `tests/chat-browser.cjs`, delayed **synthetic-only** fixture in `tests/chat_browser_fixture.py`. No real user prompts, models, runtimes or installations touched.
+- Hosted CI is the acceptance source; intermediate commits are not the final head and their results do not establish final acceptance. The browser test initially timed out during initial provider discovery on intermediate commits; final-head diagnostics and rerun evidence must be checked before concluding PASS.
+- Existing Core candidate remains separate from the full product; source-policy exclusions are preserved and not weakened.
+- No migration, physical data wipe, live API operation, GPU load, model download, Hermes/Gateway change, local pull or merge.
