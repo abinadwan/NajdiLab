@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/integrations-ui.test.cjs tests/chat-ui.test.cjs tests/phase39-ui.test.cjs tests/dataset-identity-ui.test.cjs tests/pagination-ui.test.cjs tests/i18n-catalog.test.cjs
+      - run: node --test tests/integrations-ui.test.cjs tests/chat-ui.test.cjs tests/chat-v2-ui.test.cjs tests/phase39-ui.test.cjs tests/dataset-identity-ui.test.cjs tests/pagination-ui.test.cjs tests/i18n-catalog.test.cjs
       - run: python -m pytest -q tests -rs
       - run: npm install --prefix ../chat-browser-tools --ignore-scripts --no-audit --no-fund puppeteer-core@25.16.0
       - name: Locate hosted browser for synthetic Chat acceptance

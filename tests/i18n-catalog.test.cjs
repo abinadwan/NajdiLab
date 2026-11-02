@@ -74,7 +74,7 @@ test('every text in index.html has an Arabic translation',()=>{
 });
 
 test('every toast, confirm, status and fixed message in the scripts has an Arabic translation',()=>{
-  const strings=['static/app.js','static/chat.js','static/integrations.js','static/theme.js'].flatMap(f=>sinkStrings(fs.readFileSync(f,'utf8')));
+  const strings=['static/app.js','static/chat.js','static/chat-markdown.js','static/integrations.js','static/theme.js'].flatMap(f=>sinkStrings(fs.readFileSync(f,'utf8')));
   assert.ok(strings.length>60,'expected to find the UI message sinks');
   const missing=untranslated(strings);
   assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
@@ -127,4 +127,28 @@ test('every Chat engine refusal, including the AI-02 integrity diagnostics, has 
   const missing=untranslated(all);
   assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
   for(const text of composite)assert.notEqual(I18N.translate(text,'ar'),I18N.translate(composite[0].split(' Integrity check: ')[0],'ar'),'the diagnostic stays visible: '+text);
+});
+
+// Chat V2: every fixed server message a chat page can show (workspace, permanent
+// deletion, NajdiLab Native, completion checks) has an Arabic translation, and the
+// INCOMPLETE_RESPONSE detail stays distinguishable from the generic message.
+function pythonMessages(file){
+  const src=fs.readFileSync(file,'utf8');
+  return [...src.matchAll(/IntegrationError\(\s*["'][A-Z_]+["'],\s*f?(["'])((?:(?!\1)[^\\]|\\.)*)\1/g)]
+    .map(m=>m[2].replace(/\\'/g,"'").replace(/\{[^}]+\}/g,'600'));
+}
+test('every Chat V2 server message has an Arabic translation',()=>{
+  const files=['app/chat_workspace.py','app/chat_deletion.py','app/native_runtime.py'];
+  const src=fs.readFileSync('app/chat_workspace.py','utf8');
+  const start=src.indexOf('INCOMPLETE_CHECKS = {');
+  const checks=[...src.slice(start,src.indexOf('\n}',start)).matchAll(/'[A-Z_]+':\s*'((?:[^'\\]|\\.)*)'/g)].map(m=>m[1].replace(/\\'/g,"'"));
+  const generic='Engine did not return an unchanged, complete text reply; no pair was saved.';
+  const composite=checks.map(c=>generic+' '+c);
+  const native=fs.readFileSync('app/native_runtime.py','utf8');
+  const startup=[...native.matchAll(/'NATIVE_[A-Z_]+',\s*\n?\s*'((?:[^'\\]|\\.)*)'\)/g)].map(m=>m[1].replace(/\\'/g,"'"));
+  const all=[...files.flatMap(pythonMessages),...composite,...startup];
+  assert.ok(all.length>40,'expected to find the server messages: '+all.length);
+  const missing=untranslated(all);
+  assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
+  for(const text of composite)assert.notEqual(I18N.translate(text,'ar'),I18N.translate(generic,'ar'),'the check stays visible: '+text);
 });

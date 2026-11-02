@@ -22,15 +22,36 @@ from app import dataset_platform
 
 class BrowserEngine(Engine):
     content='  Synthetic fixture reply — no personal data.  '
+    ceiling=16384
     def limits(self):
         return {**super().limits(),'model_max_context':131072,'runtime_context':None,'weights_bytes':4*1024**3,'architecture':'synthetic',
                 'kv':{'block_count':12,'embedding_length':1024,'attention.head_count':8}}
-    def generate(self,messages,reserve,stop):
-        if messages[-1]['content']=='STOP_FIXTURE':
+    def generate(self,messages,reserve,stop,on_delta=None):
+        last=messages[-1]['content']
+        if last=='STOP_FIXTURE':
+            if on_delta:
+                on_delta('content','Partial synthetic text that must never be saved.')
             stop.wait(5)
-        if messages[-1]['content']=='DELAY_FIXTURE':
+        if last=='DELAY_FIXTURE':
             time.sleep(0.35)  # allow typing a newer draft before synthetic completion
-        return super().generate(messages,reserve,stop)
+        result=super().generate(messages,reserve,stop)
+        if last=='MARKDOWN_FIXTURE':
+            result['content']=MARKDOWN
+        if on_delta:
+            if last in {'THINK_FIXTURE','MARKDOWN_FIXTURE'}:
+                for part in ('Synthetic ','thinking ','trace.'):
+                    on_delta('thinking',part)
+                    time.sleep(0.05)
+            text=result['content']
+            for i in range(0,len(text),12):
+                on_delta('content',text[i:i+12])
+                time.sleep(0.01)
+            result['reasoning_discarded']=last in {'THINK_FIXTURE','MARKDOWN_FIXTURE'}
+        return result
+
+
+MARKDOWN='## عنوان اصطناعي\n\n**نص غامق** و *مائل* و `code`.\n\n- أول\n- ثاني\n\n```python\nprint("synthetic")\n```\n\n[رابط آمن](https://example.org) [خطر](javascript:alert(1)) <img src=x onerror=alert(1)>\n'
+
 
 
 def main():

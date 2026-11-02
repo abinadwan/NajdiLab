@@ -148,10 +148,13 @@ test('Arabic and English interface in Chromium',async t=>{
 
     await t.test('chat session in Arabic keeps messages verbatim and translates its status',async()=>{
       await page.evaluate(()=>switchView('chat'));await page.waitForSelector('#view-chat.active');
-      await page.waitForSelector('#chat-provider option');
-      await page.click('#chat-new');await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
+      await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
+      await settle();
+      const setup={};await scanInto(setup,'chat: new chat dialog');
+      assert.deepEqual(setup,{},'untranslated text:\n'+JSON.stringify(setup,null,1));
+      await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
       await page.type('#chat-draft','Approve');await page.click('#chat-send');
-      await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2);
+      await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2&&!document.querySelector('.chatv2-msg.streaming'));
       const first=await page.$eval('.chat-message [dir="auto"], .chat-message p',e=>e.textContent);
       assert.equal(first.trim(),'Approve','the user message must not be translated');
       await page.click('#chat-collect');

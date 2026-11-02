@@ -64,7 +64,7 @@
 
     <main class="main" id="main-content" tabindex="-1" aria-labelledby="page-title">
       <header class="topbar">
-        <button id="mobile-menu" class="icon-button" aria-label="Open menu">☰</button>
+        <button id="mobile-menu" class="chatv2-icon" aria-label="Open menu">☰</button>
         <div>
           <span id="page-breadcrumb" class="breadcrumb">NajdiLab / Overview</span>
           <h1 id="page-title">Dashboard</h1>
@@ -74,35 +74,127 @@
       </header>
 
       <section id="view-chat" class="view">
-        <div class="panel chat-intro"><strong>Raw model chat</strong><p>No system/developer prompts from NajdiLab. No tools, RAG, external memory or response rewriting. The engine uses the model's normal chat template.</p><p>These are conversations created in NajdiLab. This does not collect native LM Studio or Ollama chats.</p></div>
-        <div class="chat-layout">
-          <aside class="panel chat-controls" aria-label="Conversation controls">
-            <label for="chat-provider">Provider for a new conversation</label><select id="chat-provider"></select>
-            <label for="chat-model">Model for a new conversation</label><select id="chat-model"></select>
-            <p class="muted">Connect providers in Settings → Integrations. LM Studio must already have the model loaded; NajdiLab never loads it there.</p>
-            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096" list="chat-budget-options"><datalist id="chat-budget-options"><option value="4096"></option><option value="8192"></option><option value="16384"></option><option value="32768"></option><option value="65536"></option></datalist>
-            <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" value="512">
-            <label id="chat-load-row" class="inline-check" hidden><input id="chat-load-approved" type="checkbox"> Let Ollama load this model at this context</label>
-            <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending. Ollama loads models on request, and a different context reloads the model, so it needs this approval.</p>
-            <button id="chat-new" class="button primary" type="button">New conversation</button>
-            <label for="chat-saved">Saved conversations</label><select id="chat-saved" aria-describedby="chat-saved-count"><option value="">Choose a saved conversation</option></select>
-            <p id="chat-saved-count" class="muted" role="status"></p><button id="chat-saved-more" class="button ghost" type="button" hidden>Load more saved conversations</button>
-            <button id="chat-refresh" class="button ghost" type="button">Refresh saved state</button>
-            <button id="chat-archive" class="button ghost" type="button" disabled>Archive conversation</button>
-            <button id="chat-hardware" class="button ghost" type="button">Read device specs</button>
-            <p class="muted">Read-only device and selected-model snapshot. It never loads a model. No allocation or stress tests.</p>
-            <div id="chat-hardware-result" role="status"></div>
+        <div class="chatv2" id="chat-shell" data-sidebar="open">
+          <aside class="chatv2-sidebar panel" id="chat-sidebar" aria-label="Conversation list">
+            <div class="chatv2-sidebar-head">
+              <button id="chat-new" class="button primary" type="button">New chat</button>
+              <button id="chat-sidebar-close" class="chatv2-icon" type="button" aria-controls="chat-sidebar" aria-label="Hide conversation list" title="Hide conversation list">⇤</button>
+            </div>
+            <label class="sr-only" for="chat-search">Search conversations</label>
+            <input id="chat-search" type="search" dir="auto" maxlength="200" placeholder="Search conversations" autocomplete="off">
+            <div class="chatv2-filter" role="group" aria-label="Which conversations">
+              <button id="chat-show-active" type="button" aria-pressed="true">Conversations</button>
+              <button id="chat-show-archived" type="button" aria-pressed="false">Archived</button>
+            </div>
+            <nav id="chat-list" class="chatv2-list" aria-label="Saved conversations"></nav>
+            <button id="chat-saved-more" class="button ghost" type="button" hidden>Load more conversations</button>
+            <p id="chat-saved-count" class="muted" role="status"></p>
           </aside>
-          <div class="panel chat-main">
-            <p id="chat-notice" role="status" aria-live="polite">Start a new conversation or open a saved one.</p>
-            <label class="inline-check"><input id="chat-collect" type="checkbox" disabled> Collect future completed pairs for human review</label>
-            <p class="muted">OFF by default and after restart. Saved chat history stays local regardless of this choice. Collected pairs enter PENDING, never dataset-approved. No earlier turns are collected retroactively.</p>
-            <p id="chat-session-identity" class="muted" role="status" aria-live="polite">No active conversation selected.</p><p id="chat-usage" class="muted"></p>
-            <div id="chat-messages" class="chat-messages" aria-label="Conversation messages"></div>
-            <form id="chat-form"><label for="chat-draft">Message</label><textarea id="chat-draft" dir="auto" rows="4" maxlength="65536" placeholder="Write a message…"></textarea><div class="chat-actions"><button id="chat-send" class="button primary" type="submit" disabled>Send</button><button id="chat-stop" class="button ghost" type="button" disabled>Stop</button></div></form>
-            <p class="muted">Completed text pairs are saved. Failed, stopped or token-limited responses are discarded. Archiving retains local text and historical exports; it excludes the conversation's collected pairs from future dataset selection. Physical erasure requires a separate retention decision.</p>
+          <div class="chatv2-main panel">
+            <header class="chatv2-header">
+              <button id="chat-sidebar-toggle" class="chatv2-icon" type="button" aria-controls="chat-sidebar" aria-expanded="true" aria-label="Show or hide conversation list" title="Conversation list">☰</button>
+              <div class="chatv2-heading">
+                <h2 id="chat-title" dir="auto" translate="no">New chat</h2>
+                <p id="chat-session-identity" class="chatv2-binding" role="status">No conversation selected.</p>
+              </div>
+              <div class="chatv2-header-actions">
+                <button id="chat-actions" class="chatv2-icon" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Conversation actions" title="Conversation actions" disabled>⋯</button>
+                <button id="chat-settings-open" class="chatv2-icon" type="button" aria-haspopup="dialog" aria-label="Chat settings and device details" title="Chat settings">⚙</button>
+              </div>
+            </header>
+            <p id="chat-notice" class="chatv2-notice" role="status" aria-live="polite"></p>
+            <div id="chat-messages" class="chatv2-messages" aria-label="Conversation messages" tabindex="0">
+              <div id="chat-empty" class="chatv2-empty">
+                <h3>Raw local model chat</h3>
+                <p>NajdiLab adds no system prompt, tools, retrieval or memory. Replies are saved only when they finish completely and unchanged.</p>
+              </div>
+            </div>
+            <form id="chat-form" class="chatv2-composer">
+              <label class="sr-only" for="chat-draft">Message</label>
+              <textarea id="chat-draft" dir="auto" rows="1" maxlength="65536" placeholder="Message the model…" aria-describedby="chat-keys"></textarea>
+              <div class="chatv2-composer-row">
+                <label class="inline-check chatv2-collect"><input id="chat-collect" type="checkbox" disabled> Collect for review</label>
+                <span id="chat-usage" class="chatv2-usage" dir="auto"></span>
+                <button id="chat-stop" class="button ghost" type="button" disabled>Stop</button>
+                <button id="chat-send" class="button primary" type="submit" disabled>Send</button>
+              </div>
+              <p id="chat-keys" class="chatv2-hint"><kbd>Enter</kbd> <span>sends</span> · <kbd>Shift</kbd>+<kbd>Enter</kbd> <span>adds a new line.</span> <span>Collection is off by default and after restart; only future completed replies enter human review.</span></p>
+            </form>
           </div>
         </div>
+        <div id="chat-action-menu" class="chatv2-menu" role="menu" hidden>
+          <button type="button" role="menuitem" data-chat-action="rename">Rename</button>
+          <button type="button" role="menuitem" data-chat-action="pin">Pin</button>
+          <button type="button" role="menuitem" data-chat-action="archive">Archive</button>
+          <button type="button" role="menuitem" data-chat-action="restore">Restore</button>
+          <button type="button" role="menuitem" data-chat-action="delete" class="danger">Delete permanently…</button>
+        </div>
+        <dialog id="chat-setup" class="chatv2-dialog" aria-labelledby="chat-setup-title">
+          <form method="dialog" class="chatv2-dialog-body" id="chat-setup-form">
+            <div class="dialog-head"><h2 id="chat-setup-title">New chat</h2><button class="icon-close" value="cancel" aria-label="Close">×</button></div>
+            <label for="chat-provider">Model runtime</label><select id="chat-provider"></select>
+            <label for="chat-model">Model</label><select id="chat-model"></select>
+            <p id="chat-provider-note" class="muted">Connect LM Studio or Ollama in Settings → Integrations, or start NajdiLab Native from chat settings. LM Studio must already have the model loaded.</p>
+            <fieldset class="chatv2-presets"><legend>Context size</legend>
+              <label><input type="radio" name="chat-preset" value="light"> <span>Light</span> <small>4096 context · 1024 reply</small></label>
+              <label><input type="radio" name="chat-preset" value="balanced" checked> <span>Balanced</span> <small>8192 context · 2048 reply</small></label>
+              <label><input type="radio" name="chat-preset" value="long"> <span>Long</span> <small>16384 context · 3072 reply</small></label>
+              <label><input type="radio" name="chat-preset" value="custom"> <span>Custom</span> <small>Advanced values below</small></label>
+            </fieldset>
+            <details id="chat-advanced" class="chatv2-advanced"><summary>Advanced</summary>
+              <label for="chat-budget">Total context (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="8192" inputmode="numeric">
+              <label for="chat-reserve">Reserved for reply and thinking (tokens)</label><input id="chat-reserve" type="number" min="1" max="8192" value="2048" inputmode="numeric">
+            </details>
+            <div id="chat-budget-breakdown" class="chatv2-budget" role="status"></div>
+            <p class="muted">These presets are starting points, not performance guarantees. A conversation keeps its settings; changing them starts a new chat.</p>
+            <div id="chat-load-row" class="chatv2-consent" hidden>
+              <label class="inline-check"><input id="chat-load-approved" type="checkbox"> Allow Ollama to load or reload this model at this context size</label>
+              <p class="muted">Ollama keeps one copy of a model in memory at a fixed context. Starting with a different context makes Ollama reload the model, which takes time and memory. Nothing loads unless you tick this box.</p>
+            </div>
+            <p id="chat-setup-error" class="chatv2-error" role="alert"></p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="chat-create" class="button primary" type="button">Start chat</button></div>
+          </form>
+        </dialog>
+        <dialog id="chat-panel" class="chatv2-dialog chatv2-drawer" aria-labelledby="chat-panel-title">
+          <div class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="chat-panel-title">Chat settings</h2><button id="chat-panel-close" class="icon-close" type="button" aria-label="Close">×</button></div>
+            <details open class="chatv2-section"><summary>This conversation</summary>
+              <div id="chat-details" class="chatv2-details"></div>
+              <p class="muted">Raw chat: no system or developer prompt from NajdiLab, no tools, retrieval, memory or rewriting. The engine's own chat template is used. Native LM Studio or Ollama chats are never read.</p>
+            </details>
+            <details class="chatv2-section" id="chat-hardware-section"><summary>Device and model</summary>
+              <p class="muted">A read-only snapshot. It never loads a model and runs no stress test. Estimates are not guarantees.</p>
+              <button id="chat-hardware" class="button ghost" type="button">Read device and model details</button>
+              <div id="chat-hardware-result" class="chatv2-hardware" role="status"></div>
+            </details>
+            <details class="chatv2-section" id="chat-native-section"><summary>NajdiLab Native</summary>
+              <p class="muted">Runs a local GGUF model through your own llama.cpp llama-server, listening on this computer only. NajdiLab never downloads programs or model files. Check each model's license yourself.</p>
+              <div id="chat-native-status" class="chatv2-details" role="status"></div>
+              <label for="chat-native-model">GGUF model</label><select id="chat-native-model"></select>
+              <label for="chat-native-context">Context size</label><select id="chat-native-context"><option value="4096">4096</option><option value="8192" selected>8192</option><option value="16384">16384</option><option value="32768">32768</option></select>
+              <label for="chat-native-gpu">GPU use</label><select id="chat-native-gpu"><option value="auto">Automatic</option><option value="all">All layers on GPU</option><option value="0">CPU only</option></select>
+              <div class="confirmation-actions"><button id="chat-native-estimate" class="button ghost" type="button">Estimate memory</button><button id="chat-native-stop" class="button ghost" type="button">Stop</button><button id="chat-native-start" class="button primary" type="button">Start</button></div>
+            </details>
+          </div>
+        </dialog>
+        <dialog id="chat-rename" class="chatv2-dialog" aria-labelledby="chat-rename-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="chat-rename-title">Rename conversation</h2></div>
+            <label for="chat-rename-input">Title</label><input id="chat-rename-input" dir="auto" maxlength="120">
+            <p class="muted">Leave empty to use the automatic title from the first message.</p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="chat-rename-save" class="button primary" value="save">Save</button></div>
+          </form>
+        </dialog>
+        <dialog id="chat-delete" class="chatv2-dialog" aria-labelledby="chat-delete-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="chat-delete-title">Delete conversation permanently</h2></div>
+            <p class="chatv2-warning">This cannot be undone. Archive instead if you may need it later.</p>
+            <div id="chat-delete-preview" class="chatv2-details" role="status"></div>
+            <label for="chat-delete-confirm">Type DELETE to confirm</label><input id="chat-delete-confirm" dir="ltr" autocomplete="off" spellcheck="false">
+            <p id="chat-delete-error" class="chatv2-error" role="alert"></p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="chat-delete-go" class="button delete-action" type="button" disabled>Delete permanently</button></div>
+          </form>
+        </dialog>
       </section>
 
       <section id="view-dashboard" class="view active">
@@ -369,6 +461,7 @@
   <script src="/theme.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/integrations.js" defer></script>
+  <script src="/chat-markdown.js" defer></script>
   <script src="/chat.js" defer></script>
 </body>
 </html>
