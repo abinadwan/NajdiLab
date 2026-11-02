@@ -94,6 +94,9 @@ function switchView(view,options={}) {
     return;
   }
   if(state.view==='phase38-review'&&view!==state.view&&state.phase38Dirty&&!confirm('You have unsaved remediation changes. Leave this page and discard them?'))return;
+  // An accepted navigation discards this in-memory review snapshot; otherwise
+  // returning to the queue would wrongly compare the old DOM before reloading.
+  if(view!==state.view&&state.view==='review-queue')state.reviewDraftBaseline=null;
   state.view = view;
   $$('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   $$('.view').forEach(v=>v.classList.toggle('active', v.id===`view-${view}`));
