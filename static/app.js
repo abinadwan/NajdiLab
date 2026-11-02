@@ -1,4 +1,4 @@
-const state = { view: 'dashboard', queue: [], queueIndex: 0, reviewStatus: null, reviewActionPending: false, channels: new Set(), tags: [], reviewedSelected: new Set(), manualItems: [], manualSelected: new Set(), manualCurrent: null, datasetVersions: [], phase38:null, phase38Index:0, phase38Dirty:false, phase38Saving:false, phase38Decision:null };
+const state = { view: 'dashboard', queue: [], queueIndex: 0, reviewStatus: null, reviewActionPending: false, reviewDraftBaseline: null, channels: new Set(), tags: [], reviewedSelected: new Set(), manualItems: [], manualSelected: new Set(), manualCurrent: null, datasetVersions: [], phase38:null, phase38Index:0, phase38Dirty:false, phase38Saving:false, phase38Decision:null };
 
 const titles = {
   chat: ['Chat Workspace', 'Raw local model conversations, saved here. Collection for review is a separate choice.'],
@@ -67,8 +67,32 @@ const viewPaths={chat:'/chat',dashboard:'/',conversations:'/conversations','revi
 const pathViews=Object.fromEntries(Object.entries(viewPaths).map(([view,path])=>[path,view]));
 function selectedVersion(){return new URLSearchParams(location.search).get('version')||state.selectedDataset||'';}
 function updateLocation(view,version='',replace=false){const path=viewPaths[view]||'/';const query=version?`?version=${encodeURIComponent(version)}`:'';(replace?history.replaceState:history.pushState).call(history,{view,version},'',path+query);}
+// UX-07: snapshot the editable review, not its immutable original. This guard
+// catches tags/flags/notes/corrections without persisting draft text to storage.
+function reviewDraftSnapshot(){
+  if(!state.queue.length)return null;
+  return JSON.stringify({
+    id:state.queue[state.queueIndex]?.id,
+    status:state.reviewStatus,
+    editorOpen:!$('#edit-review-panel').classList.contains('hidden'),
+    payload:reviewPayload(),
+    corrected:$('#corrected-response').value,
+    ignoredReason:$('#ignored-reason').value
+  });
+}
+function hasUnsavedReviewDraft(){
+  return state.view==='review-queue' && !state.reviewActionPending &&
+    state.reviewDraftBaseline!==null && reviewDraftSnapshot()!==state.reviewDraftBaseline;
+}
+function confirmDiscardReviewDraft(){
+  return !hasUnsavedReviewDraft() || confirm('You have unsaved review changes. Leave and discard this draft?');
+}
 function switchView(view,options={}) {
   if(!titles[view])view='dashboard';
+  if(view!==state.view&&!confirmDiscardReviewDraft()){
+    if(options.fromHistory)updateLocation(state.view,state.selectedDataset||'',true);
+    return;
+  }
   if(state.view==='phase38-review'&&view!==state.view&&state.phase38Dirty&&!confirm('You have unsaved remediation changes. Leave this page and discard them?'))return;
   state.view = view;
   $$('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
@@ -178,11 +202,13 @@ async function loadConfig() {
 }
 
 async function loadQueue() {
+  if(!confirmDiscardReviewDraft())return;
   const data = await api('/api/v1/review-queue?include_demo=1');
   state.queue = data.items; state.queueIndex = Math.min(state.queueIndex, Math.max(0,state.queue.length-1));
   $('#nav-pending').textContent = state.queue.length;
   $('#queue-empty').classList.toggle('hidden', state.queue.length>0); $('#review-workspace').classList.toggle('hidden', !state.queue.length);
   if (state.queue.length) renderReview();
+  else state.reviewDraftBaseline=null;
 }
 
 function renderReview() {
@@ -197,6 +223,7 @@ function renderReview() {
   for(const [id,key] of Object.entries({'training-eligible':'training_eligible','evaluation-only':'evaluation_only','exclude-training':'exclude_from_training','needs-fact-check':'needs_fact_check','contains-personal':'contains_personal_data','contains-sensitive':'contains_sensitive_data'}))$(`#${id}`).checked=!!item[key];
   $$('.review-actions button').forEach(button=>button.disabled=false); $('#confirm-review-delete').disabled=false;
   $('#queue-position').textContent = `${state.queueIndex+1} of ${state.queue.length}`; $('#queue-progress').style.width = `${((state.queueIndex+1)/state.queue.length)*100}%`;
+  state.reviewDraftBaseline=reviewDraftSnapshot();
 }
 
 function selectReviewStatus(status) {
@@ -224,7 +251,7 @@ function finishReviewAction(reviewId,message) {
   if(index>=0)state.queue.splice(index,1);
   if(state.queueIndex>=state.queue.length)state.queueIndex=Math.max(0,state.queue.length-1);
   $('#nav-pending').textContent=state.queue.length;toast(message);
-  if(state.queue.length)renderReview();else{$('#queue-empty').classList.remove('hidden');$('#review-workspace').classList.add('hidden');}
+  if(state.queue.length)renderReview();else{state.reviewDraftBaseline=null;$('#queue-empty').classList.remove('hidden');$('#review-workspace').classList.add('hidden');}
 }
 
 async function runReviewAction(action,payload,message) {
@@ -482,6 +509,7 @@ async function loadAnalytics(){const data=await api('/api/v1/analytics');const s
 function renderBars(selector,items){const max=Math.max(1,...items.map(x=>x.count));$(selector).innerHTML=items.length?items.map(x=>`<div class="bar-item"><header><span>${esc(x.name||'Unspecified')}</span><strong>${x.count}</strong></header><div class="bar-track"><i style="width:${x.count/max*100}%"></i></div></div>`).join(''):'<div class="empty-inline">No data yet.</div>';}
 
 function bindEvents(){
+  window.addEventListener('beforeunload',e=>{if(hasUnsavedReviewDraft()){e.preventDefault();e.returnValue='';}});
   $('#main-nav').addEventListener('click',e=>{const button=e.target.closest('[data-view]');if(button)switchView(button.dataset.view);});$('#mobile-menu').addEventListener('click',()=>$('.sidebar').classList.toggle('open'));$('#refresh-view').addEventListener('click',()=>loadView(state.view).then(()=>toast('Data refreshed.')).catch(e=>toast(e.message,true)));
   document.addEventListener('click',e=>{const button=e.target.closest('[data-go]');if(button)switchView(button.dataset.go);});
   $('#collapse-sidebar').addEventListener('click',()=>{const collapsed=$('.shell').classList.toggle('sidebar-collapsed');localStorage.setItem('najdilab.sidebar',collapsed?'collapsed':'expanded');$('#collapse-sidebar').textContent=collapsed?'›':'‹';});
