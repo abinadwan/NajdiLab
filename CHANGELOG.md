@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Phase B (in progress): NajdiLab-first model integrations
+
+Initial increment only; **31 original Phase B findings are not yet complete**. A single draft PR holds the whole Phase B effort.
+
+- Removed the Hermes card and all Hermes actions from Settings. The controller filters both rendered cards and actionable snapshots to the two supported model runtimes, Ollama and LM Studio.
+- Preserved the backend and Core's blocked legacy Hermes receiver. No installed Hermes, Gateway, sessions, native conversations or external services were touched.
+- Updated Settings copy to make NajdiLab-owned chat the primary experience, and added a noninteractive, explicitly unavailable Hugging Face Direct preview for a separately authorized later phase.
+- Added controller regression coverage for HTML escaping, excluding legacy source cards, and refusing synthetic actions for a hidden connector.
+- Recorded architecture and acceptance requirements in `docs/remediation/PHASE_B_IMPLEMENTATION.md`. Phase A is closed after merged PR #18 and green main CI; Phase B started with explicit owner authorization.
+- No local installation, database migration, model download, GPU allocation, merge or Phase C implementation.
+
+
 ## Unreleased — Phase A: Data Integrity and Security (11 findings)
 
 Includes the corrections from both independent reviews of PR #18.
