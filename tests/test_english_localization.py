@@ -57,7 +57,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const elements = new Map();
 const element = selector => {
-    if (!elements.has(selector)) elements.set(selector, {checked: false, innerHTML: '', textContent: '', className: '',style:{},classList:{toggle(){},add(){},remove(){}}});
+    if (!elements.has(selector)) elements.set(selector, {checked: false, innerHTML: '', textContent: '', className: '',style:{},classList:{toggle(){},add(){},remove(){},contains(){return false;}}});
     return elements.get(selector);
 };
 const context = {console, Intl, Date, URLSearchParams, setTimeout: () => 0, clearTimeout: () => {},
