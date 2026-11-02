@@ -81,7 +81,7 @@
     },
     "app/chat_engine.py": {
       "classification": "PROTECT",
-      "sha256": "ad29ab5fbe77757b8f806d5c77822974e7a1d3e4ac4fe07fb9749c8dacd39117",
+      "sha256": "346cc9f1e9cd7927dc2665759e5b1691694a342e2b6653162e645598c9df2c40",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .db import ROOT",
@@ -105,7 +105,7 @@
     },
     "app/chat_engine_worker.py": {
       "classification": "PROTECT",
-      "sha256": "c2a13b4d2e45bfe59f0a6138ab0fb86f49a182fc0379687e225fbe129ea0c4e4",
+      "sha256": "d35a8cb0280e99bd76c515089deb147a25e9c7188d8ada3493f35938899ea7b2",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from importlib.metadata import version",
@@ -123,7 +123,7 @@
     },
     "app/chat_workspace.py": {
       "classification": "PROTECT",
-      "sha256": "c53de9eced9505e03e56b0b0c1a6c93f4e882534f5c99f4120cd59b897963107",
+      "sha256": "ce205ed294870991533fb033b11eeacf2cc0b30152cdc7f4800b9a58b3617a5d",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .chat_engine import open_engine",
@@ -441,7 +441,7 @@
     },
     "app/integrations.py": {
       "classification": "PROTECT",
-      "sha256": "083c5fa816c9b90b7cda31333635e2aa661f5ceaf36583d711283b238b043096",
+      "sha256": "05801a6411adaacefe0c877b13b3af5805fbc092dc4bff9134082adf12fb8ded",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .db import utc_now",
@@ -4572,6 +4572,9 @@
     },
     "migrations/007_review_events.sql": {
       "sha256": "d1e4407d2d42df236dda26aaa72da9d739cf9c53b73845fcd1246261c259ebaf"
+    },
+    "migrations/008_chat_experience_v2.sql": {
+      "sha256": "599b6ebafc46e9fb919f0985273979b745ce807d62452b2ed7354660520543bc"
     }
   },
   "removed_routes": [

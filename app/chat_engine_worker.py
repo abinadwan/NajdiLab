@@ -60,7 +60,7 @@ class LoadedModel:
         if self.stream is not None:
             self.stream.cancel()
 
-    def generate(self, reserve, stop):
+    def generate(self, reserve, stop, emit_delta=None):
         if (self.model.get_info().instance_reference != self.identity or
             self.model.get_context_length() != self.context or
             self.model.apply_prompt_template(self.history) != self.template or
@@ -74,21 +74,30 @@ class LoadedModel:
             'maxTokens':reserve, 'contextOverflowPolicy':'stopAtLimit', 'rawTools':{'type':'none'}
         }) as stream:
             self.stream = stream
-            fragments, size = [], 0
+            fragments, every, size = [], [], 0
             for fragment in stream:
                 if stop.is_set():
                     stream.cancel()
                     raise ValueError('STOPPED')
-                # Reasoning is not a final answer. Refuse rather than silently
-                # editing a mixed result into a training target.
-                if getattr(fragment, 'reasoning_type', 'none') != 'none':
-                    stream.cancel()
-                    raise ValueError('NON_TEXT_RESPONSE')
+                kind = getattr(fragment, 'reasoning_type', 'none')
+                every.append(fragment.content)
+                if kind != 'none':
+                    # Reasoning is never a final answer. Without a streaming
+                    # caller it is refused, as before; with one it is shown on a
+                    # separate channel and never saved. Tag fragments are dropped.
+                    if emit_delta is None:
+                        stream.cancel()
+                        raise ValueError('NON_TEXT_RESPONSE')
+                    if kind == 'reasoning' and fragment.content:
+                        emit_delta('thinking', fragment.content)
+                    continue
                 size += len(fragment.content.encode('utf-8'))
                 if size > 262144:
                     stream.cancel()
                     raise ValueError('RESPONSE_TOO_LARGE')
                 fragments.append(fragment.content)
+                if emit_delta is not None and fragment.content:
+                    emit_delta('content', fragment.content)
             result = stream.result()
         # Preserve the generic external RESULT_MISMATCH code, while identifying
         # which public integrity predicate failed. No values cross the boundary.
@@ -96,11 +105,13 @@ class LoadedModel:
             raise ValueError('RESULT_MISMATCH_INSTANCE')
         if result.structured:
             raise ValueError('RESULT_MISMATCH_STRUCTURED')
-        if result.content != ''.join(fragments):
+        # The SDK may report reasoning inside result.content; either way the
+        # final text must equal exactly what was streamed.
+        if result.content not in {''.join(fragments), ''.join(every)}:
             raise ValueError('RESULT_MISMATCH_CONTENT')
         if result.stats.prompt_tokens_count != len(self.tokens):
             raise ValueError('RESULT_MISMATCH_TOKENS')
-        return {'content':result.content, 'input_tokens':result.stats.prompt_tokens_count,
+        return {'content':''.join(fragments), 'input_tokens':result.stats.prompt_tokens_count,
                 'output_tokens':result.stats.predicted_tokens_count, 'stop_reason':result.stats.stop_reason}
 
 
@@ -150,6 +161,7 @@ def main():
             reserve = command['reply_reserve']
             if type(reserve) is not int or not 1 <= reserve <= 8192:
                 raise ValueError('INVALID_RESERVE')
+            streaming = command.get('stream') is True
             stopped = threading.Event()
             def controls():
                 try:
@@ -158,7 +170,7 @@ def main():
                     stopped.set()
                     loaded.cancel()
             threading.Thread(target=controls, daemon=True).start()
-            emit(loaded.generate(reserve, stopped))
+            emit(loaded.generate(reserve, stopped, (lambda channel, text: emit({'delta':text, 'channel':channel})) if streaming else None))
     except ValueError as error:
         code = str(error)
         if code in MISMATCH_CHECKS:

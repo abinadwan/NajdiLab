@@ -44,6 +44,14 @@ from .chat_history import saved_sessions_page
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .chat_workspace import ChatWorkspace, fields
+from .native_runtime import NativeRuntime
+
+# Starting points, not performance guarantees. Custom values stay available.
+CONTEXT_PRESETS = [
+    {"id": "light", "context_budget": 4096, "reply_reserve": 1024},
+    {"id": "balanced", "context_budget": 8192, "reply_reserve": 2048},
+    {"id": "long", "context_budget": 16384, "reply_reserve": 3072},
+]
 from .unsloth_export import create_handoff, read_handoff
 from .dataset_platform import (
     DatasetPlatformError,
@@ -119,6 +127,7 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
     def __init__(self, *args, **kwargs):
         self.integrations = IntegrationManager()
+        self.native = NativeRuntime()
         self.chat = None
         self._workspace_lock = threading.Lock()
         super().__init__(*args, **kwargs)
@@ -128,11 +137,14 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
         # the model's response or an integration snapshot.
         with self._workspace_lock:
             if self.chat is None:
-                self.chat = ChatWorkspace(self.integrations, DB_PATH)
+                self.chat = ChatWorkspace(self.integrations, DB_PATH, native=self.native,
+                                          engine_factory=self.native.engine_factory())
             return self.chat
 
     def server_close(self):
         super().server_close()
+        # Only NajdiLab's own llama-server child is stopped; nothing else.
+        self.native.shutdown()
         if self.chat is not None:
             try:
                 self.chat.close()
@@ -184,11 +196,55 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         self._headers(status, "application/json; charset=utf-8", len(data))
         self.wfile.write(data)
 
-    def _error(self, message: str, status: int = HTTPStatus.BAD_REQUEST, *, code: str | None = None) -> None:
+    def _error(self, message: str, status: int = HTTPStatus.BAD_REQUEST, *, code: str | None = None,
+               check: str | None = None) -> None:
         payload = {"ok": False, "error": message}
         if code:
             payload["code"] = code
+        if check:
+            payload["check"] = check
         self._json(payload, status)
+
+    def _send_stream(self, sid: str, data: dict) -> None:
+        """NDJSON turn stream. Validation errors before the turn is accepted are
+        ordinary JSON errors; afterwards errors arrive as a final `error` event.
+        Streamed text is display-only: the saved result is the `done` event's
+        session, committed only after every completion check passed."""
+        workspace = self.server.workspace()
+        state = {"open": False, "gone": False}
+
+        def write(event: dict) -> None:
+            if state["gone"]:
+                return
+            if not state["open"]:
+                self.close_connection = True
+                self._headers(HTTPStatus.OK, "application/x-ndjson; charset=utf-8")
+                state["open"] = True
+            try:
+                self.wfile.write(json.dumps(event, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n")
+                self.wfile.flush()
+            except OSError:
+                # The browser went away: stop generation; nothing partial is saved.
+                state["gone"] = True
+                try:
+                    workspace.stop(sid)
+                except IntegrationError:
+                    pass
+
+        try:
+            result = workspace.send(sid, data, on_event=write)
+        except IntegrationError as exc:
+            if not state["open"]:
+                raise
+            write({"type": "error", "code": exc.code, "error": str(exc), "check": getattr(exc, "check", None)})
+            return
+        except Exception:
+            if not state["open"]:
+                raise
+            traceback.print_exc()
+            write({"type": "error", "code": "INTERNAL_ERROR", "error": "An internal error occurred; inspect the local server log for details"})
+            return
+        write({"type": "done", "result": result})
 
     def _dataset_error(self, error: DatasetPlatformError) -> None:
         status = HTTPStatus.NOT_FOUND if error.code in {"PROJECT_ROOT_NOT_FOUND", "EXPORTS_ROOT_NOT_FOUND", "DATASET_NOT_FOUND", "MANIFEST_NOT_FOUND"} else HTTPStatus.CONFLICT if error.code in {"VERSION_ALREADY_EXISTS", "SOURCE_NOT_FROZEN", "TARGET_NOT_DRAFT", "OVERLAP_PLAN_STALE"} else HTTPStatus.FORBIDDEN if error.code == "ACCESS_DENIED" else HTTPStatus.UNPROCESSABLE_ENTITY if error.code in {"INVALID_MANIFEST", "INVALID_DATASET", "UNSUPPORTED_DATASET_FORMAT", "INVALID_VERSION_NAME"} else HTTPStatus.INTERNAL_SERVER_ERROR
@@ -244,10 +300,21 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "csrf_token": CSRF_TOKEN})
             elif parsed.path == '/api/v1/chat/sessions':
                 limit, offset = page_request(query)
-                items, total = saved_sessions_page(self.server.workspace().db_path, limit, offset)
+                if query.get('archived', '0') not in {'0', '1'}:
+                    raise ValidationError('archived must be 0 or 1')
+                items, total = saved_sessions_page(self.server.workspace().db_path, limit, offset,
+                                                   query=query.get('q', ''), archived=query.get('archived') == '1')
                 self._json({'items': items, 'page': page_info(total, limit, offset, len(items))})
+            elif parsed.path == '/api/v1/chat/presets':
+                self._json({'items': CONTEXT_PRESETS, 'reply_reserve_max': 8192})
             elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})', parsed.path):
                 self._json(self.server.workspace().get(match.group(1)))
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/delete-preview', parsed.path):
+                self._json(self.server.workspace().delete_preview(match.group(1)))
+            elif parsed.path == '/api/v1/native/status':
+                self._json(self.server.native.status())
+            elif parsed.path == '/api/v1/native/models':
+                self._json(self.server.native.models())
             elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
                 raw = read_handoff(*match.groups())
                 self._headers(HTTPStatus.OK, 'application/octet-stream', len(raw))
@@ -330,7 +397,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
         except IntegrationError as exc:
-            self._error(str(exc), exc.status, code=exc.code)
+            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None))
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
         except ExportReadinessError as exc:
@@ -363,7 +430,12 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.workspace().hardware(data))
             elif parsed.path == '/api/v1/chat/sessions':
                 self._json(self.server.workspace().create(data), HTTPStatus.CREATED)
-            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/(send|collect|stop|archive)', parsed.path):
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/send-stream', parsed.path):
+                self._send_stream(match.group(1), data)
+            elif parsed.path in {'/api/v1/native/start', '/api/v1/native/stop'}:
+                native = self.server.native
+                self._json(native.start(data) if parsed.path.endswith('start') else native.stop(data))
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/(send|collect|stop|archive|restore|rename|pin|delete)', parsed.path):
                 sid, action = match.groups()
                 workspace = self.server.workspace()
                 if action == 'stop':
@@ -462,7 +534,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
         except IntegrationError as exc:
-            self._error(str(exc), exc.status, code=exc.code)
+            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None))
         except RequestSecurityError as exc:
             self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:

@@ -28,6 +28,10 @@
     {
       "name": "007_review_events.sql",
       "sha256": "d1e4407d2d42df236dda26aaa72da9d739cf9c53b73845fcd1246261c259ebaf"
+    },
+    {
+      "name": "008_chat_experience_v2.sql",
+      "sha256": "599b6ebafc46e9fb919f0985273979b745ce807d62452b2ed7354660520543bc"
     }
   ]
 }

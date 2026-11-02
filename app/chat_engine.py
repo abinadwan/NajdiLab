@@ -10,7 +10,7 @@ import threading
 import time
 
 from .db import ROOT
-from .integrations import IntegrationError, request_json
+from .integrations import IntegrationError, request_json, request_stream
 
 MAX_WIRE = 512 * 1024
 # Covers a cold model load plus an 8192-token reply on a mid-range GPU. Both
@@ -42,6 +42,63 @@ CLOUD_NAME = re.compile(r'[:-]cloud$')
 LOCAL_DIGEST = re.compile(r'(?:sha256:)?([0-9a-f]{64})\Z')
 # Verified from Ollama v0.40.13 source. Unknown resolver semantics must fail closed.
 PINNED_REF_VERSION = '0.40.13'
+# Upper bound for one streamed reply (final text plus separate thinking).
+STREAM_LIMIT = 4 * 1024 * 1024
+MAX_REPLY_BYTES = 262144
+# Chat V2 latency: the oversized-history refusal is a property of the engine
+# build and model, so a proof is reused only for the same Ollama version, model
+# digest and budget, and only for this long. Every turn still re-checks the
+# version, digest, local reference and the runner's real context (/api/ps).
+REFUSAL_PROOF_TTL = 600
+_REFUSAL_PROOFS = {}
+_REFUSAL_LOCK = threading.Lock()
+
+
+def ms(start):
+    return int((time.monotonic() - start) * 1000)
+
+
+class StreamCollector:
+    """Separates answer text from thinking and tracks first-token timing.
+
+    Only lengths and timings leave this object for diagnostics; text goes to
+    the caller's callback and, for the answer only, to the saved reply.
+    """
+
+    def __init__(self, on_delta):
+        self.on_delta, self.started = on_delta, time.monotonic()
+        self.content, self.thinking = [], []
+        self.size = self.thinking_size = 0
+        self.first_token = self.first_content = None
+
+    def add(self, channel, text):
+        if not isinstance(text, str) or not text:
+            return
+        now = time.monotonic()
+        if self.first_token is None:
+            self.first_token = now
+        if channel == 'content':
+            if self.first_content is None:
+                self.first_content = now
+            self.size += len(text.encode('utf-8'))
+            if self.size > MAX_REPLY_BYTES:
+                raise IntegrationError('RESPONSE_TOO_LARGE', 'The reply exceeded the size limit; no pair was saved.', 502)
+            self.content.append(text)
+        else:
+            self.thinking_size += len(text.encode('utf-8'))
+            if self.thinking_size > MAX_REPLY_BYTES:
+                raise IntegrationError('RESPONSE_TOO_LARGE', 'The model\'s thinking exceeded the size limit; no pair was saved.', 502)
+            self.thinking.append(text)
+        if self.on_delta is not None:
+            self.on_delta(channel, text)
+
+    def timings(self):
+        end = time.monotonic()
+        first = self.first_token
+        return {'first_token_ms': int((first - self.started) * 1000) if first else None,
+                'thinking_ms': int(((self.first_content or end) - first) * 1000) if first and self.thinking else 0,
+                'answer_ms': int((end - self.first_content) * 1000) if self.first_content else 0,
+                'generation_ms': int((end - self.started) * 1000)}
 
 
 class EngineProcess:
@@ -53,7 +110,8 @@ class EngineProcess:
         self.process = subprocess.Popen([sys.executable, '-m', 'app.chat_engine_worker'], cwd=ROOT,
             env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-        self.events = queue.Queue(maxsize=4)
+        # Deltas stream through here; the reader blocks (never drops) when full.
+        self.events = queue.Queue(maxsize=1024)
         self.deadline = time.monotonic() + CHAT_DEADLINE
         self.stopped = False
         def read():
@@ -61,9 +119,9 @@ class EngineProcess:
                 while True:
                     line = self.process.stdout.readline(MAX_WIRE + 1)
                     if not line or len(line) > MAX_WIRE:
-                        self.events.put_nowait({'error':'ENGINE_PROTOCOL_ERROR'})
+                        self.events.put({'error':'ENGINE_PROTOCOL_ERROR'}, timeout=CHAT_DEADLINE)
                         return
-                    self.events.put_nowait(json.loads(line))
+                    self.events.put(json.loads(line), timeout=CHAT_DEADLINE)
             except (OSError, ValueError, queue.Full):
                 try:
                     self.events.put_nowait({'error':'ENGINE_PROTOCOL_ERROR'})
@@ -112,9 +170,22 @@ class EngineProcess:
         self.write({'messages':messages})
         return self.receive(stop)
 
-    def generate(self, messages, reserve, stop):
-        self.write({'reply_reserve':reserve})
-        return self.receive(stop)
+    def generate(self, messages, reserve, stop, on_delta=None):
+        if on_delta is None:
+            self.write({'reply_reserve':reserve})
+            return self.receive(stop)
+        collector = StreamCollector(on_delta)
+        self.write({'reply_reserve':reserve, 'stream':True})
+        while True:
+            event = self.receive(stop)
+            if set(event) == {'delta', 'channel'} and event['channel'] in {'content', 'thinking'}:
+                collector.add(event['channel'], event['delta'])
+                continue
+            # The worker already proved its final text equals its streamed answer;
+            # the parent proves the same against what it actually displayed.
+            if event.get('content') != ''.join(collector.content):
+                raise IntegrationError('RESULT_MISMATCH', WORKER_ERRORS['RESULT_MISMATCH'] + ' Integrity check: ' + WORKER_MISMATCH_DETAILS['STREAM_CONTENT'], 409)
+            return {**event, 'reasoning_discarded':bool(collector.thinking), 'timings':collector.timings()}
 
     def close(self):
         # Child cancellation asks only its own inference request to stop. It
@@ -254,14 +325,40 @@ class OllamaEngine:
 
     def measure(self, messages, budget, stop=None):
         self.budget = budget
+        timings = {}
+        started = time.monotonic()
         limits = self.limits(stop)
+        timings['model_identity_ms'] = ms(started)
         if self.expected_model_key is not None and self.expected_model_key != limits['model_key']:
             raise IntegrationError('MODEL_CHANGED', 'The selected model was replaced before inference; no prompt was sent.', 409)
         result = {'loaded_context':limits['model_max_context'], 'model_key':limits['model_key'],
-                  'engine_version':limits['engine_version']}
+                  'engine_version':limits['engine_version'], 'timings':timings}
         if budget > limits['model_max_context']:
             return {**result, 'input_tokens':0}
-        self.prove_refusal(stop)
+        started = time.monotonic()
+        key = (self.spec.port, limits['engine_version'], self.digest, budget)
+        with _REFUSAL_LOCK:
+            proven = _REFUSAL_PROOFS.get(key)
+        if proven is None or time.monotonic() - proven > REFUSAL_PROOF_TTL:
+            with _REFUSAL_LOCK:
+                _REFUSAL_PROOFS.pop(key, None)
+            self.prove_refusal(stop)
+            with _REFUSAL_LOCK:
+                _REFUSAL_PROOFS[key] = time.monotonic()
+            timings['context_proof'] = 'measured'
+        else:
+            timings['context_proof'] = 'reused'
+        timings['context_proof_ms'] = ms(started)
+        started = time.monotonic()
+        try:
+            return {**result, **self._count(messages, budget, stop), 'timings':{**timings, 'token_count_ms':ms(started)}}
+        except IntegrationError:
+            # Any doubt about this engine discards the reusable proof.
+            with _REFUSAL_LOCK:
+                _REFUSAL_PROOFS.pop(key, None)
+            raise
+
+    def _count(self, messages, budget, stop):
         value = self.chat(messages, 1, stop, error_status=(400,))
         if value.get('http_status') == 400:
             refused = OVERFLOW.search(str(value.get('error')))
@@ -276,9 +373,54 @@ class OllamaEngine:
         runtime = next((m.get('context_length') for m in self.loaded(stop) if isinstance(m, dict) and m.get('digest') == self.digest), None)
         if runtime != budget:
             raise self.mismatch()
-        return {**result, 'input_tokens':tokens, 'loaded_context':runtime}
+        return {'input_tokens':tokens, 'loaded_context':runtime}
 
-    def generate(self, messages, reserve, stop):
+    def stream_chat(self, messages, predict, stop, collector):
+        """Ollama NDJSON: zero or more partial chunks, then exactly one `done`.
+
+        `message.thinking` is a separate channel (shown, never saved). The final
+        chunk carries the counts; nothing may follow it.
+        """
+        if not self.model_ref or not self.digest:
+            raise IntegrationError('MODEL_REFERENCE_UNVERIFIED', 'No immutable local model reference was established; Chat is blocked.', 409)
+        if stop is not None and stop.is_set():
+            raise IntegrationError('STOPPED', 'Turn stopped; no pair was saved.', 409)
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504)
+        final = {}
+
+        def line(raw):
+            if final:
+                raise IntegrationError('INCOMPLETE_RESPONSE', 'Ollama sent data after its final chunk; no pair was saved.', 502)
+            value = json.loads(raw.decode('utf-8'))
+            if not isinstance(value, dict) or 'error' in value:
+                raise IntegrationError('ENGINE_REFUSED', 'Ollama stopped this reply with an error; no pair was saved.', 502)
+            message = value.get('message')
+            if isinstance(message, dict):
+                collector.add('thinking', message.get('thinking'))
+                collector.add('content', message.get('content'))
+                if message.get('tool_calls'):
+                    final['tool_calls'] = True
+            if value.get('done') is True:
+                final.update(value, seen=True)
+        payload = {'model':self.model_ref, 'messages':messages, 'stream':True, 'truncate':False, 'shift':False,
+                   'options':{'num_ctx':self.budget, 'num_predict':predict}}
+        try:
+            request_stream(self.spec, '/api/chat', payload, line, timeout=remaining, limit=STREAM_LIMIT, cancel=stop)
+        except IntegrationError as error:
+            if stop is not None and stop.is_set():
+                raise IntegrationError('STOPPED', 'Turn stopped; no pair was saved.', 409) from None
+            if error.code == 'TIMEOUT':
+                raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504) from None
+            raise IntegrationError(error.code, str(error), 502) from None
+        if not final.get('seen'):
+            raise IntegrationError('INCOMPLETE_RESPONSE', 'Ollama ended the stream without a final chunk; no pair was saved.', 502)
+        return final
+
+    def generate(self, messages, reserve, stop, on_delta=None):
+        if on_delta is not None:
+            return self._generate_stream(messages, reserve, stop, on_delta)
         value = self.chat(messages, reserve, stop)
         message = value.get('message')
         current = self.current_digest(stop).get('digest')
@@ -291,6 +433,21 @@ class OllamaEngine:
         return {'content':message.get('content'), 'input_tokens':value.get('prompt_eval_count'),
                 'output_tokens':value.get('eval_count'), 'stop_reason':value.get('done_reason'),
                 'tool_calls':message.get('tool_calls'), 'reasoning_discarded':bool(message.get('thinking'))}
+
+    def _generate_stream(self, messages, reserve, stop, on_delta):
+        collector = StreamCollector(on_delta)
+        value = self.stream_chat(messages, reserve, stop, collector)
+        started = time.monotonic()
+        current = self.current_digest(stop).get('digest')
+        matched = LOCAL_DIGEST.fullmatch(current if isinstance(current, str) else '')
+        if not matched or matched.group(1) != self.digest:
+            raise IntegrationError('MODEL_CHANGED', 'The Ollama model changed during this turn; no pair was saved.', 409)
+        if value.get('remote_host') or value.get('remote_model'):
+            raise IntegrationError('INCOMPLETE_RESPONSE', 'Ollama did not return a finished local reply; no pair was saved.', 502)
+        return {'content':''.join(collector.content), 'input_tokens':value.get('prompt_eval_count'),
+                'output_tokens':value.get('eval_count'), 'stop_reason':value.get('done_reason'),
+                'tool_calls':value.get('tool_calls'), 'reasoning_discarded':bool(collector.thinking),
+                'timings':{**collector.timings(), 'identity_recheck_ms':ms(started)}}
 
     def close(self):
         pass

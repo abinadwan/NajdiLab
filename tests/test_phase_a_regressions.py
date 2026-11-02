@@ -132,7 +132,7 @@ def test_db01_registry_lists_exactly_the_shipped_migrations_with_inventory_hashe
               if path.startswith("migrations/") and path.endswith(".sql")}
     assert load_migration_registry(MIGRATIONS_DIR) == pinned
     assert REGISTERED == sorted(path.name for path in MIGRATIONS_DIR.glob("*.sql"))
-    assert REGISTERED[-1] == "007_review_events.sql"
+    assert REGISTERED[-1] == "008_chat_experience_v2.sql"
 
 
 def test_db01_core_registry_is_exactly_001_to_004(tmp_path):
