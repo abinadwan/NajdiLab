@@ -123,7 +123,20 @@ async function loadView(view) {
   if (view==='phase39-review') return loadPhase39Verification();
   if (view==='exports') return loadExports();
   if (view==='analytics') return loadAnalytics();
-  if (view==='settings') return window.NajdiIntegrations?.load();
+  if (view==='settings') return loadSettingsView();
+}
+
+async function loadSettingsView(){
+  // UX-26: /health verifies only the application response, not SQLite integrity.
+  const indicator=$('#sqlite-status');
+  indicator.textContent='Checking service…';indicator.className='status-neutral';
+  try{
+    const health=await api('/api/v1/health');
+    indicator.textContent=health?.ok===true&&health.service==='NajdiLab'
+      ? 'Application responding · database not verified'
+      : 'Unable to verify service';
+  }catch(error){indicator.textContent='Health check unavailable';}
+  return window.NajdiIntegrations?.load();
 }
 
 async function loadPhase39Verification(){const host=$('#phase39-status'),list=$('#phase39-records');try{const data=await api('/api/v1/phase39/post-edit-verification');state.phase39=data;state.phase39Index=Math.min(state.phase39Index||0,data.records.length-1);if($('#nav-phase39'))$('#nav-phase39').textContent=`${data.summary.verified}/${data.summary.total}`;renderPhase39Verification();}catch(e){host.textContent=`Unable to load verification status: ${e.message}`;host.className='phase38-status error-state';}}
@@ -191,7 +204,12 @@ async function loadDashboard(){
   const stats=[['Conversations',s.total_conversations],['Pending review',s.pending_reviews],['Eligible for build',eligible],['Gold versions',exportsData.items.length]];
   $('#dashboard-stats').innerHTML=stats.map(([label,value])=>`<div class="stat-card"><span>${label}</span><strong>${value??0}</strong></div>`).join('');
   $('#dashboard-exports').innerHTML=exportsData.items.length?exportsData.items.slice(0,4).map(item=>`<div class="export-row"><strong>${esc(item.version)}</strong><span>${fmtDate(item.created_at)}</span><span>${item.record_count} records</span></div>`).join(''):'<div class="empty-inline compact-empty">No Gold versions yet.</div>';
-  $('#dashboard-readiness').innerHTML='<li>Local conversations → human review → dataset quality → versioned export</li><li>Training runs externally in Unsloth.</li><li>Native application conversation collection remains blocked.</li>';
+  // UX-11: the dashboard is a snapshot, never a replacement for export gate tests.
+  $('#dashboard-readiness').innerHTML=[
+    `<li>${Number(s.pending_reviews)||0} pending human reviews reported by the API.</li>`,
+    `<li>${eligible} records returned by the eligible-dataset API; build readiness has not been checked here.</li>`,
+    '<li>Export readiness is checked independently in Export center before creating a version.</li>'
+  ].join('');
 }
 
 async function loadConfig() {
@@ -543,7 +561,7 @@ function bindEvents(){
   document.addEventListener('keydown',e=>{if(state.view!=='review-queue'||!state.queue.length)return;if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();if(!$('#save-review').disabled)saveReview();}if(!e.ctrlKey&&!e.altKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){const status={1:'FULL_CORRECTION',2:'DIALECT_CORRECTION',3:'CONTENT_CORRECTION'}[e.key];if(status){openEditReview();selectReviewStatus(status);}if(e.key==='4')approveReview();}});
 }
 
-async function init(){try{$('#copyright-year').textContent=new Date().getFullYear();if(localStorage.getItem('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').textContent='›';}await loadConfig();bindEvents();addSftTurn('user');addSftTurn('assistant');const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
+async function init(){try{$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(localStorage.getItem('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').textContent='›';}await loadConfig();bindEvents();addSftTurn('user');addSftTurn('assistant');const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
 const phase38Criteria={factual_correctness:'Factual correctness',instruction_following:'Instruction following',dialect_quality:'Dialect quality',natural_arabic:'Natural Arabic',concision:'Concision',context_continuity:'Context continuity',tool_correctness:'Tool correctness',hallucination_risk:'Hallucination risk',repetition_risk:'Repetition risk',contamination_concern:'Evaluation contamination concern'};
 const phase38Coverage={instruction_following:'Instruction following',verbosity_focus:'Verbosity control',constraint_following:'Constraint following',tool_behavior:'Tool behavior',capability_understanding:'Capability understanding',fabricated_tool_prevention:'Prevent fabricated tool execution',hallucination_prevention:'Prevent hallucinations',context_understanding:'Context handling',conversational_continuity:'Conversation continuity',najdi_saudi_dialect:'Saudi/Najdi dialect',natural_arabic:'Natural Arabic',repetition_prevention:'Prevent repetition',factual_accuracy:'Factual accuracy'};
 const phase38Types={sft:'Short conversation (SFT)',multi_turn:'Multi-turn conversation',native_tool_use:'Native tool use'};
