@@ -41,6 +41,14 @@ Initial increment only; **31 original Phase B findings are not yet complete**. A
 - UX-27: Evaluation results show the requested dataset version and do not accept stale responses from a previous selection.
 - Synthetic Node and hosted-browser tests are included. CI and complete mobile/zoom/accessibility acceptance are still required. No local deployment or merge.
 
+
+### Phase B human-review approval and persistent errors — pending validation
+
+- UX-03: independent dataset export eligibility is explained beside the review approval control, including assistive descriptions and a browser test protecting stored restrictions.
+- UX-19: error notifications are accessible and persistent with explicit dismissal; only successful status messages auto-expire.
+- Existing synthetic DOM test scaffolding models the required browser element and ARIA APIs; fresh Chromium and CI acceptance is required.
+- Updated remediation count: 20 implemented awaiting verification, 11 open; PR #19 remains DRAFT, not merged.
+
 ## Unreleased — Phase A: Data Integrity and Security (11 findings)
 
 Includes the corrections from both independent reviews of PR #18.
