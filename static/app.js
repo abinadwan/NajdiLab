@@ -451,7 +451,32 @@ async function previewDedup(){
   return readiness;
 }
 async function createExport(){const button=$('#create-export');button.disabled=true;button.textContent='Creating version…';try{const readiness=await previewDedup();if(!readiness.ok)throw new Error('Export is blocked until the displayed review findings are resolved.');const result=await api('/api/v1/exports',{method:'POST',body:JSON.stringify({include_demo:$('#export-demo').checked,filters:{source:'dashboard'}})});toast(`Created ${result.export.version} successfully.`);await loadExports();}catch(error){toast(error.message,true);}finally{button.disabled=false;button.textContent='Create new version';}}
-async function loadExports(){const data=await api('/api/v1/exports');$('#exports-list').innerHTML=data.items.length?data.items.map(item=>{let manifest={};try{manifest=JSON.parse(item.manifest_json);}catch{}return`<div class="export-row"><strong>${esc(item.version)}</strong><div><span>${fmtDate(item.created_at)} · ${item.record_count} records</span><br><code>${esc(item.export_path)}</code></div><span>${Object.keys(manifest.sha256||{}).length} checksums</span></div>`;}).join(''):'<div class="empty-inline">No versions created yet.</div>';}
+async function loadFrozenHandoffVersions(){
+  // UX-12: only a real Frozen, readable version can be selected for Unsloth.
+  // Never accept arbitrary version names typed into the UI.
+  const select=$('#unsloth-version'),button=$('#unsloth-create'),previous=select.value;
+  button.disabled=true;select.disabled=true;
+  select.replaceChildren(new Option('Loading frozen versions…',''));
+  try{
+    const data=await api('/api/v1/dataset-versions');
+    if(!Array.isArray(data.items))throw Error('Invalid dataset catalog');
+    const versions=data.items.filter(x=>x.readable===true&&x.state==='Frozen');
+    select.replaceChildren(new Option(versions.length?'Choose a frozen dataset version':'No frozen versions available',''));
+    for(const v of versions)select.add(new Option(v.version,v.version));
+    if(versions.some(v=>v.version===previous))select.value=previous;
+    select.disabled=!versions.length;
+    button.disabled=!select.value;
+    select.onchange=()=>{button.disabled=!select.value;};
+  }catch(error){
+    select.replaceChildren(new Option('Unable to load frozen versions',''));
+    $('#unsloth-result').textContent='Unable to load dataset versions: '+error.message;
+  }
+}
+async function loadExports(){
+  const data=await api('/api/v1/exports');
+  $('#exports-list').innerHTML=data.items.length?data.items.map(item=>{let manifest={};try{manifest=JSON.parse(item.manifest_json);}catch{}return`<div class="export-row"><strong>${esc(item.version)}</strong><div><span>${fmtDate(item.created_at)} · ${item.record_count} records</span><br><code>${esc(item.export_path)}</code></div><span>${Object.keys(manifest.sha256||{}).length} checksums</span></div>`;}).join(''):'<div class="empty-inline">No versions created yet.</div>';
+  await loadFrozenHandoffVersions();
+}
 
 async function loadAnalytics(){const data=await api('/api/v1/analytics');const s=data.summary;const stats=[['Total conversations',s.total_conversations],['Total responses',s.total_responses],['Pending review',s.pending_reviews],['Approval rate',`${s.approved_pct}%`],['Dialect correction',`${s.dialect_corrections_pct}%`],['Content correction',`${s.content_corrections_pct}%`],['Full correction',`${s.full_corrections_pct}%`],['Ignored',s.ignored],['Deleted',s.deleted],['Dataset eligible',s.training_eligible_count]];$('#analytics-stats').innerHTML=stats.map(([label,value])=>`<div class="stat-card"><span>${label}</span><strong>${value??0}</strong></div>`).join('');$('#model-analytics').innerHTML=`<table class="analytics-table"><thead><tr><th>Model</th><th>Responses</th><th>Approve</th><th>Dialect error</th><th>Content error</th></tr></thead><tbody>${data.by_model.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.total}</td><td>${x.approval_rate??0}%</td><td>${x.dialect_error_rate??0}%</td><td>${x.content_error_rate??0}%</td></tr>`).join('')}</tbody></table>`;renderBars('#channel-analytics',data.by_channel);renderBars('#tag-analytics',data.top_tags.map(x=>({...x,name:tagArabic[x.name]||x.name})));}
 function renderBars(selector,items){const max=Math.max(1,...items.map(x=>x.count));$(selector).innerHTML=items.length?items.map(x=>`<div class="bar-item"><header><span>${esc(x.name||'Unspecified')}</span><strong>${x.count}</strong></header><div class="bar-track"><i style="width:${x.count/max*100}%"></i></div></div>`).join(''):'<div class="empty-inline">No data yet.</div>';}
