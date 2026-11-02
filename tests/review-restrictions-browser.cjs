@@ -40,6 +40,7 @@ test('review restriction integrity in Chromium',async t=>{
       await page.waitForSelector('#view-conversations.active');
       await page.click('[data-view="review-queue"]');
       await page.waitForSelector('#view-review-queue.active');
+      await page.waitForFunction(()=>document.querySelector('#review-notes').value==='');
       assert.equal(await page.$eval('#review-notes',el=>el.value),'');
     });
     await t.test('initial load and refresh show saved restrictions and tags',async()=>{
