@@ -2434,7 +2434,7 @@
     },
     "scripts/backup.py": {
       "classification": "PROTECT",
-      "sha256": "3105167010b396412296ce92ebd2bd0c8f9c5106381855f64cd7caf559ee678d",
+      "sha256": "1bf2d9cedd82d8950946007614fc8768a2d6665ceedebe37d99b67fa6a288aed",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from __future__ import annotations",

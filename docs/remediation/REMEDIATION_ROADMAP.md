@@ -88,7 +88,7 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 |---|---|---|
 | Phase A | Phases 2 + 3 + 4 | SEC-03, SEC-04, SEC-05, DATA-01–05, DB-01–03 (11 findings) |
 | Phase B | Phases 5 + 6 + 7 | UX-03–UX-27, QA-03–08 (mandatory full bilingual Arabic RTL + English LTR, persistent language selector, complete localization, accessibility, operational security) |
-| Phase C | AI Engine Integration and Final Release Acceptance (legacy phases 8 and 9) — 6 findings | **PREPARATORY_IN_PROGRESS** | Owner approved a separate stacked Draft PR #20 on 2026-11-02 while Phase B PR #19 remains Draft. Source-only development is authorized as a sequencing exception; deployment/merge/real model tests remain blocked until Phase B closes and owner authorizes hardware execution. AI-02, AI-04, AI-05 IMPLEMENTED_PENDING_VERIFICATION (AI-04/05 evidence only); AI-01 OPEN (blocked on owner reproduction); AI-03 and QA-02 BLOCKED with acceptance plans prepared. None PASS. |
+| Phase C | Phases 8 + 9 | QA-02, AI-01–05 (six original findings; preparatory source-only work in stacked Draft PR #20, real-model acceptance still blocked) |
 
 ---
 
@@ -323,7 +323,7 @@ Until QA-01 is resolved, `main` keeps an intermittent failing check, and SEC-01'
 | **Phase 1** | Restore Green CI and Close PR #14 Verification | **CLOSED** | PR #17 merged SHA `812f28f`. Post-merge CI `41346905426` green. |
 | **Phase A** | Data Integrity and Security (legacy phases 2, 3 and 4) — 11 findings | **CLOSED** | PR #18 merged as `5de14f9`; post-merge Source checks run `41390294489` passed on Windows and Ubuntu. No local deployment or database migration claimed. |
 | Phase B | UX, Bilingual Support and Operational Security (legacy phases 5, 6 and 7) — 31 findings | **IN_PROGRESS** | Owner authorized 2026-11-02. Single branch `phase-b/ux-bilingual-operations`, draft PR #19. 30 IMPLEMENTED_PENDING_VERIFICATION, 1 BLOCKED (QA-03); none PASS. Awaiting a hosted Windows/Ubuntu run on the final HEAD and owner review. See `PHASE_B_IMPLEMENTATION.md`. |
-| Phase C | AI Engine Integration and Final Release Acceptance (legacy phases 8 and 9) — 6 findings | **PREPARATORY_IN_PROGRESS** | Owner approved a separate stacked Draft PR on 2026-11-02 while Phase B PR #19 remains Draft. Source-only development is authorized as a sequencing exception; deployment/merge/real model tests remain blocked until Phase B closes and owner authorizes hardware execution. AI-02 implemented pending tests; five findings not completed. |
+| Phase C | AI Engine Integration and Final Release Acceptance (legacy phases 8 and 9) — 6 findings | **PREPARATORY_IN_PROGRESS** | Stacked Draft PR #20 targets Phase B PR #19 (which is still Draft). AI-02, AI-04 and AI-05 are IMPLEMENTED_PENDING_VERIFICATION (AI-04/05 synthetic evidence only); AI-01 remains OPEN, pending real LM Studio reproduction; AI-03 and QA-02 are BLOCKED pending authorized real-Ollama tests. None PASS. Phase C cannot merge or deploy before Phase B closes, and final hosted Windows/Ubuntu acceptance remains pending. See `PHASE_C_IMPLEMENTATION.md`. |
 
 ---
 

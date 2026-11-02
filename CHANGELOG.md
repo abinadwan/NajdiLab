@@ -2,6 +2,8 @@
 
 ## Unreleased — Phase C (separate stacked Draft PR; preparatory only)
 
+- Reconciled the outdated `scripts/backup.py` protection SHA-256 with the already merged Phase A backup refactor after checking GitHub provenance and both file digests; no backup script code changed. Fixed the Phase C mapping-table column count and current finding summary. Hosted tests and real-model acceptance remain pending.
+
 - Owner approved beginning Phase C source-only work while Phase B PR #19 remains Draft; merge and local real-model testing remain gated on Phase B closure.
 - AI-02: preserve generic `RESULT_MISMATCH` while reporting exactly which of four LM Studio reply-integrity checks failed via a fixed, content-free allowlist. No prompts, generated output or model IDs are logged/exposed. All failing turns still refuse saving.
 - Added fake-SDK test coverage for each predicate and for rejecting untrusted diagnostic identifiers. Hosted and real-model acceptance is **not yet verified**; no client/device changes, schema updates or model downloads.
