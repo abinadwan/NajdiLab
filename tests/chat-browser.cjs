@@ -148,6 +148,12 @@ const puppeteer=require('puppeteer-core');
     await page.evaluate(()=>document.querySelectorAll('#sft-turns .turn-row button').forEach(button=>button.click()));
     await page.click('#form-sft button[type="submit"]');
     await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Add at least a user turn'));
+    // UX-19: errors stay visible beyond ordinary toast expiry and can be dismissed.
+    assert.equal(await page.$eval('#toast',e=>e.getAttribute('role')),'alert');
+    await new Promise(resolve=>setTimeout(resolve,3100));
+    assert.equal(await page.$eval('#toast',e=>e.classList.contains('show')),true);
+    await page.click('.toast-dismiss');
+    assert.equal(await page.$eval('#toast',e=>e.classList.contains('show')),false);
     // UX-06: show every blocker and escape untrusted reasons in the persistent panel.
     await page.evaluate(()=>{
       const original=window.api;
