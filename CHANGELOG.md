@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Chat Experience V2 and NajdiLab Native (`feature/chat-experience-v2`, Draft, stacked on the PR #19/#20 integration branch)
+
+- Chat history sidebar: local automatic titles, rename, search, pin, date groups, archive and restore (prior status recorded), collapsible with a saved preference; mobile overlay.
+- Permanent chat deletion with typed confirmation, preview, refusal while running or exported, redaction where immutable review events exist, `secure_delete` and WAL truncation, content-free tombstones. Tested on synthetic data only.
+- Streaming replies (NDJSON) for Ollama, LM Studio and NajdiLab Native; Stop; separate thinking panel never saved or collected; phase timings; partial replies marked and never saved.
+- `INCOMPLETE_RESPONSE` now reports which completion check failed (`check`), e.g. `STOP_REASON_LENGTH` when thinking consumes the reply reserve.
+- Safe Markdown rendering of replies (original renderer; stored text unchanged).
+- Enter to send, Shift+Enter newline, IME-safe, duplicate-safe.
+- Context presets Light/Balanced/Long with a budget breakdown; clearer Ollama load approval; hardware tables with measured/reported/estimated/unknown labels; 4096 estimate tier.
+- NajdiLab Native: owner-supplied llama.cpp `llama-server`, GGUF discovery and validation, exact admission, loopback-only with API key, start/stop. CPU + synthetic model only tested.
+- Consented collection now records single-turn/multi-turn segments with context metadata.
+- Migration 008 (lossless `chat_sessions` rebuild, `chat_deletions`). Protected chat file pins updated deliberately.
+- README: owner-approved design restored and updated (RESTORE-README), with a structure guard test; new synthetic screenshots.
+- Docs: `docs/development/CHAT_EXPERIENCE_V2.md`, `docs/native-runtime.md`, `docs/THIRD_PARTY_ATTRIBUTION.md`, retention policy update.
+
 ## Unreleased — Phase C (separate stacked Draft PR; preparatory only)
 
 - Reconciled the outdated `scripts/backup.py` protection SHA-256 with the already merged Phase A backup refactor after checking GitHub provenance and both file digests; no backup script code changed. Fixed the Phase C mapping-table column count and current finding summary. Hosted tests and real-model acceptance remain pending.

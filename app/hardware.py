@@ -7,7 +7,7 @@ import subprocess
 
 from .db import utc_now
 
-CANDIDATES = (8192, 16384, 32768, 65536)
+CANDIDATES = (4096, 8192, 16384, 32768, 65536)
 # Rule-of-thumb margin for graph/scratch buffers and allocator overhead. It is
 # not measured per model, which is why every result is labeled an estimate.
 HEADROOM = 1.15

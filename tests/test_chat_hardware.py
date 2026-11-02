@@ -46,7 +46,8 @@ def test_no_fit_is_stated_rather_than_rounded_down():
 def test_model_maximum_caps_every_tier():
     result = recommendation(device(64 * GIB), limits(model_max_context=8192))
     assert result['recommended_context'] == 8192
-    assert [c['assessment'] for c in result['candidates'][1:]] == ['ABOVE_MODEL_MAX'] * 3
+    assert [c['assessment'] for c in result['candidates'] if c['context'] > 8192] == ['ABOVE_MODEL_MAX'] * 3
+    assert [c['context'] for c in result['candidates']] == [4096, 8192, 16384, 32768, 65536]
 
 
 def test_memory_this_model_already_holds_is_reclaimable_but_other_use_is_not():

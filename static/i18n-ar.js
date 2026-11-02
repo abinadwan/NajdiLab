@@ -792,6 +792,7 @@
     'sends': 'يرسل',
     'adds a new line.': 'يضيف سطرًا جديدًا.',
     'Collection is off by default and after restart; only future completed replies enter human review.': 'الجمع متوقف افتراضيًا وبعد إعادة التشغيل؛ تدخل الردود المكتملة القادمة فقط إلى المراجعة البشرية.',
+    'tokens': 'رمزًا',
     // Chat Experience V2 (2026-11-02): chat UI, permanent deletion, NajdiLab Native.
     '16384 context · 3072 reply': 'سياق 16384 · رد 3072',
     '4096 context · 1024 reply': 'سياق 4096 · رد 1024',

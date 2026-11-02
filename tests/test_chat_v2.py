@@ -394,3 +394,30 @@ def test_collection_is_off_by_default_and_segments_link_turns(chat):
     session = ws.collect(session['id'], {'enabled': False, 'revision': session['revision']})
     send(ws, session, text='بعد الإيقاف')
     assert rows(db, 'SELECT COUNT(*) FROM reviews') == [(2,)]
+
+
+def test_segment_export_keeps_single_and_multi_turn_shapes_and_no_unconsented_context(chat):
+    ws, engine, db, tmp = chat
+    answers = iter(['جواب اصطناعي أول مختلف', 'جواب اصطناعي ثانٍ مختلف', 'جواب اصطناعي ثالث مختلف'])
+    original = engine.generate
+
+    def distinct(*args, **kwargs):
+        result = original(*args, **kwargs)
+        result['content'] = next(answers)
+        return result
+    engine.generate = distinct
+    session = send(ws, new(ws), text='قبل الموافقة سري')['session']
+    session = ws.collect(session['id'], {'enabled': True, 'revision': session['revision']})
+    session = send(ws, session, text='سؤال أول بعد الموافقة')['session']
+    send(ws, session, text='سؤال ثانٍ بعد الموافقة')
+    for (review_id,) in rows(db, 'SELECT id FROM reviews'):
+        save_review(review_id, {'review_status': 'APPROVED', 'reviewer': 'human', 'training_eligible': True}, db)
+    out = Path(create_export(db, tmp / 'exports')['path'])
+    single = [json.loads(line) for line in (out / 'sft.jsonl').read_text(encoding='utf-8').splitlines()]
+    multi = [json.loads(line) for line in (out / 'multi_turn.jsonl').read_text(encoding='utf-8').splitlines()]
+    assert [[m['content'] for m in r['messages']] for r in single] == [['سؤال أول بعد الموافقة', 'جواب اصطناعي ثانٍ مختلف']]
+    assert [[m['role'] for m in r['messages']] for r in multi] == [['user', 'assistant', 'user', 'assistant']]
+    assert multi[0]['messages'][0]['content'] == 'سؤال أول بعد الموافقة'
+    for path in out.iterdir():
+        if path.is_file():
+            assert 'قبل الموافقة سري' not in path.read_text(encoding='utf-8'), f'unconsented text leaked into {path.name}'

@@ -18,7 +18,8 @@ def test_english_localization_layer_is_loaded_before_application():
 
 
 def test_dataset_first_chat_controls_are_english_and_training_controls_are_absent():
-    for label in ('Provider for a new conversation','Context budget','Reserved reply tokens','New conversation','Collect future completed pairs'):
+    # Chat V2 labels for the same controls (runtime, budget, reply reserve, new chat, separate collection).
+    for label in ('Model runtime','Total context (tokens)','Reserved for reply and thinking (tokens)','New chat','Collect for review'):
         assert label in INDEX
     assert 'id="training-setup-form"' not in INDEX
     assert 'id="model-register-form"' not in INDEX

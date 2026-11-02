@@ -231,7 +231,8 @@
   function copyButton(text){const b=node('button','chatv2-copy','Copy');b.type='button';b.dataset.copy=text;return b;}
   function assistantBody(text){
     const body=node('div','chatv2-answer');body.dir='auto';body.setAttribute('translate','no');
-    body.append(global.NajdiMarkdown?global.NajdiMarkdown.render(text,document,{t:s=>s}):document.createTextNode(text));
+    // Labels inside the reply (copy button) are translated here: the reply itself is never localized.
+    body.append(global.NajdiMarkdown?global.NajdiMarkdown.render(text,document,{t:tr}):document.createTextNode(text));
     return body;
   }
   function renderTurn(turn){
@@ -336,7 +337,7 @@
       compose(el('chat-session-identity'),[{id:runtimeName(s.provider)},' · ',{id:s.model},' · ',
         statusLabel(s.status),' · ','Context ',{id:String(s.context_budget)},' · ','Reply ',{id:String(s.reply_reserve)}]);
       const last=s.turns?.at(-1);
-      if(last)compose(el('chat-usage'),['Last turn: ',{id:`${last.input_tokens} + ${last.output_tokens} / ${s.context_budget}`},' tokens']);
+      if(last)compose(el('chat-usage'),['Last turn: ',{id:`${last.input_tokens} + ${last.output_tokens} / ${s.context_budget}`},' ','tokens']);
       else el('chat-usage').textContent='';
     }else{
       el('chat-title').textContent='New chat';el('chat-title').removeAttribute('translate');

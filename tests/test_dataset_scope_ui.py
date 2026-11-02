@@ -18,7 +18,9 @@ def test_current_navigation_has_chat_without_training_execution_controls():
                    '/api/v1/training-dataset', '/api/v1/training-data/'):
         assert marker not in js
     assert 'id="chat-collect"' in html and 'id="chat-stop"' in html
-    assert 'No system/developer prompts' in html
+    # Chat V2 wording of the raw-chat disclosure (empty state and settings drawer).
+    assert 'NajdiLab adds no system prompt, tools, retrieval or memory' in html
+    assert 'no system or developer prompt from NajdiLab' in html
 
 
 def test_dataset_forms_keep_persistent_flags_and_use_dataset_api_names():
