@@ -25,6 +25,23 @@ test('review restriction integrity in Chromium',async t=>{
     await page.goto(base+'/review');
     try{await page.waitForFunction(()=>document.querySelector('#queue-position').textContent.includes('of 5'),{timeout:5000});}
     catch(error){throw Error(error.message+'; page errors='+JSON.stringify(errors)+'; toast='+await page.$eval('#toast',e=>e.textContent));}
+    await t.test('UX-07 unsaved review changes block navigation until explicitly discarded',async()=>{
+      await page.$eval('#review-notes',el=>{el.value='Unsaved synthetic review draft';el.dispatchEvent(new Event('input',{bubbles:true}));});
+      const reject=dialog=>dialog.dismiss();
+      page.on('dialog',reject);
+      await page.click('[data-view="conversations"]');
+      page.off('dialog',reject);
+      assert.equal(await page.$eval('#view-review-queue',el=>el.classList.contains('active')),true);
+      assert.equal(await page.$eval('#review-notes',el=>el.value),'Unsaved synthetic review draft');
+      const accept=dialog=>dialog.accept();
+      page.on('dialog',accept);
+      await page.click('[data-view="conversations"]');
+      page.off('dialog',accept);
+      await page.waitForSelector('#view-conversations.active');
+      await page.click('[data-view="review-queue"]');
+      await page.waitForSelector('#view-review-queue.active');
+      assert.equal(await page.$eval('#review-notes',el=>el.value),'');
+    });
     await t.test('initial load and refresh show saved restrictions and tags',async()=>{
       assert.deepEqual(await checked(),[true,true,true,true,true]);
       assert.equal(await page.$eval('[data-tag="dialect_issue"]',e=>e.classList.contains('selected')),true);
