@@ -76,3 +76,8 @@ textarea[dir="auto"]{unicode-bidi:plaintext}
   .export-row,.dataset-item{min-width:0}
   .manual-table-wrap{max-width:100%;overflow-x:auto}
 }
+
+/* UX-19: actionable error notifications persist until explicitly dismissed. */
+.toast.error{display:flex;align-items:flex-start;gap:12px;max-width:min(560px,calc(100vw - 24px));overflow-wrap:anywhere}
+.toast-dismiss{margin-inline-start:auto;flex:0 0 auto;cursor:pointer;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.7);border-radius:6px;font:inherit;font-size:1rem;min-width:30px;min-height:30px}
+.toast-dismiss:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
