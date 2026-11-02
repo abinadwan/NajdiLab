@@ -18,7 +18,18 @@ const puppeteer=require('puppeteer-core');
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
     const page=await browser.newPage();await page.setViewport({width:1280,height:1000});
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base+'/chat');await page.waitForSelector('#chat-provider option');
+    await page.goto(base+'/chat');
+    try {await page.waitForSelector('#chat-provider option',{timeout:15000});}
+    catch (error) {
+      console.error('INITIAL CHAT UI DIAGNOSTIC',JSON.stringify({
+        url:page.url(),pageErrors:errors,
+        toast:await page.$eval('#toast',e=>e.textContent).catch(()=>'(missing)'),
+        chatNotice:await page.$eval('#chat-notice',e=>e.textContent).catch(()=>'(missing)'),
+        options:await page.$eval('#chat-provider option',es=>es.map(e=>e.value)),
+        text:await page.$eval('body',e=>e.textContent.slice(0,700)).catch(()=>'(missing)')
+      }));
+      throw error;
+    }
     assert.equal(await page.$('[data-view="training"]'),null);
     assert.equal(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
     await page.click('#chat-new');await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
