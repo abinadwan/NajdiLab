@@ -83,9 +83,11 @@
   }
   function render(){
     const s=controller.session,busy=controller.pending||s?.busy,open=s?.status==='OPEN';
+    const sessionRuntime=s && integrations.find(p=>p.id===s.provider);
+    const sessionModelReady=!!sessionRuntime&&sessionRuntime.selected_model===s?.model;
     el('chat-new').disabled=!!busy||!provider();el('chat-saved').disabled=!!busy;el('chat-hardware').disabled=!!busy;
     el('chat-provider').disabled=!!busy;el('chat-model').disabled=!!busy;
-    el('chat-send').disabled=!open||!!busy;el('chat-stop').disabled=!busy;
+    el('chat-send').disabled=!open||!!busy||!sessionModelReady;el('chat-stop').disabled=!busy;
     el('chat-collect').disabled=!open;el('chat-collect').checked=!!s?.collect;
     el('chat-archive').disabled=!s||s.status==='ARCHIVED';
     el('chat-messages').replaceChildren();
@@ -94,8 +96,15 @@
       message('Model',t.assistant,t.collected ? 'Collected for human review (not training-approved)' : 'Not collected for review');
     }
     const last=s?.turns?.at(-1);
+    // UX-09: never imply the "new conversation" selectors will change a saved
+    // session's immutable provider, model or context. Show the actual binding.
+    el('chat-session-identity').textContent=s
+      ? `Current conversation: ${s.id} · ${s.status} · ${s.provider} / ${s.model} · Context ${s.context_budget}, reserved reply ${s.reply_reserve} tokens.`
+      : 'No active conversation selected. Choose a provider/model above for a new conversation.';
     el('chat-usage').textContent=s?`${s.provider} / ${s.model} · Budget ${s.context_budget} · Reply reserve ${s.reply_reserve}${last?` · Last turn: ${last.input_tokens} input + ${last.output_tokens} output tokens (${last.input_tokens+last.output_tokens} of ${s.context_budget})`:''}`:'';
-    el('chat-notice').textContent=notice||(busy?'Waiting for the model. Stop discards this turn.':s?'Ready. Complete history is sent unchanged.':'Connect a runtime in Settings, then create a conversation.');
+    el('chat-notice').textContent=notice||(busy?'Waiting for the model. Stop discards this turn.'
+      : open&&!sessionModelReady?'This saved conversation is pinned to its original model. Connect and select that exact model in Settings to continue; no model was changed automatically.'
+      : s?'Ready. Complete history is sent unchanged.':'Connect a runtime in Settings, then create a conversation.');
   }
   async function saved(){const data=await api('/api/v1/chat/sessions');el('chat-saved').replaceChildren();option(el('chat-saved'),'','Choose a saved conversation');for(const s of data.items)option(el('chat-saved'),s.id,`${s.model} · ${s.created_at} · ${s.status}`);if(controller.session)el('chat-saved').value=controller.session.id;}
   async function load(){
