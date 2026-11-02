@@ -81,7 +81,7 @@
     },
     "app/chat_engine.py": {
       "classification": "PROTECT",
-      "sha256": "684ec06a3cecf7fe20bc13c631646d2b16506f249fcc922c9d4607e5b1609723",
+      "sha256": "ad29ab5fbe77757b8f806d5c77822974e7a1d3e4ac4fe07fb9749c8dacd39117",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .db import ROOT",
@@ -105,7 +105,7 @@
     },
     "app/chat_engine_worker.py": {
       "classification": "PROTECT",
-      "sha256": "036c31aa01bad3d772d780c8fd7cd5ed4f458784ec6526a08391c5406fd9e672",
+      "sha256": "c2a13b4d2e45bfe59f0a6138ab0fb86f49a182fc0379687e225fbe129ea0c4e4",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from importlib.metadata import version",

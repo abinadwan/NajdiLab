@@ -107,3 +107,24 @@ test('every Arabic value contains Arabic script or is a declared literal',()=>{
     assert.equal(names(en),names(ar),'placeholders must match: '+en);
   }
 });
+
+// Phase C / AI-02: Chat engine refusals reach the page as error.message. Every fixed message in
+// app/chat_engine.py, including the four content-free RESULT_MISMATCH diagnostics, must read in Arabic.
+function chatEngineMessages(){
+  const src=fs.readFileSync('app/chat_engine.py','utf8');
+  const dict=name=>{const start=src.indexOf(name+' = {');assert.ok(start>=0,name);
+    return Object.fromEntries([...src.slice(start,src.indexOf('\n}',start)).matchAll(/'([A-Z_]+)':\s*'((?:[^'\\]|\\.)*)'/g)].map(m=>[m[1],m[2].replace(/\\'/g,"'")]));};
+  const errors=dict('WORKER_ERRORS'),details=dict('WORKER_MISMATCH_DETAILS');
+  assert.deepEqual(Object.keys(details).sort(),['INSTANCE_REFERENCE','PROMPT_TOKEN_COUNT','STREAM_CONTENT','STRUCTURED_OUTPUT']);
+  const raised=[...src.matchAll(/IntegrationError\('[A-Z_]+',\s*f?'((?:[^'\\]|\\.)*)'/g)].map(m=>m[1].replace(/\\'/g,"'").replace(/\{[A-Z_]+\}/g,'600'));
+  const composite=Object.values(details).map(detail=>errors.RESULT_MISMATCH+' Integrity check: '+detail);
+  return {all:[...Object.values(errors),...raised,...composite],composite};
+}
+
+test('every Chat engine refusal, including the AI-02 integrity diagnostics, has an Arabic translation',()=>{
+  const {all,composite}=chatEngineMessages();
+  assert.ok(all.length>25,'expected to find the Chat engine messages');
+  const missing=untranslated(all);
+  assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
+  for(const text of composite)assert.notEqual(I18N.translate(text,'ar'),I18N.translate(composite[0].split(' Integrity check: ')[0],'ar'),'the diagnostic stays visible: '+text);
+});

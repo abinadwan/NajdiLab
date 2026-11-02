@@ -152,6 +152,7 @@
     "static/theme.css",
     "static/theme.js",
     "tests/a11y-browser.cjs",
+    "tests/test_ai05_collection_privacy.py",
     "tests/chat-browser.cjs",
     "tests/chat-ui.test.cjs",
     "tests/fixture_safety.py",
