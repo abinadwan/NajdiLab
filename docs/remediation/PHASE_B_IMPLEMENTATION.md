@@ -77,3 +77,17 @@ Five further original findings are implemented in source **PENDING final accepta
 The newly added tests were written for disposable hosted fixtures only; initial source acceptance is **not** claimed for the latest head until both Windows and Ubuntu Source checks and Core candidate workflows are green. UX-07 does not yet cover every editable form/dialog in the product; full unsaved-change acceptance remains open for broader Phase B QA.
 
 No migrations, third-party-service edits, local PC access or destructive actions. Rollback is the feature branch diff only; the backend Hermes safety block stays active.
+
+## Fourth implementation increment — dataset identity, Phase39 and presentation (2026-11-02)
+
+Five more original findings now have source changes and dedicated synthetic acceptance tests. They are **IMPLEMENTED_PENDING_VERIFICATION**, not closed:
+
+- **UX-13**: Opening Dataset Versions forces a fresh version catalog. The UI will not select a stale/unreadable version from an earlier page visit. This does not rebuild a missing registry or mutate dataset files.
+- **UX-18**: The Phase39 UI derives row count, indexes, navigation bounds and prior decision from the API payload rather than a seven-row UI assumption. On an empty queue, it renders an empty state. Missing contamination or loss-mask status is **UNVERIFIED**, never fabricated PASS. A synthetic Node VM test checks three items, zero items and persistent failed-save retry. Backend's historical seven-record private review contract remains unchanged and private legacy files are not fabricated.
+- **UX-23**: CSS constrains the Add Data tab strip, review controls, panel grids and filter widths at a 390px viewport. Wide manual tables retain intentional **internal** horizontal scrolling. Hosted Chromium viewport checks added; additional platform/font and 200% zoom checks still required.
+- **UX-25**: Dark-mode overrides correct contrast for Phase38 assistant messages, summary badges, labels, safety status and metadata. Hosted Chromium tests compute actual foreground/background contrast (>=4.5:1) on representative elements. This is not yet a complete all-screen audit.
+- **UX-27**: Evaluation screen displays the exact requested dataset-version name beside its returned integrity report and ignores an older pending response if the selection has since changed. Concurrent synthetic Node test added; private evaluation data not accessed.
+
+New acceptance sources: \`tests/phase39-ui.test.cjs\`, \`tests/dataset-identity-ui.test.cjs\`, and extended \`tests/chat-browser.cjs\`. Both new test files are explicitly classified as full-product-only exclusions in the Core source policy. We must verify the **same final branch HEAD** with both Windows and Ubuntu Source checks and packaged Core candidate; no success claim until those runs finish green.
+
+Rollback is a code-only branch revert. There is no schema migration, model download, GPU load, local Windows modification, or third-party app configuration change in this increment.
