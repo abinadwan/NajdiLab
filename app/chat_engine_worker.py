@@ -5,6 +5,14 @@ import threading
 
 # Fixed codes only. SDK exception text may embed prompts or model output.
 REPORTED = {'MODEL_NOT_LOADED', 'MODEL_CHANGED', 'RESULT_MISMATCH', 'NON_TEXT_RESPONSE', 'RESPONSE_TOO_LARGE'}
+# Phase C / AI-02: only fixed check identifiers may cross the SDK process boundary.
+# Never transmit prompts, generated text, token contents, SDK exceptions or identities.
+MISMATCH_CHECKS = {
+    'RESULT_MISMATCH_INSTANCE': 'INSTANCE_REFERENCE',
+    'RESULT_MISMATCH_STRUCTURED': 'STRUCTURED_OUTPUT',
+    'RESULT_MISMATCH_CONTENT': 'STREAM_CONTENT',
+    'RESULT_MISMATCH_TOKENS': 'PROMPT_TOKEN_COUNT',
+}
 
 
 class LoadedModel:
@@ -82,9 +90,16 @@ class LoadedModel:
                     raise ValueError('RESPONSE_TOO_LARGE')
                 fragments.append(fragment.content)
             result = stream.result()
-        if (self.model.get_info().instance_reference != self.identity or result.structured or
-            result.content != ''.join(fragments) or result.stats.prompt_tokens_count != len(self.tokens)):
-            raise ValueError('RESULT_MISMATCH')
+        # Preserve the generic external RESULT_MISMATCH code, while identifying
+        # which public integrity predicate failed. No values cross the boundary.
+        if self.model.get_info().instance_reference != self.identity:
+            raise ValueError('RESULT_MISMATCH_INSTANCE')
+        if result.structured:
+            raise ValueError('RESULT_MISMATCH_STRUCTURED')
+        if result.content != ''.join(fragments):
+            raise ValueError('RESULT_MISMATCH_CONTENT')
+        if result.stats.prompt_tokens_count != len(self.tokens):
+            raise ValueError('RESULT_MISMATCH_TOKENS')
         return {'content':result.content, 'input_tokens':result.stats.prompt_tokens_count,
                 'output_tokens':result.stats.predicted_tokens_count, 'stop_reason':result.stats.stop_reason}
 
@@ -145,7 +160,11 @@ def main():
             threading.Thread(target=controls, daemon=True).start()
             emit(loaded.generate(reserve, stopped))
     except ValueError as error:
-        emit({'error':str(error) if str(error) in REPORTED else 'ENGINE_UNAVAILABLE'})
+        code = str(error)
+        if code in MISMATCH_CHECKS:
+            emit({'error': 'RESULT_MISMATCH', 'check': MISMATCH_CHECKS[code]})
+        else:
+            emit({'error':code if code in REPORTED else 'ENGINE_UNAVAILABLE'})
     except Exception:
         # Never expose the SDK exception: it may embed prompts or model output.
         emit({'error':'ENGINE_UNAVAILABLE'})

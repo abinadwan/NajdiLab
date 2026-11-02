@@ -213,7 +213,7 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
 | AI-01 | LM Studio `RESULT_MISMATCH` for `google/gemma-4-e4b` | 8 | P2 | OPEN | PARTIALLY VERIFIED | Prior local observation only; not reproduced; cloud scope is contract and adapter testing |
-| AI-02 | Which of four integrity predicates failed | 8 | P2 | OPEN | NOT TESTED | Unknown; content-free diagnostics only |
+| AI-02 | Which of four integrity predicates failed | 8 | P2 | **IMPLEMENTED_PENDING_VERIFICATION** | NOT TESTED | Phase C source increment: four post-generation checks now carry fixed, content-free identifiers over the SDK helper boundary while preserving external RESULT_MISMATCH and fail-closed behavior; synthetic regression tests added. No real LM Studio model verification, hosted CI, or owner hardware acceptance yet. See PHASE_C_IMPLEMENTATION.md. |
 | AI-03 | Real-model Ollama acceptance | 8 | P2 | OPEN | NOT TESTED | Requires owner-authorized evidence; the same 9 skipped tests as QA-02 |
 | AI-04 | Runtime contracts: identity, token accounting, cancellation, context overflow | 8 | P2 | OPEN | NOT TESTED | Synthetic adapter tests do not prove real-model behavior |
 | AI-05 | Collection privacy | 8 | P1 | OPEN | NOT TESTED | Independent Phase 8 verification required |
@@ -323,7 +323,7 @@ Until QA-01 is resolved, `main` keeps an intermittent failing check, and SEC-01'
 | **Phase 1** | Restore Green CI and Close PR #14 Verification | **CLOSED** | PR #17 merged SHA `812f28f`. Post-merge CI `41346905426` green. |
 | **Phase A** | Data Integrity and Security (legacy phases 2, 3 and 4) — 11 findings | **CLOSED** | PR #18 merged as `5de14f9`; post-merge Source checks run `41390294489` passed on Windows and Ubuntu. No local deployment or database migration claimed. |
 | Phase B | UX, Bilingual Support and Operational Security (legacy phases 5, 6 and 7) — 31 findings | **IN_PROGRESS** | Owner authorized 2026-11-02. Single branch `phase-b/ux-bilingual-operations`, draft PR #19. 30 IMPLEMENTED_PENDING_VERIFICATION, 1 BLOCKED (QA-03); none PASS. Awaiting a hosted Windows/Ubuntu run on the final HEAD and owner review. See `PHASE_B_IMPLEMENTATION.md`. |
-| Phase C | AI Engine Integration and Final Release Acceptance (legacy phases 8 and 9) — 6 findings | NOT_STARTED | Requires Phase B merge and owner authorization. |
+| Phase C | AI Engine Integration and Final Release Acceptance (legacy phases 8 and 9) — 6 findings | **PREPARATORY_IN_PROGRESS** | Owner approved a separate stacked Draft PR on 2026-11-02 while Phase B PR #19 remains Draft. Source-only development is authorized as a sequencing exception; deployment/merge/real model tests remain blocked until Phase B closes and owner authorizes hardware execution. AI-02 implemented pending tests; five findings not completed. |
 
 ---
 

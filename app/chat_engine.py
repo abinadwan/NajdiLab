@@ -28,6 +28,14 @@ WORKER_ERRORS = {
     'RESPONSE_TOO_LARGE': 'The reply exceeded the size limit; no pair was saved.',
     'ENGINE_PROTOCOL_ERROR': UNAVAILABLE,
 }
+# Phase C / AI-02: fixed, content-free explanations for the four LM Studio
+# post-generation integrity checks; the public error code remains unchanged.
+WORKER_MISMATCH_DETAILS = {
+    'INSTANCE_REFERENCE': 'The loaded model instance changed.',
+    'STRUCTURED_OUTPUT': 'The SDK returned structured output instead of plain text.',
+    'STREAM_CONTENT': 'The final reply differed from the streamed text.',
+    'PROMPT_TOKEN_COUNT': 'The final token count differed from the measured prompt.',
+}
 # Ollama's llama-server refusal. Only ever matched, never shown to a user.
 OVERFLOW = re.compile(r'request \((\d+) tokens\) exceeds the available context size \((\d+) tokens\)')
 CLOUD_NAME = re.compile(r'[:-]cloud$')
@@ -86,7 +94,13 @@ class EngineProcess:
                 code = result.get('error') if isinstance(result, dict) else 'ENGINE_PROTOCOL_ERROR'
                 if code not in WORKER_ERRORS:
                     code = 'ENGINE_UNAVAILABLE'
-                raise IntegrationError(code, WORKER_ERRORS.get(code, UNAVAILABLE), 409)
+                message = WORKER_ERRORS.get(code, UNAVAILABLE)
+                if code == 'RESULT_MISMATCH' and isinstance(result, dict):
+                    # Unknown/malicious check values are ignored, never reflected.
+                    detail = WORKER_MISMATCH_DETAILS.get(result.get('check')) if isinstance(result.get('check'), str) else None
+                    if detail:
+                        message += ' Integrity check: ' + detail
+                raise IntegrationError(code, message, 409)
             return result
         raise IntegrationError('ENGINE_TIMEOUT', f'Chat exceeded the {CHAT_DEADLINE}-second deadline; no pair was saved.', 504)
 

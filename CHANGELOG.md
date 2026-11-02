@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Phase C (separate stacked Draft PR; preparatory only)
+
+- Owner approved beginning Phase C source-only work while Phase B PR #19 remains Draft; merge and local real-model testing remain gated on Phase B closure.
+- AI-02: preserve generic `RESULT_MISMATCH` while reporting exactly which of four LM Studio reply-integrity checks failed via a fixed, content-free allowlist. No prompts, generated output or model IDs are logged/exposed. All failing turns still refuse saving.
+- Added fake-SDK test coverage for each predicate and for rejecting untrusted diagnostic identifiers. Hosted and real-model acceptance is **not yet verified**; no client/device changes, schema updates or model downloads.
+- The six original Phase C finding IDs and blocked hardware/consent acceptance are tracked in `docs/remediation/PHASE_C_IMPLEMENTATION.md`.
+
+
 ## Unreleased — Phase B (in progress): NajdiLab-first model integrations
 
 Initial increment only; **31 original Phase B findings are not yet complete**. A single draft PR holds the whole Phase B effort.
