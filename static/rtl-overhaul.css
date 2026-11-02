@@ -49,3 +49,30 @@ textarea[dir="auto"]{unicode-bidi:plaintext}
 .message p,.phase38-message p,.full-text{overflow-wrap:anywhere}
 
 @media(max-width:760px){.shell.sidebar-collapsed{display:block;grid-template-columns:none}}
+
+/* Phase B UX-23: visible narrow-view panels must fit a 390px viewport.
+   Wide manual tables remain intentionally scrollable INSIDE their own panel. */
+.view,.main,.view>.panel,.review-workspace,.review-workspace>*,
+.split-list,.split-list>*,.settings-grid,.settings-grid>*,
+.data-form,.manual-table-wrap,.manual-dialog,.subtabs{min-width:0;max-width:100%}
+.subtabs{width:fit-content;flex-wrap:wrap}
+.subtabs button{min-width:0;max-width:100%;white-space:normal}
+.review-actions{flex-wrap:wrap}
+.review-actions button{min-width:0}
+.review-workspace,.split-list{min-width:0}
+@media(max-width:760px){
+  .subtabs{width:100%}
+  .subtabs button{flex:1 1 130px}
+  .view{padding-inline:12px}
+  .view .panel,.review-workspace>*,.split-list>*{min-width:0}
+  .toolbar,.filters,.phase-toolbar{max-width:100%;min-width:0;flex-wrap:wrap}
+  .toolbar input,.filters input,.toolbar select,.filters select{max-width:100%;min-width:0;flex:1 1 160px}
+  .turn-row{grid-template-columns:minmax(0,1fr);gap:6px}
+  .turn-row button{grid-column:auto;justify-self:start}
+  .review-actions{display:flex;flex-wrap:wrap}
+  .review-actions .button{flex:1 1 135px}
+  .check-grid{min-width:0}
+  .check-grid label,.field label,.wide-label{overflow-wrap:anywhere}
+  .export-row,.dataset-item{min-width:0}
+  .manual-table-wrap{max-width:100%;overflow-x:auto}
+}
