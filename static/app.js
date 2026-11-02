@@ -59,8 +59,19 @@ async function api(path, options={}, retried=false) {
 }
 
 function toast(message, error=false) {
-  const el = $('#toast'); el.textContent = message; el.className = `toast show${error?' error':''}`;
-  clearTimeout(toast.timer); toast.timer = setTimeout(()=>el.className='toast', 2800);
+  // UX-19: successful notifications may expire, but actionable errors must
+  // remain visible until the user dismisses them or an updated status replaces.
+  const el=$('#toast');clearTimeout(toast.timer);el.textContent=String(message);
+  el.className=error?'toast show error':'toast show';
+  el.setAttribute('role',error?'alert':'status');
+  el.setAttribute('aria-live',error?'assertive':'polite');
+  if(error){
+    const close=document.createElement('button');
+    close.type='button';close.className='toast-dismiss';close.setAttribute('aria-label','Dismiss error');
+    close.textContent='×';close.onclick=()=>{el.className='toast';el.textContent='';};
+    el.append(close);return;
+  }
+  toast.timer=setTimeout(()=>{el.className='toast';},2800);
 }
 
 const viewPaths={chat:'/chat',dashboard:'/',conversations:'/conversations','review-queue':'/review','reviewed':'/gold','add-data':'/data/add','manual-data':'/data/manual',dataset:'/datasets/gold','dataset-health':'/datasets/health',balancer:'/datasets/balancer','dataset-versions':'/datasets/versions','eval-sets':'/datasets/eval','phase38-review':'/evaluation/remediation-review','phase39-review':'/evaluation/remediation-review-edits',exports:'/exports',analytics:'/analytics',settings:'/settings'};
