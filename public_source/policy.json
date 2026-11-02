@@ -147,6 +147,7 @@
     "tests/chat-browser.cjs",
     "tests/chat-ui.test.cjs",
     "tests/phase39-ui.test.cjs",
+    "tests/dataset-identity-ui.test.cjs",
     "tests/chat_browser_fixture.py",
     "tests/http_client.py",
     "tests/integrations-ui.test.cjs",
