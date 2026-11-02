@@ -31,6 +31,16 @@ Initial increment only; **31 original Phase B findings are not yet complete**. A
 - UX-26: remove hardcoded local port and unsupported “SQLite Passed” badge; current origin and live service check are presented with truthful limitations.
 - Pending: final Windows/Ubuntu CI and browser acceptance for these new changes, remaining UX/QA findings and complete Arabic RTL + English LTR localization.
 
+
+### Phase B dataset integrity UI and responsive presentation — pending final verification
+
+- UX-13: always refresh Dataset Versions library on page visit; reject stale/unreadable version selections.
+- UX-18: post-edit verification UI uses server-sized queues; handles zero rows, preexisting decisions, unknown audit gate values and failed-save retry (without changing historical private data).
+- UX-23: mobile CSS constrains 390px workflow layouts while preserving deliberate scrolling inside wide tables.
+- UX-25: dark review/status text and surfaces use legible paired colors; browser contrast tests added.
+- UX-27: Evaluation results show the requested dataset version and do not accept stale responses from a previous selection.
+- Synthetic Node and hosted-browser tests are included. CI and complete mobile/zoom/accessibility acceptance are still required. No local deployment or merge.
+
 ## Unreleased — Phase A: Data Integrity and Security (11 findings)
 
 Includes the corrections from both independent reviews of PR #18.
