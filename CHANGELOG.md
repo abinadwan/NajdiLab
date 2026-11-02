@@ -22,6 +22,15 @@ Initial increment only; **31 original Phase B findings are not yet complete**. A
 - UX-12: use existing readable Frozen dataset versions for Unsloth handoff; no manual version names.
 - Eight findings are marked IMPLEMENTED_PENDING_VERIFICATION in the roadmap; remaining Phase B findings stay open. CI/browser evidence on the final commit is still required.
 
+
+### Phase B review safety and status display (pending acceptance)
+- UX-07: protect unsaved review corrections/notes/restriction tags and flags on navigation, reload and queue refresh, without persisting drafts.
+- UX-09: display pinned saved-session identity and reject Send when its original runtime/model is not selected; new-chat selectors are explicitly separate.
+- UX-11: replace static dashboard readiness prose with API-supported snapshot wording; export readiness remains a separate gate.
+- UX-24: collapsed sidebar now changes the shell grid width; synthetic Chromium width assertion.
+- UX-26: remove hardcoded local port and unsupported “SQLite Passed” badge; current origin and live service check are presented with truthful limitations.
+- Pending: final Windows/Ubuntu CI and browser acceptance for these new changes, remaining UX/QA findings and complete Arabic RTL + English LTR localization.
+
 ## Unreleased — Phase A: Data Integrity and Security (11 findings)
 
 Includes the corrections from both independent reviews of PR #18.
