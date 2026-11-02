@@ -47,7 +47,7 @@
         <button class="nav-item" data-view="analytics"><span class="nav-icon">⌁</span> Analytics</button>
         <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span> Settings</button>
       </nav>
-      <div class="local-badge"><i></i><span>Local only<br><small>127.0.0.1:8770</small></span></div>
+      <div class="local-badge"><i></i><span>Local only<br><small id="local-address">Checking current origin…</small></span></div>
     </aside>
 
     <main class="main">
@@ -65,8 +65,8 @@
         <div class="panel chat-intro"><strong>Raw model chat</strong><p>No system/developer prompts from NajdiLab. No tools, RAG, external memory or response rewriting. The engine uses the model's normal chat template.</p><p>These are conversations created in NajdiLab. This does not collect native LM Studio or Ollama chats.</p></div>
         <div class="chat-layout">
           <aside class="panel chat-controls" aria-label="Conversation controls">
-            <label for="chat-provider">Connected provider</label><select id="chat-provider"></select>
-            <label for="chat-model">Model</label><select id="chat-model"></select>
+            <label for="chat-provider">Provider for a new conversation</label><select id="chat-provider"></select>
+            <label for="chat-model">Model for a new conversation</label><select id="chat-model"></select>
             <p class="muted">Connect providers in Settings → Integrations. LM Studio must already have the model loaded; NajdiLab never loads it there.</p>
             <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096" list="chat-budget-options"><datalist id="chat-budget-options"><option value="4096"></option><option value="8192"></option><option value="16384"></option><option value="32768"></option><option value="65536"></option></datalist>
             <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" value="512">
@@ -84,7 +84,7 @@
             <p id="chat-notice" role="status" aria-live="polite">Start a new conversation or open a saved one.</p>
             <label class="inline-check"><input id="chat-collect" type="checkbox" disabled> Collect future completed pairs for human review</label>
             <p class="muted">OFF by default and after restart. Saved chat history stays local regardless of this choice. Collected pairs enter PENDING, never dataset-approved. No earlier turns are collected retroactively.</p>
-            <p id="chat-usage" class="muted"></p>
+            <p id="chat-session-identity" class="muted" role="status" aria-live="polite">No active conversation selected.</p><p id="chat-usage" class="muted"></p>
             <div id="chat-messages" class="chat-messages" aria-label="Conversation messages"></div>
             <form id="chat-form"><label for="chat-draft">Message</label><textarea id="chat-draft" dir="auto" rows="4" maxlength="65536" placeholder="Write a message…"></textarea><div class="chat-actions"><button id="chat-send" class="button primary" type="submit" disabled>Send</button><button id="chat-stop" class="button ghost" type="button" disabled>Stop</button></div></form>
             <p class="muted">Completed text pairs are saved. Failed, stopped or token-limited responses are discarded. Archiving retains local text and historical exports; it excludes the conversation's collected pairs from future dataset selection. Physical erasure requires a separate retention decision.</p>
