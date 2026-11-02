@@ -2,6 +2,7 @@
 import sys
 from pathlib import Path
 import tempfile
+import time
 from dataclasses import replace
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -22,6 +23,8 @@ class BrowserEngine(Engine):
     def generate(self,messages,reserve,stop):
         if messages[-1]['content']=='STOP_FIXTURE':
             stop.wait(5)
+        if messages[-1]['content']=='DELAY_FIXTURE':
+            time.sleep(0.35)  # allow typing a newer draft before synthetic completion
         return super().generate(messages,reserve,stop)
 
 
