@@ -12,6 +12,16 @@ Initial increment only; **31 original Phase B findings are not yet complete**. A
 - No local installation, database migration, model download, GPU allocation, merge or Phase C implementation.
 
 
+
+### Phase B functional UX increment (implementation pending verification)
+- UX-04: display review-collection outcome on each persisted model answer without treating a pair as approved training data.
+- UX-08: never clear a newer draft when an older send completes; synthetic delayed-browser and Node regressions added.
+- UX-06: persistently render all export-readiness blockers, with output escaping.
+- UX-14/15: isolate Add Data subtabs from dialog tabs and reject an empty/manual SFT turn list with a recoverable message.
+- UX-16/17: provide manual save pending/failure/retry feedback and label the exclusion reason as required.
+- UX-12: use existing readable Frozen dataset versions for Unsloth handoff; no manual version names.
+- Eight findings are marked IMPLEMENTED_PENDING_VERIFICATION in the roadmap; remaining Phase B findings stay open. CI/browser evidence on the final commit is still required.
+
 ## Unreleased — Phase A: Data Integrity and Security (11 findings)
 
 Includes the corrections from both independent reviews of PR #18.
