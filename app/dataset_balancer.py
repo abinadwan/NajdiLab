@@ -9,14 +9,17 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any, Iterable
 
-from .dataset_platform import DatasetPlatformError, _json, _normalized, _state, _version_dir, dataset_health
+from .dataset_platform import DatasetPlatformError, EVAL_FILES, NATIVE_TRAIN_FILE, _json, _normalized, _state, _version_dir, dataset_health
 
-DATASET_FILES = {
+# File names come from dataset_platform so Health, Balancer, Quality and Unsloth export
+# agree on which files a version may contain.
+DATASET_FILES: dict[str, str] = {
     "sft.jsonl": "sft", "multi_turn.jsonl": "multi_turn",
     "preference_pairs.jsonl": "preference", "direct_language.jsonl": "direct_language",
-    "text_sft_eval.jsonl": "evaluation", "tool_eval.jsonl": "evaluation",
-    "vision_eval.jsonl": "evaluation", "runtime_agent_eval.jsonl": "evaluation",
+    NATIVE_TRAIN_FILE: "native_tool_use",
+    **dict.fromkeys(EVAL_FILES, "evaluation"),
 }
+MESSAGE_KINDS = {"sft", "multi_turn", "native_tool_use", "evaluation"}
 LENGTH_BUCKETS = (("very_short", 0, 39), ("short", 40, 119), ("medium", 120, 399), ("long", 400, 999), ("very_long", 1000, None))
 BALANCE_RULES = {
     "multi_turn_share": {"recommended_min": 0.30, "recommended_max": 0.70},
@@ -136,11 +139,11 @@ def analyze_dataset_balance(version: str) -> dict[str, Any]:
         kind = DATASET_FILES[filename]
         for row in rows:
             typed_rows.append((filename, kind, row))
-            if kind in {"sft", "multi_turn", "evaluation"} and _messages(row) is None:
+            if kind in MESSAGE_KINDS and _messages(row) is None:
                 malformed += 1
     record_counts = Counter()
     for _, kind, row in typed_rows:
-        record_counts["unknown" if kind in {"sft", "multi_turn", "evaluation"} and _messages(row) is None else kind] += 1
+        record_counts["unknown" if kind in MESSAGE_KINDS and _messages(row) is None else kind] += 1
     unknown_records = sum(len(_read_jsonl(directory / filename, version)) for filename in unknown_files)
     record_counts["unknown"] += unknown_records
     total_records = len(typed_rows) + unknown_records

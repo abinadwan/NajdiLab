@@ -9,6 +9,8 @@ The database is `data/najdilab.db`. Connections enable `foreign_keys=ON`, `journ
 | `messages` | Individual turns | Allowed roles; unique conversation ordering; foreign keys |
 | `reviews` | Separate decision/correction overlay | One per assistant message; source preserved by service rules |
 | `review_tags` | Multiple error tags | Controlled vocabulary and composite key |
+| `review_events` | Immutable review status history (migration 007) | Unique `(review_id, sequence)`; update/delete triggers abort; `ON DELETE RESTRICT` to `reviews` |
+| `review_event_baseline` | Highest review id that predates event history | Single immutable row |
 | `manual_sft_items` | Manually authored dialogues | Provenance and privacy/training gates |
 | `direct_language_texts` | Text without user/assistant roles | Language layer and source type |
 | `preference_pairs` | Rejected/preferred responses | JSON context and preserved provenance |
@@ -18,7 +20,7 @@ The database is `data/najdilab.db`. Connections enable `foreign_keys=ON`, `journ
 | `dataset_versions` | Export registry | Unique version name and stored manifest |
 | `settings` | Local settings foundation | JSON key/value |
 
-This describes the foundation schema. Proposed registry and immutable event tables under `plans/` are not evidence of production activation; see [the migration review](database-and-migrations.md).
+Proposed registry tables under `plans/` are not evidence of production activation. Review event rules and legacy handling are in [the migration review](database-and-migrations.md).
 
 ## Original content
 

@@ -19,7 +19,7 @@ from uuid import uuid4
 
 from .db import DB_PATH, ROOT, connect, json_dumps, json_loads, redact_secrets, transaction, utc_now
 from .review_integrity import ExportReadinessError, export_readiness, export_privacy
-from .review_lifecycle import append_event
+from .review_lifecycle import append_event, validate_transition, LifecycleError
 
 CORRECTION_REVIEW_STATUSES = {
     "FULL_CORRECTION",
@@ -478,6 +478,8 @@ def _record_review_event(
     corrected_response: str | None = None,
     tags: list[str] | None = None,
 ) -> None:
+    # The Core profile (migrations 001-004) intentionally has no event table; readiness
+    # reports that as REVIEW_HISTORY_UNAVAILABLE. The full app always has it after startup.
     if not _has_review_events(conn):
         return
     append_event(
@@ -508,6 +510,13 @@ def _save_review_conn(
     if not current:
         raise ValidationError("Review not found")
     _check_review_revision(current, data)
+    # SEC-03: validate lifecycle transition before committing the UPDATE; without this
+    # check _record_review_event silently returns when review_events table is absent,
+    # allowing DELETED/IGNORED reviews to be approved without restoration.
+    try:
+        validate_transition(current["review_status"], status, corrected, None)
+    except LifecycleError as exc:
+        raise ValidationError(str(exc)) from exc
     saved_tags = [row[0] for row in conn.execute("SELECT tag FROM review_tags WHERE review_id=?", (review_id,))]
     raw_tags = data.get("tags", saved_tags)
     if not isinstance(raw_tags, list) or any(not isinstance(tag, str) for tag in raw_tags):
@@ -1297,6 +1306,57 @@ def _validate_manual_payload(
     return payload
 
 
+def _update_manual_data_conn(
+    conn: sqlite3.Connection,
+    item_type: str,
+    item_id: int,
+    data: dict[str, Any],
+    *,
+    include_deleted_result: bool = False,
+    allow_lifecycle: bool = False,
+) -> dict[str, Any]:
+    table = MANUAL_TABLES.get(item_type)
+    if not table:
+        raise ValidationError("Invalid manual data type")
+    current = _manual_item(conn, item_type, item_id)
+    payload = _validate_manual_payload(item_type, data, current, allow_lifecycle=allow_lifecycle)
+    changed_fields = []
+    for key, value in payload.items():
+        old_key = key.removesuffix("_json")
+        old_value = current.get(old_key)
+        comparison = json_loads(value, []) if key.endswith("_json") else value
+        if old_value != comparison:
+            changed_fields.append(old_key)
+    if not changed_fields:
+        return current
+    version = int(current.get("version_number") or 1) + 1
+    payload["version_number"] = version
+    payload["updated_at"] = utc_now()
+    assignments = ", ".join(f"{key} = ?" for key in payload)
+    conn.execute(
+        f"UPDATE {table} SET {assignments} WHERE id = ?",
+        [*payload.values(), item_id],
+    )
+    updated_row = conn.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone()
+    snapshot = _manual_snapshot(updated_row, item_type)
+    changed_by = data.get("changed_by") or "human"
+    if changed_by not in {"human", "system"}:
+        raise ValidationError("Invalid changed_by value")
+    conn.execute(
+        """
+        INSERT INTO manual_data_versions(
+            item_type, item_id, version_number, snapshot_json, changed_fields_json,
+            change_notes, changed_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            item_type, item_id, version, json_dumps(snapshot), json_dumps(changed_fields),
+            str(data.get("change_notes") or "Manual edit").strip(), changed_by, payload["updated_at"],
+        ),
+    )
+    return _manual_item(conn, item_type, item_id, include_deleted=include_deleted_result)
+
+
 def update_manual_data(
     item_type: str,
     item_id: int,
@@ -1306,49 +1366,16 @@ def update_manual_data(
     include_deleted_result: bool = False,
     allow_lifecycle: bool = False,
 ) -> dict[str, Any]:
-    table = MANUAL_TABLES.get(item_type)
-    if not table:
+    if not MANUAL_TABLES.get(item_type):
         raise ValidationError("Invalid manual data type")
     conn = connect(db_path)
     try:
         with transaction(conn):
-            current = _manual_item(conn, item_type, item_id)
-            payload = _validate_manual_payload(item_type, data, current, allow_lifecycle=allow_lifecycle)
-            changed_fields = []
-            for key, value in payload.items():
-                old_key = key.removesuffix("_json")
-                old_value = current.get(old_key)
-                comparison = json_loads(value, []) if key.endswith("_json") else value
-                if old_value != comparison:
-                    changed_fields.append(old_key)
-            if not changed_fields:
-                return current
-            version = int(current.get("version_number") or 1) + 1
-            payload["version_number"] = version
-            payload["updated_at"] = utc_now()
-            assignments = ", ".join(f"{key} = ?" for key in payload)
-            conn.execute(
-                f"UPDATE {table} SET {assignments} WHERE id = ?",
-                [*payload.values(), item_id],
+            return _update_manual_data_conn(
+                conn, item_type, item_id, data,
+                include_deleted_result=include_deleted_result,
+                allow_lifecycle=allow_lifecycle,
             )
-            updated_row = conn.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone()
-            snapshot = _manual_snapshot(updated_row, item_type)
-            changed_by = data.get("changed_by") or "human"
-            if changed_by not in {"human", "system"}:
-                raise ValidationError("Invalid changed_by value")
-            conn.execute(
-                """
-                INSERT INTO manual_data_versions(
-                    item_type, item_id, version_number, snapshot_json, changed_fields_json,
-                    change_notes, changed_by, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    item_type, item_id, version, json_dumps(snapshot), json_dumps(changed_fields),
-                    str(data.get("change_notes") or "Manual edit").strip(), changed_by, payload["updated_at"],
-                ),
-            )
-            return _manual_item(conn, item_type, item_id, include_deleted=include_deleted_result)
     finally:
         conn.close()
 
@@ -1435,13 +1462,34 @@ def bulk_update_manual_data(data: dict[str, Any], db_path: Path | str = DB_PATH)
     }
     if not isinstance(items, list) or not items or action not in actions:
         raise ValidationError("Invalid bulk action")
-    updated = 0
-    for item in items[:500]:
+    # SEC-04: reject oversized batches explicitly — silent truncation at 500 hides data loss.
+    if len(items) > 500:
+        raise ValidationError(f"Batch too large: {len(items)} items exceed the 500-item limit")
+    # SEC-04: validate all items before opening a transaction — reject the whole request
+    # if any item is malformed; do not silently ignore bad entries.
+    for index, item in enumerate(items):
         if not isinstance(item, dict):
-            continue
-        payload = {**actions[action], "change_notes": data.get("change_notes") or "Bulk edit"}
-        update_manual_data(str(item.get("type")), int(item.get("id")), payload, db_path)
-        updated += 1
+            raise ValidationError(f"Item at position {index} is not a dict")
+        item_type = item.get("type")
+        item_id = item.get("id")
+        if item_type not in MANUAL_TABLES:
+            raise ValidationError(f"Item at position {index} has invalid type {item_type!r}")
+        try:
+            int(item_id)
+        except (TypeError, ValueError):
+            raise ValidationError(f"Item at position {index} has invalid id {item_id!r}")
+    updated = 0
+    # SEC-04: wrap all item updates in one transaction so a failure on item N does not
+    # leave items 1..N-1 already committed while the rest are not.
+    conn = connect(db_path)
+    try:
+        with transaction(conn):
+            for item in items:
+                payload = {**actions[action], "change_notes": data.get("change_notes") or "Bulk edit"}
+                _update_manual_data_conn(conn, str(item.get("type")), int(item.get("id")), payload)
+                updated += 1
+    finally:
+        conn.close()
     return {"updated": updated}
 
 

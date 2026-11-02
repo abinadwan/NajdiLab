@@ -15,6 +15,7 @@ import pytest
 from app import server as server_module
 from app.db import apply_migrations
 from app.review_integrity import ExportReadinessError, export_readiness
+from app.review_lifecycle import append_event
 from app.service import create_export
 
 
@@ -35,6 +36,8 @@ def insert_review(
     evaluation: int = 0,
     with_review: bool = True,
     ignore_checks: bool = False,
+    with_event: bool = False,
+    event_original: str | None = None,
 ) -> int:
     with sqlite3.connect(db) as conn:
         conn.execute("PRAGMA foreign_keys=ON")
@@ -58,21 +61,38 @@ def insert_review(
             """,
             (cursor.lastrowid, status, original, corrected, "human", eligible, evaluation, "now", "now"),
         )
-        return review.lastrowid
+        review_id = review.lastrowid
+        if with_event:
+            append_event(conn, review_id=review_id, from_status="PENDING", to_status=status,
+                         actor="human", original_response=event_original if event_original is not None else original,
+                         corrected_response=corrected)
+        return review_id
 
 
 def codes(result):
     return {item["code"] for item in result["findings"]}
 
 
-def test_approved_review_is_ready_with_history_ambiguity(tmp_path):
+def test_approved_review_is_ready_when_event_is_recorded(tmp_path):
+    # SEC-05 regression: review_events table always exists after migration;
+    # an approved review with a recorded event must be READY (not BLOCKED).
     db = fixture_db(tmp_path)
-    insert_review(db)
+    insert_review(db, with_event=True)
     result = export_readiness(db)
     assert result["status"] == "READY"
     assert result["counts"]["blocking"] == 0
-    assert "REVIEW_HISTORY_UNAVAILABLE" in codes(result)
-    assert result["ambiguous_findings"][0]["confirmed"] is False
+    assert "REVIEW_EVENT_MISSING" not in codes(result)
+    assert "REVIEW_HISTORY_UNAVAILABLE" not in codes(result)
+
+
+def test_approved_review_without_event_is_blocked(tmp_path):
+    # SEC-05 regression: when review_events table exists but a review has no event,
+    # export must be BLOCKED — the integrity check catches missing audit trails.
+    db = fixture_db(tmp_path)
+    insert_review(db)
+    result = export_readiness(db)
+    assert result["status"] == "BLOCKED"
+    assert "REVIEW_EVENT_MISSING" in codes(result)
 
 
 def test_pending_review_blocks_with_actionable_sample_id(tmp_path):
@@ -100,7 +120,10 @@ def test_semantic_stale_blocks_but_format_drift_is_ambiguous(tmp_path):
     assert "REVIEW_SOURCE_STALE" in codes(stale) and stale["status"] == "BLOCKED"
 
     format_db = fixture_db(tmp_path / "format")
-    insert_review(format_db, original="رد   موثّق", current="رد موثّق")
+    # event_original matches message content so REVIEW_EVENT_SOURCE_STALE is not triggered;
+    # the review snapshot still differs (triple-space vs single) → FORMAT_DRIFT warning only
+    insert_review(format_db, original="رد   موثّق", current="رد موثّق",
+                  with_event=True, event_original="رد موثّق")
     drift = export_readiness(format_db)
     assert "REVIEW_SOURCE_FORMAT_DRIFT" in codes(drift)
     assert drift["status"] == "READY"

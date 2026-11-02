@@ -4569,6 +4569,9 @@
         "test_concurrent_quality_input_change_prevents_publication",
         "test_real_db_review_version_to_unsloth_preserves_only_target_loss"
       ]
+    },
+    "migrations/007_review_events.sql": {
+      "sha256": "d1e4407d2d42df236dda26aaa72da9d739cf9c53b73845fcd1246261c259ebaf"
     }
   },
   "removed_routes": [

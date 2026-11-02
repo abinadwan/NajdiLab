@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "migrations": [
+    {
+      "name": "001_initial.sql",
+      "sha256": "b42c3dd9059ab2556fb0560d593c9cc0d51f84ebaff361b275e24e37a5d1db7d"
+    },
+    {
+      "name": "002_hermes_idempotency.sql",
+      "sha256": "46197b8ad158ea5df989c0d80cca810285de4186415e6f2b551ec622d4ff1020"
+    },
+    {
+      "name": "003_manual_data_manager.sql",
+      "sha256": "8001ab0ac2b76d5bceca50161796fd14dc1d298fd655a1f6984751aa6e9a10b0"
+    },
+    {
+      "name": "004_review_lifecycle.sql",
+      "sha256": "92290af7684d75f181a0a489567a75ffb236f3944db03fe2b317cd0d22d6079e"
+    }
+  ]
+}

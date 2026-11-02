@@ -105,6 +105,13 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
             "WARNING", confirmed=False,
         ))
 
+    # Reviews with id <= legacy_max_review_id predate the audit trail (reviews.id is
+    # AUTOINCREMENT). A missing baseline fails closed: every review then requires events.
+    legacy_max_review_id = 0
+    if event_table and _table_exists(conn, "review_event_baseline"):
+        baseline = conn.execute("SELECT legacy_max_review_id FROM review_event_baseline WHERE id=1").fetchone()
+        legacy_max_review_id = int(baseline[0]) if baseline else 0
+
     for row in rows:
         sample_id = f"review:{row['id']}"
         status = str(row["review_status"] or "")
@@ -152,7 +159,15 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
                 "SELECT sequence,to_status,source_sha256 FROM review_events WHERE review_id=? ORDER BY sequence", (row["id"],)
             ).fetchall()
             if not events:
-                findings.append(_finding("REVIEW_EVENT_MISSING", sample_id, "The current state has no recorded review event", "ERROR", confirmed=True))
+                if int(row["id"]) <= legacy_max_review_id:
+                    findings.append(_finding(
+                        "REVIEW_HISTORY_UNVERIFIABLE", sample_id,
+                        "This review predates the event audit trail; its current decision is checked, but its transition history cannot be verified",
+                        "WARNING", confirmed=False,
+                        details={"legacy_max_review_id": legacy_max_review_id},
+                    ))
+                else:
+                    findings.append(_finding("REVIEW_EVENT_MISSING", sample_id, "The current state has no recorded review event", "ERROR", confirmed=True))
             else:
                 expected = list(range(1, len(events) + 1))
                 actual = [event["sequence"] for event in events]
