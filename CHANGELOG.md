@@ -161,3 +161,10 @@ English controls preserved Arabic content, authenticated native ingest and Host/
 Private integration through PR#5 (`fdebe50aaf1a20d2f2478eed8fc979cac8372347`) did not activate licensing/publication or clear historical privacy/ownership/data rights. The dated74-row [rights ledger](docs/rights-evidence.md), [source provenance](docs/source-provenance.md), [history review](docs/privacy-history-review.md) and [release decision](docs/public-release-decision.md) retain open gates. Apache-2.0 remains a future target only.
 
 Cleanup regression evidence, all removed/refactored files and source-only rollback are recorded in [cleanup results](docs/cleanup-results.md).
+
+## 2026-11-02 — Chat review workflow (isolated fix branch)
+
+- Clear new-conversation context/reply presets, Advanced limits and proven ceiling with unverified memory estimates. Saved settings remain immutable.
+- Guarded Enter send, Shift+Enter newline, failed/newer draft retention, safe presentation-only Markdown with raw view.
+- Consented Chat multi-turn context with final-only targets; quarantine incomplete historical/mid-chat prefixes without retroactive capture. No schema change, forced ratio, old data rewrite or automatic training.
+- Constant completion diagnostics preserve strict validation. Historical successful-stop refusal is not reproduced. See [actual checks and safe update/rollback](docs/chat-review-workflow-results.md).

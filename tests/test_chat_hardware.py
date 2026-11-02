@@ -46,7 +46,7 @@ def test_no_fit_is_stated_rather_than_rounded_down():
 def test_model_maximum_caps_every_tier():
     result = recommendation(device(64 * GIB), limits(model_max_context=8192))
     assert result['recommended_context'] == 8192
-    assert [c['assessment'] for c in result['candidates'][1:]] == ['ABOVE_MODEL_MAX'] * 3
+    assert [c['assessment'] for c in result['candidates'] if c['context'] > 8192] == ['ABOVE_MODEL_MAX'] * 3
 
 
 def test_memory_this_model_already_holds_is_reclaimable_but_other_use_is_not():
@@ -87,3 +87,13 @@ def test_snapshot_reports_runtime_failure_without_inventing_model_facts():
 def test_snapshot_copies_only_declared_model_facts():
     result = snapshot(limits(architecture='gemma4', secret='never', quantization='Q4_K_M'))
     assert result['model']['architecture'] == 'gemma4' and 'secret' not in result['model']
+
+def test_recommendation_exposes_effective_admission_ceiling():
+    result = recommendation(device(), limits(budget_ceiling=4096, model_max_context=131072, runtime_context=4096))
+    assert result['budget_ceiling'] == 4096
+    assert recommendation(device(), limits())['budget_ceiling'] is None
+
+
+def test_light_preset_has_a_vram_estimate():
+    result = recommendation(device(), limits())
+    assert 4096 in {c['context'] for c in result['candidates']}

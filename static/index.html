@@ -80,8 +80,14 @@
             <label for="chat-provider">Provider for a new conversation</label><select id="chat-provider"></select>
             <label for="chat-model">Model for a new conversation</label><select id="chat-model"></select>
             <p class="muted">Connect providers in Settings → Integrations. LM Studio must already have the model loaded; NajdiLab never loads it there.</p>
-            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096" list="chat-budget-options"><datalist id="chat-budget-options"><option value="4096"></option><option value="8192"></option><option value="16384"></option><option value="32768"></option><option value="65536"></option></datalist>
-            <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" value="512">
+            <label for="chat-preset">New conversation budget</label><select id="chat-preset" aria-describedby="chat-budget-evidence"><option value="manual">Advanced / manual</option></select>
+            <p class="muted">Light: 4096 context / 1024 reply. Balanced: 8192 / 2048. Long: 16384 / 3072. Presets require a proven engine ceiling and a fitting memory estimate; estimates are unverified.</p>
+            <p id="chat-budget-evidence" class="muted" role="status">Read device specs to check presets. The engine ceiling and memory estimate are unknown until then.</p>
+            <details class="chat-advanced" open><summary>Advanced / manual</summary>
+              <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" step="1" value="4096">
+              <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" step="1" value="1024">
+            </details>
+            <p class="muted">Context covers the complete prompt, history and reply. Reply reserve is part of that total, including thinking tokens when counted by the runtime. Changing these controls applies only to new conversations.</p>
             <label id="chat-load-row" class="inline-check" hidden><input id="chat-load-approved" type="checkbox"> Let Ollama load this model at this context</label>
             <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending. Ollama loads models on request, and a different context reloads the model, so it needs this approval.</p>
             <button id="chat-new" class="button primary" type="button">New conversation</button>
@@ -97,9 +103,12 @@
             <p id="chat-notice" role="status" aria-live="polite">Start a new conversation or open a saved one.</p>
             <label class="inline-check"><input id="chat-collect" type="checkbox" disabled> Collect future completed pairs for human review</label>
             <p class="muted">OFF by default and after restart. Saved chat history stays local regardless of this choice. Collected pairs enter PENDING, never dataset-approved. No earlier turns are collected retroactively.</p>
+            <p class="muted">Collection covers only the future segment you opt into. Earlier roles stay excluded. Start a new conversation with collection enabled before its first turn for a complete SFT conversation. Human review is required; this does not approve training.</p>
             <p id="chat-session-identity" class="muted" role="status" aria-live="polite">No active conversation selected.</p><p id="chat-usage" class="muted"></p>
             <div id="chat-messages" class="chat-messages" aria-label="Conversation messages"></div>
             <form id="chat-form"><label for="chat-draft">Message</label><textarea id="chat-draft" dir="auto" rows="4" maxlength="65536" placeholder="Write a message…"></textarea><div class="chat-actions"><button id="chat-send" class="button primary" type="submit" disabled>Send</button><button id="chat-stop" class="button ghost" type="button" disabled>Stop</button></div></form>
+            <p class="muted">Enter sends. Shift+Enter adds a new line.</p>
+            <p class="muted">Model replies display restricted Markdown: headings, lists, quotes, bold, emphasis and code. HTML, links and images stay text. Show raw text to inspect the exact reply; saved text and future prompts are unchanged. Literal escape sequences are never decoded.</p>
             <p class="muted">Completed text pairs are saved. Failed, stopped or token-limited responses are discarded. Archiving retains local text and historical exports; it excludes the conversation's collected pairs from future dataset selection. Physical erasure requires a separate retention decision.</p>
           </div>
         </div>
@@ -130,6 +139,7 @@
               <div class="label-row"><span>Original response</span><span class="locked">🔒 Preserved and immutable</span></div>
               <p dir="auto" id="original-response"></p>
             </div>
+            <p id="review-context-warning" class="chat-context-warning hidden" role="note"></p>
             <div class="review-actions" role="group" aria-label="Review actions">
               <button id="approve-review" class="button approve-action">Approve</button>
               <button id="edit-review" class="button edit-action">Edit</button>
@@ -149,8 +159,8 @@
             <div class="field"><label for="reviewer-identity">Reviewer identity</label><select id="reviewer-identity"><option value="human">Human reviewer</option><option value="ai_suggestion">Machine suggestion reviewed by a human</option><option value="import">Imported decision</option></select></div>
             <div class="field"><label>Error tags <span class="muted">Optional; select multiple</span></label><div id="error-tags" class="tag-picker"></div></div>
             <div class="check-grid">
-              <label><input id="training-eligible" type="checkbox" aria-describedby="review-eligibility-help"> Eligible for dataset export (separate from review approval)</label>
-              <label><input id="evaluation-only" type="checkbox"> Evaluation only</label>
+              <label><input id="training-eligible" type="checkbox" aria-describedby="review-eligibility-help review-context-warning"> Eligible for dataset export (separate from review approval)</label>
+              <label><input id="evaluation-only" type="checkbox" aria-describedby="review-context-warning"> Evaluation only</label>
               <label><input id="exclude-training" type="checkbox"> Permanently exclude from dataset selection</label>
               <label><input id="needs-fact-check" type="checkbox"> Needs fact checking</label>
               <label><input id="contains-personal" type="checkbox"> Contains personal data</label>

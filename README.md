@@ -66,3 +66,7 @@ flowchart LR
 This is the private repository. No active redistribution license or publication approval is granted by this change. The separate Public Core source-only candidate remains an independently reviewed scope; see [release decision](docs/public-release-decision.md), [source boundaries](docs/public-private-boundary.md) and [attribution](docs/third-party-attributions.md). Chat/handoff files are not automatically included in that candidate. Reused shared service/privacy/install files are repinned only with candidate regression verification; that is not publication approval.
 
 [Dataset-only cleanup audit and final verification](docs/cleanup-results.md) records the full source/docs inventory, actual test counts and skips, schema compatibility, remaining limits and source-only rollback.
+
+### Chat review workflow update (2026-11-02)
+
+New conversation presets and Advanced limits, Enter/Shift+Enter, safe Markdown with raw text, and consent-complete multi-turn SFT are described in the [implementation and actual verification record](docs/chat-review-workflow-results.md). Collection remains opt-in and OFF after restart; no schema migration or automatic training is added. PR19/20 remain Draft and unmerged.

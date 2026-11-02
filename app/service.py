@@ -20,6 +20,7 @@ from uuid import uuid4
 from .db import DB_PATH, ROOT, connect, json_dumps, json_loads, redact_secrets, transaction, utc_now
 from .review_integrity import ExportReadinessError, export_readiness, export_privacy
 from .review_lifecycle import append_event, validate_transition, LifecycleError
+from .collection_context import collection_context, INCOMPLETE_CONTEXT_WARNING
 
 CORRECTION_REVIEW_STATUSES = {
     "FULL_CORRECTION",
@@ -445,6 +446,12 @@ def _message_context(conn: sqlite3.Connection, message_id: int) -> list[dict[str
     return [dict(row) for row in rows]
 
 
+def _review_collection_context(conn: sqlite3.Connection, message_id: int) -> dict[str, Any]:
+    row = conn.execute('''SELECT c.source, c.metadata_json FROM conversations c
+        JOIN messages m ON m.conversation_id=c.id WHERE m.id=?''', (message_id,)).fetchone()
+    return collection_context(row) if row else {}
+
+
 def list_review_queue(db_path: Path | str = DB_PATH, include_demo: bool = True) -> list[dict[str, Any]]:
     conn = connect(db_path)
     try:
@@ -472,6 +479,7 @@ def list_review_queue(db_path: Path | str = DB_PATH, include_demo: bool = True) 
                 value[0] for value in conn.execute("SELECT tag FROM review_tags WHERE review_id = ?", (row["id"],))
             ]
             item["context"] = _message_context(conn, row["message_id"])
+            item.update(_review_collection_context(conn, row["message_id"]))
             result.append(item)
         return result
     finally:
@@ -559,6 +567,9 @@ def _save_review_conn(
         flags[key] = int(value)
     training_eligible = flags["training_eligible"]
     evaluation_only = flags["evaluation_only"]
+    if ((training_eligible or evaluation_only) and
+        _review_collection_context(conn, current['message_id']).get('context_complete') is False):
+        raise ValidationError(INCOMPLETE_CONTEXT_WARNING)
     exclude = flags["exclude_from_training"]
     if any(value for key, value in flags.items() if key != "training_eligible"):
         training_eligible = 0
@@ -777,6 +788,7 @@ def get_review(
         item = dict(row)
         item["tags"] = [x[0] for x in conn.execute("SELECT tag FROM review_tags WHERE review_id = ?", (review_id,))]
         item["context"] = _message_context(conn, row["message_id"])
+        item.update(_review_collection_context(conn, row["message_id"]))
         return item
     finally:
         if own_conn:
@@ -1714,6 +1726,7 @@ def _review_training_records(conn: sqlite3.Connection, include_demo: bool, evalu
                 "channel": row["channel"],
                 "demo": row["demo"],
                 "tags": [x[0] for x in conn.execute("SELECT tag FROM review_tags WHERE review_id = ?", (row["id"],))],
+                **_review_collection_context(conn, row['message_id']),
             }
         )
     return records
@@ -2112,6 +2125,11 @@ def _balance_multi_turn_records(
 
 
 def _validate_sft_record(item: dict[str, Any], filename: str) -> None:
+    if (item.get('context_complete') is False or
+        (item.get('context_scope') == 'continuous_consented_segment_only' or
+         str(item.get('conversation_id') or '').startswith('najdilab-chat:')) and
+        item.get('context_complete') is not True):
+        raise ValidationError(f"{filename}: incomplete collected context: {item.get('id')}")
     messages = item.get("messages")
     if not isinstance(messages, list) or not messages:
         raise ValidationError(f"{filename}: record has no messages: {item.get('id')}")

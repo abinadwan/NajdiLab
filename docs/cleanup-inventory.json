@@ -123,7 +123,7 @@
     },
     "app/chat_workspace.py": {
       "classification": "PROTECT",
-      "sha256": "c53de9eced9505e03e56b0b0c1a6c93f4e882534f5c99f4120cd59b897963107",
+      "sha256": "7744fcc26d47d805343658c6555e0bb1ec5ec69ef583f5672689009b1ec48c9e",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .chat_engine import open_engine",
@@ -1053,7 +1053,7 @@
     },
     "app/unsloth_export.py": {
       "classification": "PROTECT",
-      "sha256": "50925933fccee5ebf9c5b1839b7e4bee0f27e87982a1db614f31b926d728fd15",
+      "sha256": "7c889b984519abd99e38a562faf9ab72fd9182560ad8802d4a390c881ab92c74",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .dataset_platform import _version_dir, KNOWN_FILES, NATIVE_TRAIN_FILE",

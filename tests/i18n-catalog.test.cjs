@@ -128,3 +128,17 @@ test('every Chat engine refusal, including the AI-02 integrity diagnostics, has 
   assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
   for(const text of composite)assert.notEqual(I18N.translate(text,'ar'),I18N.translate(composite[0].split(' Integrity check: ')[0],'ar'),'the diagnostic stays visible: '+text);
 });
+
+test('chat presets, budget evidence and precise final-response refusals are localized',()=>{
+  const strings=['Light budget','Balanced','Long','Engine ceiling unknown','Above engine ceiling','Memory estimate unavailable','Memory estimate does not fit','Unverified memory estimate','Show raw text','Show Markdown','Proven engine ceiling: 4096','Proven engine ceiling: Unknown',
+    'Earlier chat context was not collected with continuous consent, or its completeness cannot be verified. This segment can be reviewed but cannot be used for training or evaluation. Start a fresh chat and enable collection before its first turn.',
+    'The selected collected chat has missing or unverifiable earlier context. Review remains available; training and evaluation export require a complete consented context.',
+    'Engine did not return an unchanged, complete text reply; no pair was saved.',
+    'The engine did not finish the reply normally; no pair was saved.',
+    'The engine returned empty, invalid or oversized final text; no pair was saved.',
+    'The final prompt token count differed from the measured prompt; no pair was saved.',
+    'The final token usage exceeded the conversation budget; no pair was saved.',
+    'The engine returned tool calls instead of a plain text reply; no pair was saved.'];
+  assert.deepEqual(untranslated(strings),[]);
+  for(const text of strings)assert.equal(I18N.translate(text,'en'),text);
+});

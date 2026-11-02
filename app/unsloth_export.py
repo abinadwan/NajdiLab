@@ -72,7 +72,8 @@ def create_handoff(version, *, output_root=None):
             provenance.append({'line':len(rows),'source_file':name,'source_record_id':row['id'],
                 'conversation_id':row.get('conversation_id'),'origin':row['origin'],'provider':row.get('provider'),
                 'model_name':row.get('model_name'),'target_message_index':row['target_message_index'],
-                'message_loss_mask':row['message_loss_mask']})
+                'message_loss_mask':row['message_loss_mask'],
+                **{key:row[key] for key in ('context_scope','context_complete') if key in row}})
     if not rows:
         raise ValidationError('The dataset has no eligible conversational targets.')
     # Reuse deterministic quality/leakage checks before publishing. Files not

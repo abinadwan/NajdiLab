@@ -13,6 +13,8 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
+from .collection_context import collection_context
+
 
 TRUSTED_REVIEW_STATUSES = {
     "APPROVED",
@@ -325,6 +327,7 @@ def raw_review_record(index: ArchiveIndex, review: dict[str, Any]) -> dict[str, 
             "channel": conversation.get("channel"),
             "demo": conversation.get("demo", 0),
             "tags": sorted(index.tags_by_review.get(int(review["id"]), [])),
+            **collection_context(conversation),
         }
     )
 
@@ -338,6 +341,24 @@ def reconstruct_review_record(
     target_gold = reviewed_gold(review)
     if target_gold is None:
         return None, Audit(), "target_has_no_trusted_gold"
+    provenance = collection_context(conversation)
+    if provenance:
+        if not provenance['context_complete']:
+            return None, Audit(), 'chat_context_incomplete'
+        # Raw Chat is an exact transcript. Earlier assistant messages are prompt
+        # context, including mistakes a later correction may refer to. They are
+        # never Gold targets in this row and must not be replaced or trimmed.
+        for message in index.messages_by_conversation[conversation_id]:
+            if int(message['turn_index']) > int(target_message['turn_index']):
+                break
+            prefix_review = index.review_by_message.get(int(message['id']))
+            if prefix_review and (
+                any(prefix_review.get(key) for key in ('contains_personal_data', 'contains_sensitive_data', 'exclude_from_training'))
+                or prefix_review.get('review_status') in {'IGNORED', 'DELETED'}
+                or (training_view and prefix_review.get('evaluation_only'))
+            ):
+                return None, Audit(), 'chat_context_private_or_excluded'
+        return raw_review_record(index, review), Audit(), None
     audit = Audit()
     cleaned_messages: list[dict[str, str]] = []
     skip_media_assistant = False
@@ -816,6 +837,15 @@ def validate_clean_records(
     }
     for record in records:
         messages = record["messages"]
+        chat_record = False
+        if str(record['id']).startswith('review:'):
+            source_review = index.reviews[int(str(record['id']).split(':', 1)[1])]
+            source_message = index.messages[int(source_review['message_id'])]
+            chat_record = bool(collection_context(index.conversations[int(source_message['conversation_id'])]))
+            if chat_record:
+                expected, _, error = reconstruct_review_record(index, source_review)
+                if error or messages != expected['messages']:
+                    raise ValueError(f"collected Chat context changed or is ineligible: {record['id']}")
         target_index = record["target_message_index"]
         mask = record["message_loss_mask"]
         if (
@@ -830,7 +860,8 @@ def validate_clean_records(
         if any(VOICE_RUNTIME_RE.search(str(message.get("content") or "")) for message in messages):
             raise ValueError(f"voice runtime metadata remains in training record: {record['id']}")
         for message in messages[:-1]:
-            if message.get("role") == "assistant" and normalized(message.get("content") or "") in known_bad_originals:
+            if (not chat_record
+                and message.get("role") == "assistant" and normalized(message.get("content") or "") in known_bad_originals):
                 raise ValueError(f"known corrected bad assistant remains in context: {record['id']}")
         if str(record["id"]).startswith("review:"):
             review_id = int(str(record["id"]).split(":", 1)[1])
@@ -847,7 +878,11 @@ def validate_clean_records(
     return {
         "targets_unchanged": True,
         "loss_masks_exact": True,
-        "no_known_bad_corrected_assistant_in_context": True,
+        "no_known_bad_corrected_assistant_in_context": not any(
+            record.get('context_scope') == 'continuous_consented_segment_only'
+            and any(message.get('role') == 'assistant' and normalized(message.get('content') or '') in known_bad_originals
+                    for message in record['messages'][:-1]) for record in records),
+        "collected_chat_prefix_preserved_and_masked": True,
         "no_gateway_or_runtime_metadata_in_training": True,
         "no_train_text_eval_conversation_overlap": True,
         "train_text_eval_conversation_overlap": overlap,
@@ -909,6 +944,16 @@ def create_clean_export(
     for review in index.reviews.values():
         if not _eligible_review(index, review):
             continue
+        message = index.messages[int(review['message_id'])]
+        chat_context = collection_context(index.conversations[int(message['conversation_id'])])
+        if chat_context:
+            # Apply the same full-window gate before text/tool classification;
+            # categorization must never route incomplete/private Chat around it.
+            _, _, chat_error = reconstruct_review_record(
+                index, review, training_view=not bool(review.get('evaluation_only')))
+            if chat_error:
+                cleaning_dropped.append({'id': f"review:{review['id']}", 'reason': chat_error})
+                continue
         raw = raw_review_record(index, review)
         category, reason = classify_evaluation(raw)
         if category != "text_sft":
@@ -917,7 +962,8 @@ def create_clean_export(
             evaluation_record["classification_reason"] = reason
             categorized_eval[category].append(evaluation_record)
             continue
-        clean, audit, drop_reason = reconstruct_review_record(index, review, training_view=True)
+        clean, audit, drop_reason = reconstruct_review_record(
+            index, review, training_view=not bool(review.get('evaluation_only')) if chat_context else True)
         if clean is None:
             cleaning_dropped.append({"id": raw["id"], "reason": drop_reason})
             continue

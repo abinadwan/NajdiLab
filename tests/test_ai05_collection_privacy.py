@@ -26,7 +26,7 @@ from app.chat_workspace import ChatWorkspace
 from app.db import apply_migrations, connect
 from app.integrations import IntegrationError, IntegrationManager
 from app.review_integrity import ExportReadinessError
-from app.service import add_direct_text, create_export, save_review, training_dataset
+from app.service import add_direct_text, create_export, save_review, training_dataset, ValidationError
 
 OFF_SECRET = 'SYNTH_UNCOLLECTED_7c1e'
 ON_SECRET = 'SYNTH_COLLECTED_42b9'
@@ -157,8 +157,10 @@ def test_consent_is_never_retrospective_and_collected_pairs_wait_for_a_human(cha
     assert 'REVIEW_PENDING' in str(blocked.value), 'an undecided collected pair blocks every export'
     assert not (tmp / 'before').exists() or not any((tmp / 'before').iterdir())
 
-    save_review(review['id'], {'review_status': 'APPROVED', 'reviewer': 'human', 'training_eligible': True}, db)
-    assert ON_SECRET in _selected(db), 'explicit human approval is the only path into training selection'
+    with pytest.raises(ValidationError, match='Earlier chat context'):
+        save_review(review['id'], {'review_status': 'APPROVED', 'reviewer': 'human', 'training_eligible': True}, db)
+    save_review(review['id'], {'review_status': 'APPROVED', 'reviewer': 'human', 'training_eligible': False}, db)
+    assert ON_SECRET not in _selected(db), 'human review cannot manufacture the missing pre-consent context'
 
     session = _collect(ws, session, enabled=False)
     _send(ws, session, OFF_SECRET + '-after')

@@ -27,3 +27,7 @@ Manifests record counts, split seed, selection/exclusion and duplicate facts, pr
 The external operator must use conversational prompt/completion support with `completion_only_loss=True`, `packing=False`, and refuse overlength records. Do not silently truncate, train on every assistant turn, merge holdout data, or upload the recovery archive. This is an interoperability contract, not an included trainer or proof that a particular external package version is compatible. Unsloth package/extras and data/model rights require separate verification; [rights](dependency-licensing-matrix.md).
 
 File hashes and quality PASS establish neither consent nor redistribution rights. Keep raw archives, Chat history, databases and backups private. Privacy changes require a new reviewed version; erasure of existing versions/backups is a separate retention decision.
+
+## Collected Chat context
+
+[The consent/context audit](chat-dataset-context-audit.md) documents complete multi-turn prefixes, single-turn rows, final-only masks and incomplete-prefix quarantine. Enabling collection never imports older roles or approves training. A 60% multi-turn / 40% single-turn mixture is only an experimental idea for later evaluation, never an ingestion quota. Existing frozen files are not rewritten. No schema change is required.

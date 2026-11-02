@@ -163,6 +163,28 @@
     'Needs attention': 'يحتاج إلى انتباه',
 
     // Chat workspace
+    'New conversation budget': 'ميزانية المحادثة الجديدة',
+    'Advanced / manual': 'متقدم / يدوي',
+    'Light budget': 'ميزانية خفيفة',
+    'Balanced': 'متوازن',
+    'Long': 'طويل',
+    'Engine ceiling unknown': 'حد المحرك غير معروف',
+    'Above engine ceiling': 'يتجاوز حد المحرك',
+    'Memory estimate unavailable': 'تقدير الذاكرة غير متاح',
+    'Memory estimate does not fit': 'تقدير الذاكرة يتجاوز المتاح',
+    'Unverified memory estimate': 'تقدير ذاكرة غير متحقق منه',
+    'Light: 4096 context / 1024 reply. Balanced: 8192 / 2048. Long: 16384 / 3072. Presets require a proven engine ceiling and a fitting memory estimate; estimates are unverified.': 'خفيف: سياق 4096 / رد 1024. متوازن: 8192 / 2048. طويل: 16384 / 3072. تتطلب الإعدادات حدًا مثبتًا للمحرك وتقدير ذاكرة ضمن المتاح؛ التقديرات غير متحقق منها.',
+    'Read device specs to check presets. The engine ceiling and memory estimate are unknown until then.': 'اقرأ مواصفات الجهاز للتحقق من الإعدادات الجاهزة. يبقى حد المحرك وتقدير الذاكرة غير معروفين حتى ذلك الحين.',
+    'Context covers the complete prompt, history and reply. Reply reserve is part of that total, including thinking tokens when counted by the runtime. Changing these controls applies only to new conversations.': 'يشمل السياق الطلب والسجل والرد كاملًا. رموز الرد المحجوزة جزء من هذا الإجمالي، بما فيها رموز التفكير عندما يحسبها المحرك. ينطبق تغيير هذه القيم على المحادثات الجديدة فقط.',
+    'Context must be an integer from 128 to 1048576; reply must be an integer from 1 to 8192 and smaller than context.': 'يجب أن يكون السياق عددًا صحيحًا من 128 إلى 1048576؛ والرد عددًا صحيحًا من 1 إلى 8192 وأصغر من السياق.',
+    'Collection covers only the future segment you opt into. Earlier roles stay excluded. Start a new conversation with collection enabled before its first turn for a complete SFT conversation. Human review is required; this does not approve training.': 'يشمل الجمع المقطع اللاحق الذي توافق عليه فقط. تبقى الأدوار السابقة مستبعدة. للحصول على محادثة SFT كاملة، ابدأ محادثة جديدة مع تفعيل الجمع قبل دورها الأول. المراجعة البشرية مطلوبة؛ وهذا لا يمنح موافقة على التدريب.',
+    'Enter sends. Shift+Enter adds a new line.': 'يرسل Enter الرسالة. ويضيف Shift+Enter سطرًا جديدًا.',
+    'Model replies display restricted Markdown: headings, lists, quotes, bold, emphasis and code. HTML, links and images stay text. Show raw text to inspect the exact reply; saved text and future prompts are unchanged. Literal escape sequences are never decoded.': 'تُعرض ردود النموذج بتنسيق Markdown محدود: العناوين والقوائم والاقتباسات والخط العريض والمائل والشيفرة. يبقى HTML والروابط والصور نصًا. اعرض النص الخام لفحص الرد كما هو؛ لا يتغير النص المحفوظ ولا الطلبات اللاحقة. لا تُفك تسلسلات الهروب الحرفية مطلقًا.',
+    'Show raw text': 'عرض النص الخام',
+    'Show Markdown': 'عرض Markdown',
+    'This collected segment has incomplete context. Human review is available; training and evaluation are blocked.': 'سياق هذا المقطع المجمّع غير مكتمل. المراجعة البشرية متاحة؛ والتدريب والتقييم محجوبان.',
+    'Earlier chat context was not collected with continuous consent, or its completeness cannot be verified. This segment can be reviewed but cannot be used for training or evaluation. Start a fresh chat and enable collection before its first turn.': 'لم يُجمع سياق المحادثة السابق بموافقة متواصلة، أو لا يمكن التحقق من اكتماله. يمكن مراجعة هذا المقطع، لكن لا يمكن استخدامه للتدريب أو التقييم. ابدأ محادثة جديدة وفعّل الجمع قبل دورها الأول.',
+    'The selected collected chat has missing or unverifiable earlier context. Review remains available; training and evaluation export require a complete consented context.': 'السياق السابق للمحادثة المجمّعة المختارة مفقود أو غير قابل للتحقق. تبقى المراجعة متاحة؛ ويتطلب تصدير التدريب والتقييم سياقًا كاملًا جُمِع بموافقة.',
     'Raw model chat': 'محادثة النموذج الخام',
     'Raw local model conversations, saved here. Collection for review is a separate choice.': 'محادثات النماذج المحلية الخام محفوظة هنا. جمعها للمراجعة اختيار منفصل.',
     'Conversation controls': 'عناصر التحكم في المحادثة',
@@ -841,6 +863,7 @@
     ['Runtime context now: {n}', 'سياق المحرك الآن: {n}'],
     ['Also loaded in this runtime: {models}', 'محمّل أيضًا في هذا المحرك: {models}'],
     ['Available RAM: {a} / {b}', 'الذاكرة المتاحة: {a} / {b}'],
+    ['Proven engine ceiling: {n}', 'حد المحرك المثبت: {n}'],
     ['{n} GiB', '{n} غيغابايت'],
     ['{gpu}: {free} free / {total}', '{gpu}: {free} متاح من {total}'],
     ['Measured now at {at}: {loaded} loaded, {gpu} on GPU', 'قياس الآن عند {at}: {loaded} محمّل، {gpu} على GPU'],
@@ -1007,7 +1030,13 @@
     'Enter nonblank text up to 64 KiB.': 'أدخل نصًا غير فارغ بحجم أقصاه 64 كيلوبايت.',
     'This is a cloud model; prompts would leave this machine. Chat only uses local models.': 'هذا نموذج سحابي؛ ستغادر الطلبات هذا الجهاز. المحادثة تستخدم النماذج المحلية فقط.',
     'Selected budget exceeds the loaded engine context; choose a smaller budget in a new chat.': 'الميزانية المختارة تتجاوز سياق المحرك المحمّل؛ اختر ميزانية أصغر في محادثة جديدة.',
-    'The runtime did not report a context limit, so the budget cannot be proven.': 'لم يُبلغ المحرك عن حد السياق، لذا لا يمكن إثبات الميزانية.'
+    'The runtime did not report a context limit, so the budget cannot be proven.': 'لم يُبلغ المحرك عن حد السياق، لذا لا يمكن إثبات الميزانية.',
+    'Engine did not return an unchanged, complete text reply; no pair was saved.': 'لم يُرجع المحرك ردًا نصيًا كاملًا دون تغيير؛ لم يُحفظ أي زوج.',
+    'The engine did not finish the reply normally; no pair was saved.': 'لم يُنهِ المحرك الرد بصورة طبيعية؛ لم يُحفظ أي زوج.',
+    'The engine returned empty, invalid or oversized final text; no pair was saved.': 'أرجع المحرك نصًا نهائيًا فارغًا أو غير صالح أو يتجاوز الحجم المسموح؛ لم يُحفظ أي زوج.',
+    'The final prompt token count differed from the measured prompt; no pair was saved.': 'اختلف عدد رموز الطلب النهائي عن عدد الرموز المقاس؛ لم يُحفظ أي زوج.',
+    'The final token usage exceeded the conversation budget; no pair was saved.': 'تجاوز الاستخدام النهائي للرموز ميزانية المحادثة؛ لم يُحفظ أي زوج.',
+    'The engine returned tool calls instead of a plain text reply; no pair was saved.': 'أرجع المحرك استدعاءات أدوات بدل رد نصي عادي؛ لم يُحفظ أي زوج.'
   });
 
   global.NajdiI18nCatalogs = Object.assign(global.NajdiI18nCatalogs || {}, {ar: {exact, patterns}});

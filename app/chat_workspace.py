@@ -268,19 +268,34 @@ class ChatWorkspace:
                         raise IntegrationError('STOPPED', 'Turn stopped; no pair was saved.', 409)
                     content = result.get('content')
                     output = integer(result.get('output_tokens'), 0, row['reply_reserve'])
-                    if (result.get('stop_reason') not in {'eosFound', 'stopStringFound', 'stop'} or
-                        not isinstance(content, str) or not content.strip() or len(content.encode('utf-8')) > 262144 or
-                        type(result.get('input_tokens')) is not int or result['input_tokens'] != tokens or
-                        tokens + output > row['context_budget'] or result.get('tool_calls')):
-                        raise IntegrationError('INCOMPLETE_RESPONSE', 'Engine did not return an unchanged, complete text reply; no pair was saved.', 502)
+                    # Keep the same fail-closed predicates, but identify the failed
+                    # boundary without returning the draft, reply or reasoning.
+                    if result.get('stop_reason') not in {'eosFound', 'stopStringFound', 'stop'}:
+                        raise IntegrationError('INCOMPLETE_RESPONSE', 'The engine did not finish the reply normally; no pair was saved.', 502)
+                    if not isinstance(content, str) or not content.strip() or len(content.encode('utf-8')) > 262144:
+                        raise IntegrationError('INCOMPLETE_RESPONSE', 'The engine returned empty, invalid or oversized final text; no pair was saved.', 502)
+                    if type(result.get('input_tokens')) is not int or result['input_tokens'] != tokens:
+                        raise IntegrationError('INCOMPLETE_RESPONSE', 'The final prompt token count differed from the measured prompt; no pair was saved.', 502)
+                    if tokens + output > row['context_budget']:
+                        raise IntegrationError('INCOMPLETE_RESPONSE', 'The final token usage exceeded the conversation budget; no pair was saved.', 502)
+                    if result.get('tool_calls'):
+                        raise IntegrationError('INCOMPLETE_RESPONSE', 'The engine returned tool calls instead of a plain text reply; no pair was saved.', 502)
                     review_conversation = None
                     if consent[0] and self._consent.get(sid, (False, 0)) == consent:
-                        captured = ingest_turn({'conversation_id': f'najdilab-chat:{sid}:{consent[1]}',
-                            'title':'NajdiLab Chat collected segment' + (' — earlier context excluded' if len(messages)>1 else ''),
+                        collection_id = f'najdilab-chat:{sid}:{consent[1]}'
+                        # Every prior inference turn must belong to this same consent
+                        # segment. OFF/restarted/skipped turns are never copied back.
+                        prior_collected = conn.execute('''SELECT COUNT(*) FROM chat_turns t
+                            JOIN conversations c ON c.id=t.review_conversation_id
+                            WHERE t.session_id=? AND c.external_conversation_id=?''', (sid, collection_id)).fetchone()[0]
+                        context_complete = prior_collected == len(messages) // 2
+                        captured = ingest_turn({'conversation_id': collection_id,
+                            'title':'NajdiLab Chat collected segment' + (' — earlier context excluded' if not context_complete else ''),
                             'source':'najdilab_chat', 'channel':'web', 'provider':row['provider'], 'model_name':row['model'],
                             'user_message':text, 'assistant_response':content, 'source_message_id':request_id,
                             'metadata':{'origin':'najdilab_chat','chat_session_id':sid,'chat_request_id':request_id,
                                         'context_scope':'continuous_consented_segment_only','model_key':fingerprint,
+                                        'context_complete':context_complete,
                                         'engine_version':measured.get('engine_version'),'context_budget':row['context_budget'],
                                         'reasoning_discarded':bool(result.get('reasoning_discarded'))},
                         }, self.db_path, _connection=conn, _preserve_text=True)

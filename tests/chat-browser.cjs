@@ -18,6 +18,7 @@ const puppeteer=require('puppeteer-core');
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
     const page=await browser.newPage();await page.setViewport({width:1280,height:1000});
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    const clickChat=async selector=>{await page.$eval(selector,e=>e.scrollIntoView({block:'center'}));await page.click(selector);};
     await page.goto(base+'/chat');
     try {await page.waitForSelector('#chat-provider option',{timeout:15000});}
     catch (error) {
@@ -78,62 +79,72 @@ const puppeteer=require('puppeteer-core');
     assert.ok(collapsed<expanded, `sidebar widths expanded=${expanded}, collapsed=${collapsed}`);
     await page.click('#collapse-sidebar');
     assert.equal(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
-    await page.click('#chat-new');await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
+    await clickChat('#chat-new');await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled);
     assert.equal(await page.$eval('#chat-collect',e=>e.checked),false);
     const sid=await page.$eval('#chat-saved',e=>e.value);
     assert.match(await page.$eval('#chat-session-identity',e=>e.textContent),/OPEN · lmstudio \/ fixture · Context 4096/);
     assert.match(await page.$eval('#chat-session-identity',e=>e.textContent),new RegExp(sid));
     const raw='  <img src=x onerror=alert(1)> synthetic private-before-optin 🙂  ';
-    await page.type('#chat-draft',raw);await page.click('#chat-send');
+    await page.type('#chat-draft',raw);await clickChat('#chat-send');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2);
     assert.equal(await page.$eval('.chat-message p',e=>e.textContent),raw);
     assert.equal(await page.$('.chat-message img'),null);
     assert.match(await page.$eval('.chat-message:nth-child(2) .chat-review-status',e=>e.textContent),/Not collected for review/);
     const read=route=>page.evaluate(async route=>{const r=await fetch(route);return r.json();},route);
     assert.equal((await read('/api/v1/review-queue')).items.length,0);
-    await page.click('#chat-collect');await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('Collection choice saved'));
-    await page.type('#chat-draft','Synthetic opted-in question');await page.click('#chat-send');
+    // Sending scrolls the composer into view. Bring consent below the sticky
+    // header before a real pointer click in the taller budget-controls layout.
+    await page.$eval('#chat-collect',e=>e.scrollIntoView({block:'center'}));
+    await clickChat('#chat-collect');
+    try{await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('Collection choice saved'));}
+    catch(error){console.error('COLLECTION DIAGNOSTIC',await page.evaluate(()=>({notice:document.querySelector('#chat-notice').textContent,checked:document.querySelector('#chat-collect').checked,disabled:document.querySelector('#chat-collect').disabled})));throw error;}
+    await page.type('#chat-draft','Synthetic opted-in question');await clickChat('#chat-send');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===4);
     const queue=(await read('/api/v1/review-queue')).items;
     assert.equal(queue.length,1);assert.equal(queue[0].review_status,'PENDING');assert.equal(queue[0].training_eligible,0);
     assert.ok(!JSON.stringify(queue).includes('private-before-optin'));
     assert.match(await page.$eval('.chat-message:nth-child(4) .chat-review-status',e=>e.textContent),/Collected for human review/);
+    assert.equal(queue[0].context_complete,false);
+    await page.click('[data-view="review-queue"]');await page.waitForFunction(()=>!document.querySelector('#review-context-warning').classList.contains('hidden'));
+    assert.match(await page.$eval('#review-context-warning',e=>e.textContent),/Earlier chat context was not collected/);
+    for(const id of ['training-eligible','evaluation-only'])assert.deepEqual(await page.$eval('#'+id,e=>({checked:e.checked,disabled:e.disabled})),{checked:false,disabled:true});
+    await page.click('[data-view="chat"]');
     await page.reload();await page.waitForSelector(`#chat-saved option[value="${sid}"]`);await page.select('#chat-saved',sid);
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===4);
     const evidence=process.env.NAJDILAB_BROWSER_ARTIFACTS||'.test-tmp/browser';fs.mkdirSync(evidence,{recursive:true});
     await page.screenshot({path:path.join(evidence,'chat-complete.png'),fullPage:true});
     // A budget overflow must open empty context and retain, never replay, draft.
-    await page.$eval('#chat-budget',e=>e.value='128');await page.$eval('#chat-reserve',e=>e.value='127');await page.click('#chat-new');
+    await page.$eval('#chat-budget',e=>e.value='128');await page.$eval('#chat-reserve',e=>e.value='127');await clickChat('#chat-new');
     await page.waitForFunction(()=>document.querySelector('#chat-usage').textContent.includes('Budget 128'));
-    await page.type('#chat-draft','Unsent overflow draft');await page.click('#chat-send');
+    await page.type('#chat-draft','Unsent overflow draft');await clickChat('#chat-send');
     await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('Context limit reached'));
     assert.equal(await page.$$eval('.chat-message',es=>es.length),0);
     assert.equal(await page.$eval('#chat-draft',e=>e.value),'Unsent overflow draft');
     assert.equal(await page.$eval('#chat-collect',e=>e.checked),false);
     // Stop acknowledgement is usable while generation is waiting.
-    await page.$eval('#chat-budget',e=>e.value='512');await page.$eval('#chat-reserve',e=>e.value='32');await page.click('#chat-new');
+    await page.$eval('#chat-budget',e=>e.value='512');await page.$eval('#chat-reserve',e=>e.value='32');await clickChat('#chat-new');
     await page.waitForFunction(()=>document.querySelector('#chat-usage').textContent.includes('Budget 512'));
-    await page.$eval('#chat-draft',e=>e.value='STOP_FIXTURE');await page.click('#chat-send');
-    await page.waitForFunction(()=>!document.querySelector('#chat-stop').disabled);await page.click('#chat-stop');
+    await page.$eval('#chat-draft',e=>{e.value='STOP_FIXTURE';e.dispatchEvent(new Event('input'));});await clickChat('#chat-send');
+    await page.waitForFunction(()=>!document.querySelector('#chat-stop').disabled);await clickChat('#chat-stop');
     await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
     assert.equal(await page.$$eval('.chat-message',es=>es.length),0);
     // Ollama loads on request, so it needs its own approval before any session.
     await page.select('#chat-provider','ollama');
     assert.notEqual(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
-    await page.click('#chat-new');
+    await clickChat('#chat-new');
     await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('Approve Ollama'));
-    await page.click('#chat-load-approved');await page.click('#chat-new');
+    await clickChat('#chat-load-approved');await clickChat('#chat-new');
     await page.waitForFunction(()=>document.querySelector('#chat-usage').textContent.startsWith('ollama'));
-    await page.type('#chat-draft','Synthetic Ollama question');await page.click('#chat-send');
+    await page.type('#chat-draft','Synthetic Ollama question');await clickChat('#chat-send');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2);
-    await page.click('#chat-hardware');
+    await clickChat('#chat-hardware');
     await page.waitForFunction(()=>document.querySelector('#chat-hardware-result').textContent.includes('Model maximum context: 131072'));
     // Reading specs must not stale the conversation that is already open.
-    await page.type('#chat-draft','Second question after reading specs');await page.click('#chat-send');
+    await page.type('#chat-draft','Second question after reading specs');await clickChat('#chat-send');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===4);
     // UX-08: completing an earlier request cannot erase text typed while it ran.
-    await page.$eval('#chat-draft',e=>e.value='DELAY_FIXTURE');
-    await page.click('#chat-send');
+    await page.$eval('#chat-draft',e=>{e.value='DELAY_FIXTURE';e.dispatchEvent(new Event('input'));});
+    await clickChat('#chat-send');
     await page.waitForFunction(()=>!document.querySelector('#chat-stop').disabled);
     await page.$eval('#chat-draft',e=>e.value='New draft typed while model was replying');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===6);

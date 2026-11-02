@@ -41,6 +41,9 @@
     "docs/asset-provenance.md",
     "docs/backup-and-restore.md",
     "docs/chat-completion-results.md",
+    "docs/chat-dataset-context-audit.md",
+    "docs/chat-review-workflow-results.md",
+    "docs/chat-ui-fixes.md",
     "docs/chat-windows-acceptance.md",
     "docs/chat-workspace.md",
     "docs/cleanup-inventory.json",
@@ -89,6 +92,7 @@
     "docs/screenshots.md",
     "docs/shell-commands.md",
     "docs/source-provenance.md",
+    "docs/superpowers/plans/2026-11-02-chat-review-workflow.md",
     "docs/system-requirements.md",
     "docs/third-party-attributions.md",
     "docs/troubleshooting.md",
@@ -152,23 +156,25 @@
     "static/theme.css",
     "static/theme.js",
     "tests/a11y-browser.cjs",
-    "tests/test_ai05_collection_privacy.py",
     "tests/chat-browser.cjs",
+    "tests/chat-enhancements-browser.cjs",
     "tests/chat-ui.test.cjs",
+    "tests/chat_browser_fixture.py",
+    "tests/dataset-identity-ui.test.cjs",
     "tests/fixture_safety.py",
+    "tests/http_client.py",
     "tests/i18n-browser.cjs",
     "tests/i18n-catalog.test.cjs",
-    "tests/pagination-ui.test.cjs",
-    "tests/phase39-ui.test.cjs",
-    "tests/dataset-identity-ui.test.cjs",
-    "tests/chat_browser_fixture.py",
-    "tests/http_client.py",
     "tests/integrations-ui.test.cjs",
     "tests/ollama_disposable.py",
+    "tests/pagination-ui.test.cjs",
+    "tests/phase39-ui.test.cjs",
     "tests/private_artifacts.py",
     "tests/review-restrictions-browser.cjs",
     "tests/synthetic_datasets.py",
+    "tests/test_ai05_collection_privacy.py",
     "tests/test_backend_localization.py",
+    "tests/test_chat_dataset_context.py",
     "tests/test_chat_engine.py",
     "tests/test_chat_hardware.py",
     "tests/test_chat_http.py",
@@ -234,7 +240,7 @@
     },
     "app/clean_export.py": {
       "destination": "app/clean_export.py",
-      "sha256": "db6adb31f9970f58c186407fda8d360e6bb9175afef0f5c765ad8410fe0d1f77"
+      "sha256": "5302db093dcc572cb819327aa4f7b53ef34ea4159d3122bc0ee40e94a0f8cbaa"
     },
     "app/dataset_balancer.py": {
       "destination": "app/dataset_balancer.py",
@@ -258,7 +264,7 @@
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
-      "sha256": "182343ed9610d8a4141378a174fc9d3d9effc0eec1f3103cef14db9eca082f4b"
+      "sha256": "80a535e2871584fb3adde58f8377ab2bd8b6267fe79b54d25df9c8217fd9e8f2"
     },
     "app/review_lifecycle.py": {
       "destination": "app/review_lifecycle.py",
@@ -266,7 +272,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "b5f3d44897cc919ed08a4779545efa3cd6d618777abac287edb7f4ddbc6976db"
+      "sha256": "5fab47bf94fcc653a87cf3cf71436c81fa5f3d116113b968c908baf10695e548"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",
@@ -507,6 +513,10 @@
     "scripts/install.ps1": {
       "destination": "scripts/install.ps1",
       "sha256": "d46aabd4584650c8a23aa46ac360aad961b4664b4d7da64ae12e53a7563db8a0"
+    },
+    "app/collection_context.py": {
+      "destination": "app/collection_context.py",
+      "sha256": "9237cb56fad70b372d2319eabcbb870271bd717fdc9cc04cbec4910aff43bea3"
     }
   }
 }

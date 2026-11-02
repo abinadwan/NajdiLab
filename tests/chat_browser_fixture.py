@@ -30,7 +30,11 @@ class BrowserEngine(Engine):
             stop.wait(5)
         if messages[-1]['content']=='DELAY_FIXTURE':
             time.sleep(0.35)  # allow typing a newer draft before synthetic completion
-        return super().generate(messages,reserve,stop)
+        result = super().generate(messages,reserve,stop)
+        if messages[-1]['content']=='MARKDOWN_FIXTURE':
+            result['content']='# Heading\n\n**bold** and `code`\n\n- one\n- two\n\n```html\n<img src=x onerror=alert(1)>\\n\n```\n\n<script>alert(1)</script> [link](javascript:alert(1)) &lt;b&gt;'
+            result['content']+='\n\n\\*\\*literal\\*\\*'
+        return result
 
 
 def main():

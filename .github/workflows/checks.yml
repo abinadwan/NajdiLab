@@ -56,6 +56,8 @@ jobs:
               stream.write('NAJDILAB_BROWSER_ARTIFACTS=browser-evidence\n')
       - run: node tests/chat-browser.cjs
         timeout-minutes: 10
+      - run: node tests/chat-enhancements-browser.cjs
+        timeout-minutes: 10
       - run: node --test tests/review-restrictions-browser.cjs
         timeout-minutes: 10
       - run: node --test tests/i18n-browser.cjs
