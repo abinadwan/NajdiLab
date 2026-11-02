@@ -61,14 +61,18 @@ async function api(path, options={}, retried=false) {
 function toast(message, error=false) {
   // UX-19: successful notifications may expire, but actionable errors must
   // remain visible until the user dismisses them or an updated status replaces.
-  const el=$('#toast');clearTimeout(toast.timer);el.textContent=String(message);
+  const el=$('#toast');clearTimeout(toast.timer);el.textContent='';
+  const text=document.createElement('span');text.className='toast-message';text.textContent=String(message);
+  el.append(text);
   el.className=error?'toast show error':'toast show';
   el.setAttribute('role',error?'alert':'status');
   el.setAttribute('aria-live',error?'assertive':'polite');
   if(error){
+    // The glyph is hidden from assistive technology so the alert reads only the message.
     const close=document.createElement('button');
     close.type='button';close.className='toast-dismiss';close.setAttribute('aria-label','Dismiss error');
-    close.textContent='×';close.onclick=()=>{el.className='toast';el.textContent='';};
+    const glyph=document.createElement('span');glyph.setAttribute('aria-hidden','true');glyph.textContent='×';
+    close.append(glyph);close.onclick=()=>{el.className='toast';el.textContent='';};
     el.append(close);return;
   }
   toast.timer=setTimeout(()=>{el.className='toast';},2800);

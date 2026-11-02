@@ -31,7 +31,7 @@ test('UX-13 dataset library refreshes from API and never selects a deleted/stale
   assert.equal(apiCalls.length,2);
 });
 
-test('UX-27 a delayed response for old eval version cannot overwrite the newest results',async()=>{
+function evaluationHarness(){
   const els=new Map(),element=key=>{
     if(!els.has(key))els.set(key,{value:'',textContent:'',innerHTML:''});
     return els.get(key);
@@ -43,16 +43,42 @@ test('UX-27 a delayed response for old eval version cannot overwrite the newest 
     esc:String,JSON
   };
   vm.createContext(context);vm.runInContext(evaluation,context);
-  element('#eval-version').value='gold-v1';
-  const older=context.loadEvalSets();await Promise.resolve();
-  element('#eval-version').value='gold-v2';
-  const newest=context.loadEvalSets();await Promise.resolve();
+  // Wait until the controller has actually issued the request, instead of guessing tick counts.
+  const requested=async path=>{
+    for(let i=0;i<100&&!pending.has(path);i++)await new Promise(resolve=>setImmediate(resolve));
+    assert.ok(pending.has(path),'expected request '+path);
+  };
   const data={leakage_free:true,train_count:1,eval_count:0,eval_files:[],conversation_overlap_count:0,exact_target_overlap_count:0};
-  pending.get('/api/v1/dataset-versions/gold-v2/eval-sets')(data);
+  return {context,element,pending,requested,data};
+}
+const OLD='/api/v1/dataset-versions/gold-v1/eval-sets',NEW='/api/v1/dataset-versions/gold-v2/eval-sets';
+
+test('UX-27 a delayed response for old eval version cannot overwrite the newest results',async()=>{
+  const {context,element,pending,requested,data}=evaluationHarness();
+  element('#eval-version').value='gold-v1';
+  const older=context.loadEvalSets();await requested(OLD);
+  element('#eval-version').value='gold-v2';
+  const newest=context.loadEvalSets();await requested(NEW);
+  pending.get(NEW)(data);
   await newest;
   assert.match(element('#eval-version-identity').textContent,/gold-v2/);
-  pending.get('/api/v1/dataset-versions/gold-v1/eval-sets')({...data,leakage_free:false});
+  pending.get(OLD)({...data,leakage_free:false});
   await older;
   assert.match(element('#eval-version-identity').textContent,/gold-v2/);
   assert.doesNotMatch(element('#eval-version-identity').textContent,/gold-v1/);
+});
+
+test('UX-27 an old response that arrives first is discarded while the new request is pending',async()=>{
+  const {context,element,pending,requested,data}=evaluationHarness();
+  element('#eval-version').value='gold-v1';
+  const older=context.loadEvalSets();await requested(OLD);
+  element('#eval-version').value='gold-v2';
+  const newest=context.loadEvalSets();await requested(NEW);
+  pending.get(OLD)({...data,leakage_free:false});
+  await older;
+  assert.equal(element('#eval-version-identity').textContent,'Checking evaluation integrity for gold-v2…');
+  assert.equal(element('#eval-status-card').innerHTML,'');
+  pending.get(NEW)(data);
+  await newest;
+  assert.equal(element('#eval-version-identity').textContent,'Evaluation results for gold-v2 · No leakage detected');
 });

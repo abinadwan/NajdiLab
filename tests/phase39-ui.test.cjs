@@ -6,7 +6,7 @@ const vm=require('node:vm');
 
 const source=fs.readFileSync('static/app.js','utf8');
 const start=source.indexOf('async function loadPhase39Verification(){');
-const end=source.indexOf('async function ensureDatasetVersions(){',start);
+const end=source.indexOf('async function ensureDatasetVersions(',start);
 assert.ok(start>=0&&end>start,'expected Phase39 view/controller implementation');
 
 function fixture(records){

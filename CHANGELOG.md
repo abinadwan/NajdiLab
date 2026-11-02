@@ -13,6 +13,12 @@ Initial increment only; **31 original Phase B findings are not yet complete**. A
 
 
 
+### Phase B CI repair and Actions cost control
+- Fixed the `review-restrictions-browser.cjs` failures that kept `Source checks` red since UX-07: the test assumed an empty restored note and did not handle the intentional `beforeunload`/`confirm` guards. The test now asserts the restored server value and each guard prompt.
+- UX-19: the error toast's dismiss glyph is hidden from screen readers so alerts announce only the message; the message has its own `.toast-message` element.
+- `Source checks` now runs `tests/phase39-ui.test.cjs` and `tests/dataset-identity-ui.test.cjs`, which had never run in CI and were both broken: a stale code-slice marker after UX-13 (phase39) and a tick-count timing assumption (UX-27; product guard correct, mutation-checked). `tests/test_ci_workflows.py` guards that every Node unit test is wired.
+- Both heavy workflows cancel superseded runs, skip draft-PR pushes, allow manual dispatch and have job/step timeouts. See `docs/developer-setup.md`.
+
 ### Phase B functional UX increment (implementation pending verification)
 - UX-04: display review-collection outcome on each persisted model answer without treating a pair as approved training data.
 - UX-08: never clear a newer draft when an older send completes; synthetic delayed-browser and Node regressions added.

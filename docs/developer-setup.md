@@ -24,6 +24,18 @@ Synthetic fixtures are included. Specific historical tests declare private file 
 
 `python -m unittest discover -s tests -v` is supplementary: it omits function-style pytest cases. Tests create temporary databases and patch paths; understand imports before running historical utilities. Training/download/deployment is never onboarding or CI.
 
+## Continuous integration policy
+
+`Source checks` (Windows and Ubuntu: Python suite, Node unit tests, Chromium acceptance) and `Source-only candidate` (packaged Core on Windows and Ubuntu) are heavy. To avoid spending runner time on every intermediate commit:
+
+- Pushes to a **draft** pull request start no heavy job. Run local checks first: `python -m pytest -q tests -rs`, `node --test tests/*.test.cjs` and the Chromium suites with `NAJDILAB_BROWSER_EXECUTABLE` and `NODE_PATH` set.
+- To verify a specific draft HEAD on hosted Windows and Ubuntu, start both workflows manually from the Actions tab (**Run workflow** on the branch), or with `gh workflow run checks.yml --ref <branch>` and `gh workflow run public-source-candidate.yml --ref <branch>`. GitHub offers manual runs only once the `workflow_dispatch` trigger exists on the default branch; until then, mark the PR **Ready for review** to start one run, then convert it back to draft.
+- Opening a PR, marking it **Ready for review**, every push to a ready PR, and every push to `main` run the full matrix automatically.
+- A newer run for the same PR or ref cancels the older one (`concurrency`). Jobs time out after 30 minutes and each Chromium step after 10.
+- Every `tests/*.test.cjs` must be listed in `checks.yml`; `tests/test_ci_workflows.py` fails otherwise.
+
+A skipped job on a draft is not a pass. Merge decisions require a completed green run on the final HEAD.
+
 ## Debugging, logs and first contribution
 
 Use a free NAJDILAB_PORT and no-demo launch. `python -m pdb scripts/launch.py` supports backend debugging with the selected supported interpreter; continuing can initialize this checkout's DB. Browser developer tools inspect plain JS. Local tracebacks may contain private paths/content; redact before sharing. Never log real bearer secrets, conversation HMAC payloads or session values in public issues.

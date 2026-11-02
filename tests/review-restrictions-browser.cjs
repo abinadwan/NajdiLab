@@ -40,8 +40,11 @@ test('review restriction integrity in Chromium',async t=>{
       await page.waitForSelector('#view-conversations.active');
       await page.click('[data-view="review-queue"]');
       await page.waitForSelector('#view-review-queue.active');
-      await page.waitForFunction(()=>document.querySelector('#review-notes').value==='');
-      assert.equal(await page.$eval('#review-notes',el=>el.value),'');
+      // Discarding restores the server-saved value, never the abandoned draft.
+      const saved=(await read()).items[0].review_notes;
+      assert.notEqual(saved,'Unsaved synthetic review draft');
+      await page.waitForFunction(value=>document.querySelector('#review-notes').value===value,{},saved);
+      assert.equal(await page.$eval('#review-notes',el=>el.value),saved);
     });
     await t.test('initial load and refresh show saved restrictions and tags',async()=>{
       assert.deepEqual(await checked(),[true,true,true,true,true]);
@@ -81,7 +84,13 @@ test('review restriction integrity in Chromium',async t=>{
       assert.equal(await page.$eval('#save-review',e=>e.disabled),false);
     });
     await t.test('correction and explicit flag change preserve unrelated restrictions',async()=>{
+      // The previous step intentionally left an unsaved draft: reload must raise the
+      // beforeunload guard, and only an explicit accept may discard it.
+      const unload=[];const leave=dialog=>{unload.push(dialog.type());dialog.accept();};
+      page.on('dialog',leave);
       await page.reload();await page.waitForFunction(()=>document.querySelector('#queue-position').textContent.includes('of 3'));
+      page.off('dialog',leave);
+      assert.deepEqual(unload,['beforeunload']);
       assert.deepEqual(await checked(),[true,true,true,true,true]);
       await page.click('#contains-personal');
       await page.click('#edit-review');await page.click('[data-status="DIALECT_CORRECTION"]');
@@ -100,7 +109,9 @@ test('review restriction integrity in Chromium',async t=>{
       await page.setRequestInterception(true);
       const intercept=request=>request.url().endsWith('/correct')?request.respond({status:500,contentType:'application/json',body:JSON.stringify({error:'Synthetic save failure'})}):request.continue();
       page.on('request',intercept);
-      await page.click('#save-review');await page.waitForFunction(()=>document.querySelector('#toast').textContent==='Synthetic save failure');
+      await page.click('#save-review');await page.waitForFunction(()=>document.querySelector('#toast .toast-message')?.textContent==='Synthetic save failure');
+      assert.equal(await page.$eval('#toast',e=>e.getAttribute('role')),'alert');
+      assert.equal(await page.$eval('#toast .toast-dismiss',e=>e.getAttribute('aria-label')),'Dismiss error');
       assert.equal(await page.$eval('#corrected-response',e=>e.value),'مسودة غير محفوظة');
       assert.deepEqual(await checked(),[true,true,true,true,true]);
       const after=(await read()).items[0];assert.deepEqual(after,before);
@@ -111,7 +122,13 @@ test('review restriction integrity in Chromium',async t=>{
       await page.evaluate(async items=>{
         for(const r of items)await api(`/api/v1/reviews/${r.id}/exclude`,{method:'POST',body:JSON.stringify({reason:'Synthetic browser exclusion',expected_updated_at:r.updated_at})});
       },pending);
+      // The failed save left an unsaved draft; leaving must ask before discarding it.
+      const prompts=[];const discard=dialog=>{prompts.push([dialog.type(),dialog.message()]);dialog.accept();};
+      page.on('dialog',discard);
       await page.click('[data-view="reviewed"]');
+      await page.waitForSelector('#view-reviewed.active');
+      page.off('dialog',discard);
+      assert.deepEqual(prompts,[['confirm','You have unsaved review changes. Leave and discard this draft?']]);
       await page.select('#filter-status','IGNORED');await page.click('#apply-reviewed-filters');
       await page.waitForSelector(`[data-restore-review="${pending[0].id}"]`);
       await page.type('#bulk-review-reason','Synthetic single-card restoration');

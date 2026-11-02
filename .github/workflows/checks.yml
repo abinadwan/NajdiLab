@@ -1,12 +1,22 @@
 name: Source checks
+# Heavy cross-platform runs are not started for every push to a draft PR. They run when a
+# PR is opened or marked ready for review, on every push to a ready PR, on main, and on
+# demand (Actions > Source checks > Run workflow) to verify a specific draft HEAD.
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   tests:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -27,8 +37,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/integrations-ui.test.cjs
-      - run: node --test tests/chat-ui.test.cjs
+      - run: node --test tests/integrations-ui.test.cjs tests/chat-ui.test.cjs tests/phase39-ui.test.cjs tests/dataset-identity-ui.test.cjs
       - run: python -m pytest -q tests -rs
       - run: npm install --prefix ../chat-browser-tools --ignore-scripts --no-audit --no-fund puppeteer-core@25.16.0
       - name: Locate hosted browser for synthetic Chat acceptance
@@ -46,7 +55,9 @@ jobs:
               stream.write('NODE_PATH=' + str(Path(os.environ['GITHUB_WORKSPACE']).parent / 'chat-browser-tools/node_modules') + '\n')
               stream.write('NAJDILAB_BROWSER_ARTIFACTS=browser-evidence\n')
       - run: node tests/chat-browser.cjs
+        timeout-minutes: 10
       - run: node --test tests/review-restrictions-browser.cjs
+        timeout-minutes: 10
       - uses: actions/upload-artifact@v4
         if: always()
         with:

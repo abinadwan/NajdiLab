@@ -162,6 +162,7 @@
     "tests/test_chat_ollama_real.py",
     "tests/test_chat_sdk_integration.py",
     "tests/test_chat_workspace.py",
+    "tests/test_ci_workflows.py",
     "tests/test_complete_review_queue.py",
     "tests/test_dataset_balancer.py",
     "tests/test_dataset_boundary.py",
