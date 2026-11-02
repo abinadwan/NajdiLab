@@ -142,9 +142,92 @@ async function loadSettingsView(){
   return window.NajdiIntegrations?.load();
 }
 
-async function loadPhase39Verification(){const host=$('#phase39-status'),list=$('#phase39-records');try{const data=await api('/api/v1/phase39/post-edit-verification');state.phase39=data;state.phase39Index=Math.min(state.phase39Index||0,data.records.length-1);if($('#nav-phase39'))$('#nav-phase39').textContent=`${data.summary.verified}/${data.summary.total}`;renderPhase39Verification();}catch(e){host.textContent=`Unable to load verification status: ${e.message}`;host.className='phase38-status error-state';}}
-function renderPhase39Verification(){const data=state.phase39,r=data.records[state.phase39Index],host=$('#phase39-status'),list=$('#phase39-records');host.textContent=`Progress: ${data.summary.verified}/${data.summary.total} · Record ${state.phase39Index+1} of 7`;list.innerHTML=`<article class="phase38-message"><b class="technical-id">${esc(r.record_id)}</b><p dir="auto">${esc(r.record_type)} · ${esc(r.validation_status)} · contamination: ${esc(r.contamination_status||'PASS')} · loss-mask: ${esc(r.loss_mask_status||'PASS')}</p><h4>Original response</h4><p dir="auto">${esc(r.original_assistant_messages)}</p><h4>Reviewer note</h4><p dir="auto">${esc(r.reviewer_note)}</p><h4>Requested correction</h4><p dir="auto">${esc(r.requested_correction)}</p><h4>Applied version</h4><p dir="auto">${esc(r.final_assistant_messages)}</p>${r.record_type==='native_tool_use'?'<p>Tool calls, authoritative results, and record metadata are read-only.</p>':''}</article><label class="wide-label">Verification note<textarea dir="auto" id="phase39-reviewer-note" rows="3">${esc(r.post_edit_note||'')}</textarea></label><div class="phase38-decisions"><button class="button ghost" data-phase39-decision="اعتماد التعديل">Approve edit</button><button class="button ghost" data-phase39-decision="يحتاج تعديل إضافي">Needs further editing</button><button class="button ghost" data-phase39-decision="رفض">Reject</button></div><div class="save-row"><button class="button ghost" data-phase39-nav="prev">Previous</button><button class="button primary" id="phase39-save">Save</button><button class="button ghost" data-phase39-nav="next">Next</button></div>`;$$('[data-phase39-decision]').forEach(b=>b.classList.toggle('selected',b.dataset.phase39Decision===r.decision));bindPhase39Verification();}
-function bindPhase39Verification(){const root=$('#view-phase39-review');root.onclick=async e=>{const nav=e.target.closest('[data-phase39-nav]'),decision=e.target.closest('[data-phase39-decision]');if(nav){state.phase39Index=Math.max(0,Math.min(6,state.phase39Index+(nav.dataset.phase39Nav==='next'?1:-1)));renderPhase39Verification();return;}if(decision){state.phase39Decision=decision.dataset.phase39Decision;$$('[data-phase39-decision]').forEach(b=>b.classList.toggle('selected',b===decision));return;}if(!e.target.closest('#phase39-save'))return;if(!state.phase39Decision){toast('Choose a verification decision first',true);return;}const r=state.phase39.records[state.phase39Index];try{const out=await api(`/api/v1/phase39/post-edit-verification/${encodeURIComponent(r.record_id)}`,{method:'POST',body:JSON.stringify({decision:state.phase39Decision,reviewer_note:$('#phase39-reviewer-note').value})});state.phase39=out.verification;state.phase39Decision=null;toast('Verification saved.');renderPhase39Verification();}catch(err){toast(`Unable to save: ${err.message}`,true);}};}
+// UX-18: the server owns the verification queue; never assume exactly seven rows.
+async function loadPhase39Verification(){
+  const host=$('#phase39-status'),list=$('#phase39-records');
+  host.className='phase38-status';host.textContent='Loading verification status…';list.replaceChildren();
+  try{
+    const data=await api('/api/v1/phase39/post-edit-verification');
+    if(!data||!Array.isArray(data.records)||!data.summary)throw Error('Invalid verification response');
+    state.phase39=data;
+    state.phase39Index=Math.min(Math.max(0,state.phase39Index||0),Math.max(0,data.records.length-1));
+    state.phase39Dirty=false;renderPhase39Verification();
+  }catch(error){
+    state.phase39=null;host.textContent='Unable to load verification status: '+error.message;host.className='phase38-status error-state';
+  }
+}
+function phase39Navigate(delta){
+  if(state.phase39Dirty&&!confirm('You have unsaved verification changes. Discard them?'))return;
+  state.phase39Index=Math.max(0,Math.min(state.phase39.records.length-1,state.phase39Index+delta));
+  state.phase39Dirty=false;renderPhase39Verification();
+}
+function renderPhase39Verification(){
+  const data=state.phase39,host=$('#phase39-status'),list=$('#phase39-records');
+  if(!data||!Array.isArray(data.records))return;
+  const total=data.records.length;
+  if($('#nav-phase39'))$('#nav-phase39').textContent=String(data.summary.verified||0)+'/'+total;
+  if(total===0){
+    host.className='phase38-status';host.textContent='No post-edit verification records available.';
+    list.replaceChildren();return;
+  }
+  const record=data.records[state.phase39Index];
+  state.phase39Decision=record.decision||null;
+  host.className='phase38-status';
+  host.textContent='Progress: '+(data.summary.verified||0)+'/'+total+' · Record '+(state.phase39Index+1)+' of '+total;
+  // No audit verdict must ever be represented as a successful PASS.
+  const fallback=x=>esc(x==null||x===''?'UNVERIFIED':x);
+  list.innerHTML='<article class="phase38-message"><b class="technical-id">'+esc(record.record_id)+'</b><p dir="auto">'+
+    esc(record.record_type)+' · '+fallback(record.validation_status)+' · contamination: '+fallback(record.contamination_status)+
+    ' · loss-mask: '+fallback(record.loss_mask_status)+'</p><h4>Original response</h4><p dir="auto">'+esc(record.original_assistant_messages)+
+    '</p><h4>Reviewer note</h4><p dir="auto">'+esc(record.reviewer_note)+
+    '</p><h4>Requested correction</h4><p dir="auto">'+esc(record.requested_correction)+
+    '</p><h4>Applied version</h4><p dir="auto">'+esc(record.final_assistant_messages)+
+    '</p>'+(record.record_type==='native_tool_use'?'<p>Tool calls, authoritative results, and record metadata are read-only.</p>':'')+
+    '</article><label class="wide-label">Verification note<textarea dir="auto" id="phase39-reviewer-note" rows="3">'+esc(record.post_edit_note||'')+
+    '</textarea></label><div class="phase38-decisions" role="group" aria-label="Verification decision">'+
+    '<button type="button" class="button ghost" data-phase39-decision="اعتماد التعديل">Approve edit</button>'+
+    '<button type="button" class="button ghost" data-phase39-decision="يحتاج تعديل إضافي">Needs further editing</button>'+
+    '<button type="button" class="button ghost" data-phase39-decision="رفض">Reject</button></div>'+
+    '<p id="phase39-save-state" role="status" aria-live="polite"></p><div class="save-row">'+
+    '<button type="button" class="button ghost" data-phase39-nav="prev" '+(state.phase39Index===0?'disabled':'')+'>Previous</button>'+
+    '<button type="button" class="button primary" id="phase39-save" '+(state.phase39Decision?'':'disabled')+'>Save</button>'+
+    '<button type="button" class="button ghost" data-phase39-nav="next" '+(state.phase39Index===total-1?'disabled':'')+'>Next</button></div>';
+  $$('[data-phase39-decision]').forEach(button=>{
+    const selected=button.dataset.phase39Decision===state.phase39Decision;
+    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  });
+  bindPhase39Verification();
+}
+function bindPhase39Verification(){
+  const root=$('#view-phase39-review');
+  root.oninput=event=>{if(event.target.id==='phase39-reviewer-note')state.phase39Dirty=true;};
+  root.onclick=async event=>{
+    const nav=event.target.closest('[data-phase39-nav]'),decision=event.target.closest('[data-phase39-decision]');
+    if(nav){phase39Navigate(nav.dataset.phase39Nav==='prev'?-1:1);return;}
+    if(decision){
+      state.phase39Decision=decision.dataset.phase39Decision;state.phase39Dirty=true;
+      $$('[data-phase39-decision]').forEach(button=>{
+        const selected=button===decision;
+        button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+      });$('#phase39-save').disabled=false;return;
+    }
+    if(!event.target.closest('#phase39-save'))return;
+    if(!state.phase39Decision){$('#phase39-save-state').textContent='Choose a verification decision first.';return;}
+    const record=state.phase39.records[state.phase39Index],button=$('#phase39-save'),note=$('#phase39-reviewer-note').value;
+    button.disabled=true;$('#phase39-save-state').textContent='Saving…';
+    try{
+      const result=await api('/api/v1/phase39/post-edit-verification/'+encodeURIComponent(record.record_id),{
+        method:'POST',body:JSON.stringify({decision:state.phase39Decision,reviewer_note:note})
+      });
+      if(!result||!result.verification||!Array.isArray(result.verification.records))throw Error('Invalid save acknowledgement');
+      state.phase39=result.verification;
+      state.phase39Index=Math.min(state.phase39Index,Math.max(0,state.phase39.records.length-1));
+      state.phase39Dirty=false;renderPhase39Verification();toast('Verification saved.');
+    }catch(error){
+      button.disabled=false;button.textContent='Retry save';$('#phase39-save-state').textContent='Unable to save: '+error.message;
+    }
+  };
+}
 
 async function ensureDatasetVersions(){
   if(!state.datasetVersions.length){const data=await api('/api/v1/dataset-versions');if(!Array.isArray(data.items))throw new Error('Invalid dataset version response');state.datasetVersions=data.items;}
