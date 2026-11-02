@@ -25,7 +25,7 @@ const puppeteer=require('puppeteer-core');
         url:page.url(),pageErrors:errors,
         toast:await page.$eval('#toast',e=>e.textContent).catch(()=>'(missing)'),
         chatNotice:await page.$eval('#chat-notice',e=>e.textContent).catch(()=>'(missing)'),
-        options:await page.$eval('#chat-provider option',es=>es.map(e=>e.value)),
+        options:await page.evaluate(()=>Array.from(document.querySelectorAll('#chat-provider option'),e=>e.value)),
         text:await page.$eval('body',e=>e.textContent.slice(0,700)).catch(()=>'(missing)')
       }));
       throw error;
