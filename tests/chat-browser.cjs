@@ -72,13 +72,47 @@ const puppeteer=require('puppeteer-core');
     // Reading specs must not stale the conversation that is already open.
     await page.type('#chat-draft','Second question after reading specs');await page.click('#chat-send');
     await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===4);
+    // UX-08: completing an earlier request cannot erase text typed while it ran.
+    await page.$eval('#chat-draft',e=>e.value='DELAY_FIXTURE');
+    await page.click('#chat-send');
+    await page.waitForFunction(()=>!document.querySelector('#chat-stop').disabled);
+    await page.$eval('#chat-draft',e=>e.value='New draft typed while model was replying');
+    await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===6);
+    assert.equal(await page.$eval('#chat-draft',e=>e.value),'New draft typed while model was replying');
+    assert.match(await page.$eval('.chat-message:nth-child(6) .chat-review-status',e=>e.textContent),/Not collected for review/);
+    // UX-14: dialog tabs must never change Add Data tabs when they are outside the dialog.
+    await page.click('[data-view="add-data"]');
+    await page.waitForSelector('#form-sft.active');
+    await page.evaluate(()=>document.querySelector('.dialog-tabs [data-manual-tab="details"]').click());
+    assert.equal(await page.$eval('#form-sft',e=>e.classList.contains('active')),true);
+    // UX-15: deleting all turns must produce a handled error, never a null .value crash.
+    await page.evaluate(()=>document.querySelectorAll('#sft-turns .turn-row button').forEach(button=>button.click()));
+    await page.click('#form-sft button[type="submit"]');
+    await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Add at least a user turn'));
+    // UX-06: show every blocker and escape untrusted reasons in the persistent panel.
+    await page.evaluate(()=>{
+      const original=window.api;
+      window.api=async (path,...args)=>{
+        if(path.startsWith('/api/v1/exports/dedup-report'))return {record_count:5,exact_duplicate_groups:[],near_duplicates:[]};
+        if(path.startsWith('/api/v1/exports/readiness'))return {
+          ok:false,blocking_findings:Array.from({length:5},(_,i)=>({sample_id:'review:'+i,reason:i===4?'<img src=x onerror=alert(1)>':'reason-'+i}))
+        };
+        return original(path,...args);
+      };
+    });
+    await page.click('[data-view="exports"]');
+    await page.waitForSelector('#preview-dedup');
+    await page.click('#preview-dedup');
+    await page.waitForFunction(()=>document.querySelectorAll('.export-blockers li').length===5);
+    assert.equal(await page.$('.export-blockers img'),null);
+    assert.match(await page.$eval('.export-blockers li:last-child',e=>e.textContent),/<img src=x onerror/);
     await page.goto(base+'/training/setup');await page.waitForSelector('#view-dashboard.active');
     assert.equal(await page.$('#view-retired'),null);
     assert.equal(await page.$('#view-human-review'),null);
     assert.equal((await page.evaluate(async()=>fetch('/api/v1/training/jobs').then(r=>r.status))),404);
     assert.equal(await page.$('#training-setup-form'),null);
     assert.deepEqual(errors,[]);
-    console.log('PASS: real browser raw text/HTML escaping, opt-in pending queue/privacy, reload/history, overflow/no replay, Stop, Ollama load approval and absent training views/routes. Synthetic engines only.');
+    console.log('PASS: browser chat privacy/outcomes/drafts, consent, Stop, manual tabs/empty turns, all export blockers, Ollama and absent training routes; synthetic fixtures only.');
   }finally{
     if(browser)await browser.close();child.kill();
   }
