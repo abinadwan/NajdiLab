@@ -17,7 +17,7 @@ Initial increment only; **31 original Phase B findings are not yet complete**. A
 - QA-07: optional timestamped ingest signatures (`X-NajdiLab-Timestamp`) refuse stale and replayed requests; `NAJDILAB_REQUIRE_FRESH_SIGNATURE=1` makes them mandatory. Existing senders keep working.
 - QA-06: `GET /api/v1/hermes-hook/refusals` shows whether anything still delivers to the blocked Hermes hook, without storing request content.
 - QA-04: symlink and junction refusal is tested without needing permission to create links.
-- QA-08: retention and deletion semantics are tested end to end and documented in `docs/data-retention.md`; nothing is physically erased, and erasure awaits an owner decision.
+- QA-08: retention and deletion semantics are tested end to end and documented in `docs/data-retention.md`. Owner approved logical deletion/exclusion/archive for Phase B (2026-11-02); true erasure is a separate future feature, not implemented or promised today.
 - QA-03 stays blocked on private historical files that must not be recreated.
 
 ### Phase B UX-05 complete content (local, pending hosted verification)

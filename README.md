@@ -23,7 +23,7 @@ This source cleanup implements the dataset-only scope. It performs no installed 
 
 **Hardware:** explicit read-only device and selected-model evidence, with model maximum, runtime context, measured use and estimated feasibility reported separately. A suggested context is an **unverified estimate**, never a safe limit; without the inputs no number is given. No 64K guarantee or allocation stress test.
 
-Saved text and raw review archives can contain private information. Collection consent is not text anonymization. Archive retains data and old exports while excluding linked reviews from future selection; physical erasure is deferred for a separately reviewed retention decision. New Unsloth handoffs require the new context privacy attestation; preserve historical exports and build a fresh reviewed version instead of rewriting them.
+Saved text and raw review archives can contain private information. Collection consent is not text anonymization. Archive retains data and old exports while excluding linked reviews from future selection; the owner approved logical deletion/exclusion/archival for Phase B (2026-11-02); physical erasure remains unavailable and is deferred to a separately authorized feature. New Unsloth handoffs require the new context privacy attestation; preserve historical exports and build a fresh reviewed version instead of rewriting them.
 
 ## Run and develop
 

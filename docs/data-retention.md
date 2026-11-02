@@ -17,8 +17,18 @@ Rules that make this so:
 - `full_archive.json` in each new export intentionally contains every review, including ignored and deleted ones, so a version can be audited later.
 - Backups (`scripts/backup.py`) copy the whole database and `exports/`.
 
+## Approved Phase B retention policy (owner decision — 2026-11-02)
+
+The owner approved **logical deletion, exclusion and archiving only for Phase B**, preserving the current audit trail and historical exports. Physical erasure is **explicitly deferred as a separate future feature**, not promised by today's Delete controls. This decision resolves the *scope/policy choice* for QA-08; it does **not** turn skipped or unexecuted acceptance checks into a PASS.
+
+Operational safeguards:
+- UI/documentation must not describe current deletion as irreversible or permanent.
+- Excluded/deleted content must not enter new training-selection files, but **the local database, audit history, full archives of new exports, past exports and backups can still contain its text**.
+- Treat full archives, backups, and exports as potentially sensitive; do not distribute them on the assumption that deleted records were purged.
+- Requests for actual erasure need a separately designed, authorized workflow covering database content, immutable audit evidence, frozen versions, generated full archives, backups, and downstream copies, with a verifiable outcome. No destructive migration or purge is approved in Phase B.
+
 ## What this means for a deletion request
 
-If someone asks for their content to be removed, deleting it in NajdiLab is **not enough**: the text stays in the database, earlier exports, later full archives and backups. Physical erasure across all of these is not implemented. It would need an explicit owner decision because it must override the immutability of review events and frozen exports, and reach existing backups and any copies already handed to external training. Until then, handle such a request manually and record what was removed where.
+If someone asks for their content to be removed, deleting it in NajdiLab is **not enough**: the text stays in the database, earlier exports, later full archives and backups. Physical erasure across all of these is not implemented. The owner has deferred implementing erasure to a separate future feature because it must address immutable review events, frozen exports, backups and copies already handed to external training. Until there is an approved and tested removal process, do not promise complete erasure; handle requests with an explicit record of what remains and where.
 
 Related: [backup and restore](backup-and-restore.md), [review and quality](review-and-quality.md), [dataset export](dataset-export.md).
