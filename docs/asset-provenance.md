@@ -21,3 +21,14 @@ The retained own-Chat PNG is actual synthetic-engine UI evidence, not installed-
 Core's separate geometric SVG/generator and eight PNGs are AI-assisted engineering/capture of an independently fictional Arabic workshop through the actual UI. No mocked API, image inpainting, bundled font/icon art or research record was substituted. Seven captures are1440×1000; artifact access is1218×256. Browser/OS system-font rendering does not distribute font binaries. Exact dated Core hashes/mappings remain in [rights evidence](rights-evidence.md); current source changes require new manifest verification. [Core screenshots](../public_source/docs/screenshots.md).
 
 Old render evidence (68 text labels, zero overlap/outside, minimum contrast6.72:1, deterministic regeneration, no PNG text/EXIF metadata) applied to the old SVG/capture set, not the replacement diagram. Current diagram checks must be recorded separately. [Verification](verification-evidence.md), [release gates](public-release-decision.md).
+
+## Chat Experience V2 captures (2026-11-02)
+
+Captured by `tests/readme-screenshots.cjs` with headless Chromium (Playwright build 1243) from the synthetic browser fixture: an empty temporary database, a synthetic engine and fixed synthetic text (titles such as "Second synthetic topic", a Markdown sample). No real conversation, model output, personal data, external icon, font file or third-party image is included; browser system fonts render the text. `dashboard.png` replaces the PR #11-removed dashboard capture (old hash above) with the current interface. The architecture SVG generator received text-only updates (Native runtime, streaming, deletion scope); it still uses only its own shapes and text. Ownership and redistribution rights remain the owner's decision as for the other assets.
+
+| Image | SHA256 |
+|---|---|
+| dashboard.png | `492e58d782029a4b9fa659c52e4b7ff95d0988b5f287cb904e8a5575f14c5a2d` |
+| chat-v2-desktop.png | `09bdadbf27c182ff21dd0f9433756d6f09ed81e6ed5ae44e528304ee705fc324` |
+| chat-v2-arabic.png | `e8d8593acc36d9010a8f53d1a881fbeb8e19152fdf6c7be295f699745e5ec450` |
+| chat-v2-mobile.png | `c0172e101bc58f91ff39d7f0d91ab6fa95386e49be47d2c9e0f7c2eac75a2643` |
