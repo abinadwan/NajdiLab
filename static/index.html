@@ -136,13 +136,14 @@
             <div class="field"><label for="reviewer-identity">Reviewer identity</label><select id="reviewer-identity"><option value="human">Human reviewer</option><option value="ai_suggestion">Machine suggestion reviewed by a human</option><option value="import">Imported decision</option></select></div>
             <div class="field"><label>Error tags <span class="muted">Optional; select multiple</span></label><div id="error-tags" class="tag-picker"></div></div>
             <div class="check-grid">
-              <label><input id="training-eligible" type="checkbox"> Eligible for dataset export (separate from review approval)</label>
+              <label><input id="training-eligible" type="checkbox" aria-describedby="review-eligibility-help"> Eligible for dataset export (separate from review approval)</label>
               <label><input id="evaluation-only" type="checkbox"> Evaluation only</label>
               <label><input id="exclude-training" type="checkbox"> Permanently exclude from dataset selection</label>
               <label><input id="needs-fact-check" type="checkbox"> Needs fact checking</label>
               <label><input id="contains-personal" type="checkbox"> Contains personal data</label>
               <label><input id="contains-sensitive" type="checkbox"> Contains sensitive data</label>
             </div>
+            <p id="review-eligibility-help" class="muted" role="note">Approve judges the response quality. Dataset eligibility is an independent decision and remains off unless explicitly checked. Any privacy, holdout, or exclusion restriction still blocks export.</p>
             <div id="correction-save-row" class="save-row hidden"><button id="cancel-edit-review" class="button ghost">Cancel edit</button><button id="save-review" class="button primary" disabled>Save edit and continue</button></div>
           </section>
         </div>
