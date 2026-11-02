@@ -2,6 +2,8 @@
 html{direction:ltr}
 body{text-align:start;overflow-x:hidden}
 .shell{direction:ltr;grid-template-columns:240px minmax(0,1fr)}
+/* UX-24: the expanded .shell rule otherwise overrides the collapsed grid. */
+.shell.sidebar-collapsed{grid-template-columns:76px minmax(0,1fr)}
 .sidebar{grid-column:1;direction:ltr;inset-inline-start:0}
 .main{grid-column:2;direction:ltr}
 .top-actions{margin-inline-start:auto;margin-inline-end:0}
@@ -45,3 +47,5 @@ body{text-align:start;overflow-x:hidden}
 [dir="auto"],bdi{unicode-bidi:isolate;text-align:start}
 textarea[dir="auto"]{unicode-bidi:plaintext}
 .message p,.phase38-message p,.full-text{overflow-wrap:anywhere}
+
+@media(max-width:760px){.shell.sidebar-collapsed{display:block;grid-template-columns:none}}
