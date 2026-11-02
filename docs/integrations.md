@@ -1,12 +1,16 @@
 # Settings → Integrations
 
-Open Settings to run a bounded read-only discovery. This release supports two local model-runtime APIs and a blocked Hermes conversation-source connector. No service is installed, started, stopped, configured or downloaded. No dataset or historical job evidence is changed.
+Settings → Models & Integrations shows Ollama and LM Studio as optional model runtimes for NajdiLab-owned chat. A read-only discovery probes those supported runtimes; no service is installed, started, stopped, configured or downloaded. No dataset or historical job evidence is changed. The legacy Hermes connector is deliberately **not displayed** in Settings; its unsafe receiver remains blocked in the backend.
 
 | Connector | Discovery | Approved behavior | Limitations |
 |---|---|---|---|
 | LM Studio | `http://127.0.0.1:1234/v1/models`, `.lmstudio` directory marker | Connect, select an available model, synthetic `/v1/chat/completions` test, local disconnect | No automatic application history; authentication-required APIs unsupported |
 | Ollama | `http://127.0.0.1:11434/api/tags`, `.ollama` directory marker | Connect, select a listed model, synthetic `/api/generate` test, local disconnect | No automatic application history, pulls, unloads or process management |
-| Hermes Agent | `.hermes` directory marker only | Verify local receiver block | Collection/connect/test BLOCKED; external sender disconnect UNVERIFIED |
+
+
+**Backend safety boundary:** Hermes may still appear in internal integration API snapshots because the fail-closed receiver and compatibility guards must remain enforceable. The Settings controller filters it out of both rendered cards and selectable action state. There is no Hermes connect/test/disconnect control in NajdiLab Settings. No installed Hermes or Gateway configuration is touched.
+
+**Future-only option:** The Settings page previews Hugging Face Direct as unavailable. It does not offer downloads or model execution until a separately authorized later phase.
 
 Markers are metadata hints under the launching user's home, not an installation/version guarantee. Missing marker and available API can coexist. Custom homes, WSL installations, IPv6-only servers, custom ports, remote services and credential-required APIs are intentionally unsupported. Nothing recursively searches a disk, imports an installed client, or reads config/history/secret files. Symlink/reparse and explicit UNC paths are refused. Windows markers require a fixed local drive (mapped/remote/unknown drives are refused); Linux markers require an allowlisted local filesystem in bounded kernel mount metadata. Marker discovery is skipped on other or unverified filesystems before directory metadata access. No path is returned to the UI.
 
