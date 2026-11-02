@@ -52,3 +52,11 @@ test('hardware report states when no reliable recommendation exists',()=>{
   assert.match(text,/Model maximum context: Unknown/);
   assert.match(text,/Runtime context now: Not loaded/);
 });
+
+test('newer typing is never cleared by an older completed Send; rollover and failed requests keep drafts',()=>{
+  const {shouldClearDraft}=require('../static/chat.js');
+  assert.equal(shouldClearDraft('old question','new unfinished question','COMPLETED'),false);
+  assert.equal(shouldClearDraft('old question','old question','COMPLETED'),true);
+  assert.equal(shouldClearDraft('old question','old question','CONTEXT_LIMIT'),false);
+  assert.equal(shouldClearDraft('old question','old question','FAILED'),false);
+});
