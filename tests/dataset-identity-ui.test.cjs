@@ -1,0 +1,58 @@
+// Synthetic-only controller acceptance for UX-13 and UX-27.
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const vm=require('node:vm');
+const fs=require('node:fs');
+const src=fs.readFileSync('static/app.js','utf8');
+const catalog=src.slice(src.indexOf('async function ensureDatasetVersions('),src.indexOf('function pct(',src.indexOf('async function ensureDatasetVersions(')));
+const library=src.slice(src.indexOf('async function loadDatasetVersions('),src.indexOf('async function showVersionDetail(',src.indexOf('async function loadDatasetVersions(')));
+const evaluation=src.slice(src.indexOf('async function loadEvalSets('),src.indexOf('async function loadDashboard(',src.indexOf('async function loadEvalSets(')));
+assert.ok(catalog.startsWith('async function')&&library.startsWith('async function')&&evaluation.startsWith('async function'));
+
+test('UX-13 dataset library refreshes from API and never selects a deleted/stale version',async()=>{
+  const elements=new Map(),byName=key=>{
+    if(!elements.has(key))elements.set(key,{value:'',innerHTML:''});
+    return elements.get(key);
+  };
+  const apiCalls=[];let result=[{version:'current-1',readable:true,created_at:'2026-01-01'}];
+  const context={
+    state:{datasetVersions:[{version:'deleted',readable:true}],selectedDataset:'deleted'},
+    $:byName,api:async path=>{apiCalls.push(path);return {items:result};},
+    selectedVersion:()=>'',esc:String,fmtDate:()=>'',showVersionDetail:async version=>{context.selected=version;}
+  };
+  vm.createContext(context);
+  vm.runInContext(catalog+'\n'+library,context);
+  await context.loadDatasetVersions();
+  assert.equal(context.selected,'current-1');
+  assert.ok(!byName('#version-list').innerHTML.includes('deleted'));
+  result=[{version:'current-2',readable:true}];
+  await context.loadDatasetVersions();
+  assert.equal(context.selected,'current-2');
+  assert.equal(apiCalls.length,2);
+});
+
+test('UX-27 a delayed response for old eval version cannot overwrite the newest results',async()=>{
+  const els=new Map(),element=key=>{
+    if(!els.has(key))els.set(key,{value:'',textContent:'',innerHTML:''});
+    return els.get(key);
+  };
+  const pending=new Map();
+  const context={
+    state:{},$:element,ensureDatasetVersions:async()=>{},
+    api:path=>new Promise(resolve=>pending.set(path,resolve)),
+    esc:String,JSON
+  };
+  vm.createContext(context);vm.runInContext(evaluation,context);
+  element('#eval-version').value='gold-v1';
+  const older=context.loadEvalSets();await Promise.resolve();
+  element('#eval-version').value='gold-v2';
+  const newest=context.loadEvalSets();await Promise.resolve();
+  const data={leakage_free:true,train_count:1,eval_count:0,eval_files:[],conversation_overlap_count:0,exact_target_overlap_count:0};
+  pending.get('/api/v1/dataset-versions/gold-v2/eval-sets')(data);
+  await newest;
+  assert.match(element('#eval-version-identity').textContent,/gold-v2/);
+  pending.get('/api/v1/dataset-versions/gold-v1/eval-sets')({...data,leakage_free:false});
+  await older;
+  assert.match(element('#eval-version-identity').textContent,/gold-v2/);
+  assert.doesNotMatch(element('#eval-version-identity').textContent,/gold-v1/);
+});
