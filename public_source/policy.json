@@ -91,6 +91,7 @@
     "migrations/005_chat_workspace.sql",
     "migrations/006_chat_session_binding.sql",
     "migrations/007_review_events.sql",
+    "migrations/registry.json",
     "plans/phase13/005_dataset_registry.sql",
     "plans/phase2/006_review_events.sql",
     "public_source/.policy-generation-note.txt",
@@ -225,7 +226,7 @@
     },
     "app/db.py": {
       "destination": "app/db.py",
-      "sha256": "2ca844d9a682fe5f41152fd50e8cbd69c0582765d20e6e846aa1a2bfc9c4f07e"
+      "sha256": "90ad2bd0c187d67d09a5a0f5a561cfdce7f2a514dfb92787ebf5f3c33306009d"
     },
     "app/http_security.py": {
       "destination": "app/http_security.py",
@@ -262,6 +263,10 @@
     "public_source/README.md": {
       "destination": "README.md",
       "sha256": "04537377771c62fd407ac6d5dd154fbe38ec6e8996266469e9a7ec29bb1242af"
+    },
+    "public_source/migration_registry.json": {
+      "destination": "migrations/registry.json",
+      "sha256": "4d946ef72c0556e234a85ca2353a2a07c15bbc33fe5773e09f9651bd48f26015"
     },
     "public_source/server.py": {
       "destination": "app/server.py",

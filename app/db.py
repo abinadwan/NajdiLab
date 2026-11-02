@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sqlite3
@@ -107,91 +108,190 @@ def backup_db(db_path: Path | str = DB_PATH, dest_path: Path | str | None = None
     return dest
 
 
+MIGRATION_REGISTRY_FILE = "registry.json"
 _MIGRATION_NAME = re.compile(r"^\d{3}_[a-z0-9_]+\.sql$")
-# DB-01: explicit blocklist — numeric prefix alone is not sufficient; a file named
-# 007_rollback.sql would still match the pattern without this secondary check.
-_MIGRATION_BLOCKED = re.compile(
-    r"(rollback|revert|undo|down|helper|seed|fixture)", re.IGNORECASE
-)
+_MIGRATION_BLOCKED = re.compile(r"(rollback|revert|undo|down|helper|seed|fixture)", re.IGNORECASE)
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_TRANSACTION_KEYWORDS = {"BEGIN", "COMMIT", "END", "ROLLBACK", "SAVEPOINT", "RELEASE"}
+_UNSUPPORTED_KEYWORDS = {"ATTACH", "DETACH", "VACUUM"}
+_BEGIN_STATEMENT = re.compile(r"BEGIN(?:\s+(?:DEFERRED|IMMEDIATE|EXCLUSIVE))?(?:\s+TRANSACTION)?\s*;", re.IGNORECASE)
+_COMMIT_STATEMENT = re.compile(r"(?:COMMIT|END)(?:\s+TRANSACTION)?\s*;", re.IGNORECASE)
+_OUTSIDE_PRAGMA = re.compile(r"PRAGMA\s+foreign_keys\s*=\s*(?:ON|OFF)\s*;", re.IGNORECASE)
 
 
 class MigrationFormError(RuntimeError):
     pass
 
 
-# Trigger bodies use "BEGIN ... END;" without a semicolon after BEGIN, and are never matched.
-_TX_BEGIN = re.compile(r"^[ \t]*BEGIN(?:[ \t]+(?:DEFERRED|IMMEDIATE|EXCLUSIVE))?(?:[ \t]+TRANSACTION)?[ \t]*;[ \t]*$", re.I | re.M)
-_TX_COMMIT = re.compile(r"^[ \t]*COMMIT(?:[ \t]+TRANSACTION)?[ \t]*;[ \t]*$", re.I | re.M)
-_TX_UNSUPPORTED = re.compile(r"^[ \t]*(?:ROLLBACK|SAVEPOINT|RELEASE|END[ \t]+TRANSACTION)\b", re.I | re.M)
-_PRAGMA_LINE = re.compile(r"^[ \t]*PRAGMA[ \t]+\w+[ \t]*(?:=[ \t]*\w+)?[ \t]*;[ \t]*$", re.I)
+class MigrationRegistryError(RuntimeError):
+    pass
 
 
-def _outside_tx_allowed(text: str) -> bool:
-    return all(
-        not line.strip() or line.lstrip().startswith("--") or _PRAGMA_LINE.match(line)
-        for line in text.splitlines()
-    )
+def migration_sha256(data: bytes) -> str:
+    # Normalized like the cleanup inventory so a CRLF checkout on Windows matches.
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
-def atomic_migration_script(name: str, sql: str, applied_at: str) -> str:
-    """Return a script that applies the migration and its ledger row in one transaction.
+def _without_leading_comments(text: str) -> str:
+    index = 0
+    while index < len(text):
+        if text[index].isspace():
+            index += 1
+        elif text.startswith("--", index):
+            newline = text.find("\n", index)
+            index = len(text) if newline < 0 else newline + 1
+        elif text.startswith("/*", index):
+            close = text.find("*/", index + 2)
+            if close < 0:
+                return ""
+            index = close + 2
+        else:
+            break
+    return text[index:]
 
-    Supported forms: (a) no transaction statements, optionally preceded by PRAGMA lines;
-    (b) exactly one BEGIN and one COMMIT with only PRAGMA lines or comments outside them.
-    Anything else raises MigrationFormError before any statement runs.
+
+def split_sql_statements(sql: str) -> list[str]:
+    """Split on statement boundaries as SQLite's own parser sees them.
+
+    sqlite3.complete_statement understands string literals, comments and trigger bodies,
+    so a ";" inside any of those never ends a statement.
     """
-    if not _MIGRATION_NAME.fullmatch(name):
-        raise MigrationFormError(f"{name}: invalid migration name")
-    ledger = f"INSERT INTO schema_migrations(version, applied_at) VALUES ('{name}', '{applied_at}');"
-    if _TX_UNSUPPORTED.search(sql):
-        raise MigrationFormError(f"{name}: ROLLBACK/SAVEPOINT/RELEASE/END TRANSACTION are not supported")
-    begins = list(_TX_BEGIN.finditer(sql))
-    commits = list(_TX_COMMIT.finditer(sql))
-    if not begins and not commits:
-        lines = sql.splitlines(keepends=True)
-        split = 0
-        while split < len(lines) and _outside_tx_allowed(lines[split]):
-            split += 1
-        prelude, body = "".join(lines[:split]), "".join(lines[split:])
-        return f"{prelude}BEGIN IMMEDIATE;\n{body.rstrip()}\n{ledger}\nCOMMIT;\n"
-    if len(begins) == 1 and len(commits) == 1 and begins[0].end() <= commits[0].start():
-        if not _outside_tx_allowed(sql[:begins[0].start()]) or not _outside_tx_allowed(sql[commits[0].end():]):
-            raise MigrationFormError(f"{name}: only PRAGMA statements may appear outside BEGIN/COMMIT")
-        cut = commits[0].start()
-        return f"{sql[:cut]}{ledger}\n{sql[cut:]}"
-    raise MigrationFormError(f"{name}: expected zero or exactly one BEGIN/COMMIT pair")
+    statements: list[str] = []
+    start = 0
+    for index, char in enumerate(sql):
+        if char == ";" and sqlite3.complete_statement(sql[start:index + 1]):
+            statement = sql[start:index + 1]
+            if _without_leading_comments(statement).strip(" \t\r\n;"):
+                statements.append(statement)
+            start = index + 1
+    if _without_leading_comments(sql[start:]).strip():
+        raise MigrationFormError("the script ends with an incomplete statement")
+    return statements
 
 
-def _pending_migrations(applied: set[str]) -> list[Path]:
-    return [
-        path for path in sorted(MIGRATIONS_DIR.glob("*.sql"))
-        if _MIGRATION_NAME.fullmatch(path.name)
-        and not _MIGRATION_BLOCKED.search(path.name)
-        and path.name not in applied
-    ]
+def _keyword(statement: str) -> str:
+    match = re.match(r"[A-Za-z]+", _without_leading_comments(statement))
+    return match.group(0).upper() if match else ""
+
+
+def migration_plan(name: str, sql: str) -> tuple[list[str], list[str], list[str]]:
+    """Return (prelude, body, trailer) statements, or refuse the migration.
+
+    Accepted: optional `PRAGMA foreign_keys` statements, then either body statements alone
+    or exactly `BEGIN ...; body; COMMIT;`, then optional `PRAGMA foreign_keys` statements.
+    The loader runs the body and the ledger row in its own single transaction.
+    """
+    try:
+        statements = split_sql_statements(sql)
+    except MigrationFormError as exc:
+        raise MigrationFormError(f"{name}: {exc}") from None
+    kinds = [_keyword(statement) for statement in statements]
+    core = [index for index, kind in enumerate(kinds) if kind != "PRAGMA"]
+    if not core:
+        raise MigrationFormError(f"{name}: no schema statements")
+    for statement, kind in zip(statements, kinds):
+        if kind in _UNSUPPORTED_KEYWORDS:
+            raise MigrationFormError(f"{name}: {kind} is not supported in migrations")
+        if kind == "PRAGMA" and not _OUTSIDE_PRAGMA.fullmatch(_without_leading_comments(statement).strip()):
+            raise MigrationFormError(f"{name}: only PRAGMA foreign_keys is supported")
+    first, last = core[0], core[-1]
+    control = [index for index, kind in enumerate(kinds) if kind in _TRANSACTION_KEYWORDS]
+    if control:
+        if control != [first, last] or first == last:
+            raise MigrationFormError(f"{name}: transaction statements are only supported as one leading BEGIN and one final COMMIT")
+        if not _BEGIN_STATEMENT.fullmatch(_without_leading_comments(statements[first]).strip()):
+            raise MigrationFormError(f"{name}: unsupported transaction start")
+        if not _COMMIT_STATEMENT.fullmatch(_without_leading_comments(statements[last]).strip()):
+            raise MigrationFormError(f"{name}: unsupported transaction end")
+        first, last = first + 1, last - 1
+    body = statements[first:last + 1]
+    if not body:
+        raise MigrationFormError(f"{name}: no schema statements")
+    if any(_keyword(statement) == "PRAGMA" for statement in body):
+        raise MigrationFormError(f"{name}: PRAGMA is only supported before or after the schema statements")
+    prelude = statements[:core[0]]
+    trailer = statements[core[-1] + 1:]
+    return prelude, body, trailer
+
+
+def load_migration_registry(directory: Path | None = None) -> dict[str, str]:
+    """Approved forward migrations, in order, with their normalized SHA-256."""
+    path = Path(directory or MIGRATIONS_DIR) / MIGRATION_REGISTRY_FILE
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise MigrationRegistryError(f"migration registry not found: {path}") from None
+    except (OSError, ValueError) as exc:
+        raise MigrationRegistryError(f"migration registry is unreadable: {exc}") from None
+    entries = document.get("migrations") if isinstance(document, dict) else None
+    if not isinstance(entries, list) or not entries or document.get("version") != 1:
+        raise MigrationRegistryError("migration registry must be {\"version\": 1, \"migrations\": [...]}")
+    registry: dict[str, str] = {}
+    for entry in entries:
+        name = entry.get("name") if isinstance(entry, dict) else None
+        digest = entry.get("sha256") if isinstance(entry, dict) else None
+        if not isinstance(name, str) or not _MIGRATION_NAME.fullmatch(name) or _MIGRATION_BLOCKED.search(name):
+            raise MigrationRegistryError(f"invalid registered migration name: {name!r}")
+        if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+            raise MigrationRegistryError(f"{name}: invalid sha256")
+        if name in registry or (registry and name <= next(reversed(registry))):
+            raise MigrationRegistryError(f"{name}: registry entries must be unique and in ascending order")
+        registry[name] = digest
+    return registry
+
+
+def _approved_migration_sources() -> dict[str, str]:
+    sources: dict[str, str] = {}
+    for name, expected in load_migration_registry().items():
+        path = MIGRATIONS_DIR / name
+        if not path.is_file():
+            raise MigrationRegistryError(f"{name}: registered migration file is missing")
+        data = path.read_bytes()
+        if migration_sha256(data) != expected:
+            raise MigrationRegistryError(f"{name}: content does not match the reviewed registry hash")
+        sources[name] = data.decode("utf-8")
+    return sources
+
+
+def _apply_migration(conn: sqlite3.Connection, name: str, sql: str) -> None:
+    prelude, body, trailer = migration_plan(name, sql)
+    try:
+        for statement in prelude:
+            conn.execute(statement)
+        conn.execute("BEGIN IMMEDIATE")
+        for statement in body:
+            conn.execute(statement)
+        conn.execute("INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)", (name, utc_now()))
+        conn.execute("COMMIT")
+        for statement in trailer:
+            conn.execute(statement)
+    except BaseException:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")
 
 
 def apply_migrations(db_path: Path | str = DB_PATH) -> None:
+    """Apply registered migrations only (DB-01), each atomically with its ledger row (DB-02).
+
+    Files in migrations/ that are not in registry.json are never read or executed.
+    Every registered file must match its hash, and every pending migration must have a
+    supported form, before the first pending migration runs.
+    """
+    sources = _approved_migration_sources()
     conn = connect(db_path)
     try:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL)"
         )
         applied = {row[0] for row in conn.execute("SELECT version FROM schema_migrations")}
-        pending = _pending_migrations(applied)
-        sources = {path.name: path.read_text(encoding="utf-8") for path in pending}
-        # Reject unsupported forms before anything runs, so a bad later file cannot
-        # leave earlier pending migrations half-applied relative to the release.
-        for name, sql in sources.items():
-            atomic_migration_script(name, sql, "validation")
-        for name, sql in sources.items():
-            script = atomic_migration_script(name, sql, utc_now())
-            try:
-                conn.executescript(script)
-            except BaseException:
-                if conn.in_transaction:
-                    conn.rollback()
-                raise
+        pending = [name for name in sources if name not in applied]
+        for name in pending:
+            migration_plan(name, sources[name])
+        for name in pending:
+            _apply_migration(conn, name, sources[name])
         conn.execute("PRAGMA optimize")
     finally:
         conn.close()

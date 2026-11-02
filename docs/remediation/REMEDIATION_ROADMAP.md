@@ -113,9 +113,9 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 | 0 | 0 | — |
 | 1 | 5 | QA-01, SEC-01, SEC-02, UX-01, UX-02 |
 | **A** | **11** | **SEC-03, SEC-04, SEC-05, DATA-01–05, DB-01–03** |
-| B | 33 | UX-03–UX-27, QA-03–08 |
-| C | 6 | QA-02, AI-01–05 |
-| **Total** | **55** | *(53 original + QA-07 moved from Phase 7 to B, QA-08 moved from Phase 7 to B — total count unchanged at 53; the two extra rows in Phase B are QA-03–QA-08 combined with legacy UX Phases)* |
+| B | 31 | UX-03–UX-27 (25), QA-03–QA-08 (6) |
+| C | 6 | QA-02, AI-01–AI-05 |
+| **Total** | **53** | Each ID appears in exactly one phase |
 
 > **Note:** All 53 finding IDs are preserved exactly. Legacy phase numbers (2–9) are superseded by consolidated Phase A/B/C. The legacy-to-consolidated mapping is in Section 3.1.
 
@@ -172,8 +172,8 @@ Each arrow represents a hard sequential dependency. No phase may begin until its
 
 | ID | Finding | Phase | Severity | Status | Classification | Evidence |
 |---|---|---|---|---|---|---|
-| DB-01 | Rollback-named SQL file can be executed by the migration loader | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | Name pattern plus keyword blocklist (`rollback`, `revert`, `undo`, `down`, `helper`, `seed`, `fixture`); numbered names such as `099_rollback.sql` are rejected. Tests: `test_db01_*` (eight numbered rollback-like names), run against an isolated copy of `migrations/`. Residual: a name ledger, not a hash/approval allowlist. |
-| DB-02 | Failed migration can leave schema changed with no ledger entry | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | Replaced string injection with an explicit form parser (`atomic_migration_script`) supporting exactly two forms and refusing all others before any pending migration runs; explicit rollback on failure. Every shipped migration (001–007) is proven to be a supported form. Synthetic failures (wrapped and self-transacted) leave no schema or ledger row; retry after fix succeeds; a 001–006 installation upgrades to 007. Tests: `test_db02_*`. |
+| DB-01 | Rollback-named SQL file can be executed by the migration loader | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | Explicit approval registry: only migrations listed in `migrations/registry.json`, with matching normalized SHA-256, ever run; unregistered files (including validly named ones such as `099_add_labels.sql`) are never read. A changed, missing or malformed registered entry stops startup before the database is touched; tampering with an already-applied file is detected. The Core candidate ships its own 001–004 registry. Tests: `test_db01_*` (unregistered files, tampering, missing file, invalid registry, CRLF checkout, registry ↔ inventory hashes). |
+| DB-02 | Failed migration can leave schema changed with no ledger entry | A | P1 | **FIXED_PENDING_VERIFICATION** | VERIFIED | Second review reproduced an inline-`COMMIT` bypass of the line-based parser. Replaced with statement splitting via `sqlite3.complete_statement` (strings, comments and trigger bodies are respected). Any transaction-control statement other than one leading `BEGIN` and one final `COMMIT` — plus `ATTACH`, `DETACH`, `VACUUM`, body `PRAGMA`s — is refused before any pending migration runs. The loader executes each statement inside its own `BEGIN IMMEDIATE` and writes the ledger row as a parameter before `COMMIT`. Tests: exact review reproduction, 19 rejected forms, runtime/constraint/syntax failures roll back schema, data and ledger, retry, incremental application of 001–007. |
 | DB-03 | Backup scope and recovery boundary | A | P2 | **FIXED_PENDING_VERIFICATION** | VERIFIED | `backup_db()` is now the single snapshot implementation used by `scripts/backup.py` (read-only source, `integrity_check`, never overwrites, never creates a missing source). Tests prove the project ZIP contains review events, baseline and frozen exports, and that restoring a verified backup recovers audit history. Docs: pre-upgrade backup is the only rollback for 007; dropping `review_events` is explicitly prohibited. |
 
 ### 4.6 UX Findings
@@ -321,9 +321,9 @@ Until QA-01 is resolved, `main` keeps an intermittent failing check, and SEC-01'
 |---|---|---|---|
 | **Phase 0** | Baseline and Remediation Inventory | **CLOSED** | Owner approved 2026-11-01 (PR #16 merged, SHA `0a14550adab7b9ef9c1ed7dd660b784686c4b9f8`, Section 6.2 exception accepted) |
 | **Phase 1** | Restore Green CI and Close PR #14 Verification | **CLOSED** | PR #17 merged SHA `812f28f`. Post-merge CI `41346905426` green. |
-| **Phase A** | Data Integrity and Security (legacy phases 2, 3, 4 consolidated) | **IN_PROGRESS** | 11 findings implemented, independent review corrections applied, PR #18 awaiting owner review. |
-| Phase B | Critical Functional UX Defects (legacy phase 5) | NOT_STARTED | Requires Phase A merge + post-merge CI green. |
-| Phase C | Information Architecture, Localization, Mobile, Accessibility, Operational Security and Final Acceptance (legacy phases 6–9) | NOT_STARTED | Requires Phase B merge + owner authorization. |
+| **Phase A** | Data Integrity and Security (legacy phases 2, 3 and 4) — 11 findings | **IN_PROGRESS** | Implemented with two rounds of independent review corrections; PR #18 awaiting owner review. |
+| Phase B | UX, Bilingual Support and Operational Security (legacy phases 5, 6 and 7) — 31 findings | NOT_STARTED | Requires Phase A merge, post-merge CI green and owner authorization. |
+| Phase C | AI Engine Integration and Final Release Acceptance (legacy phases 8 and 9) — 6 findings | NOT_STARTED | Requires Phase B merge and owner authorization. |
 
 ---
 

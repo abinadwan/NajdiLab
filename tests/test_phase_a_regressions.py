@@ -10,14 +10,17 @@ import pytest
 
 import app.db as db_module
 from app.db import (
+    MIGRATION_REGISTRY_FILE,
     MIGRATIONS_DIR,
     MigrationFormError,
-    _MIGRATION_BLOCKED,
-    _MIGRATION_NAME,
+    MigrationRegistryError,
     apply_migrations,
-    atomic_migration_script,
     backup_db,
     connect,
+    load_migration_registry,
+    migration_plan,
+    migration_sha256,
+    split_sql_statements,
 )
 from app.review_integrity import export_readiness
 from app.review_lifecycle import append_event
@@ -30,10 +33,8 @@ from app.service import (
     save_review,
 )
 
-SHIPPED = sorted(
-    p for p in MIGRATIONS_DIR.glob("*.sql")
-    if _MIGRATION_NAME.fullmatch(p.name) and not _MIGRATION_BLOCKED.search(p.name)
-)
+REGISTERED = list(load_migration_registry(MIGRATIONS_DIR))
+SHIPPED = [MIGRATIONS_DIR / name for name in REGISTERED]
 
 
 # ---------------------------------------------------------------------------
@@ -42,13 +43,26 @@ SHIPPED = sorted(
 
 @pytest.fixture
 def migrations_dir(tmp_path, monkeypatch):
-    """Isolated copy of the shipped migrations; tests never write into the repository."""
+    """Isolated copy of the shipped migrations and registry; the repository is never written."""
     target = tmp_path / "migrations"
     target.mkdir()
     for path in SHIPPED:
         shutil.copy2(path, target / path.name)
+    shutil.copy2(MIGRATIONS_DIR / MIGRATION_REGISTRY_FILE, target / MIGRATION_REGISTRY_FILE)
     monkeypatch.setattr(db_module, "MIGRATIONS_DIR", target)
     return target
+
+
+def _write_registry(directory: Path, names: list[str]) -> None:
+    entries = [{"name": n, "sha256": migration_sha256((directory / n).read_bytes())} for n in sorted(names)]
+    (directory / MIGRATION_REGISTRY_FILE).write_text(json.dumps({"version": 1, "migrations": entries}), encoding="utf-8")
+
+
+def _register(directory: Path, name: str, sql: str) -> None:
+    """Write a migration and register it the way a reviewed change would."""
+    (directory / name).write_text(sql, encoding="utf-8")
+    names = list(load_migration_registry(directory))
+    _write_registry(directory, sorted(set(names) | {name}))
 
 
 def _fresh_db(tmp_path: Path) -> Path:
@@ -109,123 +123,261 @@ def _codes(result: dict) -> set[str]:
 
 
 # ---------------------------------------------------------------------------
-# DB-01: only real forward migrations are applied
+# DB-01: only explicitly registered, hash-matching migrations run
 # ---------------------------------------------------------------------------
 
-def test_db01_unnumbered_rollback_and_helper_files_are_skipped(tmp_path, migrations_dir):
-    (migrations_dir / "rollback_001.sql").write_text("CREATE TABLE should_not_exist (id INTEGER);", encoding="utf-8")
-    (migrations_dir / "helper.sql").write_text("CREATE TABLE also_should_not_exist (id INTEGER);", encoding="utf-8")
-    db = _fresh_db(tmp_path)
-    assert not {"should_not_exist", "also_should_not_exist"} & _tables(db)
+def test_db01_registry_lists_exactly_the_shipped_migrations_with_inventory_hashes():
+    inventory = json.loads((MIGRATIONS_DIR.parent / "docs" / "cleanup-inventory.json").read_text(encoding="utf-8"))
+    pinned = {path.split("/", 1)[1]: entry["sha256"] for path, entry in inventory["base_files"].items()
+              if path.startswith("migrations/") and path.endswith(".sql")}
+    assert load_migration_registry(MIGRATIONS_DIR) == pinned
+    assert REGISTERED == sorted(path.name for path in MIGRATIONS_DIR.glob("*.sql"))
+    assert REGISTERED[-1] == "007_review_events.sql"
+
+
+def test_db01_core_registry_is_exactly_001_to_004(tmp_path):
+    shutil.copy2(MIGRATIONS_DIR.parent / "public_source" / "migration_registry.json", tmp_path / MIGRATION_REGISTRY_FILE)
+    core = load_migration_registry(tmp_path)
+    assert list(core) == ["001_initial.sql", "002_hermes_idempotency.sql", "003_manual_data_manager.sql", "004_review_lifecycle.sql"]
+    assert all(core[name] == load_migration_registry(MIGRATIONS_DIR)[name] for name in core)
 
 
 @pytest.mark.parametrize("name", [
-    "099_rollback.sql", "099_rollback_review_events.sql", "099_revert_schema.sql",
-    "099_undo_labels.sql", "099_down.sql", "099_helper.sql", "099_seed_demo.sql", "099_fixture.sql",
+    "099_add_labels.sql", "008_review_tags_v2.sql", "099_rollback.sql", "rollback_001.sql", "helper.sql",
 ])
-def test_db01_numbered_rollback_like_files_are_rejected(tmp_path, migrations_dir, name):
+def test_db01_unregistered_sql_files_never_execute(tmp_path, migrations_dir, name):
     (migrations_dir / name).write_text("CREATE TABLE must_not_appear (id INTEGER);", encoding="utf-8")
     db = _fresh_db(tmp_path)
     assert "must_not_appear" not in _tables(db)
     assert name not in _ledger(db)
+    assert _ledger(db) == set(REGISTERED)
 
 
-def test_db01_shipped_migrations_all_pass_and_are_all_recorded(tmp_path, migrations_dir):
+def test_db01_registered_migration_with_changed_content_is_refused_before_any_write(tmp_path, migrations_dir):
+    with (migrations_dir / "007_review_events.sql").open("a", encoding="utf-8") as handle:
+        handle.write("\nCREATE TABLE smuggled (id INTEGER);\n")
+    db = tmp_path / "fresh.db"
+    with pytest.raises(MigrationRegistryError, match="does not match"):
+        apply_migrations(db)
+    assert not db.exists(), "the database must not be created or touched"
+
+
+def test_db01_tampering_with_an_applied_migration_is_detected(tmp_path, migrations_dir):
     db = _fresh_db(tmp_path)
-    assert _ledger(db) == {p.name for p in SHIPPED}
+    (migrations_dir / "001_initial.sql").write_text("-- edited history\n", encoding="utf-8")
+    with pytest.raises(MigrationRegistryError, match="001_initial.sql"):
+        apply_migrations(db)
+
+
+def test_db01_missing_registered_file_is_refused(tmp_path, migrations_dir):
+    (migrations_dir / "006_chat_session_binding.sql").unlink()
+    with pytest.raises(MigrationRegistryError, match="missing"):
+        apply_migrations(tmp_path / "fresh.db")
+
+
+def test_db01_crlf_checkout_matches_registry(tmp_path, migrations_dir):
+    for path in migrations_dir.glob("*.sql"):
+        path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+    db = _fresh_db(tmp_path)
+    assert _ledger(db) == set(REGISTERED)
+
+
+@pytest.mark.parametrize("document", [
+    None,
+    "not json",
+    [],
+    {"version": 2, "migrations": [{"name": "001_initial.sql", "sha256": "0" * 64}]},
+    {"version": 1, "migrations": []},
+    {"version": 1, "migrations": [{"name": "001_initial.sql", "sha256": "0" * 63}]},
+    {"version": 1, "migrations": [{"name": "001_rollback.sql", "sha256": "0" * 64}]},
+    {"version": 1, "migrations": [{"name": "002_b.sql", "sha256": "0" * 64}, {"name": "001_a.sql", "sha256": "0" * 64}]},
+    {"version": 1, "migrations": [{"name": "001_a.sql", "sha256": "0" * 64}, {"name": "001_a.sql", "sha256": "0" * 64}]},
+], ids=["missing", "invalid-json", "list", "bad-version", "empty", "bad-hash", "blocked-name", "unordered", "duplicate"])
+def test_db01_invalid_registry_is_refused(tmp_path, migrations_dir, document):
+    registry = migrations_dir / MIGRATION_REGISTRY_FILE
+    if document is None:
+        registry.unlink()
+    else:
+        registry.write_text(document if isinstance(document, str) else json.dumps(document), encoding="utf-8")
+    with pytest.raises(MigrationRegistryError):
+        apply_migrations(tmp_path / "fresh.db")
+    assert not (tmp_path / "fresh.db").exists()
+
+
+def test_db01_newly_registered_migration_runs(tmp_path, migrations_dir):
+    db = _fresh_db(tmp_path)
+    _register(migrations_dir, "008_reviewed_addition.sql", "CREATE TABLE reviewed_addition (id INTEGER);\n")
+    apply_migrations(db)
+    assert "reviewed_addition" in _tables(db)
+    assert "008_reviewed_addition.sql" in _ledger(db)
 
 
 # ---------------------------------------------------------------------------
-# DB-02: migration DDL and its ledger row commit or roll back together
+# DB-02: each migration and its ledger row commit or roll back together
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("path", SHIPPED, ids=lambda p: p.name)
 def test_db02_every_shipped_migration_is_a_supported_form(path):
-    sql = path.read_text(encoding="utf-8")
-    script = atomic_migration_script(path.name, sql, "2026-01-01T00:00:00Z")
-    ledger_at = script.index(f"VALUES ('{path.name}'")
-    commit_at = script.upper().rindex("COMMIT;")
-    assert ledger_at < commit_at, "ledger row must be written inside the migration transaction"
-    assert script.upper().count("COMMIT;") == 1
+    prelude, body, trailer = migration_plan(path.name, path.read_text(encoding="utf-8"))
+    assert body
+    for statement in [*prelude, *body, *trailer]:
+        assert sqlite3.complete_statement(statement)
 
 
-def test_db02_failed_wrapped_migration_leaves_no_schema_or_ledger(tmp_path, migrations_dir):
+@pytest.mark.parametrize("count", range(1, len(SHIPPED) + 1), ids=lambda c: f"through-{REGISTERED[c - 1]}")
+def test_db02_shipped_migrations_apply_incrementally(tmp_path, migrations_dir, count):
+    _write_registry(migrations_dir, REGISTERED[:count])
     db = _fresh_db(tmp_path)
-    bad = migrations_dir / "098_bad_wrapped.sql"
-    bad.write_text("CREATE TABLE partial_artifact (id INTEGER);\nNOT_VALID_SQL;\n", encoding="utf-8")
+    assert _ledger(db) == set(REGISTERED[:count])
+    _write_registry(migrations_dir, REGISTERED)
+    apply_migrations(db)
+    assert _ledger(db) == set(REGISTERED)
+    conn = connect(db)
+    try:
+        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
+    finally:
+        conn.close()
+
+
+INLINE_COMMIT_BYPASS = "CREATE TABLE partial_artifact(id INTEGER); COMMIT;\nNOT_VALID_SQL;\n"
+
+
+def test_db02_inline_commit_bypass_is_refused_before_execution(tmp_path, migrations_dir):
+    """The exact reproduction from review: an inline COMMIT must not split the migration."""
+    db = _fresh_db(tmp_path)
+    _register(migrations_dir, "098_bypass.sql", INLINE_COMMIT_BYPASS)
+    with pytest.raises(MigrationFormError, match="transaction statements"):
+        apply_migrations(db)
+    assert "partial_artifact" not in _tables(db)
+    assert "098_bypass.sql" not in _ledger(db)
+
+
+@pytest.mark.parametrize("sql", [
+    INLINE_COMMIT_BYPASS,
+    "CREATE TABLE a (id INTEGER); commit transaction;\nCREATE TABLE b (id INTEGER);\n",
+    "CREATE TABLE a (id INTEGER);\nEND;\nCREATE TABLE b (id INTEGER);\n",
+    "CREATE TABLE a (id INTEGER); /* hidden */ COMMIT; CREATE TABLE b (id INTEGER);\n",
+    "CREATE TABLE a (id INTEGER);\n-- note\n  COMMIT ;  CREATE TABLE b (id INTEGER);\n",
+    "BEGIN; CREATE TABLE a (id INTEGER); COMMIT; BEGIN; CREATE TABLE b (id INTEGER); COMMIT;\n",
+    "BEGIN; CREATE TABLE a (id INTEGER); COMMIT; CREATE TABLE b (id INTEGER);\n",
+    "CREATE TABLE b (id INTEGER); BEGIN; CREATE TABLE a (id INTEGER); COMMIT;\n",
+    "BEGIN; CREATE TABLE a (id INTEGER);\n",
+    "CREATE TABLE a (id INTEGER); COMMIT;\n",
+    "BEGIN; CREATE TABLE a (id INTEGER); ROLLBACK;\n",
+    "SAVEPOINT s; CREATE TABLE a (id INTEGER); RELEASE s;\n",
+    "CREATE TABLE a (id INTEGER); ROLLBACK; CREATE TABLE b (id INTEGER);\n",
+    "ATTACH DATABASE 'other.db' AS other; CREATE TABLE other.a (id INTEGER);\n",
+    "CREATE TABLE a (id INTEGER); VACUUM;\n",
+    "CREATE TABLE a (id INTEGER); PRAGMA foreign_keys = OFF; CREATE TABLE b (id INTEGER);\n",
+    "PRAGMA user_version = 9; CREATE TABLE a (id INTEGER);\n",
+    "CREATE TABLE a (id INTEGER); CREATE TABLE b (id INTEGER)\n",
+    "PRAGMA foreign_keys = ON;\n-- nothing else\n",
+], ids=["review-example", "lower-commit-transaction", "end", "comment-before-commit", "commit-after-comment-line",
+        "two-pairs", "after-commit", "before-begin", "no-commit", "no-begin", "rollback", "savepoint",
+        "inline-rollback", "attach", "vacuum", "pragma-in-body", "other-pragma", "incomplete", "pragma-only"])
+def test_db02_unsupported_forms_are_rejected_before_any_migration_runs(tmp_path, migrations_dir, sql):
+    db = _fresh_db(tmp_path)
+    _register(migrations_dir, "096_valid_but_earlier.sql", "CREATE TABLE earlier (id INTEGER);\n")
+    _register(migrations_dir, "099_unsupported.sql", sql)
+    with pytest.raises(MigrationFormError):
+        apply_migrations(db)
+    assert not {"a", "b", "earlier", "partial_artifact"} & _tables(db)
+    assert not {"096_valid_but_earlier.sql", "099_unsupported.sql"} & _ledger(db)
+
+
+def test_db02_semicolons_and_keywords_inside_strings_comments_and_triggers_are_not_boundaries():
+    sql = (
+        "-- COMMIT; in a comment\n/* ROLLBACK; */\n"
+        "CREATE TABLE t (id INTEGER, note TEXT DEFAULT 'a; COMMIT; b');\n"
+        "CREATE TRIGGER t_guard BEFORE DELETE ON t\nBEGIN\n    SELECT RAISE(ABORT, 'no; COMMIT;');\nEND;\n"
+        "CREATE TRIGGER t_guard2 BEFORE UPDATE ON t BEGIN SELECT RAISE(ABORT, 'x'); SELECT 1; END;\n"
+        "INSERT INTO t(id, note) VALUES (1, 'END; BEGIN;');\n"
+    )
+    statements = split_sql_statements(sql)
+    assert len(statements) == 4
+    prelude, body, trailer = migration_plan("050_strings.sql", sql)
+    assert (prelude, trailer) == ([], []) and len(body) == 4
+
+
+def test_db02_string_containing_commit_applies_atomically(tmp_path, migrations_dir):
+    db = _fresh_db(tmp_path)
+    _register(migrations_dir, "095_strings.sql",
+              "CREATE TABLE notes (body TEXT);\nINSERT INTO notes VALUES ('step; COMMIT; done');\n")
+    apply_migrations(db)
+    conn = connect(db)
+    try:
+        assert conn.execute("SELECT body FROM notes").fetchone()[0] == "step; COMMIT; done"
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("sql", [
+    "CREATE TABLE partial_artifact (id INTEGER);\nINSERT INTO partial_artifact VALUES (1);\nNOT_VALID_SQL;\n",
+    "PRAGMA foreign_keys = OFF;\nBEGIN IMMEDIATE;\nCREATE TABLE partial_artifact (id INTEGER);\n"
+    "INSERT INTO partial_artifact VALUES (1);\nNOT_VALID_SQL;\nCOMMIT;\nPRAGMA foreign_keys = ON;\n",
+    "CREATE TABLE partial_artifact (id INTEGER);\nINSERT INTO missing_table VALUES (1);\n",
+    "CREATE TABLE partial_artifact (id INTEGER PRIMARY KEY);\nINSERT INTO partial_artifact VALUES (1);\n"
+    "INSERT INTO partial_artifact VALUES (1);\n",
+], ids=["wrapped-syntax", "self-transacted-syntax", "runtime-missing-table", "runtime-constraint"])
+def test_db02_failed_migration_rolls_back_schema_data_and_ledger(tmp_path, migrations_dir, sql):
+    db = _fresh_db(tmp_path)
+    _register(migrations_dir, "098_failing.sql", sql)
     with pytest.raises(sqlite3.Error):
         apply_migrations(db)
     assert "partial_artifact" not in _tables(db)
-    assert bad.name not in _ledger(db)
+    assert "098_failing.sql" not in _ledger(db)
+    assert _ledger(db) == set(REGISTERED)
+    conn = connect(db)
+    try:
+        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+    finally:
+        conn.close()
 
 
-def test_db02_failed_self_transacted_migration_leaves_no_schema_or_ledger(tmp_path, migrations_dir):
+def test_db02_earlier_pending_migration_survives_later_failure_only_with_its_own_ledger_row(tmp_path, migrations_dir):
     db = _fresh_db(tmp_path)
-    bad = migrations_dir / "098_bad_self_tx.sql"
-    bad.write_text(
-        "PRAGMA foreign_keys = OFF;\nBEGIN IMMEDIATE;\nCREATE TABLE partial_tx (id INTEGER);\n"
-        "INSERT INTO partial_tx VALUES (1);\nNOT_VALID_SQL;\nCOMMIT;\nPRAGMA foreign_keys = ON;\n",
-        encoding="utf-8",
-    )
+    _register(migrations_dir, "096_good.sql", "CREATE TABLE good (id INTEGER);\n")
+    _register(migrations_dir, "097_bad.sql", "CREATE TABLE bad (id INTEGER);\nNOT_VALID_SQL;\n")
     with pytest.raises(sqlite3.Error):
         apply_migrations(db)
-    assert "partial_tx" not in _tables(db)
-    assert bad.name not in _ledger(db)
+    tables, ledger = _tables(db), _ledger(db)
+    assert "good" in tables and "096_good.sql" in ledger
+    assert "bad" not in tables and "097_bad.sql" not in ledger
 
 
 def test_db02_retry_after_fix_succeeds(tmp_path, migrations_dir):
     db = _fresh_db(tmp_path)
-    bad = migrations_dir / "097_broken_then_fixed.sql"
-    bad.write_text("NOT_VALID_SQL;\n", encoding="utf-8")
+    _register(migrations_dir, "097_broken_then_fixed.sql", "NOT_VALID_SQL;\n")
     with pytest.raises(sqlite3.Error):
         apply_migrations(db)
-    bad.write_text("CREATE TABLE was_broken_now_fixed (id INTEGER);\n", encoding="utf-8")
+    _register(migrations_dir, "097_broken_then_fixed.sql", "CREATE TABLE was_broken_now_fixed (id INTEGER);\n")
+    apply_migrations(db)
     apply_migrations(db)
     assert "was_broken_now_fixed" in _tables(db)
-    assert bad.name in _ledger(db)
-    apply_migrations(db)
-    assert len(_ledger(db)) == len(SHIPPED) + 1
-
-
-@pytest.mark.parametrize("sql", [
-    "BEGIN;\nCREATE TABLE a (id INTEGER);\nCOMMIT;\nBEGIN;\nCREATE TABLE b (id INTEGER);\nCOMMIT;\n",
-    "BEGIN;\nCREATE TABLE a (id INTEGER);\nCOMMIT;\nCREATE TABLE b (id INTEGER);\n",
-    "CREATE TABLE b (id INTEGER);\nBEGIN;\nCREATE TABLE a (id INTEGER);\nCOMMIT;\n",
-    "BEGIN;\nCREATE TABLE a (id INTEGER);\n",
-    "CREATE TABLE a (id INTEGER);\nCOMMIT;\n",
-    "BEGIN;\nCREATE TABLE a (id INTEGER);\nROLLBACK;\n",
-    "SAVEPOINT s;\nCREATE TABLE a (id INTEGER);\nRELEASE s;\n",
-], ids=["two-pairs", "after-commit", "before-begin", "no-commit", "no-begin", "rollback", "savepoint"])
-def test_db02_unsupported_forms_are_rejected_before_any_migration_runs(tmp_path, migrations_dir, sql):
-    db = _fresh_db(tmp_path)
-    (migrations_dir / "096_valid_but_earlier.sql").write_text("CREATE TABLE earlier (id INTEGER);\n", encoding="utf-8")
-    (migrations_dir / "099_unsupported.sql").write_text(sql, encoding="utf-8")
-    with pytest.raises(MigrationFormError):
-        apply_migrations(db)
-    tables = _tables(db)
-    assert not {"a", "b", "earlier"} & tables
-    assert not {"096_valid_but_earlier.sql", "099_unsupported.sql"} & _ledger(db)
-
-
-def test_db02_trigger_bodies_are_not_mistaken_for_transactions():
-    sql = (
-        "CREATE TABLE t (id INTEGER);\n"
-        "CREATE TRIGGER t_guard BEFORE DELETE ON t\nBEGIN\n    SELECT RAISE(ABORT, 'no');\nEND;\n"
-        "CREATE TRIGGER t_guard2 BEFORE UPDATE ON t\nBEGIN SELECT RAISE(ABORT, 'no'); END;\n"
-    )
-    script = atomic_migration_script("050_triggers.sql", sql, "x")
-    assert script.startswith("BEGIN IMMEDIATE;")
+    assert _ledger(db) == set(REGISTERED) | {"097_broken_then_fixed.sql"}
 
 
 def test_db02_existing_installation_upgrades_to_007(tmp_path, migrations_dir):
-    for path in migrations_dir.glob("007_*.sql"):
-        path.unlink()
+    _write_registry(migrations_dir, [n for n in REGISTERED if n != "007_review_events.sql"])
     db = _fresh_db(tmp_path)
     assert "review_events" not in _tables(db)
-    shutil.copy2(MIGRATIONS_DIR / "007_review_events.sql", migrations_dir / "007_review_events.sql")
+    _write_registry(migrations_dir, REGISTERED)
     apply_migrations(db)
     assert {"review_events", "review_event_baseline"} <= _tables(db)
-    assert _ledger(db) == {p.name for p in SHIPPED}
+    assert _ledger(db) == set(REGISTERED)
+
+
+def test_db02_ledger_rows_from_unregistered_history_are_preserved(tmp_path, migrations_dir):
+    db = _fresh_db(tmp_path)
+    conn = connect(db)
+    try:
+        conn.execute("INSERT INTO schema_migrations VALUES ('000_old_private.sql', '2020-01-01T00:00:00Z')")
+    finally:
+        conn.close()
+    apply_migrations(db)
+    assert "000_old_private.sql" in _ledger(db)
 
 
 # ---------------------------------------------------------------------------
@@ -436,8 +588,7 @@ def test_sec05_review_events_are_immutable(tmp_path):
 @pytest.fixture
 def legacy_db(tmp_path, migrations_dir):
     """A database created before 007 with historical reviews, then upgraded."""
-    for path in migrations_dir.glob("007_*.sql"):
-        path.unlink()
+    _write_registry(migrations_dir, [n for n in REGISTERED if n != "007_review_events.sql"])
     db = tmp_path / "legacy.db"
     apply_migrations(db)
     conn = connect(db)
@@ -449,7 +600,7 @@ def legacy_db(tmp_path, migrations_dir):
         }
     finally:
         conn.close()
-    shutil.copy2(MIGRATIONS_DIR / "007_review_events.sql", migrations_dir / "007_review_events.sql")
+    _write_registry(migrations_dir, REGISTERED)
     apply_migrations(db)
     return db, ids
 
