@@ -321,8 +321,8 @@ Until QA-01 is resolved, `main` keeps an intermittent failing check, and SEC-01'
 |---|---|---|---|
 | **Phase 0** | Baseline and Remediation Inventory | **CLOSED** | Owner approved 2026-11-01 (PR #16 merged, SHA `0a14550adab7b9ef9c1ed7dd660b784686c4b9f8`, Section 6.2 exception accepted) |
 | **Phase 1** | Restore Green CI and Close PR #14 Verification | **CLOSED** | PR #17 merged SHA `812f28f`. Post-merge CI `41346905426` green. |
-| **Phase A** | Data Integrity and Security (legacy phases 2, 3 and 4) — 11 findings | **IN_PROGRESS** | Implemented with two rounds of independent review corrections; PR #18 awaiting owner review. |
-| Phase B | UX, Bilingual Support and Operational Security (legacy phases 5, 6 and 7) — 31 findings | NOT_STARTED | Requires Phase A merge, post-merge CI green and owner authorization. |
+| **Phase A** | Data Integrity and Security (legacy phases 2, 3 and 4) — 11 findings | **CLOSED** | PR #18 merged as `5de14f9`; post-merge Source checks run `41390294489` passed on Windows and Ubuntu. No local deployment or database migration claimed. |
+| Phase B | UX, Bilingual Support and Operational Security (legacy phases 5, 6 and 7) — 31 findings | **IN_PROGRESS** | Owner authorized 2026-11-02. Single branch `phase-b/ux-bilingual-operations`; initial scope: NajdiLab-first Settings, Hermes UI removal (backend remains blocked), future-only Hugging Face preview. None of the remaining 31 findings is closed by this initial UI change. See `PHASE_B_IMPLEMENTATION.md`. |
 | Phase C | AI Engine Integration and Final Release Acceptance (legacy phases 8 and 9) — 6 findings | NOT_STARTED | Requires Phase B merge and owner authorization. |
 
 ---
