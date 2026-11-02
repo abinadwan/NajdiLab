@@ -358,7 +358,7 @@ function renderManualEdit(item){
   if(item.item_type==='sft')specific=`<div id="manual-edit-turns" class="turn-builder">${(item.messages||[]).map(turn=>manualTurnRow(turn.role,turn.content)).join('')}</div><button type="button" id="manual-add-turn" class="button ghost">＋ Add turn</button>`;
   else if(item.item_type==='direct')specific=`<label class="wide-label">Text<textarea dir="auto" name="text" rows="10" required>${esc(item.text)}</textarea></label>`;
   else specific=`<label class="wide-label">Prompt / Context<textarea dir="auto" name="prompt_context" rows="4" required>${esc((item.prompt_context||[]).map(x=>x.content||'').join('\n'))}</textarea></label><div class="preference-grid"><label>Rejected response<textarea dir="auto" name="rejected_response" rows="7" required>${esc(item.rejected_response)}</textarea></label><label>Preferred response<textarea dir="auto" name="preferred_response" rows="7" required>${esc(item.preferred_response)}</textarea></label></div>`;
-  $('#manual-tab-details').innerHTML=`<form id="manual-edit-form" class="manual-edit-form">${specific}${commonManualFields(item)}<div class="save-row"><button type="button" class="button ghost" data-detail-action="cancel-edit">Cancel</button><button type="submit" class="button primary">Save</button></div></form>`;
+  $('#manual-tab-details').innerHTML=`<form id="manual-edit-form" class="manual-edit-form">${specific}${commonManualFields(item)}<p id="manual-save-state" class="save-state" role="status" aria-live="polite"></p><div class="save-row"><button type="button" class="button ghost" data-detail-action="cancel-edit">Cancel</button><button type="submit" class="button primary">Save</button></div></form>`;
   if(item.item_type==='sft')$('#manual-add-turn').addEventListener('click',()=>$('#manual-edit-turns').insertAdjacentHTML('beforeend',manualTurnRow('user','')));
   $('#manual-edit-form').addEventListener('click',e=>{if(e.target.matches('.remove-manual-turn'))e.target.closest('.turn-row').remove();});
   $('#manual-edit-form').addEventListener('submit',saveManualEdit);
@@ -375,9 +375,26 @@ async function showManualItem(type,id,edit=false){
 }
 
 async function saveManualEdit(event){
-  event.preventDefault();const item=state.manualCurrent,form=event.currentTarget,payload=formPayload(form);
-  if(item.item_type==='sft')payload.messages=$$('#manual-edit-turns .turn-row').map(row=>({role:row.querySelector('.turn-role').value,content:row.querySelector('.turn-content').value}));
-  const result=await api(`/api/v1/manual-data/${item.item_type}/${item.id}`,{method:'PATCH',body:JSON.stringify(payload)});state.manualCurrent=result.item;renderManualDetails(result.item);$('#manual-dialog-title').textContent=`${item.item_type}:${item.id} · v${result.item.version_number}`;$('#manual-dialog-status').innerHTML=manualStatusHtml(result.item);toast('New version saved in change history.');await loadManualData();
+  event.preventDefault();
+  const item=state.manualCurrent,form=event.currentTarget,payload=formPayload(form);
+  const button=form.querySelector('button[type=submit]'),feedback=form.querySelector('#manual-save-state');
+  if(button.disabled)return;
+  if(item.item_type==='sft')payload.messages=$('#manual-edit-turns .turn-row').map(row=>({role:row.querySelector('.turn-role').value,content:row.querySelector('.turn-content').value}));
+  button.disabled=true;button.textContent='Saving…';feedback.textContent='Saving a new version…';feedback.className='save-state';
+  try{
+    const result=await api(`/api/v1/manual-data/${item.item_type}/${item.id}`,{method:'PATCH',body:JSON.stringify(payload)});
+    state.manualCurrent=result.item;
+    renderManualDetails(result.item);
+    $('#manual-dialog-title').textContent=`${item.item_type}:${item.id} · v${result.item.version_number}`;
+    $('#manual-dialog-status').innerHTML=manualStatusHtml(result.item);
+    toast('New version saved in change history.');
+    try{await loadManualData();}catch(error){toast('Saved successfully, but the list could not refresh: '+error.message,true);}
+  }catch(error){
+    // UX-16: leave the form/draft intact and a persistent error beside Retry.
+    feedback.textContent='Unable to save: '+error.message;
+    feedback.className='save-state error';
+    button.textContent='Retry save';
+  }finally{if(button.isConnected)button.disabled=false;}
 }
 
 async function loadManualVersions(){
@@ -417,7 +434,22 @@ async function loadDataset(){
   $('#dataset-list').innerHTML=items.length?items.map(item=>`<div class="dataset-item"><span class="status-badge status-APPROVED">${esc(item.type)}</span><div><p dir="auto">${esc(compact(item.preview,180))}</p><small>${esc(item.origin||'—')} · ${esc(item.language_layer||item.model_name||'—')} · ${esc(item.domain||'—')}</small></div><code>${esc(item.id)}</code></div>`).join(''):'<div class="empty-inline">No eligible records. Human approval is required first.</div>';
 }
 
-async function previewDedup(){const include=$('#export-demo').checked?'1':'0';const [report,readiness]=await Promise.all([api(`/api/v1/exports/dedup-report?include_demo=${include}`),api(`/api/v1/exports/readiness?include_demo=${include}`)]);const blockers=readiness.blocking_findings||[];const gate=readiness.ok?'<br><strong>Export gate: ready.</strong>':`<br><strong>Export gate: blocked.</strong> ${blockers.slice(0,3).map(item=>`${esc(item.sample_id||'General')}: ${esc(item.reason)}`).join('; ')}`;$('#dedup-result').innerHTML=`Checked <strong>${report.record_count}</strong> records: <strong>${report.exact_duplicate_groups.length}</strong> exact duplicate groups and <strong>${report.near_duplicates.length}</strong> near duplicates. No records are deleted automatically.${gate}`;toast(readiness.ok?'Duplicate and readiness checks completed.':'Check completed: export blockers were found.',!readiness.ok);return readiness;}
+async function previewDedup(){
+  const include=$('#export-demo').checked?'1':'0';
+  const [report,readiness]=await Promise.all([
+    api(`/api/v1/exports/dedup-report?include_demo=${include}`),
+    api(`/api/v1/exports/readiness?include_demo=${include}`)
+  ]);
+  const blockers=readiness.blocking_findings||[];
+  // UX-06: the persistent gate must show every blocker; a toast or top-three
+  // sample would hide the reason a dataset cannot be exported.
+  const gate=readiness.ok
+    ? '<p><strong>Export gate: ready.</strong></p>'
+    : `<section class="export-blockers" role="alert"><strong>Export gate: blocked — ${blockers.length} finding(s).</strong><ol>${blockers.map(item=>`<li><bdi>${esc(item.sample_id||'General')}</bdi>: ${esc(item.reason)}</li>`).join('')}</ol></section>`;
+  $('#dedup-result').innerHTML=`Checked <strong>${report.record_count}</strong> records: <strong>${report.exact_duplicate_groups.length}</strong> exact duplicate groups and <strong>${report.near_duplicates.length}</strong> near duplicates. No records are deleted automatically.${gate}`;
+  toast(readiness.ok?'Duplicate and readiness checks completed.':'Check completed: export blockers were found.',!readiness.ok);
+  return readiness;
+}
 async function createExport(){const button=$('#create-export');button.disabled=true;button.textContent='Creating version…';try{const readiness=await previewDedup();if(!readiness.ok)throw new Error('Export is blocked until the displayed review findings are resolved.');const result=await api('/api/v1/exports',{method:'POST',body:JSON.stringify({include_demo:$('#export-demo').checked,filters:{source:'dashboard'}})});toast(`Created ${result.export.version} successfully.`);await loadExports();}catch(error){toast(error.message,true);}finally{button.disabled=false;button.textContent='Create new version';}}
 async function loadExports(){const data=await api('/api/v1/exports');$('#exports-list').innerHTML=data.items.length?data.items.map(item=>{let manifest={};try{manifest=JSON.parse(item.manifest_json);}catch{}return`<div class="export-row"><strong>${esc(item.version)}</strong><div><span>${fmtDate(item.created_at)} · ${item.record_count} records</span><br><code>${esc(item.export_path)}</code></div><span>${Object.keys(manifest.sha256||{}).length} checksums</span></div>`;}).join(''):'<div class="empty-inline">No versions created yet.</div>';}
 
@@ -433,8 +465,16 @@ function bindEvents(){
   restrictionControls.forEach(selector=>$(selector).addEventListener('change',e=>{if(e.target.checked)$('#training-eligible').checked=false;}));
   $('#training-eligible').addEventListener('change',e=>{if(e.target.checked&&restrictionControls.some(selector=>$(selector).checked)){e.target.checked=false;toast('Resolve dataset restrictions explicitly before marking this record eligible.',true);}});
   $('#conversation-list').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)showConversation(b.dataset.id).catch(x=>toast(x.message,true));});$('#search-conversations').addEventListener('click',()=>loadConversations().catch(e=>toast(e.message,true)));$('#conversation-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadConversations();});$('#apply-reviewed-filters').addEventListener('click',()=>loadReviewed().catch(e=>toast(e.message,true)));$('#reviewed-list').addEventListener('change',e=>{if(!e.target.matches('.reviewed-row-check'))return;const id=Number(e.target.dataset.reviewId);e.target.checked?state.reviewedSelected.add(id):state.reviewedSelected.delete(id);updateReviewedBulk();});$('#reviewed-list').addEventListener('click',e=>{const restore=e.target.closest('[data-restore-review]'),exclude=e.target.closest('[data-exclude-review]');if(restore)bulkReviewed('restore',[Number(restore.dataset.restoreReview)]).catch(x=>toast(x.message,true));if(exclude)bulkReviewed('exclude',[Number(exclude.dataset.excludeReview)]).catch(x=>toast(x.message,true));});$('#bulk-exclude-reviews').addEventListener('click',()=>bulkReviewed('exclude').catch(e=>toast(e.message,true)));$('#bulk-restore-reviews').addEventListener('click',()=>bulkReviewed('restore').catch(e=>toast(e.message,true)));
-  $$('.subtabs button').forEach(button=>button.addEventListener('click',()=>{$$('.subtabs button').forEach(b=>b.classList.toggle('active',b===button));$$('.data-form').forEach(form=>form.classList.toggle('active',form.id===`form-${button.dataset.addTab}`));}));$('#add-sft-turn').addEventListener('click',()=>addSftTurn($('#sft-turns .turn-row:last-child .turn-role')?.value==='user'?'assistant':'user'));
-  $('#form-sft').addEventListener('submit',e=>{e.preventDefault();const messages=$$('#sft-turns .turn-row').map(row=>({role:row.querySelector('.turn-role').value,content:row.querySelector('.turn-content').value}));submitDataForm(e.target,'/api/v1/manual-data/sft',{messages}).then(()=>{if(!$('#sft-turns .turn-row .turn-content').value){$('#sft-turns').innerHTML='';addSftTurn('user');addSftTurn('assistant');}});});$('#form-direct').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/direct');});$('#form-preference').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/preference');});
+  $('#view-add-data .subtabs [data-add-tab]').forEach(button=>button.addEventListener('click',()=>{$('#view-add-data .subtabs [data-add-tab]').forEach(b=>b.classList.toggle('active',b===button));$('#view-add-data .data-form').forEach(form=>form.classList.toggle('active',form.id===`form-${button.dataset.addTab}`));}));$('#add-sft-turn').addEventListener('click',()=>addSftTurn($('#sft-turns .turn-row:last-child .turn-role')?.value==='user'?'assistant':'user'));
+  $('#form-sft').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const rows=$('#sft-turns .turn-row');
+    // UX-15: deleted/all-empty turns cannot produce a valid conversation.
+    if(!rows.length){toast('Add at least a user turn and an assistant turn before saving.',true);return;}
+    const messages=rows.map(row=>({role:row.querySelector('.turn-role').value,content:row.querySelector('.turn-content').value}));
+    if(messages.some(m=>!m.content.trim())){toast('Every conversation turn needs text before saving.',true);return;}
+    await submitDataForm(e.target,'/api/v1/manual-data/sft',{messages});
+  });$('#form-direct').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/direct');});$('#form-preference').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/preference');});
   $('#apply-manual-filters').addEventListener('click',()=>loadManualData().catch(e=>toast(e.message,true)));$('#manual-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadManualData().catch(x=>toast(x.message,true));});
   $('#reset-manual-filters').addEventListener('click',()=>{$$('#view-manual-data input').forEach(input=>{if(input.type==='checkbox')input.checked=false;else input.value='';});$$('#view-manual-data select').forEach(select=>select.selectedIndex=0);loadManualData().catch(e=>toast(e.message,true));});
   $('#manual-list').addEventListener('click',e=>{const button=e.target.closest('[data-action]');if(button)manualAction(button.dataset.action,button.dataset.type,Number(button.dataset.id)).catch(x=>toast(x.message,true));});
