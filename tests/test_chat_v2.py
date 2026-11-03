@@ -432,3 +432,78 @@ def test_segment_export_keeps_single_and_multi_turn_shapes_and_no_unconsented_co
     for name in ('sft.jsonl', 'multi_turn.jsonl', 'evaluation_holdout.jsonl'):
         text = (out / name).read_text(encoding='utf-8')
         assert 'قبل الموافقة سري' not in text and 'بعد موافقة متأخرة' not in text, f'unconsented or incomplete text in {name}'
+
+
+# ------------------------------------------------------ deletion audit (2026-11-03)
+def test_delete_leaves_no_trace_after_renames_updates_and_page_sharing(chat):
+    ws, _, db, _ = chat
+    for k in range(25):  # neighbours share database pages with the victim
+        send(ws, new(ws), text=f'neighbour {k} ' + 'x' * 200)
+    victim = new(ws)
+    for i in range(6):
+        ws.rename(victim['id'], {'title': f'SECRETTITLE{i} حساس'})
+    victim = ws.get(victim['id'])
+    for i in range(3):
+        victim = send(ws, victim, text=f'SECRETBODY{i} ' + 'y' * 300)['session']
+    ws.pin(victim['id'], {'pinned': True})
+    ws.pin(victim['id'], {'pinned': False})
+    result = ws.delete(victim['id'], {'revision': ws.get(victim['id'])['revision'], 'confirm': 'DELETE'})
+    assert result['wal_checkpoint'] == 'TRUNCATED'
+    raw = _raw(db)
+    assert b'SECRETTITLE' not in raw and b'SECRETBODY' not in raw
+
+
+def test_repeated_delete_and_restart_after_delete(chat, tmp_path):
+    ws, engine, db, _ = chat
+    session = send(ws, new(ws), text=SECRET)['session']
+    ws.delete(session['id'], {'revision': session['revision'], 'confirm': 'DELETE'})
+    with pytest.raises(IntegrationError) as again:
+        ws.delete(session['id'], {'revision': session['revision'], 'confirm': 'DELETE'})
+    assert again.value.code == 'CHAT_NOT_FOUND'
+    assert rows(db, 'SELECT COUNT(*) FROM chat_deletions') == [(1,)], 'one tombstone, never a duplicate'
+    ws.close()
+    restarted = ChatWorkspace(IntegrationManager(home=tmp_path), db, engine_factory=engine.open, artifact_roots=[], backups_root=None)
+    try:
+        assert restarted.startup_checkpoint == 'TRUNCATED'
+        with pytest.raises(IntegrationError):
+            restarted.get(session['id'])
+        assert saved_sessions_page(db, 10, 0)[1] == 0
+        assert SECRET.encode() not in _raw(db)
+    finally:
+        restarted.close()
+        # The fixture closes `ws` again; that is a no-op.
+
+
+def test_concurrent_reader_makes_wal_cleanup_busy_and_it_is_reported_then_finished_on_restart(chat, tmp_path):
+    ws, engine, db, _ = chat
+    session = send(ws, new(ws), text=SECRET)['session']
+    reader = sqlite3.connect(db)
+    reader.execute('BEGIN')
+    reader.execute('SELECT COUNT(*) FROM chat_turns').fetchone()  # holds a read snapshot
+    try:
+        result = ws.delete(session['id'], {'revision': session['revision'], 'confirm': 'DELETE'})
+        assert result['wal_checkpoint'] == 'BUSY', 'never claimed clean while a reader pins old frames'
+        assert rows(db, 'SELECT COUNT(*) FROM chat_turns') == [(0,)], 'the rows themselves are gone'
+    finally:
+        reader.rollback()
+        reader.close()
+    ws.close()
+    restarted = ChatWorkspace(IntegrationManager(home=tmp_path), db, engine_factory=engine.open, artifact_roots=[], backups_root=None)
+    try:
+        assert restarted.startup_checkpoint == 'TRUNCATED'
+        assert SECRET.encode() not in _raw(db)
+    finally:
+        restarted.close()
+
+
+def test_preview_counts_reviewer_reasons_that_cannot_be_removed(chat):
+    from app.service import ignore_review
+    ws, _, db, _ = chat
+    session = _collected(ws)
+    review_id = rows(db, 'SELECT id FROM reviews')[0][0]
+    ignore_review(review_id, {'ignored_reason': 'reviewer note quoting part of the chat', 'reviewer': 'human'}, db)
+    preview = ws.delete_preview(session['id'])
+    assert preview['review_event_reasons_retained'] >= 1
+    result = ws.delete(session['id'], {'revision': preview['revision'], 'confirm': 'DELETE'})
+    assert result['review_event_reasons_retained'] == preview['review_event_reasons_retained']
+    assert rows(db, "SELECT COUNT(*) FROM review_events WHERE reason LIKE '%quoting%'") == [(1,)], 'immutable by design; disclosed'

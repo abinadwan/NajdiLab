@@ -501,8 +501,10 @@
     row('Review copies to delete',preview.review_conversations-preview.review_conversations_to_redact);
     row('Reviewed copies to blank out',preview.review_conversations_to_redact);
     row('Audit events kept (no text, only status, time and a fingerprint)',preview.review_events_retained);
+    if(preview.review_event_reasons_retained)row('Reviewer reasons that cannot be removed',preview.review_event_reasons_retained);
     row('Backups not changed',preview.backups_not_changed);
     box.append(list);
+    if(preview.review_event_reasons_retained)box.append(node('p','chatv2-warning','Some review events have a reason written by a reviewer. Those reasons are locked by the audit trail and stay as written; check that they do not quote this conversation.'));
     if(preview.backups_not_changed)box.append(node('p','muted','Backups made earlier may still contain this conversation until you delete those backup files yourself.'));
     box.append(node('p','muted','Copies already moved to other devices or programs cannot be deleted by NajdiLab.'));
     let blocked=null;
@@ -514,13 +516,18 @@
     el('chat-delete-confirm').oninput=()=>{go.disabled=!!blocked||el('chat-delete-confirm').value!=='DELETE';};
     go.onclick=act(async()=>{
       go.disabled=true;
+      let result;
       try{
-        await controller.post(`/api/v1/chat/sessions/${id}/delete`,{revision:preview.revision,confirm:el('chat-delete-confirm').value});
+        result=await controller.post(`/api/v1/chat/sessions/${id}/delete`,{revision:preview.revision,confirm:el('chat-delete-confirm').value});
       }catch(error){compose(el('chat-delete-error'),errorParts(error));go.disabled=false;return;}
       el('chat-delete').close();
       thinkingByRequest.clear();
       if(controller.session?.id===id){controller.session=null;lingering=[];}
-      setNotice('Conversation permanently deleted from NajdiLab\'s database.');
+      // Report the real outcome: if the WAL could not be truncated, old copies can
+      // remain in the -wal file until the next successful checkpoint (F4).
+      setNotice(result&&result.wal_checkpoint!=='TRUNCATED'
+        ?'Conversation deleted from the database, but the database journal could not be cleaned yet because another reader was using it. Old copies may remain in the journal file until NajdiLab restarts.'
+        :'Conversation permanently deleted from NajdiLab\'s database.');
       await saved();render();
     });
     el('chat-delete').showModal();el('chat-delete-confirm').focus();

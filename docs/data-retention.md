@@ -26,11 +26,11 @@ The owner approved developing permanent deletion of chat conversations in this p
 
 - `chat_sessions`, `chat_session_bindings`, `chat_requests`, `chat_turns` rows of the conversation (all its text and receipts).
 - Every review conversation collected from it (`najdilab-chat:<id>:*`). If none of its reviews has an audit event, the conversation, messages, reviews and tags are deleted. If any review has an event, the immutable `review_events` rows cannot be deleted, so the text is overwritten instead: message content, original and corrected responses, notes, titles, tags and metadata become `[deleted]` or empty, the review becomes `DELETED` and excluded.
-- The deleting connection uses `secure_delete`, so freed database pages are zeroed, then the WAL is checkpointed and truncated. A test reads the raw database and WAL bytes afterwards and finds no copy of the deleted text. If another reader keeps the WAL busy, the result reports `wal_checkpoint: BUSY`.
+- The deleting connection uses `secure_delete`, so freed database pages are zeroed, then the WAL is checkpointed and truncated. A test reads the raw database and WAL bytes afterwards and finds no copy of the deleted text, including titles renamed several times. If another reader keeps the WAL busy, the result reports `wal_checkpoint: BUSY`, the page says the journal could not be cleaned yet, and NajdiLab retries the truncation at its next start. Full audit: [PERMANENT_DELETION_AUDIT.md](development/PERMANENT_DELETION_AUDIT.md).
 
 **What remains, by design and disclosed in the dialog:**
 
-- `review_events` rows: status, actor, time, reason and a SHA-256 of the old text. The hash cannot be reversed, but it can confirm a guessed exact text. A human-written `reason` could contain quoted text and cannot be changed (immutable); the preview reports how many events remain.
+- `review_events` rows: status, actor, time, reason and a SHA-256 of the old text. The hash cannot be reversed, but it can confirm a guessed exact text. A human-written `reason` could contain quoted text and cannot be changed (immutable); the preview and the result count those reasons (`review_event_reasons_retained`) and the dialog warns about them.
 - A content-free tombstone in `chat_deletions` (session id, time, counts, policy). It is immutable.
 - **Backups** made before deletion still contain the conversation. NajdiLab counts them and never opens or changes them; the owner deletes or rotates them.
 - Copies outside NajdiLab's control (files moved to other devices, external training sets) cannot be deleted or verified.

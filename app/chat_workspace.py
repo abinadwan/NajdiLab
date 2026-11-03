@@ -124,6 +124,9 @@ class ChatWorkspace:
         except Exception:
             self._owner.close()
             raise
+        # A deletion whose WAL truncation was BUSY leaves old frames until the next
+        # successful checkpoint; retry once at start, before any chat reader (F4).
+        self.startup_checkpoint = chat_deletion.compact(self.db_path)
 
     def close(self):
         with self._lock:
@@ -349,6 +352,7 @@ class ChatWorkspace:
         wal = chat_deletion.compact(self.db_path)
         return {'ok': True, 'deleted': sid, 'policy': chat_deletion.POLICY, 'turns_deleted': preview['turns'],
                 **done, 'review_events_retained': preview['review_events_retained'],
+                'review_event_reasons_retained': preview['review_event_reasons_retained'],
                 'backups_not_changed': preview['backups_not_changed'], 'wal_checkpoint': wal}
 
     def send(self, sid, data, on_event=None):

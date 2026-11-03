@@ -118,6 +118,7 @@ from .service import (
 
 STATIC_DIR = ROOT / "static"
 MAX_BODY_BYTES = 2 * 1024 * 1024
+STREAM_WRITE_TIMEOUT = 30
 
 
 class NajdiLabHTTPServer(ThreadingHTTPServer):
@@ -175,7 +176,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         return True
 
     def log_message(self, fmt: str, *args: object) -> None:
-        sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), fmt % args))
+        # Query strings can carry user text (chat search); the log keeps only the
+        # path, method and status (review F7).
+        sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), re.sub(r"\?[^\s\"]*", "?[query omitted]", fmt % args)))
 
     def _headers(self, status: int, content_type: str, length: int | None = None) -> None:
         self.send_response(status)
@@ -214,6 +217,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         session, committed only after every completion check passed."""
         workspace = self.server.workspace()
         state = {"open": False, "gone": False}
+        # A client that stops reading must not hold the runtime lease forever: a
+        # stalled write times out, which stops the turn like a disconnect (F6).
+        self.connection.settimeout(STREAM_WRITE_TIMEOUT)
 
         def write(event: dict) -> None:
             if state["gone"]:

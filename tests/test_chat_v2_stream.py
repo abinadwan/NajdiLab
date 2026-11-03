@@ -210,3 +210,107 @@ def test_stream_route_errors_before_acceptance_are_plain_json_and_after_are_even
     assert 'Thinking tokens count' in last['hint']
     status, _, raw = request(f"/api/v1/chat/sessions/{session['id']}/delete-preview")
     assert status == 200 and json.loads(raw)['turns'] == 0
+
+
+def test_browser_disconnect_mid_stream_stops_the_turn_and_saves_nothing(tmp_path):
+    """Security review: a closed browser connection must stop generation, and a
+    stopped turn is never committed or collected."""
+    import socket
+    import time as _time
+
+    class Endless(StreamEngine):
+        def generate(self, messages, reserve, stop, on_delta=None):
+            deadline = _time.monotonic() + 8
+            while not stop.is_set() and _time.monotonic() < deadline:
+                on_delta('content', 'PARTIAL ' * 50)
+                _time.sleep(0.02)
+            raise IntegrationError('STOPPED', 'Turn stopped; no pair was saved.', 409)
+
+    db = tmp_path / 'disconnect.db'
+    apply_migrations(db)
+    http = server.NajdiLabHTTPServer(('127.0.0.1', 0), server.NajdiLabHandler)
+    http.integrations._states['lmstudio'].update(connection='CONNECTED', selected_model='fixture', selection_revision=2)
+    engine = Endless()
+    http.chat = ChatWorkspace(http.integrations, db, engine_factory=engine.open, artifact_roots=[], backups_root=None)
+    thread = threading.Thread(target=http.serve_forever, daemon=True)
+    thread.start()
+    try:
+        session = http.chat.create({'provider': 'lmstudio', 'model': 'fixture', 'selection_revision': 2,
+                                    'context_budget': 512, 'reply_reserve': 32, 'load_approved': False})
+        session = http.chat.collect(session['id'], {'enabled': True, 'revision': session['revision']})
+        body = json.dumps({'request_id': str(uuid4()), 'revision': session['revision'], 'selection_revision': 2, 'text': 'x'}).encode()
+        sock = socket.create_connection(('127.0.0.1', http.server_port), timeout=5)
+        sock.sendall((f"POST /api/v1/chat/sessions/{session['id']}/send-stream HTTP/1.1\r\nHost: 127.0.0.1:{http.server_port}\r\n"
+                      f"Content-Type: application/json\r\nX-NajdiLab-CSRF: {CSRF_TOKEN}\r\nContent-Length: {len(body)}\r\n\r\n").encode() + body)
+        assert b'"accepted"' in sock.recv(65536)
+        sock.close()  # the browser goes away mid-reply
+        deadline = _time.monotonic() + 6
+        while _time.monotonic() < deadline:
+            with connect(db) as conn:
+                status = conn.execute('SELECT status FROM chat_requests').fetchone()[0]
+            if status != 'RUNNING':
+                break
+            _time.sleep(0.05)
+        assert status == 'STOPPED'
+        with connect(db) as conn:
+            assert conn.execute('SELECT COUNT(*) FROM chat_turns').fetchone()[0] == 0
+            assert conn.execute('SELECT COUNT(*) FROM reviews').fetchone()[0] == 0
+    finally:
+        http.shutdown()
+        http.server_close()
+        thread.join(3)
+
+
+def test_client_that_stops_reading_cannot_hold_the_runtime(tmp_path, monkeypatch):
+    """F6: a stalled reader (connection open, nothing read) times out the write
+    and stops the turn instead of holding the session and runtime lease."""
+    import socket
+    import time as _time
+    monkeypatch.setattr(server, 'STREAM_WRITE_TIMEOUT', 1)
+
+    class Flood(StreamEngine):
+        def generate(self, messages, reserve, stop, on_delta=None):
+            deadline = _time.monotonic() + 15
+            while not stop.is_set() and _time.monotonic() < deadline:
+                on_delta('content', 'Z' * 8192)
+            raise IntegrationError('STOPPED', 'Turn stopped; no pair was saved.', 409)
+
+    db = tmp_path / 'stall.db'
+    apply_migrations(db)
+    http = server.NajdiLabHTTPServer(('127.0.0.1', 0), server.NajdiLabHandler)
+    http.integrations._states['lmstudio'].update(connection='CONNECTED', selected_model='fixture', selection_revision=2)
+    http.chat = ChatWorkspace(http.integrations, db, engine_factory=Flood().open, artifact_roots=[], backups_root=None)
+    thread = threading.Thread(target=http.serve_forever, daemon=True)
+    thread.start()
+    sock = None
+    try:
+        session = http.chat.create({'provider': 'lmstudio', 'model': 'fixture', 'selection_revision': 2,
+                                    'context_budget': 512, 'reply_reserve': 32, 'load_approved': False})
+        body = json.dumps({'request_id': str(uuid4()), 'revision': session['revision'], 'selection_revision': 2, 'text': 'x'}).encode()
+        sock = socket.socket()
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
+        sock.connect(('127.0.0.1', http.server_port))
+        sock.sendall((f"POST /api/v1/chat/sessions/{session['id']}/send-stream HTTP/1.1\r\nHost: 127.0.0.1:{http.server_port}\r\n"
+                      f"Content-Type: application/json\r\nX-NajdiLab-CSRF: {CSRF_TOKEN}\r\nContent-Length: {len(body)}\r\n\r\n").encode() + body)
+        deadline = _time.monotonic() + 12  # never read: the server's writes must time out
+        status = 'RUNNING'
+        while _time.monotonic() < deadline and status == 'RUNNING':
+            _time.sleep(0.1)
+            with connect(db) as conn:
+                status = conn.execute('SELECT status FROM chat_requests').fetchone()[0]
+        assert status == 'STOPPED'
+        assert http.chat.get(session['id'])['busy'] is False, 'the session is free again'
+    finally:
+        if sock:
+            sock.close()
+        http.shutdown()
+        http.server_close()
+        thread.join(3)
+
+
+def test_request_log_never_contains_query_text(api, capsys):
+    """F7: chat search terms can be conversation text; logs keep only the path."""
+    request, _ = api
+    request('/api/v1/chat/sessions?q=SECRET-SEARCH-TERM&limit=5')
+    out = capsys.readouterr().out
+    assert 'SECRET-SEARCH-TERM' not in out and '/api/v1/chat/sessions?[query omitted]' in out

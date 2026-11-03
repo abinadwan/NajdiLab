@@ -68,8 +68,10 @@ def free_port():
 
 
 def file_stat(path):
+    # Size, modification time and file id (inode / NTFS file index): replacing the
+    # file, even with a copied mtime, changes the identity (review F3).
     value = path.stat()
-    return (value.st_size, value.st_mtime_ns)
+    return (value.st_size, value.st_mtime_ns, value.st_ino)
 
 
 def sha256_file(path, chunk=8 * 1024 * 1024):
@@ -176,6 +178,11 @@ class NativeRuntime:
         if root.is_dir():
             resolved = root.resolve()
             for path in sorted(resolved.rglob('*.gguf'))[:MAX_MODELS]:
+                # Symlinks that leave the models folder are never listed or read (review F2).
+                try:
+                    path.resolve().relative_to(resolved)
+                except ValueError:
+                    continue
                 if path.is_file() and len(path.relative_to(resolved).parts) <= 4:
                     items.append(self.inspect(path))
         return {'models_dir': str(root), 'models_dir_exists': root.is_dir(), 'items': items,
@@ -233,11 +240,14 @@ class NativeRuntime:
 
     def _child_env(self):
         # No proxy or hub credentials can reach the child; it also runs --offline.
-        blocked = ('_proxy', 'hf_token', 'hugging_face_hub_token', 'llama_api_key')
-        env = {k: v for k, v in os.environ.items() if not any(k.lower().endswith(b) or k.lower() == b for b in blocked)}
-        env.pop('LLAMA_ARG_HOST', None)
-        env.pop('LLAMA_ARG_PORT', None)
-        return env
+        # llama.cpp reads every LLAMA_ARG_* (and some LLAMA_*) variable as a
+        # command-line flag, so an inherited one could re-enable /props writes,
+        # metrics, slots, a web UI, another host or a model download. Only the
+        # flags NajdiLab passes explicitly may configure the child (review F1).
+        blocked = ('_proxy', 'hf_token', 'hugging_face_hub_token')
+        return {k: v for k, v in os.environ.items()
+                if not k.upper().startswith(('LLAMA_', 'GGML_RPC', 'HF_', 'HUGGING'))
+                and not any(k.lower().endswith(b) or k.lower() == b for b in blocked)}
 
     def _reap(self):
         if self._proc is not None and self._proc.poll() is not None:
@@ -323,7 +333,9 @@ class NativeRuntime:
                         raise IntegrationError(code, message, 409)
                 raise IntegrationError('NATIVE_START_FAILED', 'NajdiLab Native did not become ready. Check the model file and llama-server build.', 409)
             settings = props.get('default_generation_settings') if isinstance(props.get('default_generation_settings'), dict) else {}
-            if settings.get('n_ctx') != context or props.get('total_slots') != 1 or Path(str(props.get('model_path'))).resolve() != path:
+            # The file must still be the one that was hashed (narrows the swap window, F3).
+            if (settings.get('n_ctx') != context or props.get('total_slots') != 1
+                    or Path(str(props.get('model_path'))).resolve() != path or file_stat(path) != stat):
                 process.kill()
                 process.wait(10)
                 raise IntegrationError('NATIVE_START_FAILED', 'llama-server did not start with the requested model and context.', 409)

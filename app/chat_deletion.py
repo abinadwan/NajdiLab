@@ -107,6 +107,14 @@ def plan(conn: sqlite3.Connection, row: dict, roots: Iterable[Path], backups: Pa
         if n:
             with_events.append(cid)
             events += n
+    # Free-text reviewer reasons on immutable events cannot be changed; they are
+    # counted and disclosed because a reason could quote the conversation (F5).
+    reasons = 0
+    for cid in with_events:
+        reasons += conn.execute(
+            """SELECT COUNT(*) FROM review_events e JOIN reviews r ON r.id=e.review_id
+               JOIN messages m ON m.id=r.message_id WHERE m.conversation_id=?
+               AND e.reason IS NOT NULL AND trim(e.reason) != ''""", (cid,)).fetchone()[0]
     copies = exported_copies(roots, sid)
     return {
         "session_id": sid,
@@ -118,6 +126,7 @@ def plan(conn: sqlite3.Connection, row: dict, roots: Iterable[Path], backups: Pa
         "review_conversations": len(conversations),
         "review_conversations_to_redact": len(with_events),
         "review_events_retained": events,
+        "review_event_reasons_retained": reasons,
         "exported_copies": copies,
         "backups_not_changed": backups_after(backups, row["created_at"]),
         "blocked": "EXPORTED" if copies else None,

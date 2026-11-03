@@ -123,7 +123,7 @@
     },
     "app/chat_workspace.py": {
       "classification": "PROTECT",
-      "sha256": "623d2c7164afde4274f18f5422585beabc5ec4114de9d1f072096663a78e87a4",
+      "sha256": "e079ca274ffe576560201f2646fb3f196e7bda13a36e5b69093596023f540dd2",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .chat_engine import open_engine",

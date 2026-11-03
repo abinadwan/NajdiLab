@@ -191,3 +191,130 @@ def test_real_native_stop_during_generation_saves_nothing(native):
         assert conn.execute('SELECT COUNT(*) FROM chat_turns').fetchone()[0] == 0
         assert conn.execute('SELECT status FROM chat_requests').fetchone()[0] == 'STOPPED'
     assert runtime.status()['state'] == 'RUNNING', 'stopping a reply never stops the runtime'
+
+
+# --------------------------------------------------------------- security review
+def test_child_environment_drops_llama_flags_proxies_and_hub_tokens(models, tmp_path, monkeypatch):
+    for key in ('LLAMA_ARG_ENDPOINT_PROPS', 'LLAMA_ARG_HOST', 'LLAMA_ARG_HF_REPO', 'LLAMA_API_KEY', 'HF_TOKEN',
+                'HTTPS_PROXY', 'https_proxy', 'GGML_RPC_SERVERS', 'HUGGING_FACE_HUB_TOKEN'):
+        monkeypatch.setenv(key, 'synthetic')
+    monkeypatch.setenv('CUDA_VISIBLE_DEVICES', '0')
+    env = NativeRuntime(tmp_path / 'missing', models)._child_env()
+    assert not [k for k in env if k.upper().startswith(('LLAMA_', 'HF_', 'HUGGING', 'GGML_RPC')) or k.lower().endswith('_proxy')]
+    assert env['CUDA_VISIBLE_DEVICES'] == '0', 'GPU selection by the owner is kept'
+
+
+def test_symlinked_gguf_outside_the_folder_is_never_listed_or_loaded(models, tmp_path):
+    outside = tmp_path / 'outside.gguf'
+    write_gguf(outside)
+    try:
+        (models / 'escape.gguf').symlink_to(outside)
+    except OSError:
+        pytest.skip('symlinks not permitted on this platform')
+    runtime = NativeRuntime(tmp_path / 'missing', models)
+    assert [i['id'] for i in runtime.models()['items']] == ['synthetic.gguf']
+    with pytest.raises(IntegrationError):
+        runtime.model_limits('escape.gguf')
+
+
+def test_replacing_a_model_file_changes_its_identity_even_with_the_same_size_and_mtime(models):
+    from app.native_runtime import file_stat
+    path = models / 'synthetic.gguf'
+    before = file_stat(path)
+    data, stat = path.read_bytes(), path.stat()
+    replacement = models / 'replacement.tmp'
+    replacement.write_bytes(data)
+    os.utime(replacement, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    os.replace(replacement, path)
+    after = file_stat(path)
+    assert after[:2] == before[:2] and after != before, 'inode/file index distinguishes the swap'
+
+
+class FakeLlamaServer:
+    """Scripted SSE responses for NativeEngine.generate failure paths."""
+
+    def __init__(self, lines):
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        self.lines, self.props = lines, None
+        fake = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_GET(self):
+                import json as _json
+                raw = _json.dumps(fake.props).encode()
+                self.send_response(200); self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(raw))); self.end_headers(); self.wfile.write(raw)
+
+            def do_POST(self):
+                self.rfile.read(int(self.headers['Content-Length']))
+                self.send_response(200); self.send_header('Content-Type', 'text/event-stream'); self.end_headers()
+                for line in fake.lines:
+                    self.wfile.write(line.encode() + b'\n\n'); self.wfile.flush()
+                self.close_connection = True
+
+        self.http = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        threading.Thread(target=self.http.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.http.shutdown(); self.http.server_close()
+
+
+def _engine(fake, models):
+    from app.native_runtime import NativeEngine, NativeLease, file_stat
+    path = (models / 'synthetic.gguf').resolve()
+    fake.props = {'model_path': str(path), 'default_generation_settings': {'n_ctx': 2048}, 'build_info': 'fake'}
+
+    class Runtime:
+        _proc = None
+
+        def same_instance(self, lease):
+            return True
+    connector = Connector('NajdiLab Native', 'model_runtime', '', fake.http.server_port, '/props', '/health',
+                          ('/apply-template', '/tokenize', '/v1/chat/completions'))
+    lease = NativeLease('NajdiLab Native', connector, {}, 'i', 'synthetic.gguf', path, file_stat(path), 'a' * 64,
+                        {'model_max_context': 8192, 'architecture': 'llama', 'size_bytes': 1, 'quantization': 'F32', 'kv': None},
+                        2048, Runtime())
+    return NativeEngine(lease)
+
+
+def _event(delta=None, finish=None, usage=None, index=0):
+    import json as _json
+    body = {'choices': [{'index': index, 'delta': delta or {}, 'finish_reason': finish}]}
+    if usage:
+        body = {'choices': [], 'usage': usage}
+    return 'data: ' + _json.dumps(body)
+
+
+@pytest.mark.parametrize('lines,code', [
+    ([_event({'content': 'x'}), 'data: [DONE]'], 'INCOMPLETE_RESPONSE'),                                   # no usage, no finish
+    ([_event({'content': 'x'}, 'stop'), _event(usage={'prompt_tokens': 3, 'completion_tokens': 1})], 'INCOMPLETE_RESPONSE'),  # no [DONE]
+    ([_event({'content': 'x'}, 'stop'), 'data: [DONE]', _event({'content': 'more'})], 'INCOMPLETE_RESPONSE'),  # data after DONE
+    (['data: {"error": {"message": "synthetic"}}'], 'ENGINE_REFUSED'),
+    ([_event({'content': 'x'}, index=1)], 'INCOMPLETE_RESPONSE'),                                           # second choice
+    (['data: {not json'], 'INVALID_RESPONSE'),
+])
+def test_native_stream_protocol_failures_are_refused(models, lines, code):
+    fake = FakeLlamaServer(lines)
+    try:
+        with pytest.raises(IntegrationError) as error:
+            _engine(fake, models).generate([{'role': 'user', 'content': 'abc'}], 16, threading.Event())
+        assert error.value.code == code
+    finally:
+        fake.close()
+
+
+def test_native_stream_keeps_reasoning_out_of_the_answer_and_reports_length(models):
+    fake = FakeLlamaServer([_event({'reasoning_content': 'PRIVATE THINKING'}), _event({'content': 'answer'}, 'length'),
+                            _event(usage={'prompt_tokens': 3, 'completion_tokens': 16}), 'data: [DONE]'])
+    try:
+        deltas = []
+        result = _engine(fake, models).generate([{'role': 'user', 'content': 'abc'}], 16, threading.Event(),
+                                                on_delta=lambda c, t: deltas.append((c, t)))
+        assert result['content'] == 'answer' and 'PRIVATE' not in result['content']
+        assert ('thinking', 'PRIVATE THINKING') in deltas and result['reasoning_discarded'] is True
+        assert result['stop_reason'] == 'length', 'the workspace then refuses it as STOP_REASON_LENGTH'
+    finally:
+        fake.close()
