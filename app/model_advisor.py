@@ -164,9 +164,9 @@ def assess(*, variant: dict, access: str, model: dict | None, host: dict, contex
     if label == 'COMPATIBLE':
         reasons = [_reason('FITS_GPU', 'The estimate fits the GPU memory free right now, with every layer on the GPU. This is an estimate, not a load test.')]
     performance = {
-        'GPU': 'Runs fully on the GPU: the fastest option on this computer.',
-        'PARTIAL_OFFLOAD': 'Split between GPU and system memory: noticeably slower than full GPU use.',
-        'CPU': 'CPU only: expect slow replies, especially for long prompts.',
+        'GPU': 'If loaded, it would run fully on the GPU: the fastest option on this computer.',
+        'PARTIAL_OFFLOAD': 'If loaded, it would be split between GPU and system memory: noticeably slower than full GPU use.',
+        'CPU': 'If loaded, it would run on the CPU only: expect slow replies, especially for long prompts.',
     }.get(placement, 'Unknown until hardware and model details are available.')
     return {'download': download,
             'load': {'classification': label, 'reasons': reasons, 'recommended_context': recommended,

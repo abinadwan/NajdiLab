@@ -447,6 +447,13 @@ def test_advisor_separates_download_from_loading():
     assert assess(variant=split, access='OPEN', model=None, host=host(gpu_free=11 * GIB), context=8192)['load']['classification'] == 'BLOCKED'
 
 
+def test_performance_line_is_conditional_when_loading_is_blocked():
+    """A BLOCKED model must not be described as if it runs."""
+    result = assess(variant=VARIANT, access='OPEN', model=MODEL, host=host(gpu_free=11 * GIB, server=False), context=8192)
+    assert result['load']['classification'] == 'BLOCKED'
+    assert result['performance']['expectation'].startswith('If loaded,')
+
+
 def test_advisor_unknown_hardware_never_claims_compatibility():
     unknown = host_profile({'ram_total_bytes': None, 'ram_available_bytes': None, 'gpus': [], 'warnings': ['RAM_UNAVAILABLE']},
                            {'server_available': True, 'devices': []})

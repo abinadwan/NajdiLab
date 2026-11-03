@@ -135,7 +135,7 @@ New: `tests/test_hf_direct.py` (42 + 1 skipped on Windows), `tests/fake_hub.py` 
 
 | Suite | Result |
 |---|---|
-| `pytest tests` | **817 passed, 37 skipped, 0 failed** — skips: 22 private historical artifacts not distributed, 9 opt-in real-Ollama tests, 3 need a real `llama-server` (`NAJDILAB_NATIVE_TEST_SERVER`), 3 need symlink permission on this Windows account |
+| `pytest tests` | **818 passed, 37 skipped, 0 failed** — skips: 22 private historical artifacts not distributed, 9 opt-in real-Ollama tests, 3 need a real `llama-server` (`NAJDILAB_NATIVE_TEST_SERVER`), 3 need symlink permission on this Windows account |
 | `public_source/tests/test_builder.py` | 12 passed |
 | `node --test tests/*.test.cjs` | 60 passed |
 | `a11y-browser.cjs` / `i18n-browser.cjs` / `review-restrictions-browser.cjs` | 13 / 10 / 12 passed |
