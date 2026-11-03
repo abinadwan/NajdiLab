@@ -2,7 +2,7 @@
 
 Scope: every external project consulted or used for branch `feature/chat-experience-v2`. The broader, older register is [third-party-attributions.md](third-party-attributions.md); the detailed dependency evidence remains [dependency-licensing-matrix.md](dependency-licensing-matrix.md). This file is a review record, **not** a NOTICE file or a license grant.
 
-**Summary.** No third-party source code, images, icons, fonts or other assets were copied into NajdiLab in this branch. No new Python or JavaScript dependency was added. The Markdown renderer, the GGUF header reader, the streaming parsers and the chat UI are original NajdiLab code. llama.cpp is used as a **separately installed external program** that the owner supplies; NajdiLab does not bundle, build or download it.
+**Summary.** No third-party source code, images, icons, fonts or other assets were copied into NajdiLab in this branch. No new Python or JavaScript dependency was added. The Markdown renderer, the GGUF header reader, the streaming parsers and the chat UI are original NajdiLab code. llama.cpp is used as an **external program**: either the owner's own `llama-server`, or (V2.0.0 Phase 3) the official pinned release archives that NajdiLab downloads on the owner's machine after explicit approval. No binary is stored in or distributed with the repository.
 
 License texts below were read on 2026-11-02 from a shallow clone of each repository at the listed commit (file `LICENSE`), not from memory or a third-party summary.
 
@@ -17,9 +17,10 @@ License texts below were read on 2026-11-02 from a shallow clone of each reposit
 | License | MIT License — https://github.com/ggml-org/llama.cpp/blob/master/LICENSE |
 | Copyright holder | "Copyright (c) 2023-2026 The ggml authors" |
 | Modifications to their code | None. No llama.cpp code is in this repository. |
-| Obligations and how they are met | MIT obligations apply when copies or substantial portions are **distributed**. NajdiLab distributes none, so there is no current obligation. The test binary was built from source in a temporary scratch directory on the build machine, used only for tests, and not committed. |
+| Obligations and how they are met | MIT obligations apply when copies or substantial portions are **distributed**. NajdiLab distributes none: the managed runtime downloads the unmodified official archives directly from the llama.cpp release on the owner's machine, and writes llama.cpp's `LICENSE` and `licenses/LICENSE-jsonhpp` into each install's `NOTICES/` folder because the Windows archives omit them (`app/runtime_catalog.py`). The test binary was built from source in a temporary scratch directory on the build machine, used only for tests, and not committed. |
 | Files required if distributed later | If a future release bundles `llama-server`, ship llama.cpp's `LICENSE` and every license in its `licenses/` folder for the exact build (this revision contains `licenses/LICENSE-jsonhpp`, the nlohmann/json MIT license), plus the licenses of any GPU runtime bundled with that build (for example NVIDIA CUDA redistributables, whose EULA must be checked separately). |
-| Open questions | A CUDA build for RTX 5070 has its own NVIDIA component terms, not reviewed here. |
+| GPU runtime components | The CUDA packages include NVIDIA's `cudart`, `cuBLAS` and `cuBLASLt` libraries (archive `cudart-llama-bin-…`, published by the llama.cpp project), governed by the NVIDIA CUDA Toolkit EULA (https://docs.nvidia.com/cuda/eula/). The Windows archives also ship LLVM OpenMP (`LICENSE-LLVM-OpenMP`, Apache 2.0 with LLVM exceptions). The install dialog and the installer list these terms and require acknowledgement. |
+| Open questions | A packaged NajdiLab distribution that ships these archives must include the NVIDIA EULA terms; the owner should review them before any such distribution. |
 
 ## 2. Model weights (any GGUF file)
 
@@ -62,7 +63,7 @@ The reconciliation imported commit `95e7604` from PR #21 (`fix/chat-review-workf
 
 ## 6. Remaining items needing a license decision
 
-1. Before ever **bundling** `llama-server`: collect the exact build's license files (llama.cpp MIT, `licenses/*`, and any CUDA/Vulkan/Metal runtime terms) and add them to a NOTICE bundle.
+1. Before ever **bundling** `llama-server` in a package: ship each install's `NOTICES/` folder, `LICENSE-LLVM-OpenMP` and the NVIDIA CUDA EULA terms with it (the managed runtime downloads on the owner's machine and does not bundle).
 2. Each model file used with NajdiLab Native: the owner must verify its license independently.
 3. Open WebUI: keep it as a "no copying" reference because of its branding clause.
 

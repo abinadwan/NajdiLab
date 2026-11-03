@@ -44,6 +44,7 @@ from .chat_history import saved_sessions_page
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .chat_workspace import ChatWorkspace, fields
+from .managed_runtime import ManagedRuntime
 from .native_runtime import NativeRuntime
 from .model_service import ModelLibrary
 from .version import APP_VERSION, DISPLAY_VERSION, RELEASE_STATUS
@@ -137,8 +138,10 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
         self._workspace_lock = threading.Lock()
         self._models = None
         self._models_lock = threading.Lock()
-        # Managed (Hugging Face Direct) files must be verified READY before Native starts them.
-        self.native.start_gate = lambda path: self.models().store.native_gate(path)
+        # Native uses the managed llama.cpp build unless the owner set NAJDILAB_NATIVE_SERVER.
+        self.runtime = ManagedRuntime(self.native)
+        self.runtime.attach()
+        self.native.start_gate = self._native_gate
         super().__init__(*args, **kwargs)
 
     def workspace(self):
@@ -150,6 +153,11 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
                                           engine_factory=self.native.engine_factory())
             return self.chat
 
+    def _native_gate(self, path):
+        # The managed build must be exactly as installed, and a Hugging Face Direct file verified READY.
+        self.runtime.gate()
+        self.models().store.native_gate(path)
+
     def models(self):
         with self._models_lock:
             if self._models is None:
@@ -160,6 +168,7 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
         super().server_close()
         if self._models is not None:
             self._models.store.shutdown()
+        self.runtime.shutdown()
         # Only NajdiLab's own llama-server child is stopped; nothing else.
         self.native.shutdown()
         if self.chat is not None:
@@ -340,6 +349,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.native.status())
             elif parsed.path == '/api/v1/native/models':
                 self._json(self.server.native.models())
+            elif parsed.path == '/api/v1/runtime':
+                self._json(self.server.runtime.status())
             elif parsed.path == '/api/v1/models/library':
                 self._json(self.server.models().store.library())
             elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
@@ -465,6 +476,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._send_stream(match.group(1), data)
             elif parsed.path.startswith('/api/v1/models/'):
                 self._json(self.server.models().handle(parsed.path[len('/api/v1/models/'):], data))
+            elif match := re.fullmatch(r'/api/v1/runtime/([a-z]+)', parsed.path):
+                self._json(self.server.runtime.handle(match.group(1), data))
             elif parsed.path in {'/api/v1/native/start', '/api/v1/native/stop'}:
                 native = self.server.native
                 self._json(native.start(data) if parsed.path.endswith('start') else native.stop(data))

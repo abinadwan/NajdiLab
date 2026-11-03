@@ -1,21 +1,23 @@
-# NajdiLab Native — local GGUF models through your own llama-server
+# NajdiLab Native — local GGUF models through llama.cpp's llama-server
 
 **Status: in development on `feature/chat-experience-v2`, not merged, not owner-accepted.** Tested only on Linux, CPU only, with a tiny random-weight synthetic GGUF. No real model, no GPU and no Windows run has been tested. RTX 5070 support and compatibility with arbitrary GGUF files are **not claimed**.
 
-NajdiLab Native lets Chat use a local GGUF model without Ollama or LM Studio. NajdiLab starts and stops **one** llama.cpp `llama-server` process that the owner already has, and talks to it over its HTTP API. Code: `app/native_runtime.py` (lifecycle and engine), `app/gguf.py` (header reader). License review: [THIRD_PARTY_ATTRIBUTION.md](THIRD_PARTY_ATTRIBUTION.md).
+> **V2.0.0 (Phase 3):** NajdiLab can now install and verify its own pinned llama.cpp build: **Model library → llama.cpp runtime**, or `python scripts/install.py --runtime`. See [Managed llama.cpp runtime](development/MANAGED_RUNTIME.md). The managed build was verified on Windows with an RTX 5070 (CUDA 13.4 package); the owner-supplied path below still works and takes precedence.
+
+NajdiLab Native lets Chat use a local GGUF model without Ollama or LM Studio. NajdiLab starts and stops **one** llama.cpp `llama-server` process — the managed runtime or one the owner supplies — and talks to it over its HTTP API. Code: `app/native_runtime.py` (lifecycle and engine), `app/gguf.py` (header reader). License review: [THIRD_PARTY_ATTRIBUTION.md](THIRD_PARTY_ATTRIBUTION.md).
 
 ## What NajdiLab will never do
 
-- Download a program, a model, weights or a tokenizer by itself. `llama-server` is started with `--offline`, and proxy and Hugging Face token variables are removed from its environment. Model files may be downloaded separately, only on explicit approval, through the Model library ([Hugging Face Direct](development/HUGGING_FACE_DIRECT.md)); NajdiLab Native starts such a file only after its size and SHA-256 were verified (`MODEL_NOT_VERIFIED` otherwise).
+- Download a program, a model, weights or a tokenizer by itself. The managed llama.cpp runtime is downloaded only when you approve that package, and only the pinned official build with matching SHA-256 values. `llama-server` is started with `--offline`, and proxy and Hugging Face token variables are removed from its environment. Model files may be downloaded separately, only on explicit approval, through the Model library ([Hugging Face Direct](development/HUGGING_FACE_DIRECT.md)); NajdiLab Native starts such a file only after its size and SHA-256 were verified (`MODEL_NOT_VERIFIED` otherwise).
 - Listen beyond this computer. The server always binds `127.0.0.1` on a free port, with a random API key per start (`LLAMA_API_KEY`), no web UI, no `/slots`, no `/props` writes.
 - Stop anything it did not start. Stop, restart and NajdiLab shutdown act only on the child process handle NajdiLab created.
 - Change Ollama, LM Studio or their models.
 
 ## Setup
 
-1. Get a `llama-server` binary yourself (for example an official llama.cpp release for your GPU, or your own build). For NVIDIA RTX 50-series (Blackwell) you need a CUDA build that supports that architecture; check the llama.cpp release notes. NajdiLab does not choose or verify this for you.
+1. Either install the managed runtime (Model library → llama.cpp runtime: NajdiLab chooses the package for your GPU and driver, verifies it and proves it computes on the device), or get a `llama-server` binary yourself and set `NAJDILAB_NATIVE_SERVER` (step 3). An owner-supplied binary is used as is; NajdiLab does not choose or verify it.
 2. Put GGUF files in a folder, by default `data/models` inside the NajdiLab folder (sub-folders up to 4 levels).
-3. Set the paths before launching NajdiLab:
+3. Only for your own binary or another models folder, set the paths before launching NajdiLab:
 
 ```powershell
 $env:NAJDILAB_NATIVE_SERVER = 'C:\tools\llama.cpp\llama-server.exe'

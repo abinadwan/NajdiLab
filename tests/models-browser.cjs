@@ -41,7 +41,8 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.waitForSelector('.models-advice-card');
       const card=await page.$eval('.models-advice-card',e=>e.innerText);
       assert.match(card,/BLOCKED/,'no llama-server in the fixture: loading is blocked');
-      assert.match(card,/No llama-server is configured/);
+      assert.match(card,/No llama\.cpp runtime is installed/);
+      assert.match(card,/Set up the llama\.cpp runtime/,'the advisor offers the runtime setup, it does not start it');
       assert.match(card,/Download allowed/);
       assert.match(card,/estimate/);assert.match(card,/measured/);
     });
@@ -135,6 +136,50 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.keyboard.press('Escape');
       await page.evaluate(()=>{window.NajdiI18n.setLanguage('en');document.documentElement.setAttribute('data-theme','light');});
       await page.setViewport({width:1280,height:900});
+    });
+
+    await t.test('runtime: nothing is read or downloaded until approved, then each step is explicit',async()=>{
+      await page.setViewport({width:1280,height:900});
+      await page.evaluate(()=>switchView('models'));await page.waitForSelector('#view-models.active');
+      const before=requests.length;
+      await page.click('#models-tab-runtime');await page.waitForSelector('#runtime-status h2');
+      assert.match(await page.$eval('#runtime-status .status-pill',e=>e.textContent),/Not installed/);
+      assert.ok(!requests.slice(before).some(u=>/runtime\/(detect|install)/.test(u)),'opening the tab reads and downloads nothing');
+      assert.match(await page.$eval('#runtime-packages',e=>e.innerText),/nvidia-smi/);
+      const check=await page.$$eval('#runtime-status .models-actions button',b=>b.map(x=>x.textContent));
+      assert.deepEqual(check,['Check this computer']);
+      await page.click('#runtime-status .models-actions .button.primary');
+      await page.waitForSelector('#runtime-packages .models-library-item');
+      const rows=await page.$$eval('#runtime-packages .models-library-item',r=>r.map(x=>x.innerText));
+      assert.equal(rows.length,3);
+      assert.match(rows[0],/NVIDIA GPU \(CUDA 13\.4\)[\s\S]*Recommended/);
+      assert.match(rows[1],/Not compatible[\s\S]*compute capability/,'a toolkit older than the GPU is explained, not offered');
+      assert.equal(await page.$$eval('#runtime-packages .models-library-item',r=>r[1].querySelector('button')),null);
+      await page.click('#runtime-packages .button.primary');await page.waitForSelector('#runtime-dialog[open]');
+      const dialog=await page.$eval('#runtime-dialog',e=>e.innerText);
+      assert.match(dialog,/SHA-256/);assert.match(dialog,/NVIDIA CUDA Toolkit End User License Agreement/);assert.match(dialog,/No model is loaded/);
+      assert.equal(await page.$eval('#runtime-dialog-go',b=>b.disabled),true,'the licenses must be acknowledged first');
+      await page.click('#runtime-license-ack');await page.click('#runtime-dialog-go');
+      await page.waitForFunction(()=>/Ready — verified/.test(document.querySelector('#runtime-status .status-pill')?.textContent||''),{timeout:15000});
+      const status=await page.$eval('#runtime-status',e=>e.innerText);
+      assert.match(status,/2\/2/);assert.match(status,/layers on the GPU/);assert.match(status,/build 12059/);
+      const native=await page.evaluate(async()=>(await window.api('/api/v1/native/status')).state);
+      assert.equal(native,'STOPPED','installing the runtime loads no model');
+    });
+
+    await t.test('runtime: Arabic, then uninstall needs the typed confirmation',async()=>{
+      await page.evaluate(()=>window.NajdiI18n.setLanguage('ar'));
+      await page.waitForFunction(()=>document.documentElement.dir==='rtl');
+      assert.equal(await page.$eval('#models-tab-runtime',e=>e.textContent),'بيئة تشغيل llama.cpp');
+      assert.equal(await page.$eval('#runtime-status h2',e=>e.textContent),'بيئة تشغيل llama.cpp المُدارة');
+      await page.evaluate(()=>window.NajdiI18n.setLanguage('en'));
+      await page.click('#runtime-status .delete-action');await page.waitForSelector('#runtime-dialog[open]');
+      await page.type('#runtime-dialog-confirm','uninstall');
+      assert.equal(await page.$eval('#runtime-dialog-go',b=>b.disabled),true);
+      await page.$eval('#runtime-dialog-confirm',e=>{e.value='';});await page.type('#runtime-dialog-confirm','UNINSTALL');
+      await page.click('#runtime-dialog-go');
+      await page.waitForFunction(()=>/Not installed/.test(document.querySelector('#runtime-status .status-pill')?.textContent||''),{timeout:15000});
+      assert.match(await page.$eval('#runtime-status',e=>e.innerText),/managed runtime was removed/);
     });
 
     await t.test('no page errors',async()=>{assert.deepEqual(errors,[]);});

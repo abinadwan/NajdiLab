@@ -3353,17 +3353,16 @@
     },
     "tests/ollama_disposable.py": {
       "classification": "KEEP",
-      "sha256": "7cc133f07df565e1edbc024db3307c64cf209bdacb9e1ceae87b296778202e76",
+      "sha256": "e9dc93fb0fcbc223a8692f8a1ea09e6ace8251831e451c383f664cfca7473b04",
       "reason": "Dataset workflow, source/inference security, install/test or protected distribution support",
       "imports": [
         "from __future__ import annotations",
+        "from app.synthetic_gguf import TRAIN_CONTEXT, write_gguf",
         "from pathlib import Path",
         "import json",
         "import os",
-        "import random",
         "import shutil",
         "import socket",
-        "import struct",
         "import subprocess",
         "import time",
         "import urllib.error",
@@ -3371,9 +3370,6 @@
       ],
       "declarations": [
         "binary",
-        "_text",
-        "_kv",
-        "write_gguf",
         "DisposableOllama"
       ]
     },

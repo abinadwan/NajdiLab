@@ -99,7 +99,7 @@ def assess(*, variant: dict, access: str, model: dict | None, host: dict, contex
         blocked.append(_reason('CONTEXT_ABOVE_MODEL_MAX', f'This model supports at most {max_context} tokens of context.'))
     runtime = host.get('runtime') or {}
     if not runtime.get('server_available'):
-        blocked.append(_reason('NATIVE_SERVER_MISSING', 'No llama-server is configured for NajdiLab Native. NajdiLab never installs one; set NAJDILAB_NATIVE_SERVER to your own llama.cpp build.'))
+        blocked.append(_reason('NATIVE_SERVER_MISSING', 'No llama.cpp runtime is installed for NajdiLab Native. Install it in Model library → llama.cpp runtime (only with your approval), or set NAJDILAB_NATIVE_SERVER to your own llama-server.'))
     if not host.get('approved'):
         unverified.append(_reason('HARDWARE_NOT_READ', 'Read this computer\'s hardware first (it stays on this computer).'))
     if not per_token:

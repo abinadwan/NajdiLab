@@ -57,6 +57,27 @@ test('every Hugging Face Direct server message and advisor reason has an Arabic 
   assert.deepEqual(absent,[],'missing Arabic:\n'+absent.join('\n'));
 });
 
+test('every managed llama.cpp runtime message has an Arabic translation, numbers and names kept',()=>{
+  const strings=['app/managed_runtime.py','app/runtime_catalog.py','app/native_runtime.py'].flatMap(pythonMessages);
+  assert.ok(strings.length>50,'expected the runtime messages: '+strings.length);
+  // Classified probe failures and built sentences are not IntegrationError literals.
+  const src=fs.readFileSync('app/managed_runtime.py','utf8');
+  const probe=[...src.matchAll(/'RUNTIME_GPU_[A-Z_]+',\s*\n\s*'((?:[^'\\]|\\.)*)'/g)].map(m=>m[1].replace(/\\'/g,"'"));
+  assert.equal(probe.length,3);
+  const absent=missing([...strings,...probe]);
+  assert.deepEqual(absent,[],'missing Arabic:\n'+absent.join('\n'));
+  for(const text of ['This NVIDIA driver supports CUDA up to 12.6; this package needs 13.4. Update the driver or choose another package.',
+    'CUDA 12.4 supports compute capability 5.0 to 9.0; this GPU is outside that range.',
+    'This CUDA build does not see a CUDA device here. Choose another package.',
+    'llama-b12059-bin-win-cpu-x64.zip in the archives folder does not match the pinned SHA-256. Remove it; NajdiLab does not delete your files.',
+    'cudart-llama-bin-win-cuda-13.4-x64.zip does not match the pinned SHA-256; nothing was installed.',
+    'GitHub answered HTTP 404; nothing was installed.']){
+    const ar=I18N.translate(text,'ar');
+    assert.notEqual(ar,text,text);
+    for(const kept of text.match(/\d+(?:\.\d+)?|[\w.-]+\.zip|CUDA/g))assert.ok(ar.includes(kept),`${kept} kept in: ${ar}`);
+  }
+});
+
 test('context indicator sentences translate with their measured numbers kept',()=>{
   // Exact output, so a generic pattern (for example "{a} of {b}") can never capture these sentences.
   assert.equal(I18N.translate('Context used: 13 + 1024 reserved of 4096 tokens (25%)','ar'),'السياق المستخدم: 13 + 1024 محجوزة من 4096 رمزًا (25٪)');

@@ -25,6 +25,7 @@
     "app/hardware.py",
     "app/hf_hub.py",
     "app/integrations.py",
+    "app/managed_runtime.py",
     "app/model_advisor.py",
     "app/model_service.py",
     "app/model_store.py",
@@ -35,7 +36,9 @@
     "app/phase39_edits.py",
     "app/phase39a_resolution.py",
     "app/platform_state.py",
+    "app/runtime_catalog.py",
     "app/server.py",
+    "app/synthetic_gguf.py",
     "app/unsloth_export.py",
     "app/version.py",
     "config/tool-capabilities.v1.1.json",
@@ -73,6 +76,7 @@
     "docs/development/CHAT_EXPERIENCE_V2.md",
     "docs/development/CHAT_V2_SECURITY_REVIEW.md",
     "docs/development/HUGGING_FACE_DIRECT.md",
+    "docs/development/MANAGED_RUNTIME.md",
     "docs/development/NAJDI_LAB_REDESIGN.md",
     "docs/development/PERMANENT_DELETION_AUDIT.md",
     "docs/development/PR21_PR22_RECONCILIATION.md",
@@ -185,6 +189,7 @@
     "scripts/inspect_v006_schema.py",
     "scripts/measure_v006_overlap.py",
     "scripts/phase13_registry.py",
+    "scripts/runtime_setup.py",
     "scripts/validate_dataset_masks.py",
     "scripts/verify_audit.py",
     "static/app.js",
@@ -239,6 +244,7 @@
     "tests/chat-v2-ui.test.cjs",
     "tests/chat_browser_fixture.py",
     "tests/dataset-identity-ui.test.cjs",
+    "tests/fake_github.py",
     "tests/fake_hub.py",
     "tests/fixture_safety.py",
     "tests/http_client.py",
@@ -284,6 +290,7 @@
     "tests/test_installation.py",
     "tests/test_integrations.py",
     "tests/test_integrations_http.py",
+    "tests/test_managed_runtime.py",
     "tests/test_najdilab.py",
     "tests/test_native_dataset.py",
     "tests/test_native_runtime.py",
@@ -433,7 +440,7 @@
     },
     "scripts/install.py": {
       "destination": "scripts/install.py",
-      "sha256": "bae64ca7b0f5edb6de7fd6b5888bbb608383f1af71bb4a70cbf2f291d428ee19"
+      "sha256": "61b1b5fd6799863cd1673d65305eb0f89a3b5b24b657361b66ac1bcb44044f0c"
     },
     "scripts/launch.py": {
       "destination": "scripts/launch.py",
@@ -601,7 +608,7 @@
     },
     "scripts/install.ps1": {
       "destination": "scripts/install.ps1",
-      "sha256": "d46aabd4584650c8a23aa46ac360aad961b4664b4d7da64ae12e53a7563db8a0"
+      "sha256": "ef428e1248de60dc37833105030d90ad336ff94ba1b16d4673c34d8f29087443"
     },
     "app/collection_context.py": {
       "destination": "app/collection_context.py",

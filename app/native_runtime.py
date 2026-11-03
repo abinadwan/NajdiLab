@@ -1,9 +1,10 @@
 """NajdiLab Native: one NajdiLab-owned llama.cpp `llama-server` child process.
 
 Boundaries (docs/native-runtime.md):
-- NajdiLab never downloads binaries or weights. The owner points it at an
-  existing `llama-server` (NAJDILAB_NATIVE_SERVER) and a folder of local GGUF
-  files (NAJDILAB_NATIVE_MODELS, default data/models).
+- NajdiLab Native itself never downloads anything. Its `llama-server` is the
+  managed runtime (app/managed_runtime.py, installed only on approval) or the
+  owner's own build (NAJDILAB_NATIVE_SERVER); models are local GGUF files
+  (NAJDILAB_NATIVE_MODELS, default data/models).
 - The child listens on 127.0.0.1 only, on a free port, with a per-start random
   API key, `--offline`, no web UI, no slots/props endpoints and no context
   shift. NajdiLab only ever stops the process it started.
@@ -43,6 +44,8 @@ START_FAILURES = (
      'The model did not fit in memory at this context or GPU setting. Try a smaller context or fewer GPU layers.'),
     (re.compile(rb'unknown model architecture|unsupported model|failed to load model|error loading model', re.I), 'NATIVE_MODEL_UNSUPPORTED',
      'This llama-server build could not load the model file.'),
+    (re.compile(rb'no kernel image is available|CUDA error|ggml_cuda_init: failed|ErrorDeviceLost', re.I), 'NATIVE_GPU_FAILED',
+     'The GPU could not run this llama-server build. Start again with CPU only, or repair the runtime.'),
     (re.compile(rb'couldn\'t bind|address already in use', re.I), 'NATIVE_PORT_UNAVAILABLE',
      'The local port was taken before the server started. Try again.'),
 )
@@ -59,6 +62,23 @@ def default_server_path():
         return explicit
     exe = 'llama-server.exe' if os.name == 'nt' else 'llama-server'
     return DATA_DIR / 'native' / 'bin' / exe
+
+
+def list_devices(server, env):
+    """Devices a llama-server build reports (`--list-devices`): its backends, not the host's."""
+    try:
+        out = subprocess.run([str(server), '--list-devices'], capture_output=True, timeout=20, env=env,
+                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        text = (out.stdout + out.stderr)[:65536].decode('utf-8', 'replace')
+    except (OSError, subprocess.SubprocessError):
+        return []
+    found = []
+    for line in text.splitlines():
+        match = re.match(r'\s+([A-Za-z]+[0-9]*): (.{1,200}?) \((\d+) MiB, (\d+) MiB free\)', line)
+        if match:
+            found.append({'id': match[1], 'name': match[2], 'total_bytes': int(match[3]) * 1024 ** 2,
+                          'free_bytes': int(match[4]) * 1024 ** 2})
+    return found
 
 
 def free_port():
@@ -205,24 +225,27 @@ class NativeRuntime:
 
     def devices(self):
         """`llama-server --list-devices`, cached. Shows whether this build sees a GPU."""
-        if self._devices is not None:
-            return self._devices
-        if not self.server_path.is_file():
-            return []
-        try:
-            out = subprocess.run([str(self.server_path), '--list-devices'], capture_output=True, timeout=20,
-                                 env=self._child_env(), creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-            text = (out.stdout + out.stderr)[:65536].decode('utf-8', 'replace')
-        except (OSError, subprocess.SubprocessError):
-            return []
-        found = []
-        for line in text.splitlines():
-            match = re.match(r'\s+([A-Za-z]+[0-9]*): (.{1,200}?) \((\d+) MiB, (\d+) MiB free\)', line)
-            if match:
-                found.append({'id': match[1], 'name': match[2], 'total_bytes': int(match[3]) * 1024 ** 2,
-                              'free_bytes': int(match[4]) * 1024 ** 2})
-        self._devices = found
-        return found
+        if self._devices is None:
+            self._devices = list_devices(self.server_path, self._child_env()) if self.server_path.is_file() else []
+        return self._devices
+
+    def use_server(self, path):
+        """Point later starts at another llama-server (the managed runtime switching builds)."""
+        with self._lock:
+            self.server_path = Path(path)
+            self._devices = None
+
+    def brief(self):
+        """State, last error, running model and revision, without probing devices or VRAM."""
+        with self._lock:
+            self._reap()
+            return self.state, self.last_error, self._run['model'] if self._run else None, self.revision
+
+    def busy(self):
+        """True while a model is starting or running; the managed runtime must not change files then."""
+        with self._lock:
+            self._reap()
+            return self._proc is not None or self.state in ('STARTING', 'STOPPING')
 
     # ----- lifecycle -------------------------------------------------------
     def status(self):
@@ -269,7 +292,7 @@ class NativeRuntime:
         if not isinstance(layers, str) or not GPU_LAYERS.fullmatch(layers):
             raise IntegrationError('INVALID_PAYLOAD', 'GPU layers must be auto, all, 0 (CPU only) or a layer count.')
         if not self.server_path.is_file():
-            raise IntegrationError('NATIVE_SERVER_MISSING', 'No llama-server binary is configured. Set NAJDILAB_NATIVE_SERVER to an existing llama.cpp llama-server; NajdiLab never downloads one.', 409)
+            raise IntegrationError('NATIVE_SERVER_MISSING', 'No llama.cpp runtime is installed. Install it in Model library → llama.cpp runtime, or set NAJDILAB_NATIVE_SERVER to your own llama-server.', 409)
         path = self._resolve(data['model'])
         if self.start_gate is not None:
             self.start_gate(path)

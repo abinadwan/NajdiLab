@@ -220,7 +220,7 @@
 
       <section id="view-models" class="view">
         <div class="subtabs" role="tablist" aria-label="Model library sections">
-          <button class="active" role="tab" type="button" id="models-tab-discover" aria-selected="true" aria-controls="models-discover" data-models-tab="discover">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button>
+          <button class="active" role="tab" type="button" id="models-tab-discover" aria-selected="true" aria-controls="models-discover" data-models-tab="discover">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button>
         </div>
         <div id="models-discover" role="tabpanel" aria-labelledby="models-tab-discover">
           <p class="safety-banner models-privacy">Searching sends only your search words to huggingface.co. Chats, datasets and this computer's hardware details never leave it. Single-file GGUF models only; nothing downloads or loads without your approval.</p>
@@ -239,6 +239,10 @@
           <section id="models-storage" class="panel models-storage" aria-label="Managed model folder"></section>
           <div id="models-library-list" class="models-library-list"></div>
         </div>
+        <div id="models-runtime" role="tabpanel" aria-labelledby="models-tab-runtime" hidden>
+          <section id="runtime-status" class="panel models-storage" aria-label="Managed llama.cpp runtime"></section>
+          <div id="runtime-packages" class="models-library-list"></div>
+        </div>
         <dialog id="models-download-dialog" class="chatv2-dialog models-dialog" aria-labelledby="models-download-title">
           <form method="dialog" class="chatv2-dialog-body">
             <div class="dialog-head"><h2 id="models-download-title">Download this model</h2><button class="icon-close" value="cancel" aria-label="Close">×</button></div>
@@ -248,6 +252,17 @@
             <p class="muted">The file is verified against its published size and SHA-256 before it can be used. It is not loaded after the download; loading is a separate step.</p>
             <p id="models-download-error" class="chatv2-error" role="alert"></p>
             <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="models-download-start" class="button primary" type="button" disabled>Start download</button></div>
+          </form>
+        </dialog>
+        <dialog id="runtime-dialog" class="chatv2-dialog models-dialog" aria-labelledby="runtime-dialog-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="runtime-dialog-title"></h2><button class="icon-close" value="cancel" aria-label="Close">×</button></div>
+            <div id="runtime-dialog-body"></div>
+            <section id="runtime-dialog-license" class="models-license" aria-labelledby="runtime-license-title" hidden><h3 id="runtime-license-title">Licenses</h3><ul id="runtime-dialog-licenses" class="models-reasons"></ul>
+              <label class="inline-check"><input id="runtime-license-ack" type="checkbox"> I have reviewed these licenses and accept them for this computer.</label></section>
+            <div id="runtime-dialog-typed" hidden><label for="runtime-dialog-confirm">Type UNINSTALL to confirm</label><input id="runtime-dialog-confirm" dir="ltr" autocomplete="off" spellcheck="false" translate="no"></div>
+            <p id="runtime-dialog-error" class="chatv2-error" role="alert"></p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="runtime-dialog-go" class="button primary" type="button" disabled></button></div>
           </form>
         </dialog>
         <dialog id="models-delete-dialog" class="chatv2-dialog" aria-labelledby="models-delete-title">

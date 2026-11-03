@@ -27,6 +27,17 @@ python .\scripts\install.py --check
 
 If script policy blocks reviewed local scripts, use `python .\scripts\install.py` and `.\.venv\Scripts\python.exe .\scripts\launch.py` directly. A process-scoped policy change is an alternative for a reviewed script; do not weaken machine-wide policy. No elevation needed. run.cmd wraps the PowerShell launcher.
 
+## Managed llama.cpp runtime (optional, for NajdiLab Native)
+
+Setup asks, after the steps above, whether to install the llama.cpp program that NajdiLab Native uses. It first explains what it will read (operating system, NVIDIA GPU, compute capability, driver CUDA version, locally with `nvidia-smi`) and asks; then it shows the chosen package, every file with its size, source and SHA-256, the destination and space needed, and the licenses, and asks again. Nothing is downloaded without both answers being yes, and non-interactive runs never download.
+
+```powershell
+.\scripts\install.ps1 -Runtime     # only the runtime step
+.\scripts\install.ps1 -NoRuntime   # skip it
+```
+
+The same is available in the app: **Model library → llama.cpp runtime**. Offline: copy the pinned archives (names and hashes in `app/runtime_catalog.py`) into `data/native/runtime/archives/` first; installation verifies them and downloads nothing. Details, rollback and licenses: [Managed llama.cpp runtime](development/MANAGED_RUNTIME.md). Cloning the source does not include any binary.
+
 ## Linux / WSL2
 
 Use an existing approved WSL2 distribution, its Linux filesystem and its own Python. WSL installation is a separate OS operation; use a separate disposable environment for evaluation. If missing, install Python 3.11+ with sqlite3/venv through normal distribution administration.

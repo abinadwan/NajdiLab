@@ -1,5 +1,6 @@
 """Hosted browser fixture. Disposable own DB/engine, never installed services."""
 import inspect
+import os
 import sys
 from functools import partial
 from pathlib import Path
@@ -20,8 +21,10 @@ from synthetic_datasets import bind_synthetic_catalog
 from app import dataset_platform
 from app import chat_workspace,hardware
 from app.hf_hub import HubClient
+from app.managed_runtime import ManagedRuntime
 from app.model_service import ModelLibrary
 from app.model_store import ModelStore
+from fake_github import SERVER_ZIP, FakeGitHub, make_zip, package
 from fake_hub import FakeHub
 
 
@@ -108,6 +111,22 @@ def main():
         http._models=ModelLibrary(db,http.native,hub=hub,
             store=ModelStore(db,root/'models'/'huggingface',hub,reserve_bytes=64*1024**2,system_reserve_bytes=64*1024**2,in_use=http.native.serving),
             snapshot=lambda:{'ram_total_bytes':16*1024**3,'ram_available_bytes':8*1024**3,'gpus':[],'warnings':['GPU_BACKEND_UNAVAILABLE']})
+        # Managed llama.cpp runtime: a synthetic release, a synthetic Blackwell-class GPU and a recorded
+        # verification. Nothing runs and nothing is downloaded; the real build is never used here.
+        os.environ.pop('NAJDILAB_NATIVE_SERVER',None)
+        blobs={'llama-b12059-bin-win-cuda-13.4-x64.zip':make_zip(SERVER_ZIP),'cudart-llama-bin-win-cuda-13.4-x64.zip':make_zip({'cudart64_13.dll':b'synthetic'}),
+               'llama-b12059-bin-win-cuda-12.4-x64.zip':make_zip(SERVER_ZIP),'llama-b12059-bin-win-cpu-x64.zip':make_zip(SERVER_ZIP)}
+        pick=lambda *names:{n:blobs[n] for n in names}
+        packages=[package(pick('llama-b12059-bin-win-cuda-13.4-x64.zip','cudart-llama-bin-win-cuda-13.4-x64.zip'),'windows-x64-cuda-13.4',backend='CUDA',label='NVIDIA GPU (CUDA 13.4)'),
+                  package(pick('llama-b12059-bin-win-cuda-12.4-x64.zip'),'windows-x64-cuda-12.4',backend='CUDA',label='NVIDIA GPU (CUDA 12.4)'),
+                  package(pick('llama-b12059-bin-win-cpu-x64.zip'),'windows-x64-cpu',label='CPU only')]
+        host={'system':'Windows','machine':'AMD64','nvidia':[{'name':'Synthetic GPU','compute_capability':(12,0),'total_bytes':12*1024**3}],
+              'driver_version':'600.00','driver_cuda':(13,5),'vulkan_loader':True,'warnings':[]}
+        evidence={'version':{'build':12059,'commit':'1b6935b22'},'devices':[{'id':'CUDA0','name':'Synthetic GPU','total_bytes':12*1024**3,'free_bytes':11*1024**3}],
+                  'probe':{'device':'CUDA0','device_name':'Synthetic GPU','layers_on_gpu':'2/2','tokens':4,'seconds':0.5,'model':'synthetic'},'verified_at':'2026-11-04T00:00:00Z'}
+        http.runtime=ManagedRuntime(http.native,root/'runtime',transport=FakeGitHub(blobs),reserve_bytes=0,system_reserve_bytes=0,
+                                    detect=lambda:dict(host),packages=packages,verifier=lambda server,pkg,work:evidence,system='Windows',machine='AMD64')
+        http.runtime.attach()
         print(f'BROWSER_FIXTURE=http://127.0.0.1:{http.server_port}',flush=True)
         try:http.serve_forever()
         finally:http.server_close();runtime.close()

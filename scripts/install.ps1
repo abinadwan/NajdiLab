@@ -1,4 +1,4 @@
-param([switch]$Check)
+param([switch]$Check, [switch]$Runtime, [switch]$NoRuntime)
 $ErrorActionPreference = 'Stop'
 $ProjectDir = Split-Path -Parent $PSScriptRoot
 $PythonBin = $env:NAJDILAB_PYTHON
@@ -10,5 +10,7 @@ if (-not $PythonBin) {
 if (-not $PythonBin) { throw 'Python 3.11+ is required. Set NAJDILAB_PYTHON to python.exe.' }
 $SetupArgs = @((Join-Path $ProjectDir 'scripts\install.py'))
 if ($Check) { $SetupArgs += '--check' }
+if ($Runtime) { $SetupArgs += '--runtime' }
+if ($NoRuntime) { $SetupArgs += '--no-runtime' }
 & $PythonBin @SetupArgs
 exit $LASTEXITCODE

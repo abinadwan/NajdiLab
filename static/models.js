@@ -19,7 +19,14 @@
     NOT_A_TEXT_MODEL:'Verified, but this GGUF file is not a text model.',CONTEXT_UNKNOWN:'Verified, but the file does not state its context length.',
     ALREADY_PRESENT:'A file already existed at the destination; nothing was replaced.',WRITE_FAILED:'Writing to the drive failed.',
     DOWNLOAD_FAILED:'The download failed.',CANCELLED:'Cancelled.'};
-  let current=null,adviceFor=null,timer=null,loaded=false,library=null;
+  const RUNTIME={READY:'ready',RUNNING:'info',STARTING:'info',STOPPING:'info',INSTALLING:'info',STOPPED:'neutral',
+    NOT_INSTALLED:'neutral',UNVERIFIED:'warning',BLOCKED:'hold',ERROR:'blocked'};
+  const RUNTIME_TEXT={READY:'Ready — verified',RUNNING:'Running a model',STARTING:'Starting',STOPPING:'Stopping',INSTALLING:'Installing',
+    STOPPED:'Stopped',NOT_INSTALLED:'Not installed',UNVERIFIED:'Unverified',BLOCKED:'Blocked',ERROR:'Error'};
+  const PHASE_TEXT={PREPARING:'Preparing',DOWNLOADING:'Downloading',CHECKING_OFFLINE_COPY:'Checking the offline copy',
+    EXTRACTING:'Unpacking',VERIFYING:'Verifying on this computer'};
+  const TABS=['discover','library','runtime'];
+  let current=null,adviceFor=null,timer=null,loaded=false,library=null,runtime=null,runtimeTimer=null,pending=null;
 
   function node(tag,attrs={},...children){
     const n=document.createElement(tag);
@@ -49,8 +56,9 @@
     for(const tab of document.querySelectorAll('[data-models-tab]')){
       const on=tab.dataset.modelsTab===name;tab.classList.toggle('active',on);tab.setAttribute('aria-selected',String(on));tab.tabIndex=on?0:-1;
     }
-    el('models-discover').hidden=name!=='discover';el('models-library').hidden=name!=='library';
+    el('models-discover').hidden=name!=='discover';el('models-library').hidden=name!=='library';el('models-runtime').hidden=name!=='runtime';
     if(name==='library')refreshLibrary();
+    if(name==='runtime')refreshRuntime();
   }
 
   // ------------------------------------------------------------- discover
@@ -160,6 +168,8 @@
         s&&s.free_bytes!=null?storageTable(s):null,
         node('button',{type:'button',class:'button primary',disabled:r.download.decision!=='ALLOWED',onclick:()=>openDownload(r)},'Download…')));
     }
+    if(r.load.reasons.some(x=>x.code==='NATIVE_SERVER_MISSING'))
+      parts.push(node('button',{type:'button',class:'button ghost',onclick:()=>showTab('runtime')},'Set up the llama.cpp runtime'));
     if(load)parts.push(load);
     return node('article',{class:'models-advice-card'},...parts);
   }
@@ -296,16 +306,154 @@
     }catch(error){say('models-delete-error',errorText(error));}
   }
 
+  // ------------------------------------------------------------- managed llama.cpp runtime
+  async function refreshRuntime(){
+    clearTimeout(runtimeTimer);
+    try{
+      runtime=await api('/api/v1/runtime');renderRuntime(runtime);
+      if(runtime.job||['STARTING','STOPPING'].includes(runtime.state))runtimeTimer=setTimeout(refreshRuntime,1000);
+    }catch(error){say('runtime-status',node('p',{class:'models-error',role:'alert'},errorText(error)));}
+  }
+  function verification(v){
+    if(!v)return null;
+    const p=v.probe||{};
+    return node('dl',{class:'models-facts compact'},
+      fact('Program identity',[ident(`build ${v.version.build}`),' · ',ident(`commit ${v.version.commit}`)],'measured'),
+      fact('Devices this build sees',v.devices.length?v.devices.map((d,i)=>[i?', ':null,ident(`${d.id}: ${d.name}`)]):'CPU only','measured'),
+      fact('Test computation',[ident(p.device_name||p.device),p.layers_on_gpu?[' · ',ident(p.layers_on_gpu),' ','layers on the GPU']:null,
+        ' · ',ident(`${p.tokens} tokens`),' · ',ident(`${p.seconds} s`)],'measured'),
+      fact('Verified at',ident(v.verified_at)));
+  }
+  function installFacts(a){
+    return node('dl',{class:'models-facts compact'},
+      fact('Package',[a.label,' · ',ident(a.package)]),fact('llama.cpp build',[ident(a.build),' · ',ident(a.commit.slice(0,12))]),
+      fact('Installed at',ident(a.installed_at)),fact('Files',[ident(count(a.files)),' · ',ident(bytes(a.size_bytes))]),
+      fact('Folder',ident(a.path)),fact('License notices',ident(a.notices)));
+  }
+  function renderRuntime(r){
+    const busy=Boolean(r.job)||['RUNNING','STARTING','STOPPING'].includes(r.native_state);
+    const actions=[];
+    const act=(label,fn,cls='button ghost',disabled=false)=>actions.push(node('button',{type:'button',class:cls,onclick:fn,disabled},label));
+    if(r.job)act('Cancel installation',()=>runtimeAction('cancel',{}));
+    if(!r.host&&r.platform.supported)act('Check this computer',()=>runtimeAction('detect',{approved:true}),'button primary',Boolean(r.job));
+    if(r.active){
+      act('Verify files',()=>runtimeAction('verify',{}),'button ghost',Boolean(r.job));
+      if(['READY','STOPPED'].includes(r.state))act('Start a model…',()=>showTab('library'),'button primary');
+      if(r.native_state==='RUNNING')act('Stop the model…',()=>openRuntimeDialog('stop'));
+      if(r.previous)act('Roll back…',()=>openRuntimeDialog('rollback'),'button ghost',busy);
+      act('Uninstall…',()=>openRuntimeDialog('uninstall'),'button delete-action',busy);
+    }
+    const job=r.job?node('div',{class:'models-progress',role:'status'},
+      node('progress',{max:String(r.job.download_total_bytes),value:String(r.job.downloaded_bytes),'aria-label':'Installation progress'}),
+      node('span',{},PHASE_TEXT[r.job.phase]||r.job.phase,r.job.asset?[' · ',ident(r.job.asset)]:null,' · ',
+        ident(bytes(r.job.downloaded_bytes)),' ','of',' ',ident(bytes(r.job.download_total_bytes)))):null;
+    const done=r.last_result;
+    const result=done?node('p',{class:done.ok?'muted':'models-error-line'},
+      done.action==='VERIFY'?(done.ok?'Every file matches its recorded SHA-256.':['Files changed since installation:',' ',ident(done.problems.join(', '))])
+      :done.action==='UNINSTALL'?'The managed runtime was removed. Archives you placed in the archives folder were kept.'
+      :done.action==='ROLLBACK'?'Switched back to the previous runtime.':'The runtime was installed and verified.'):null;
+    say('runtime-status',node('div',{class:'models-library-head'},node('h2',{},'Managed llama.cpp runtime'),pill(RUNTIME[r.state]||'neutral',RUNTIME_TEXT[r.state]||r.state)),
+      node('p',{class:'muted'},'NajdiLab can install the official llama.cpp build it was tested with, check that it really runs on this computer\'s GPU, and run it only on 127.0.0.1. Nothing is downloaded, installed, started or removed without your approval.'),
+      r.mode==='EXTERNAL'?node('p',{class:'chatv2-warning'},'Your own llama-server (NAJDILAB_NATIVE_SERVER) is in use. The managed runtime is not used while that is set.'):null,
+      !r.platform.supported?node('p',{class:'models-error-line'},'This system is not supported by the managed runtime. You can still set NAJDILAB_NATIVE_SERVER to your own llama-server.',' ',ident(`${r.platform.system} ${r.platform.machine}`)):null,
+      node('dl',{class:'models-facts compact'},fact('Pinned build',[ident(r.build.tag),' · ',ident(r.build.commit.slice(0,12)),' · ',ident(r.build.published)]),
+        fact('Source',ident(r.build.source)),fact('Network','The model server listens on 127.0.0.1 only.')),
+      r.active?[node('h3',{},'Active installation'),installFacts(r.active),verification(r.active.verification)]:null,
+      r.previous?node('p',{class:'muted'},'Previous installation kept for rollback:',' ',ident(r.previous.package),' · ',ident(r.previous.installed_at)):null,
+      r.state==='UNVERIFIED'?node('p',{class:'models-error-line'},'Files changed since they were verified, so models will not start. Repair the runtime below.',' ',ident(r.problems.join(', '))):null,
+      r.native_error&&r.state==='ERROR'?node('p',{class:'models-error-line'},r.native_error.message):null,
+      r.last_error?node('p',{class:'models-error-line',role:'alert'},r.last_error.message,' ',node('span',{class:'muted'},ident(r.last_error.code))):null,
+      result,job,node('div',{class:'models-actions'},actions));
+    renderPackages(r,busy);
+  }
+  function renderPackages(r,busy){
+    if(!r.candidates){say('runtime-packages',r.platform.supported?node('p',{class:'muted'},'Check this computer to see which build fits. NajdiLab reads the operating system, the GPU model, its compute capability and the driver\'s CUDA version with nvidia-smi. Nothing leaves this computer.'):null);return;}
+    if(!r.candidates.length){say('runtime-packages',node('p',{class:'models-error-line'},'No package is available for this system.'));return;}
+    say('runtime-packages',node('ul',{class:'models-library-items',role:'list'},r.candidates.map(c=>{
+      const mine=r.active&&r.active.package===c.id;
+      const label=mine?(r.update_available?'Update…':'Repair…'):'Install…';
+      const state=c.recommended?pill('ready','Recommended'):c.eligible?pill('neutral','Compatible'):pill('hold','Not compatible');
+      return node('li',{},node('article',{class:'models-library-item'},
+        node('div',{class:'models-library-head'},node('h3',{},c.label),state,mine?pill('info','Installed'):null),
+        node('dl',{class:'models-facts compact'},fact('Package',ident(c.id)),fact('Download',c.download_bytes?ident(bytes(c.download_bytes)):'Offline copy present'),
+          fact('Tested on real hardware by the maintainers',c.tested_on_real_hardware?'Yes':'Not yet')),
+        c.reasons.length?node('ul',{class:'models-reasons'},c.reasons.map(x=>node('li',{},x.message))):null,
+        c.eligible?node('div',{class:'models-actions'},node('button',{type:'button',class:c.recommended?'button primary':'button ghost',
+          disabled:busy||c.preflight.decision!=='ALLOWED',onclick:()=>openRuntimeDialog('install',c)},label)):null,
+        c.eligible&&c.preflight.decision!=='ALLOWED'?node('p',{class:'models-error-line'},c.preflight.reasons.map(x=>x.message)):null));
+    })));
+  }
+  function openRuntimeDialog(action,candidate){
+    pending={action,candidate};
+    const mine=candidate&&runtime.active&&runtime.active.package===candidate.id;
+    const titles={install:mine?(runtime.update_available?'Update the runtime':'Repair the runtime'):'Install the llama.cpp runtime',
+      rollback:'Roll back the runtime',uninstall:'Uninstall the managed runtime',stop:'Stop the running model'};
+    const go={install:'Download and install',rollback:'Roll back',uninstall:'Uninstall',stop:'Stop'};
+    say('runtime-dialog-title',titles[action]);say('runtime-dialog-go',go[action]);say('runtime-dialog-error');
+    el('runtime-dialog-go').className=action==='uninstall'?'button delete-action':'button primary';
+    el('runtime-dialog-license').hidden=action!=='install';el('runtime-dialog-typed').hidden=action!=='uninstall';
+    el('runtime-license-ack').checked=false;el('runtime-dialog-confirm').value='';
+    el('runtime-dialog-go').disabled=action==='install'||action==='uninstall';
+    if(action==='install'){
+      const p=candidate.preflight,cuda=candidate.assets.some(a=>a.name.startsWith('cudart-'));
+      say('runtime-dialog-body',node('dl',{class:'models-facts compact'},fact('Package',[candidate.label,' · ',ident(candidate.id)]),
+          fact('llama.cpp build',[ident(runtime.build.tag),' · ',ident(runtime.build.commit)]),fact('Source',ident(runtime.build.source))),
+        node('ul',{class:'models-reasons'},candidate.assets.map(a=>node('li',{},ident(a.name),' · ',ident(bytes(a.size)),a.offline_copy?[' · ','offline copy']:null,' · ','SHA-256',' ',
+          node('bdi',{dir:'ltr',translate:'no',class:'hash'},a.sha256)))),
+        node('dl',{class:'models-facts compact models-storage-facts'},fact('Destination',ident(p.destination)),
+          fact('Free space now',ident(bytes(p.free_bytes)),'measured'),fact('To download',ident(bytes(p.download_bytes))),
+          fact('Unpacked size (upper bound)',ident(bytes(p.unpacked_bytes)),'estimate'),fact('Safety reserve',ident(bytes(p.reserve_bytes))),
+          fact('Total required',ident(bytes(p.required_bytes)))),
+        node('p',{class:'muted'},'Steps: download over HTTPS from GitHub, compare every file with its pinned SHA-256, unpack into a new folder, confirm the program\'s build and commit, run a tiny generated test model on the device, then switch to it. If any step fails, nothing changes and the current runtime stays active. No model is loaded.'));
+      say('runtime-dialog-licenses',node('li',{},'llama.cpp and nlohmann/json: MIT License'),node('li',{},'LLVM OpenMP: Apache License 2.0 with LLVM exceptions'),
+        cuda?node('li',{},'NVIDIA CUDA runtime libraries: NVIDIA CUDA Toolkit End User License Agreement'):null);
+    }else if(action==='rollback'){
+      say('runtime-dialog-body',node('p',{},'Switch back to the previous installation. Its files are checked first.'),
+        node('dl',{class:'models-facts compact'},fact('Current',ident(runtime.active.package)),
+          fact('Previous',[ident(runtime.previous.package),' · ',ident(runtime.previous.installed_at)])));
+    }else if(action==='uninstall'){
+      say('runtime-dialog-body',node('p',{class:'chatv2-warning'},'This permanently removes the managed llama.cpp installations from NajdiLab\'s runtime folder. Your models, Ollama, LM Studio and any llama-server of your own are not touched. Archives you placed in the archives folder are kept.'));
+    }else{
+      say('runtime-dialog-body',node('p',{},'Stop the model running in NajdiLab Native. Only the server process NajdiLab started is stopped.'),
+        node('dl',{class:'models-facts compact'},fact('Model',ident(runtime.running_model||''))));
+    }
+    el('runtime-dialog').showModal();
+  }
+  async function confirmRuntime(){
+    const {action,candidate}=pending||{};
+    el('runtime-dialog-go').disabled=true;
+    try{
+      if(action==='install')await api('/api/v1/runtime/install',{approved:true,package:candidate.id,license_acknowledged:el('runtime-license-ack').checked});
+      else if(action==='rollback')await api('/api/v1/runtime/rollback',{approved:true});
+      else if(action==='uninstall')await api('/api/v1/runtime/uninstall',{approved:true,confirm:el('runtime-dialog-confirm').value});
+      else await api('/api/v1/native/stop',{approved:true});
+      el('runtime-dialog').close();refreshRuntime();
+    }catch(error){say('runtime-dialog-error',errorText(error));el('runtime-dialog-go').disabled=false;}
+  }
+  async function runtimeAction(action,body){
+    try{runtime=await api(`/api/v1/runtime/${action}`,body);renderRuntime(runtime);}
+    catch(error){global.toast?.(error.message,true);}
+    if(action!=='detect')refreshRuntime();
+  }
+
   function bind(){
     el('models-search').onsubmit=search;
     for(const tab of document.querySelectorAll('[data-models-tab]')){
       tab.onclick=()=>showTab(tab.dataset.modelsTab);
-      tab.onkeydown=event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){const next=tab.dataset.modelsTab==='discover'?'library':'discover';showTab(next);document.querySelector(`[data-models-tab="${next}"]`).focus();}};
+      tab.onkeydown=event=>{
+        if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+        const rtl=document.documentElement.dir==='rtl',step=(event.key==='ArrowRight')!==rtl?1:-1;
+        const next=TABS[(TABS.indexOf(tab.dataset.modelsTab)+step+TABS.length)%TABS.length];
+        showTab(next);document.querySelector(`[data-models-tab="${next}"]`).focus();
+      };
     }
     el('models-license-ack').onchange=()=>{el('models-download-start').disabled=!el('models-license-ack').checked;};
     el('models-download-start').onclick=startDownload;
     el('models-delete-confirm').oninput=()=>{el('models-delete-go').disabled=el('models-delete-confirm').value!==deleting?.filename;};
     el('models-delete-go').onclick=confirmDelete;
+    el('runtime-license-ack').onchange=()=>{el('runtime-dialog-go').disabled=!el('runtime-license-ack').checked;};
+    el('runtime-dialog-confirm').oninput=()=>{el('runtime-dialog-go').disabled=el('runtime-dialog-confirm').value!=='UNINSTALL';};
+    el('runtime-dialog-go').onclick=confirmRuntime;
   }
-  global.NajdiModels={load(){if(!loaded){loaded=true;bind();}if(!el('models-library').hidden)refreshLibrary();}};
+  global.NajdiModels={load(){if(!loaded){loaded=true;bind();}if(!el('models-library').hidden)refreshLibrary();if(!el('models-runtime').hidden)refreshRuntime();}};
 })(window);
