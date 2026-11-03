@@ -110,3 +110,6 @@ tokens*.json
 whatsapp/
 telegram/
 sessions/
+
+# taste-skill working files
+.taste-skill/
