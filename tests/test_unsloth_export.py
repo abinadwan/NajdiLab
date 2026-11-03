@@ -37,7 +37,10 @@ def test_unsloth_conversational_completion_only_preserves_masks_and_provenance(s
     assert {p.name:p.read_bytes() for p in directory.iterdir()}==before
 
 
-@pytest.mark.parametrize('change',[{'review_status':'PENDING'},{'evaluation_only':True},{'contains_personal_data':True},{'message_loss_mask':[1,0,0,1]}])
+@pytest.mark.parametrize('change',[{'review_status':'PENDING'},{'evaluation_only':True},{'contains_personal_data':True},{'message_loss_mask':[1,0,0,1]},
+    {'context_complete':False}, {'context_scope':'continuous_consented_segment_only'},
+    {'context_scope':'continuous_consented_segment_only','context_complete':'true'},
+    {'conversation_id':'najdilab-chat:historical:epoch'}])
 def test_handoff_rejects_ineligible_records_even_with_matching_hash(source,change):
     directory,row,output=source
     row.update(change)

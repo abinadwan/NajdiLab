@@ -197,12 +197,14 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _error(self, message: str, status: int = HTTPStatus.BAD_REQUEST, *, code: str | None = None,
-               check: str | None = None) -> None:
+               check: str | None = None, hint: str | None = None) -> None:
         payload = {"ok": False, "error": message}
         if code:
             payload["code"] = code
         if check:
             payload["check"] = check
+        if hint:
+            payload["hint"] = hint
         self._json(payload, status)
 
     def _send_stream(self, sid: str, data: dict) -> None:
@@ -236,7 +238,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         except IntegrationError as exc:
             if not state["open"]:
                 raise
-            write({"type": "error", "code": exc.code, "error": str(exc), "check": getattr(exc, "check", None)})
+            write({"type": "error", "code": exc.code, "error": str(exc), "check": getattr(exc, "check", None),
+                   "hint": getattr(exc, "hint", None)})
             return
         except Exception:
             if not state["open"]:
@@ -397,7 +400,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
         except IntegrationError as exc:
-            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None))
+            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None),
+                        hint=getattr(exc, "hint", None))
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
         except ExportReadinessError as exc:
@@ -534,7 +538,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
         except IntegrationError as exc:
-            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None))
+            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None),
+                        hint=getattr(exc, "hint", None))
         except RequestSecurityError as exc:
             self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:

@@ -37,6 +37,10 @@ class BrowserEngine(Engine):
         result=super().generate(messages,reserve,stop)
         if last=='MARKDOWN_FIXTURE':
             result['content']=MARKDOWN
+        if last=='MARKDOWN_EXACT_FIXTURE':
+            # PR #21 (95e7604) exact-source case: HTML, unsafe links, entities and
+            # escapes must stay literal text.
+            result['content']=MARKDOWN_EXACT
         if on_delta:
             if last in {'THINK_FIXTURE','MARKDOWN_FIXTURE'}:
                 for part in ('Synthetic ','thinking ','trace.'):
@@ -51,6 +55,7 @@ class BrowserEngine(Engine):
 
 
 MARKDOWN='## عنوان اصطناعي\n\n**نص غامق** و *مائل* و `code`.\n\n- أول\n- ثاني\n\n```python\nprint("synthetic")\n```\n\n[رابط آمن](https://example.org) [خطر](javascript:alert(1)) <img src=x onerror=alert(1)>\n'
+MARKDOWN_EXACT='# Heading\n\n**bold** and `code`\n\n- one\n- two\n\n```html\n<img src=x onerror=alert(1)>\\n\n```\n\n<script>alert(1)</script> [link](javascript:alert(1)) &lt;b&gt;\n\n\\*\\*literal\\*\\*'
 
 
 

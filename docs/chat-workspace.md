@@ -104,7 +104,9 @@ Replies are stored exactly as the model wrote them. The page renders Markdown (h
 
 ### Collection segments (single-turn and multi-turn)
 
-While collection is on, consecutive completed turns form one *segment* (one review conversation). The first collected turn is recorded as `single_turn`; each next one links to the previous collected answer and is recorded as `multi_turn`. Metadata on each collected answer: `collection_mode`, `segment_turn`, `earlier_turns_excluded` (count only), `depends_on_excluded_context` (the segment began mid-conversation, so its answers may rely on context that was deliberately not collected — reviewers should check), `thinking_collected: false`. Turning collection off and on starts a new segment. In exports, a segment's first reviewed pair appears in `sft.jsonl` and later pairs in `multi_turn.jsonl` with only the consented turns as context (tested). A 60/40 multi/single mix is an idea for experiments only; nothing enforces it.
+While collection is on, consecutive completed turns form one *segment* (one review conversation). The first collected turn is recorded as `single_turn`; each next one links to the previous collected answer and is recorded as `multi_turn`. Metadata on each collected answer: `collection_mode`, `segment_turn`, `earlier_turns_excluded` (count only), `depends_on_excluded_context`, `context_complete`, `thinking_collected: false`. Turning collection off and on starts a new segment.
+
+**Reconciled with PR #21 (95e7604):** `context_complete` is true only when the segment starts at the conversation's first turn. A segment that starts later can be reviewed, but the review form disables training and evaluation, `save_review` refuses them, export readiness reports `EXPORT_INCOMPLETE_CONTEXT`, and both exporters reject it. To produce a training example, turn collection on before the first message of a new chat. For complete segments, a segment's first reviewed pair appears in `sft.jsonl` and later pairs in `multi_turn.jsonl` with only the consented turns as context; in the clean/Unsloth export the earlier assistant turns stay exact prompt context and only the final reviewed answer is the target (tested). A 60/40 multi/single mix is an idea for experiments only; nothing enforces it.
 
 ## Backup and rollback
 
@@ -113,3 +115,7 @@ This source change makes no installed update. Before any update, run the owner [
 Migration 006 adds one table, `chat_session_bindings`, and alters nothing. A table rather than `ALTER TABLE` keeps replay idempotent across the loader's commit/ledger crash gap, as 005 does. Sessions created before it keep working: LM Studio ones bind on their next turn; Ollama ones must be restarted, since they never had load approval.
 
 This cleanup is source-only: revert its source changes if needed, with no data/schema rollback. Leave Chat tables, receipts, consent/archive restrictions and historical dataset/export bytes intact. Older source can reopen removed interfaces or unsafe Hermes ingress, so inspect before any rollback launch. Physical erasure and old-export purging remain separate retention decisions. No rollback or installed update is performed by this task.
+
+## 2026-11-02 owner-authorized follow-up
+
+See [UI behavior](chat-ui-fixes.md), [collection/SFT audit](chat-dataset-context-audit.md), and [actual checks, safe local upgrade and rollback](chat-review-workflow-results.md). These supersede earlier descriptions only as specifically recorded there. Context completeness uses existing metadata, not a migration; unknown historical completeness blocks future training selection without changing stored data.

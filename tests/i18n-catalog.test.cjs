@@ -141,14 +141,14 @@ test('every Chat V2 server message has an Arabic translation',()=>{
   const files=['app/chat_workspace.py','app/chat_deletion.py','app/native_runtime.py'];
   const src=fs.readFileSync('app/chat_workspace.py','utf8');
   const start=src.indexOf('INCOMPLETE_CHECKS = {');
-  const checks=[...src.slice(start,src.indexOf('\n}',start)).matchAll(/'[A-Z_]+':\s*'((?:[^'\\]|\\.)*)'/g)].map(m=>m[1].replace(/\\'/g,"'"));
-  const generic='Engine did not return an unchanged, complete text reply; no pair was saved.';
-  const composite=checks.map(c=>generic+' '+c);
+  const block=src.slice(start,src.indexOf('\n}',start));
+  // Each predicate has a fixed message (PR #21 wording) and an optional fixed hint.
+  const fixed=[...block.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map(m=>m[1].replace(/\\'/g,"'")).filter(t=>/[a-z] /.test(t));
   const native=fs.readFileSync('app/native_runtime.py','utf8');
   const startup=[...native.matchAll(/'NATIVE_[A-Z_]+',\s*\n?\s*'((?:[^'\\]|\\.)*)'\)/g)].map(m=>m[1].replace(/\\'/g,"'"));
-  const all=[...files.flatMap(pythonMessages),...composite,...startup];
+  const all=[...files.flatMap(pythonMessages),...fixed,...startup];
+  assert.ok(fixed.length>=7,'expected the completion messages and hints: '+fixed.length);
   assert.ok(all.length>40,'expected to find the server messages: '+all.length);
   const missing=untranslated(all);
   assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
-  for(const text of composite)assert.notEqual(I18N.translate(text,'ar'),I18N.translate(generic,'ar'),'the check stays visible: '+text);
 });

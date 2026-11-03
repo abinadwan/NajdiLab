@@ -116,7 +116,7 @@ The web platform is independent of external training. SQLite records and filesys
 | Chat | Raw chat with exact context admission (LM Studio, Ollama) | **V2:** sidebar history, titles, search, pin, archive/restore, streaming, Stop, thinking panel, safe Markdown, Enter to send, context presets, phase timings | Editing or regenerating earlier turns |
 | Local runtimes | LM Studio (pinned SDK 1.5.0), Ollama 0.40.13 | **NajdiLab Native** (owner's llama.cpp `llama-server`, GGUF discovery, streaming) | Split (multi-file) GGUF, verified RTX 5070 acceptance |
 | Data retention | Logical delete, exclusion, archive | **Permanent chat deletion** with a declared scope and content-free tombstones | Erasure across frozen exports and backups |
-| Dataset collection | Consented single pairs, PENDING review only | **Segments:** single-turn and linked multi-turn records with context metadata | Automatic 60/40 multi/single balancing (experimental idea only) |
+| Dataset collection | Consented single pairs, PENDING review only | **Segments:** single-turn and linked multi-turn records with context metadata; incomplete-context segments are review-only (PR #21 rule) | Automatic 60/40 multi/single balancing (experimental idea only) |
 | Interface | English and Arabic | Arabic for every new chat message | Second-speaker review of Arabic wording |
 | Hermes | — | — | **Blocked** until sender filtering and disconnect are verified |
 
@@ -248,7 +248,7 @@ flowchart TB
   H -.->|outside NajdiLab| T[External training and evaluation]
 ```
 
-Thinking text, partial, stopped and failed replies are never collected. Collection never applies to earlier turns. Nothing is training-approved automatically. See [review and quality](docs/review-and-quality.md), [dataset export](docs/dataset-export.md) and [collection segments](docs/chat-workspace.md#collection-segments-single-turn-and-multi-turn).
+Thinking text, partial, stopped and failed replies are never collected. Collection never applies to earlier turns. Nothing is training-approved automatically. A collected segment that did not start at the chat's first turn stays review-only: it can never be selected for training or evaluation. See [review and quality](docs/review-and-quality.md), [dataset export](docs/dataset-export.md) and [collection segments](docs/chat-workspace.md#collection-segments-single-turn-and-multi-turn).
 
 ## Chat Experience V2
 
@@ -353,7 +353,7 @@ Start with [developer setup](docs/developer-setup.md), [code navigation](docs/co
 | Need | Guide |
 |---|---|
 | Install, configure, troubleshoot | [Installation](docs/installation.md), [configuration](docs/configuration.md), [shell commands](docs/shell-commands.md) |
-| Chat and runtimes | [Chat workspace](docs/chat-workspace.md), [NajdiLab Native](docs/native-runtime.md), [Chat V2 development log](docs/development/CHAT_EXPERIENCE_V2.md) |
+| Chat and runtimes | [Chat workspace](docs/chat-workspace.md), [NajdiLab Native](docs/native-runtime.md), [Chat V2 development log](docs/development/CHAT_EXPERIENCE_V2.md), [PR #21/#22 reconciliation](docs/development/PR21_PR22_RECONCILIATION.md), [PR #21 workflow record](docs/chat-review-workflow-results.md), [collection context audit](docs/chat-dataset-context-audit.md) |
 | Extend API/data behavior | [API reference](docs/api-reference.md), [database/migrations](docs/database-and-migrations.md) |
 | Retention and privacy | [Data retention](docs/data-retention.md), [privacy history review](docs/privacy-history-review.md) |
 | Readiness and rights | [Release decision](docs/public-release-decision.md), [dependency matrix](docs/dependency-licensing-matrix.md), [data/model policy](docs/dataset-model-distribution-policy.md) |

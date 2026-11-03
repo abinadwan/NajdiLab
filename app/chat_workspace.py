@@ -18,18 +18,20 @@ from .service import ingest_turn
 
 PROVIDERS = {'lmstudio', 'ollama', 'native'}
 STOP_REASONS = {'eosFound', 'stopStringFound', 'stop'}
-INCOMPLETE = 'Engine did not return an unchanged, complete text reply; no pair was saved.'
-# Chat V2: fixed, content-free reasons for INCOMPLETE_RESPONSE. The public code
-# is unchanged; `check` names the predicate that failed, so a real failure can
-# be diagnosed without logging prompts, replies or thinking.
+# INCOMPLETE_RESPONSE reconciliation (PR #21 95e7604 + PR #22): the message is
+# PR #21's fixed per-predicate text; `check` names the predicate (PR #22) and an
+# optional fixed `hint` says what to do. None of them contains prompt, reply or
+# thinking text.
 INCOMPLETE_CHECKS = {
-    'STOP_REASON_LENGTH': 'The reply reached the reserved reply limit before it finished. Thinking tokens count toward this limit, so thinking models need a larger reserve. Start a new chat with a larger reply reserve.',
-    'STOP_REASON_OTHER': 'The engine reported an unexpected stop reason.',
-    'EMPTY_CONTENT': 'The final answer was empty (the model may have produced only thinking).',
-    'TOO_LARGE': 'The reply exceeded the size limit.',
-    'PROMPT_TOKENS_MISMATCH': 'The engine counted a different prompt than the one measured for admission.',
-    'OVER_BUDGET': 'Prompt plus reply exceeded the context budget.',
-    'TOOL_CALLS': 'The model returned tool calls, which raw chat does not accept.',
+    'STOP_REASON_LENGTH': ('The engine did not finish the reply normally; no pair was saved.',
+                           'The reply reached the reserved reply limit before it finished. Thinking tokens count toward this limit, so thinking models need a larger reserve. Start a new chat with a larger reply reserve.'),
+    'STOP_REASON_OTHER': ('The engine did not finish the reply normally; no pair was saved.', None),
+    'EMPTY_CONTENT': ('The engine returned empty, invalid or oversized final text; no pair was saved.',
+                      'The final answer was empty (the model may have produced only thinking).'),
+    'TOO_LARGE': ('The engine returned empty, invalid or oversized final text; no pair was saved.', None),
+    'PROMPT_TOKENS_MISMATCH': ('The final prompt token count differed from the measured prompt; no pair was saved.', None),
+    'OVER_BUDGET': ('The final token usage exceeded the conversation budget; no pair was saved.', None),
+    'TOOL_CALLS': ('The engine returned tool calls instead of a plain text reply; no pair was saved.', None),
 }
 
 
@@ -54,8 +56,9 @@ def integer(value, low, high):
 
 
 def incomplete(check):
-    error = IntegrationError('INCOMPLETE_RESPONSE', INCOMPLETE + ' ' + INCOMPLETE_CHECKS[check], 502)
-    error.check = check
+    message, hint = INCOMPLETE_CHECKS[check]
+    error = IntegrationError('INCOMPLETE_RESPONSE', message, 502)
+    error.check, error.hint = check, hint
     return error
 
 
@@ -494,6 +497,10 @@ class ChatWorkspace:
     def _collect(self, conn, sid, row, consent, turns, text, content, request_id, fingerprint, measured, result):
         """Consented segment only: never earlier turns, thinking or partial text.
 
+        Reconciled with PR #21: `context_complete` is true only when the segment
+        starts at the conversation's first turn. Review, export readiness and
+        both exporters then refuse incomplete segments for training/evaluation.
+
         A segment is the run of turns collected under one consent epoch. Its
         first collected turn is `single_turn`; each later one links to the
         previous collected answer (`multi_turn`). Whether the segment began
@@ -530,6 +537,10 @@ class ChatWorkspace:
                         'segment_turn':ordinal - segment_start + 1,
                         'earlier_turns_excluded':segment_start,
                         'depends_on_excluded_context':segment_start > 0,
+                        # PR #21 (95e7604) gate: only a segment collected from the
+                        # first turn has complete consented context; anything else
+                        # stays reviewable but is blocked from training/evaluation.
+                        'context_complete':segment_start == 0,
                         'thinking_collected':False,
                         'reasoning_discarded':bool(result.get('reasoning_discarded'))}}
         if previous is not None:

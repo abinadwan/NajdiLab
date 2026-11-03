@@ -28,18 +28,25 @@
     let i=0;
     while(i<text.length){
       const rest=text.slice(i),ch=text[i];
-      if(ch==='\\'&&i+1<text.length&&/[\\`*_{}\[\]()#+\-.!~|>]/.test(text[i+1])){buffer+=text[i+1];i+=2;continue;}
+      // Escapes are never decoded (ported from PR #21, 95e7604): the backslash and
+      // the whole delimiter run it escapes stay visible as literal source text.
+      if(ch==='\\'&&i+1<text.length&&/[\\`*_{}\[\]()#+\-.!~|>]/.test(text[i+1])){
+        const run=rest.slice(1).match(/^([`*_~])\1*/);
+        const width=1+(run?run[0].length:1);buffer+=text.slice(i,i+width);i+=width;continue;
+      }
       if(ch==='`'){
         const ticks=rest.match(/^`+/)[0],end=text.indexOf(ticks,i+ticks.length);
         if(end>i){flush();out.push({type:'code',text:text.slice(i+ticks.length,end).replace(/^ (.*) $/,'$1')});i=end+ticks.length;continue;}
       }
       if(depth<MAX_DEPTH){
+        // A closing delimiter preceded by an odd number of backslashes is escaped.
+        const escapedEnd=content=>/(^|[^\\])(\\\\)*\\$/.test(content);
         let m=rest.match(/^(\*\*|__)(?=\S)([\s\S]*?\S)\1/);
-        if(m&&!(m[1]==='__'&&/\w/.test(text[i-1]||''))){flush();out.push({type:'strong',children:inline(m[2],depth+1)});i+=m[0].length;continue;}
+        if(m&&!escapedEnd(m[2])&&!(m[1]==='__'&&/\w/.test(text[i-1]||''))){flush();out.push({type:'strong',children:inline(m[2],depth+1)});i+=m[0].length;continue;}
         m=rest.match(/^~~(?=\S)([\s\S]*?\S)~~/);
-        if(m){flush();out.push({type:'del',children:inline(m[1],depth+1)});i+=m[0].length;continue;}
-        m=rest.match(/^(\*|_)(?=\S)([\s\S]*?\S)\1(?!\1)/);
-        if(m&&!(m[1]==='_'&&(/\w/.test(text[i-1]||'')||/\w/.test(text[i+m[0].length]||'')))){flush();out.push({type:'em',children:inline(m[2],depth+1)});i+=m[0].length;continue;}
+        if(m&&!escapedEnd(m[1])){flush();out.push({type:'del',children:inline(m[1],depth+1)});i+=m[0].length;continue;}
+        m=rest.match(/^(\*(?!\*)|_(?!_))(?=\S)([\s\S]*?\S)\1(?!\1)/);
+        if(m&&!escapedEnd(m[2])&&!(m[1]==='_'&&(/\w/.test(text[i-1]||'')||/\w/.test(text[i+m[0].length]||'')))){flush();out.push({type:'em',children:inline(m[2],depth+1)});i+=m[0].length;continue;}
         m=rest.match(/^\[([^\]\n]{1,500})\]\(\s*<?([^\s)<>]{1,2048})>?(?:\s+"[^"\n]{0,200}")?\s*\)/);
         if(m){
           flush();const href=safeHref(m[2]);

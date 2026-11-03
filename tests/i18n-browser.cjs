@@ -9,7 +9,7 @@ const VIEWS=['dashboard','chat','review-queue','conversations','reviewed','add-d
 // Product, protocol and format names stay in Latin script in both languages.
 const LATIN_ALLOWED=['NajdiLab','Ollama','LM Studio','Unsloth','TRL','Hugging Face','SFT','DPO','JSONL','JSON','SHA-256',
   'API','GPU','RAM','VRAM','HTTP','UUID','RAG','p90','p95','Gold','completion_only_loss=True','packing=False','Reply with OK.',
-  '127.0.0.1','application/json','gold-v009-remediation-draft','Ctrl + Enter'];
+  '127.0.0.1','application/json','gold-v009-remediation-draft','Ctrl + Enter','Shift+Enter','Enter','Markdown','HTML'];
 
 function scanUntranslated(allowed){
   const skip='script,style,code,pre,textarea,bdi,kbd,samp,time,[dir="auto"],[dir="ltr"],[translate="no"],[data-i18n-skip]';
@@ -152,12 +152,12 @@ test('Arabic and English interface in Chromium',async t=>{
       await settle();
       const setup={};await scanInto(setup,'chat: new chat dialog');
       assert.deepEqual(setup,{},'untranslated text:\n'+JSON.stringify(setup,null,1));
-      await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
+      await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled);
       await page.type('#chat-draft','Approve');await page.click('#chat-send');
       await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2&&!document.querySelector('.chatv2-msg.streaming'));
       const first=await page.$eval('.chat-message [dir="auto"], .chat-message p',e=>e.textContent);
       assert.equal(first.trim(),'Approve','the user message must not be translated');
-      await page.click('#chat-collect');
+      await page.$eval('#chat-collect',e=>e.scrollIntoView({block:'center'}));await page.click('#chat-collect');
       await page.waitForFunction(()=>/[؀-ۿ]/.test(document.querySelector('#chat-notice').textContent));
       await settle();
       const report={};await scanInto(report,'chat: active session');

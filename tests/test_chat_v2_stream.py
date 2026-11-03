@@ -206,6 +206,7 @@ def test_stream_route_errors_before_acceptance_are_plain_json_and_after_are_even
     status, _, raw = request(f"/api/v1/chat/sessions/{session['id']}/send-stream",
                              {'request_id': str(uuid4()), 'revision': session['revision'], 'selection_revision': 2, 'text': 'x'})
     last = json.loads(raw.decode().splitlines()[-1])
-    assert status == 200 and last == {'type': 'error', 'code': 'INCOMPLETE_RESPONSE', 'error': last['error'], 'check': 'STOP_REASON_LENGTH'}
+    assert status == 200 and last == {'type': 'error', 'code': 'INCOMPLETE_RESPONSE', 'error': last['error'], 'check': 'STOP_REASON_LENGTH', 'hint': last['hint']}
+    assert 'Thinking tokens count' in last['hint']
     status, _, raw = request(f"/api/v1/chat/sessions/{session['id']}/delete-preview")
     assert status == 200 and json.loads(raw)['turns'] == 0

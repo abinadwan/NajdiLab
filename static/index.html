@@ -118,7 +118,7 @@
                 <button id="chat-stop" class="button ghost" type="button" disabled>Stop</button>
                 <button id="chat-send" class="button primary" type="submit" disabled>Send</button>
               </div>
-              <p id="chat-keys" class="chatv2-hint"><kbd>Enter</kbd> <span>sends</span> · <kbd>Shift</kbd>+<kbd>Enter</kbd> <span>adds a new line.</span> <span>Collection is off by default and after restart; only future completed replies enter human review.</span></p>
+              <p id="chat-keys" class="chatv2-hint"><kbd>Enter</kbd> <span>sends</span> · <kbd>Shift</kbd>+<kbd>Enter</kbd> <span>adds a new line.</span> <span>Collection is off by default and after restart; only future completed replies enter human review.</span> <span>For a complete multi-turn training example, turn collection on before the first message of a new chat.</span></p>
             </form>
           </div>
         </div>
@@ -135,15 +135,18 @@
             <label for="chat-provider">Model runtime</label><select id="chat-provider"></select>
             <label for="chat-model">Model</label><select id="chat-model"></select>
             <p id="chat-provider-note" class="muted">Connect LM Studio or Ollama in Settings → Integrations, or start NajdiLab Native from chat settings. LM Studio must already have the model loaded.</p>
-            <fieldset class="chatv2-presets"><legend>Context size</legend>
-              <label><input type="radio" name="chat-preset" value="light"> <span>Light</span> <small>4096 context · 1024 reply</small></label>
-              <label><input type="radio" name="chat-preset" value="balanced" checked> <span>Balanced</span> <small>8192 context · 2048 reply</small></label>
-              <label><input type="radio" name="chat-preset" value="long"> <span>Long</span> <small>16384 context · 3072 reply</small></label>
-              <label><input type="radio" name="chat-preset" value="custom"> <span>Custom</span> <small>Advanced values below</small></label>
+            <fieldset class="chatv2-presets" aria-describedby="chat-preset-evidence"><legend>Context size</legend>
+              <label><input type="radio" name="chat-preset" value="light" disabled> <span>Light</span> <small>4096 context · 1024 reply</small> <small class="chatv2-preset-reason">Engine ceiling unknown</small></label>
+              <label><input type="radio" name="chat-preset" value="balanced" disabled> <span>Balanced</span> <small>8192 context · 2048 reply</small> <small class="chatv2-preset-reason">Engine ceiling unknown</small></label>
+              <label><input type="radio" name="chat-preset" value="long" disabled> <span>Long</span> <small>16384 context · 3072 reply</small> <small class="chatv2-preset-reason">Engine ceiling unknown</small></label>
+              <label><input type="radio" name="chat-preset" value="custom" checked> <span>Custom</span> <small>Advanced values below</small></label>
+              <p id="chat-preset-evidence" class="muted" role="status">Presets unlock after checking this model. The engine ceiling and memory estimate are unknown until then; Custom is always available.</p>
+              <button id="chat-preset-check" class="button ghost" type="button">Check presets for this model</button>
+              <small class="muted">Read-only: reads the engine's context limit and a memory estimate. It never selects or loads a model.</small>
             </fieldset>
-            <details id="chat-advanced" class="chatv2-advanced"><summary>Advanced</summary>
-              <label for="chat-budget">Total context (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="8192" inputmode="numeric">
-              <label for="chat-reserve">Reserved for reply and thinking (tokens)</label><input id="chat-reserve" type="number" min="1" max="8192" value="2048" inputmode="numeric">
+            <details id="chat-advanced" class="chatv2-advanced" open><summary>Advanced</summary>
+              <label for="chat-budget">Total context (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" step="1" value="4096" inputmode="numeric">
+              <label for="chat-reserve">Reserved for reply and thinking (tokens)</label><input id="chat-reserve" type="number" min="1" max="8192" step="1" value="1024" inputmode="numeric">
             </details>
             <div id="chat-budget-breakdown" class="chatv2-budget" role="status"></div>
             <p class="muted">These presets are starting points, not performance guarantees. A conversation keeps its settings; changing them starts a new chat.</p>
@@ -222,6 +225,7 @@
               <div class="label-row"><span>Original response</span><span class="locked">🔒 Preserved and immutable</span></div>
               <p dir="auto" id="original-response"></p>
             </div>
+            <p id="review-context-warning" class="chat-context-warning hidden" role="note"></p>
             <div class="review-actions" role="group" aria-label="Review actions">
               <button id="approve-review" class="button approve-action">Approve</button>
               <button id="edit-review" class="button edit-action">Edit</button>
@@ -241,8 +245,8 @@
             <div class="field"><label for="reviewer-identity">Reviewer identity</label><select id="reviewer-identity"><option value="human">Human reviewer</option><option value="ai_suggestion">Machine suggestion reviewed by a human</option><option value="import">Imported decision</option></select></div>
             <div class="field"><label>Error tags <span class="muted">Optional; select multiple</span></label><div id="error-tags" class="tag-picker"></div></div>
             <div class="check-grid">
-              <label><input id="training-eligible" type="checkbox" aria-describedby="review-eligibility-help"> Eligible for dataset export (separate from review approval)</label>
-              <label><input id="evaluation-only" type="checkbox"> Evaluation only</label>
+              <label><input id="training-eligible" type="checkbox" aria-describedby="review-eligibility-help review-context-warning"> Eligible for dataset export (separate from review approval)</label>
+              <label><input id="evaluation-only" type="checkbox" aria-describedby="review-context-warning"> Evaluation only</label>
               <label><input id="exclude-training" type="checkbox"> Permanently exclude from dataset selection</label>
               <label><input id="needs-fact-check" type="checkbox"> Needs fact checking</label>
               <label><input id="contains-personal" type="checkbox"> Contains personal data</label>

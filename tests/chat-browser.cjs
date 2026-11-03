@@ -18,6 +18,7 @@ const puppeteer=require('puppeteer-core');
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
     const page=await browser.newPage();await page.setViewport({width:1280,height:1000});
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    const clickChat=async selector=>{await page.$eval(selector,e=>e.scrollIntoView({block:'center'}));await page.click(selector);};
     await page.goto(base+'/chat');
     try {await page.waitForSelector('#view-chat.active #chat-list',{timeout:15000});await page.waitForFunction(()=>document.querySelector('#chat-saved-count').textContent.length>0,{timeout:15000});}
     catch (error) {
@@ -90,17 +91,30 @@ const puppeteer=require('puppeteer-core');
       await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
       await page.select('#chat-provider',provider);
       if(preset==='custom'){await page.click('#chat-advanced summary').catch(()=>{});await page.$eval('#chat-budget',(e,v)=>{e.value=v;e.dispatchEvent(new Event('input'));},String(context));await page.$eval('#chat-reserve',(e,v)=>{e.value=v;e.dispatchEvent(new Event('input'));},String(reserve));}
-      else await page.click(`input[name="chat-preset"][value="${preset}"]`);
+      else{
+        // Presets unlock only with GPU evidence (PR #21 gate); this fixture has no GPU,
+        // so the check leaves them locked and Custom carries the same values.
+        await page.click('#chat-preset-check');
+        try{await page.waitForFunction(()=>/Proven engine ceiling/.test(document.querySelector('#chat-preset-evidence').textContent),{timeout:8000});}
+        catch(error){console.error('PRESET STATE',JSON.stringify(await page.evaluate(()=>({ev:document.querySelector('#chat-preset-evidence').textContent,
+          err:document.querySelector('#chat-setup-error').textContent,open:document.querySelector('#chat-setup').open,prov:document.querySelector('#chat-provider').value}))));throw error;}
+        assert.equal(await page.$eval(`input[name="chat-preset"][value="${preset}"]`,e=>e.disabled),true,'no GPU estimate, no preset');
+        assert.match(await page.$eval(`label:has(input[value="${preset}"]) .chatv2-preset-reason`,e=>e.textContent),/Memory estimate unavailable/);
+        const values={light:[4096,1024],balanced:[8192,2048],long:[16384,3072]}[preset];
+        await page.$eval('#chat-budget',(e,v)=>{e.value=v;e.dispatchEvent(new Event('input'));},String(values[0]));
+        await page.$eval('#chat-reserve',(e,v)=>{e.value=v;e.dispatchEvent(new Event('input'));},String(values[1]));
+      }
       if(approve)await page.click('#chat-load-approved');
       await page.click('#chat-create');
       await page.waitForFunction(()=>!document.querySelector('#chat-setup').open,{timeout:8000});
-      await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled&&!document.querySelector('.chatv2-msg'),{timeout:8000});
+      await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled&&!document.querySelector('.chatv2-msg'),{timeout:8000});
     };
 
     // Chat V2: the setup dialog explains the budget and keeps Ollama's load approval explicit.
     await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
     assert.equal(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
-    assert.match(await page.$eval('#chat-budget-breakdown',e=>e.textContent),/8192.*6144.*2048/s);
+    assert.match(await page.$eval('#chat-budget-breakdown',e=>e.textContent),/4096.*3072.*1024/s,'Custom 4096/1024 until presets are checked');
+    assert.equal(await page.$eval('input[name="chat-preset"][value="balanced"]',e=>e.disabled),true);
     await page.select('#chat-provider','ollama');
     assert.notEqual(await page.$eval('#chat-load-row',e=>getComputedStyle(e).display),'none');
     assert.equal(await page.$eval('#chat-load-approved',e=>e.checked),false,'never pre-approved');
@@ -109,7 +123,7 @@ const puppeteer=require('puppeteer-core');
     await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('#chat-setup').open);
 
     await newChat({preset:'light'});
-    await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
+    await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled);
     assert.match(await page.$eval('#chat-session-identity',e=>e.textContent),/LM Studio · fixture · Open · Context 4096 · Reply 1024/);
     assert.equal(await page.$eval('#chat-collect',e=>e.checked),false);
     const sid=await page.evaluate(async()=>{const r=await fetch('/api/v1/chat/sessions?limit=1');return (await r.json()).items[0].id;});
@@ -171,7 +185,7 @@ const puppeteer=require('puppeteer-core');
     await menu(sid,'rename');await page.waitForSelector('#chat-rename[open]');
     await page.$eval('#chat-rename-input',e=>e.value='');await page.type('#chat-rename-input','عشاء الجمعة');await page.keyboard.press('Enter');
     await page.waitForFunction(()=>document.querySelector('#chat-title').textContent==='عشاء الجمعة');
-    await newChat({preset:'light'});await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
+    await newChat({preset:'light'});await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled);
     await page.type('#chat-draft','second conversation');await page.keyboard.press('Enter');await settled(1);
     await menu(sid,'pin');
     await page.waitForFunction(id=>document.querySelector('.chatv2-group h3')?.textContent==='Pinned'&&document.querySelector('.chatv2-group [data-chat-open]').dataset.chatOpen===id,{},sid);
@@ -203,7 +217,7 @@ const puppeteer=require('puppeteer-core');
 
     // Stop: partial text is visible, marked, and never saved.
     await newChat({preset:'light'});await page.waitForFunction(()=>document.querySelector('#chat-session-identity').textContent.includes('Context 4096'));
-    await page.$eval('#chat-draft',e=>e.value='STOP_FIXTURE');await page.click('#chat-send');
+    await page.$eval('#chat-draft',e=>{e.value='STOP_FIXTURE';e.dispatchEvent(new Event('input'));});await page.click('#chat-send');
     await page.waitForFunction(()=>document.querySelector('.chatv2-msg.streaming .chatv2-answer')?.textContent.includes('Partial synthetic'));
     await page.click('#chat-stop');
     await page.waitForFunction(()=>document.querySelector('.chatv2-msg.incomplete')?.textContent.includes('Stopped'));
@@ -227,7 +241,7 @@ const puppeteer=require('puppeteer-core');
     // Reading specs must not stale the conversation that is already open.
     await page.type('#chat-draft','Second question after reading specs');await page.keyboard.press('Enter');await settled(2);
     // UX-08: completing an earlier request cannot erase text typed while it ran.
-    await page.$eval('#chat-draft',e=>e.value='DELAY_FIXTURE');await page.click('#chat-send');
+    await page.$eval('#chat-draft',e=>{e.value='DELAY_FIXTURE';e.dispatchEvent(new Event('input'));});await page.click('#chat-send');
     await page.waitForFunction(()=>!document.querySelector('#chat-stop').disabled);
     await page.$eval('#chat-draft',e=>e.value='New draft typed while model was replying');
     await settled(3);

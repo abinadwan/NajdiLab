@@ -366,8 +366,8 @@ def test_length_stop_reports_reserve_and_thinking_and_saves_nothing(chat):
     with pytest.raises(IntegrationError) as error:
         send(ws, new(ws))
     assert error.value.code == 'INCOMPLETE_RESPONSE' and error.value.check == 'STOP_REASON_LENGTH'
-    assert str(error.value).startswith('Engine did not return an unchanged, complete text reply; no pair was saved.')
-    assert 'Thinking tokens count' in str(error.value)
+    assert str(error.value) == 'The engine did not finish the reply normally; no pair was saved.', 'PR #21 wording kept'
+    assert 'Thinking tokens count' in error.value.hint
     assert rows(db, 'SELECT COUNT(*) FROM chat_turns') == [(0,)]
 
 
@@ -397,8 +397,11 @@ def test_collection_is_off_by_default_and_segments_link_turns(chat):
 
 
 def test_segment_export_keeps_single_and_multi_turn_shapes_and_no_unconsented_context(chat):
+    """Reconciled with PR #21: a segment that starts after unconsented turns is
+    reviewable only; a segment collected from the first turn exports as single-turn
+    then multi-turn records containing only consented text."""
     ws, engine, db, tmp = chat
-    answers = iter(['جواب اصطناعي أول مختلف', 'جواب اصطناعي ثانٍ مختلف', 'جواب اصطناعي ثالث مختلف'])
+    answers = iter(f'جواب اصطناعي مختلف رقم {i}' for i in range(10))
     original = engine.generate
 
     def distinct(*args, **kwargs):
@@ -406,18 +409,26 @@ def test_segment_export_keeps_single_and_multi_turn_shapes_and_no_unconsented_co
         result['content'] = next(answers)
         return result
     engine.generate = distinct
-    session = send(ws, new(ws), text='قبل الموافقة سري')['session']
-    session = ws.collect(session['id'], {'enabled': True, 'revision': session['revision']})
-    session = send(ws, session, text='سؤال أول بعد الموافقة')['session']
-    send(ws, session, text='سؤال ثانٍ بعد الموافقة')
-    for (review_id,) in rows(db, 'SELECT id FROM reviews'):
+    late = send(ws, new(ws), text='قبل الموافقة سري')['session']
+    late = ws.collect(late['id'], {'enabled': True, 'revision': late['revision']})
+    send(ws, late, text='بعد موافقة متأخرة')
+    late_review = rows(db, 'SELECT id FROM reviews')[0][0]
+    with pytest.raises(Exception, match='cannot be used for training or evaluation'):
+        save_review(late_review, {'review_status': 'APPROVED', 'reviewer': 'human', 'training_eligible': True}, db)
+    save_review(late_review, {'review_status': 'APPROVED', 'reviewer': 'human', 'training_eligible': False}, db)
+
+    full = new(ws)
+    full = ws.collect(full['id'], {'enabled': True, 'revision': full['revision']})
+    full = send(ws, full, text='سؤال أول بعد الموافقة')['session']
+    send(ws, full, text='سؤال ثانٍ بعد الموافقة')
+    for (review_id,) in rows(db, 'SELECT id FROM reviews WHERE id != ?', late_review):
         save_review(review_id, {'review_status': 'APPROVED', 'reviewer': 'human', 'training_eligible': True}, db)
     out = Path(create_export(db, tmp / 'exports')['path'])
     single = [json.loads(line) for line in (out / 'sft.jsonl').read_text(encoding='utf-8').splitlines()]
     multi = [json.loads(line) for line in (out / 'multi_turn.jsonl').read_text(encoding='utf-8').splitlines()]
-    assert [[m['content'] for m in r['messages']] for r in single] == [['سؤال أول بعد الموافقة', 'جواب اصطناعي ثانٍ مختلف']]
+    assert [r['messages'][0]['content'] for r in single] == ['سؤال أول بعد الموافقة']
     assert [[m['role'] for m in r['messages']] for r in multi] == [['user', 'assistant', 'user', 'assistant']]
-    assert multi[0]['messages'][0]['content'] == 'سؤال أول بعد الموافقة'
-    for path in out.iterdir():
-        if path.is_file():
-            assert 'قبل الموافقة سري' not in path.read_text(encoding='utf-8'), f'unconsented text leaked into {path.name}'
+    assert all(r.get('context_complete') is True for r in single + multi)
+    for name in ('sft.jsonl', 'multi_turn.jsonl', 'evaluation_holdout.jsonl'):
+        text = (out / name).read_text(encoding='utf-8')
+        assert 'قبل الموافقة سري' not in text and 'بعد موافقة متأخرة' not in text, f'unconsented or incomplete text in {name}'

@@ -360,6 +360,15 @@ async function loadQueue() {
   else state.reviewDraftBaseline=null;
 }
 
+function renderCollectionWarning(item) {
+  const incomplete=item.context_complete===false,warning=$('#review-context-warning');
+  warning.textContent=incomplete?(item.context_warning||'This collected segment has incomplete context. Human review is available; training and evaluation are blocked.'):'';
+  warning.classList.toggle('hidden',!incomplete);
+  for(const id of ['training-eligible','evaluation-only']){
+    const input=$(`#${id}`);input.disabled=incomplete;if(incomplete)input.checked=false;
+  }
+}
+
 function renderReview() {
   const item = state.queue[state.queueIndex]; state.reviewStatus = null; state.reviewActionPending = false;
   $('#review-conversation-title').textContent = item.conversation_title || item.external_conversation_id;
@@ -370,6 +379,7 @@ function renderReview() {
   $$('.status-grid button').forEach(button=>button.classList.remove('selected')); $('#edit-review-panel').classList.add('hidden'); $('#correction-editor').classList.add('hidden'); $('#correction-save-row').classList.add('hidden'); $('#save-review').disabled=true;
   $$('#error-tags button').forEach(button=>button.classList.toggle('selected',(item.tags||[]).includes(button.dataset.tag)));
   for(const [id,key] of Object.entries({'training-eligible':'training_eligible','evaluation-only':'evaluation_only','exclude-training':'exclude_from_training','needs-fact-check':'needs_fact_check','contains-personal':'contains_personal_data','contains-sensitive':'contains_sensitive_data'}))$(`#${id}`).checked=!!item[key];
+  renderCollectionWarning(item);
   $$('.review-actions button').forEach(button=>button.disabled=false); $('#confirm-review-delete').disabled=false;
   $('#queue-position').textContent = `${state.queueIndex+1} of ${state.queue.length}`; $('#queue-progress').style.width = `${((state.queueIndex+1)/state.queue.length)*100}%`;
   state.reviewDraftBaseline=reviewDraftSnapshot();

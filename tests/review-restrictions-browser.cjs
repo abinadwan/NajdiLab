@@ -55,7 +55,10 @@ test('review restriction integrity in Chromium',async t=>{
     await t.test('UX-03 approval explicitly differs from dataset eligibility',async()=>{
       assert.match(await page.$eval('#review-eligibility-help',el=>el.textContent),/independent decision/);
       assert.equal(await page.$eval('#training-eligible',el=>el.checked),false);
-      assert.equal(await page.$eval('#training-eligible',el=>el.getAttribute('aria-describedby')),'review-eligibility-help');
+      const descriptions=await page.$eval('#training-eligible',el=>el.getAttribute('aria-describedby').split(/\s+/));
+      for(const id of ['review-eligibility-help','review-context-warning']){
+        assert.ok(descriptions.includes(id));assert.ok(await page.$('#'+id),'description target exists: '+id);
+      }
     });
     await t.test('eligibility selection never clears saved restrictions',async()=>{
       await page.click('#training-eligible');

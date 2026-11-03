@@ -90,7 +90,7 @@ The 33 skips are private historical artifacts that are not in the repository (Ph
 
 ## 5. Dataset segments
 
-Collection stays off by default and after restart, never retroactive, never auto-approved, never includes thinking or partial replies. Consecutive consented turns form a segment: first turn `single_turn`, later turns `multi_turn` linked to the previous collected answer, with context metadata for audit. Verified against the existing export: `sft.jsonl` gets the first pair, `multi_turn.jsonl` the later pairs with only consented context, and no unconsented text appears in any export file. No schema change was needed for this part. [Collection segments](../chat-workspace.md#collection-segments-single-turn-and-multi-turn).
+Collection stays off by default and after restart, never retroactive, never auto-approved, never includes thinking or partial replies. Consecutive consented turns form a segment: first turn `single_turn`, later turns `multi_turn` linked to the previous collected answer, with context metadata for audit. **Superseded in part by the PR #21 reconciliation (2026-11-03):** only segments collected from the first turn (`context_complete`) can be selected for training or evaluation; later-starting segments are review-only. See [PR21_PR22_RECONCILIATION.md](PR21_PR22_RECONCILIATION.md). Verified against the existing export: `sft.jsonl` gets the first pair, `multi_turn.jsonl` the later pairs with only consented context, and no unconsented text appears in any export file. No schema change was needed for this part. [Collection segments](../chat-workspace.md#collection-segments-single-turn-and-multi-turn).
 
 ## 6. README restoration (RESTORE-README)
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .db import DB_PATH
+from .collection_context import collection_context
 
 CORRECTIONS = {"FULL_CORRECTION", "DIALECT_CORRECTION", "CONTENT_CORRECTION"}
 DECISIONS = {"APPROVED", *CORRECTIONS}
@@ -204,6 +205,16 @@ def _result(findings: list[dict[str, Any]], include_demo: bool) -> dict[str, Any
 def export_privacy(conn: sqlite3.Connection, *, include_demo: bool = False) -> dict[str, Any]:
     """Block a whole window; never trim excluded/private context silently."""
     findings = []
+    for review_id, source, metadata in conn.execute('''SELECT r.id, c.source, c.metadata_json FROM reviews r
+        JOIN messages m ON m.id=r.message_id JOIN conversations c ON c.id=m.conversation_id
+        WHERE r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')
+        AND r.exclude_from_training=0 AND (r.training_eligible=1 OR r.evaluation_only=1)
+        AND (?=1 OR c.demo=0)''', (int(include_demo),)):
+        if collection_context({'source': source, 'metadata_json': metadata}).get('context_complete') is False:
+            findings.append(_finding('EXPORT_INCOMPLETE_CONTEXT', f'review:{review_id}',
+                'The selected collected chat has missing or unverifiable earlier context. '
+                'Review remains available; training and evaluation export require a complete consented context.',
+                'ERROR', confirmed=True))
     rows = conn.execute('''SELECT DISTINCT r.id FROM reviews r
         JOIN messages m ON m.id=r.message_id JOIN conversations c ON c.id=m.conversation_id
         WHERE r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')

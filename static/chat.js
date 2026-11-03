@@ -15,7 +15,7 @@
   const SIDEBAR_KEY='najdilab.chat.sidebar';
 
   class ChatError extends Error{
-    constructor(message,code,check){super(message);this.code=code||null;this.check=check||null;}
+    constructor(message,code,check,hint){super(message);this.code=code||null;this.check=check||null;this.hint=hint||null;}
   }
 
   /* NDJSON reader: complete lines only; a partial trailing line waits for more bytes. */
@@ -36,20 +36,19 @@
   class ChatController{
     constructor(request,render,uuid=()=>global.crypto.randomUUID(),stream=null){
       this.request=request;this.render=render;this.uuid=uuid;this.stream=stream;
-      this.session=null;this.pending=false;this.selectionRevision=null;
+      this.session=null;this.pending=false;this.selectionRevision=null;this.modelReady=true;
     }
     post(path,data){return this.request(path,{method:'POST',body:JSON.stringify(data)});}
     path(action=''){return `/api/v1/chat/sessions/${this.session.id}${action?'/'+action:''}`;}
     async refresh(){if(this.session)this.session=await this.request(this.path());this.render();}
-    canSend(text){
-      const s=this.session;
-      return !!s&&s.status==='OPEN'&&!this.pending&&!s.busy&&typeof text==='string'&&text.trim()!=='';
-    }
+    canSend(text){return canSend(text,this.session,this.pending,this.modelReady);}
     /* One turn. `pending` is set before any await, so a second Enter or click in
        the same tick is refused instead of creating a duplicate request. */
     async send(text,onEvent=()=>{}){
       if(!this.session||this.pending||this.session.busy)throw new ChatError('A reply is already in progress. Wait for it or stop it first.','CHAT_BUSY');
       if(typeof text!=='string'||!text.trim())throw new ChatError('Write a message first.','INVALID_TEXT');
+      if(this.session.status!=='OPEN')throw new ChatError('This conversation is closed. Start a new one.','CHAT_CLOSED');
+      if(this.modelReady!==true)throw new ChatError('This conversation is bound to its original model and runtime. Connect and select that exact model to continue; nothing was changed automatically.','MODEL_NOT_READY');
       const sid=this.session.id;
       const data={request_id:this.uuid(),revision:this.session.revision,selection_revision:this.selectionRevision,text};
       this.pending=true;this.render();
@@ -76,12 +75,37 @@
     }
   }
 
-  /* Enter sends; Shift+Enter (or any modifier) is a new line; IME composition never sends. */
+  /* Shared send guard (ported from PR #21, 95e7604): non-blank text, an open idle
+     session, no pending request and the session's own model selected. */
+  function canSend(text,session,pending,modelReady){
+    return typeof text==='string'&&!!text.trim()&&session?.status==='OPEN'&&!session.busy&&!pending&&modelReady===true;
+  }
+  /* Enter sends; Shift+Enter (or any modifier) is a new line; IME composition and
+     a held (auto-repeating) Enter never send. */
   function keyAction(event){
     if(event.key!=='Enter')return 'none';
-    if(event.isComposing||event.keyCode===229)return 'compose';
+    if(event.isComposing||event.composing||event.keyCode===229)return 'compose';
     if(event.shiftKey||event.altKey||event.ctrlKey||event.metaKey)return 'newline';
+    if(event.repeat)return 'repeat';
     return 'send';
+  }
+  function shouldSendOnEnter(event){return keyAction(event)==='send';}
+  function validBudgets(context,reply){
+    return Number.isInteger(context)&&context>=128&&context<=1048576&&Number.isInteger(reply)&&reply>=1&&reply<=Math.min(8192,context-1);
+  }
+  /* Presets are offered only with evidence (ported from PR #21): a proven engine
+     ceiling at least as large, and an estimate for exactly that context that fits
+     free GPU memory. Estimates stay labelled unverified; Custom is always available. */
+  const PRESET_LABELS={light:'Light',balanced:'Balanced',long:'Long'};
+  function budgetPresets(snapshot){
+    const r=snapshot?.recommendation||{},ceiling=r.budget_ceiling;
+    return Object.entries(PRESETS).map(([id,p])=>{
+      const estimate=r.candidates?.find(c=>c.context===p.context_budget);
+      const reason=!Number.isInteger(ceiling)||ceiling<1?'Engine ceiling unknown':p.context_budget>ceiling?'Above engine ceiling'
+        :!estimate||!Number.isFinite(estimate.estimated_required_bytes)||estimate.estimated_required_bytes<=0?'Memory estimate unavailable'
+        :estimate.assessment!=='ESTIMATE_FITS_FREE_VRAM'?'Memory estimate does not fit':'Unverified memory estimate';
+      return {id,label:PRESET_LABELS[id],context:p.context_budget,reply:p.reply_reserve,enabled:reason==='Unverified memory estimate',reason,estimatedBytes:estimate?.estimated_required_bytes};
+    });
   }
 
   // Clear only the exact draft submitted to this request. A user may continue
@@ -136,6 +160,7 @@
       {label:'Quantization',value:m.quantization||null,kind:m.quantization?'reported':'unknown'},
       {label:'Weights size',value:gib(m.weights_bytes),kind:m.weights_bytes?'reported':'unknown'},
       {label:'Maximum context',value:r.model_max_context??null,kind:r.model_max_context?'reported':'unknown'},
+      {label:'Proven engine ceiling',value:Number.isInteger(r.budget_ceiling)&&r.budget_ceiling>0?r.budget_ceiling:null,kind:Number.isInteger(r.budget_ceiling)&&r.budget_ceiling>0?'reported':'unknown'},
       {label:'Loaded context now',value:r.runtime_context??null,kind:r.runtime_context?'measured':'unknown'}
     ];
     if(seen&&typeof seen.size_vram_bytes==='number')model.push({label:'Measured memory now',value:gib(seen.size_vram_bytes),kind:'measured'});
@@ -150,11 +175,12 @@
   function errorParts(error){
     const parts=[String(error&&error.message||'Something went wrong.')];
     if(error&&error.code)parts.push(' ',{id:error.check?`${error.code} · ${error.check}`:error.code});
+    if(error&&error.hint)parts.push(' ',String(error.hint));
     return parts;
   }
 
   if(typeof module!=='undefined'&&module.exports){
-    module.exports={ChatController,ChatError,keyAction,shouldClearDraft,groupSessions,budgetBreakdown,presetFor,hardwareModel,ndjsonSplitter,errorParts,PRESETS,PHASES};
+    module.exports={ChatController,ChatError,keyAction,shouldSendOnEnter,canSend,validBudgets,budgetPresets,shouldClearDraft,groupSessions,budgetBreakdown,presetFor,hardwareModel,ndjsonSplitter,errorParts,PRESETS,PHASES};
     return;
   }
 
@@ -170,7 +196,7 @@
     if(method!=='GET')headers['X-NajdiLab-CSRF']=await global.sessionToken();
     const response=await fetch(path,{...options,method,headers});
     let payload;try{payload=await response.json();}catch{payload={error:'Invalid server response'};}
-    if(!response.ok)throw new ChatError(payload.error||`HTTP ${response.status}`,payload.code,payload.check);
+    if(!response.ok)throw new ChatError(payload.error||`HTTP ${response.status}`,payload.code,payload.check,payload.hint);
     return payload;
   }
   async function stream(path,body,onEvent){
@@ -178,12 +204,12 @@
       headers:{'Content-Type':'application/json','X-NajdiLab-CSRF':await global.sessionToken()}});
     if(!response.ok||!String(response.headers.get('Content-Type')).startsWith('application/x-ndjson')){
       let payload;try{payload=await response.json();}catch{payload={error:`HTTP ${response.status}`};}
-      throw new ChatError(payload.error||`HTTP ${response.status}`,payload.code,payload.check);
+      throw new ChatError(payload.error||`HTTP ${response.status}`,payload.code,payload.check,payload.hint);
     }
     let final=null,failure=null;
     const splitter=ndjsonSplitter(event=>{
       if(event.type==='done')final=event.result;
-      else if(event.type==='error')failure=new ChatError(event.error,event.code,event.check);
+      else if(event.type==='error')failure=new ChatError(event.error,event.code,event.check,event.hint);
       else onEvent(event);
     });
     const reader=response.body.getReader(),decoder=new TextDecoder();
@@ -240,12 +266,16 @@
     const model=bubble('assistant');
     const thinking=thinkingByRequest.get(turn.request_id);
     if(thinking)model.append(thinkingBlock(thinking,false));
-    model.append(assistantBody(turn.assistant));
+    const rendered=assistantBody(turn.assistant),raw=literal('p',turn.assistant,'chatv2-text chatv2-raw');raw.hidden=true;
+    model.append(rendered,raw);
     const foot=node('div','chatv2-msg-foot');
     foot.append(node('small','chat-review-status',turn.collected?'Collected for human review (not training-approved)':'Not collected for review'));
     const timings=timingsByRequest.get(turn.request_id);
     if(timings)foot.append(timingDetails(timings));
-    foot.append(copyButton(turn.assistant));
+    // Exact stored reply on demand (ported from PR #21): what the model wrote, unrendered.
+    const toggle=node('button','chatv2-copy chatv2-raw-toggle','Show raw text');toggle.type='button';
+    toggle.onclick=()=>{raw.hidden=!raw.hidden;rendered.hidden=!rendered.hidden;toggle.textContent=raw.hidden?'Show raw text':'Show Markdown';};
+    foot.append(toggle,copyButton(turn.assistant));
     model.append(foot);
     return [user,model];
   }
@@ -325,7 +355,8 @@
   function render(){
     const s=controller.session,busy=controller.pending||!!s?.busy,open=s?.status==='OPEN';
     const ready=sessionRuntimeReady();
-    el('chat-send').disabled=!open||busy||!ready;
+    controller.modelReady=ready;
+    el('chat-send').disabled=!controller.canSend(el('chat-draft').value);
     el('chat-stop').disabled=!busy;
     el('chat-collect').disabled=!open||busy;el('chat-collect').checked=!!s?.collect;
     el('chat-actions').disabled=!s;
@@ -497,12 +528,35 @@
 
   // ------------------------------------------------------------ setup dialog
   function providerSelect(){return runtimes.find(x=>x.id===el('chat-provider').value);}
+  let presetEvidence=null;
+  function evidenceKey(){const p=providerSelect();return JSON.stringify([p?.id,el('chat-model').value,p?.selection_revision]);}
+  function currentEvidence(){return presetEvidence?.key===evidenceKey()?presetEvidence.data:undefined;}
+  // Approval to load is tied to one model and one context: any change withdraws it.
+  function withdrawApproval(){el('chat-load-approved').checked=false;}
+  function renderPresets(){
+    const evidence=currentEvidence();
+    for(const p of budgetPresets(evidence)){
+      const radio=document.querySelector(`input[name="chat-preset"][value="${p.id}"]`);if(!radio)continue;
+      radio.disabled=!p.enabled;if(!p.enabled&&radio.checked)document.querySelector('input[name="chat-preset"][value="custom"]').checked=true;
+      const reason=radio.parentElement.querySelector('.chatv2-preset-reason');if(reason)reason.textContent=p.reason;
+    }
+    const r=evidence?.recommendation;
+    if(r)compose(el('chat-preset-evidence'),['Proven engine ceiling: ',{id:Number.isInteger(r.budget_ceiling)&&r.budget_ceiling>0?String(r.budget_ceiling):'Unknown'}]);
+    else el('chat-preset-evidence').textContent='Presets unlock after checking this model. The engine ceiling and memory estimate are unknown until then; Custom is always available.';
+  }
   function fillModels(){
     const p=providerSelect();el('chat-model').replaceChildren();
     for(const model of p?.models||[])option(el('chat-model'),model,model,true);
     if(p?.selected_model)el('chat-model').value=p.selected_model;
-    el('chat-load-row').hidden=p?.id!=='ollama';el('chat-load-approved').checked=false;
-    updateBreakdown();
+    el('chat-load-row').hidden=p?.id!=='ollama';withdrawApproval();
+    renderPresets();updateBreakdown();
+  }
+  /* Read-only: never selects or loads a model, even if another model is highlighted. */
+  async function checkPresets(){
+    const p=providerSelect(),model=el('chat-model').value,key=evidenceKey();
+    if(!p||!model)throw new ChatError('Connect and select a model first.','NOT_CONNECTED');
+    const data=await request('/api/v1/chat/hardware',{method:'POST',body:JSON.stringify({approved:true,provider:p.id,model,selection_revision:p.selection_revision})});
+    presetEvidence={key,data};renderPresets();
   }
   function readBudget(){return {context:Number(el('chat-budget').value),reserve:Number(el('chat-reserve').value)};}
   function applyPreset(name){
@@ -510,7 +564,8 @@
     el('chat-budget').value=preset.context_budget;el('chat-reserve').value=preset.reply_reserve;updateBreakdown();
   }
   function updateBreakdown(){
-    const {context,reserve}=readBudget(),b=budgetBreakdown(context,reserve);
+    const {context,reserve}=readBudget(),b=budgetBreakdown(context,reserve,currentEvidence()?.recommendation?.model_max_context||null);
+    b.valid=b.valid&&validBudgets(context,reserve);
     const box=el('chat-budget-breakdown');box.replaceChildren();
     const list=node('dl','chatv2-dl');
     const row=(label,value)=>{list.append(node('dt',null,label));const dd=node('dd');compose(dd,[{id:value==null?'—':String(value)}]);list.append(dd);};
@@ -531,12 +586,14 @@
     if(runtimes.some(p=>p.id===previous))el('chat-provider').value=previous;
     fillModels();
     el('chat-provider-note').hidden=runtimes.length>0;
-    const checked=document.querySelector('input[name="chat-preset"]:checked');applyPreset(checked?.value||'balanced');
+    renderPresets();
+    const checked=document.querySelector('input[name="chat-preset"]:checked:not(:disabled)');applyPreset(checked?.value||'custom');
     el('chat-setup').showModal();
   }
   async function createSession(){
     const p=providerSelect(),model=el('chat-model').value,{context,reserve}=readBudget();
     if(!p||!model)throw new ChatError('Connect and select a model first.','NOT_CONNECTED');
+    if(!validBudgets(context,reserve))throw new ChatError('Reply space must be between 1 and 8192 tokens and smaller than the total context.','INVALID_LIMIT');
     const revision=await selectModel(p,model);
     const session=await controller.post('/api/v1/chat/sessions',{provider:p.id,model,selection_revision:revision,
       context_budget:context,reply_reserve:reserve,load_approved:p.id==='ollama'&&el('chat-load-approved').checked});
@@ -622,6 +679,8 @@
   }
   async function load(){
     if(!bound)bind();
+    // A refresh replaces stale notices, so a current binding warning is never hidden.
+    notice=[];
     await loadRuntimes();
     if(controller.session)await controller.refresh();
     await saved();render();
@@ -661,9 +720,13 @@
     el('chat-sidebar-close').onclick=()=>{setSidebar(false,!narrow());el('chat-sidebar-toggle').focus();};
     el('chat-new').onclick=act(async()=>{await loadRuntimes();openSetup();});
     el('chat-provider').onchange=fillModels;
-    for(const radio of document.querySelectorAll('input[name="chat-preset"]'))radio.onchange=()=>applyPreset(radio.value);
+    el('chat-model').onchange=()=>{withdrawApproval();renderPresets();updateBreakdown();};
+    el('chat-preset-check').onclick=async()=>{el('chat-setup-error').textContent='';try{await checkPresets();}catch(error){compose(el('chat-setup-error'),errorParts(error));}};
+    for(const radio of document.querySelectorAll('input[name="chat-preset"]'))radio.onchange=()=>{withdrawApproval();applyPreset(radio.value);};
     for(const id of ['chat-budget','chat-reserve'])el(id).oninput=()=>{
-      const {context,reserve}=readBudget(),name=presetFor(context,reserve);
+      withdrawApproval();
+      const {context,reserve}=readBudget(),candidate=presetFor(context,reserve),allowed=budgetPresets(currentEvidence()).find(p=>p.id===candidate)?.enabled;
+      const name=allowed?candidate:'custom';
       const radio=document.querySelector(`input[name="chat-preset"][value="${name}"]`);if(radio)radio.checked=true;updateBreakdown();
     };
     el('chat-create').onclick=async()=>{try{await createSession();}catch(error){compose(el('chat-setup-error'),errorParts(error));}};
@@ -714,8 +777,14 @@
       if(keyAction(event)==='send'&&event.target.tagName==='INPUT'){event.preventDefault();if(!el('chat-create').disabled)el('chat-create').click();}
     });
     el('chat-delete-confirm').addEventListener('keydown',event=>{if(keyAction(event)==='send'){event.preventDefault();if(!el('chat-delete-go').disabled)el('chat-delete-go').click();}});
+    let composing=false;
+    el('chat-draft').addEventListener('compositionstart',()=>{composing=true;});
+    el('chat-draft').addEventListener('compositionend',()=>{composing=false;});
+    el('chat-draft').addEventListener('input',()=>{el('chat-send').disabled=!controller.canSend(el('chat-draft').value);});
     el('chat-draft').addEventListener('keydown',event=>{
-      const action=keyAction(event);
+      const action=composing?'compose':keyAction(event);
+      // A held Enter never inserts a stray newline into a ready message, and never sends.
+      if(action==='repeat'){event.preventDefault();return;}
       if(action!=='send')return;
       event.preventDefault();
       submit().catch(error=>{setNotice(errorParts(error));render();});

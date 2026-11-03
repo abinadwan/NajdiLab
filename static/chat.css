@@ -119,3 +119,9 @@ bdi[dir="ltr"]{unicode-bidi:isolate}
   .chatv2-usage{flex-basis:100%;order:3}
 }
 .chatv2-hint kbd{font:inherit;font-size:.7rem;border:1px solid var(--line,#ccc);border-block-end-width:2px;border-radius:4px;padding:0 4px;direction:ltr;unicode-bidi:isolate}
+/* Ported from PR #21 (95e7604): review warning for incomplete collected context. */
+.chat-context-warning{padding:12px;border:2px solid var(--line,#aaa);border-inline-start-width:6px;border-radius:8px;font-weight:600;overflow-wrap:anywhere}
+.chatv2-raw{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem}
+.chatv2-raw[hidden],.chatv2-answer[hidden]{display:none}
+.chatv2-presets input:disabled+span{opacity:.55}
+.chatv2-preset-reason{flex-basis:100%;color:var(--muted);font-size:.75rem}

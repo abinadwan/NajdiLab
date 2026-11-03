@@ -25,10 +25,10 @@ const OUT=path.resolve(__dirname,'..','docs','images','screenshots');
 
     await page.goto(base+'/chat');await page.waitForSelector('#view-chat.active');
     const chat=async(text)=>{await page.type('#chat-draft',text);await page.keyboard.press('Enter');
-      await page.waitForFunction(()=>!document.querySelector('.chatv2-msg.streaming')&&!document.querySelector('#chat-send').disabled,{timeout:10000});};
+      await page.waitForFunction(()=>!document.querySelector('.chatv2-msg.streaming')&&!document.querySelector('#chat-collect').disabled,{timeout:10000});};
     await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
     await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-setup').open);
-    await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
+    await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled);
     await chat('MARKDOWN_FIXTURE');
     await page.evaluate(()=>{const d=document.querySelector('.chatv2-thinking');if(d)d.open=true;});
     for(const text of ['Synthetic question about a weekend plan','Second synthetic topic'])

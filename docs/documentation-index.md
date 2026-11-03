@@ -15,3 +15,5 @@
 Removed training procedures and design sets are not supported documentation. Evidence pages retain bounded dated facts and unresolved gates; they do not authorize execution, publication or installed updates.
 
 [Dataset-only cleanup audit/plan](cleanup-plan.md) · [cleanup verification and full change inventory](cleanup-results.md).
+
+[2026-11-02 Chat follow-up: behavior, verification and rollback](chat-review-workflow-results.md).
