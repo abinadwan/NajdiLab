@@ -2,7 +2,7 @@
 
 ## V2.0.0 — development candidate (2026-11-03, `update-project`, Draft PR #23; not a release)
 
-- **Product version V2.0.0** from one source (`app/version.py`): server banner and `Server` header, Hugging Face User-Agent, `/api/v1/config`, the sidebar under the Najdi Lab / نجدي لاب name and Settings → About Najdi Lab. Release notes: `docs/development/RELEASE_NOTES_V2.0.0.md`.
+- **Product version V2.0.0** from one source (`app/version.py`): server banner and `Server` header, Hugging Face User-Agent, `/api/v1/config`, `/api/v1/health`, the sidebar under the Najdi Lab / نجدي لاب name and Settings → About Najdi Lab. Release notes: `docs/development/RELEASE_NOTES_V2.0.0.md`.
 - **Hugging Face Direct** (`app/hf_hub.py`): GGUF search, revision-pinned details with license, access and per-file size/SHA-256, bounded remote GGUF header reads. HTTPS to Hugging Face hosts only, every redirect checked, no credentials, gated repositories blocked.
 - **Storage-safe downloads and model library** (`app/model_store.py`, migration 009): per-volume preflight (file + reserve, larger on the system drive, + other active downloads), live free-space monitoring with safe pause, `.part` + atomic rename, size and SHA-256 verification, pause/resume/cancel, recheck, delete with typed confirmation; files only in `data/models/huggingface/`.
 - **Smart Model Advisor** (`app/model_advisor.py`): COMPATIBLE / LIMITED / UNVERIFIED / BLOCKED with evidence labelled measured, reported or estimate; download, load and performance kept separate.

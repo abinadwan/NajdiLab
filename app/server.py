@@ -351,7 +351,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/v1/hermes-hook/refusals":
                 self._json(HERMES_REFUSALS.snapshot())
             elif parsed.path == "/api/v1/health":
-                self._json({"ok": True, "service": "NajdiLab", "version": "1.1", "database": str(DB_PATH)})
+                self._json({"ok": True, "service": "NajdiLab", "version": APP_VERSION, "database": str(DB_PATH)})
             elif parsed.path == "/api/v1/dataset-catalog":
                 self._json(dataset_catalog())
             elif parsed.path == "/api/v1/review-integrity":

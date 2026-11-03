@@ -27,6 +27,8 @@ def test_server_and_config_report_the_same_version(tmp_path, monkeypatch):
     thread.start()
     try:
         connection = http.client.HTTPConnection('127.0.0.1', http_server.server_port, timeout=10)
+        connection.request('GET', '/api/v1/health', headers={'Host': f'127.0.0.1:{http_server.server_port}'})
+        assert json.loads(connection.getresponse().read())['version'] == APP_VERSION, 'health reports the same version'
         connection.request('GET', '/api/v1/config', headers={'Host': f'127.0.0.1:{http_server.server_port}'})
         response = connection.getresponse()
         config = json.loads(response.read())
@@ -39,7 +41,8 @@ def test_server_and_config_report_the_same_version(tmp_path, monkeypatch):
 
 def test_no_other_product_version_is_hard_coded():
     # The interface fills the label from /api/v1/config; the server reads app/version.py.
-    pattern = re.compile(r'\bV2\.0\.0\b|NajdiLab v1\.1|NajdiLab/1\.1')
+    # Also any quoted product version field ("version": "1.1"), which is how /api/v1/health once disagreed.
+    pattern = re.compile(r'''\bV2\.0\.0\b|NajdiLab v1\.1|NajdiLab/1\.1|["']version["']:\s*["']\d+\.\d+(?:\.\d+)?["']''')
     sources = [*ROOT.glob('static/*.html'), *ROOT.glob('static/*.js'), *ROOT.glob('static/*.css'),
                *[p for p in ROOT.glob('app/*.py') if p.name != 'version.py']]
     offenders = [p.relative_to(ROOT).as_posix() for p in sources if pattern.search(p.read_text(encoding='utf-8'))]
