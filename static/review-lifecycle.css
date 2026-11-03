@@ -12,16 +12,16 @@
 
 .approve-action {
   background: var(--deep-2);
-  color: #fff;
+  color:var(--on-primary);
 }
 
-.approve-action:hover { background: #274e45; }
-.edit-action { background: var(--gold-soft); border-color: #e3c878; color: #755817; }
-.edit-action:hover { background: #ffefbd; }
-.ignore-action { background: #f3f5f4; border-color: #cfd8d5; color: #52615d; }
-.ignore-action:hover { background: #e8edeb; }
-.delete-action { background: var(--red-soft); border-color: #dfb4b4; color: var(--red); }
-.delete-action:hover { background: #f9dddd; }
+.approve-action:hover { background:var(--primary); }
+.edit-action { background: var(--gold-soft); border-color:var(--status-warning-border); color:var(--status-warning-text); }
+.edit-action:hover { background:var(--status-warning-bg); }
+.ignore-action { background:var(--surface-soft); border-color:var(--control); color:var(--muted); }
+.ignore-action:hover { background:var(--active); }
+.delete-action { background: var(--red-soft); border-color:var(--status-blocked-border); color: var(--red); }
+.delete-action:hover { background:var(--status-blocked-bg); }
 .review-actions button:disabled,
 .confirmation-actions button:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -38,8 +38,8 @@
 }
 
 .edit-review-panel .status-grid { grid-template-columns: repeat(3, 1fr); }
-.status-IGNORED { background: #edf0ef; color: #596762; }
-.status-DELETED { background: var(--red-soft); color: #984646; }
+.status-IGNORED { background:var(--active); color:var(--muted); }
+.status-DELETED { background: var(--red-soft); color:var(--status-blocked-text); }
 
 .confirmation-dialog {
   width: min(460px, calc(100vw - 32px));

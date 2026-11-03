@@ -2,7 +2,7 @@
 
 | Purpose | Entry points |
 |---|---|
-| Start and use | [README](../README.md), [installation](installation.md), [user guide](user-guide.md), [interface language](localization.md), [accessibility](accessibility.md), [screenshots](screenshots.md) |
+| Start and use | [README](../README.md), [installation](installation.md), [user guide](user-guide.md), [interface language](localization.md), [accessibility](accessibility.md), [screenshots](screenshots.md), [design system and brand](design-system.md), [redesign record](development/NAJDI_LAB_REDESIGN.md) |
 | Chat and local engines | [Chat contract](chat-workspace.md), [Chat V2 development log](development/CHAT_EXPERIENCE_V2.md), [NajdiLab Native](native-runtime.md), [integrations](integrations.md), [engine evidence](chat-completion-results.md), [owner acceptance](chat-windows-acceptance.md) |
 | Review and datasets | [Review/quality](review-and-quality.md), [versions and Unsloth export](dataset-export.md), [schema](database-schema.md) |
 | Safety and recovery | [Security](../SECURITY.md), [Hermes block](hermes-integration.md), [backup](backup-and-restore.md), [retention and deletion](data-retention.md), [migrations](database-and-migrations.md), [Windows update](integrations-windows-update.md) |

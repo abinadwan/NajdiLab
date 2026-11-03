@@ -65,3 +65,13 @@ The reconciliation imported commit `95e7604` from PR #21 (`fix/chat-review-workf
 1. Before ever **bundling** `llama-server`: collect the exact build's license files (llama.cpp MIT, `licenses/*`, and any CUDA/Vulkan/Metal runtime terms) and add them to a NOTICE bundle.
 2. Each model file used with NajdiLab Native: the owner must verify its license independently.
 3. Open WebUI: keep it as a "no copying" reference because of its branding clause.
+
+## Najdi Lab interface redesign (2026-11-03, `update-project`)
+
+| Item | Record |
+|---|---|
+| IBM Plex Sans, IBM Plex Sans Arabic, IBM Plex Mono | **Bundled font files** in `static/fonts/` (woff2 subsets: Latin 400/500/600, Arabic 400/500/600, Mono Latin 400/500), taken unmodified from Fontsource 5.x npm packages (`@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-sans-arabic`, `@fontsource/ibm-plex-mono`). Copyright IBM Corp. License: **SIL Open Font License 1.1**, reproduced with the copyright lines in `static/fonts/OFL.txt`, which ships beside the fonts as the license requires. The fonts are served by NajdiLab itself; nothing is fetched from a font CDN. |
+| Najdi Lab wordmarks (`static/brand/wordmark-*.svg`, `logo-*.svg`, inline sidebar wordmark) | Outlines of the words *Najdi Lab* and *نجدي لاب* set in the OFL fonts above. Outlining glyphs into artwork is permitted by the OFL; the result is not a font and carries no Reserved Font Name. |
+| HarfBuzz (`harfbuzzjs` 1.6.4, MIT) | **Build-time tool only**: shaped the Arabic wordmark (joining forms) before outlining. Not shipped, not a runtime dependency. |
+| puppeteer-core 25.16.0, axe-core 4.10.3 | Test-time only (screenshots, accessibility audit), installed outside the repository as before. Not shipped. |
+| Mark, favicon, app icon, interface icons | Original geometric drawings made for Najdi Lab (see `docs/design-system.md`). No icon set, stock symbol or external artwork was copied. |

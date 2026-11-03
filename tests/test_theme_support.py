@@ -46,6 +46,7 @@ def test_manual_modal_color_pairs_meet_text_contrast_in_both_themes():
     manual = (ROOT / "static/manual-data.css").read_text(encoding="utf-8")
 
     def declarations(source, selector):
+        source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
         result = {}
         for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", source):
             if selector in [item.strip() for item in selectors.split(",")]:

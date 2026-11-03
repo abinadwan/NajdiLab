@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Najdi Lab premium bilingual redesign (2026-11-03, `update-project`, Draft PR #23)
+
+- **Brand identity:** original Najdi Lab mark (ن with a triangular Najdi wall opening), Arabic and English outlined wordmarks, lockups, light and dark variants, optically sized favicon and app icon (`static/brand/`, `static/favicon.svg`). Arabic interface shows نجدي لاب, English shows Najdi Lab.
+- **Design system:** all colours, status pairs, radii and type roles are tokens in `static/theme.css` (light and dark); ~186 hard-coded colours in ten legacy stylesheets were replaced with tokens; new `static/najdi.css` layer for type, shell, components and screens. Reference: `docs/design-system.md`.
+- **Type:** IBM Plex Sans + IBM Plex Sans Arabic as one family, IBM Plex Mono for identifiers; bundled woff2 subsets under the SIL OFL (`static/fonts/`), no network fonts. `app/server.py` registers `font/woff2`.
+- **Shell and screens:** framed-sheet layout, quiet sidebar with outline SVG icons and a scrolling nav, breadcrumb top bar with icon-led language and theme controls, dashboard rebuilt around the conversation → Gold pipeline, unified PASS/FAIL/BLOCKED/REVIEW/PENDING status vocabulary with shapes, consistent buttons, inputs, tabs, tables, notices, dialogs, empty and loading states across all 15 views and the chat dialogs.
+- **Fixes:** Analytics and Balancer bars now render at their real width (inline `style` attributes were blocked by the CSP); breadcrumb text now translates in both directions; emoji icons replaced; phone menu reports `aria-expanded` and closes on Escape or an outside click.
+- **Verification:** axe WCAG 2 A/AA 0 violations and 0 overflow across 212 states (light/dark × Arabic/English × desktop, tablet, phone, 200 % and 400 % zoom). Record, screenshots, test results, limitations and rollback: `docs/development/NAJDI_LAB_REDESIGN.md`.
+
 ## Unreleased — Chat V2 remediation (2026-11-03, same Draft PR #22)
 
 - **PR #21 reconciled** (`cherry-pick -x 95e7604`): incomplete-context collected segments are review-only; presets need a proven ceiling and a fitting estimate; Ollama approval withdrawn on any model/context change; Enter repeat/IME guards; literal Markdown escapes; raw-text view; PR #21's INCOMPLETE_RESPONSE wording with PR #22's `check` and a `hint`. See `docs/development/PR21_PR22_RECONCILIATION.md`.

@@ -41,3 +41,9 @@ Captured by `tests/readme-screenshots.cjs` with headless Chromium (Playwright bu
 | ux-review/before-tablet-light-en-chat.png | `490c1a183cff3a39641ee1d8b798907bdf6e33d8247ef172967150f8984f76ea` |
 | ux-review/before-zoom-400-light-en-chat-setup-dialog.png | `ce563fb9136c211b3b275461d0bad509457c53fbd4e19c0c768e78ac39acd3d5` |
 The `ux-review/` before/after images are captured by `tests/ux-audit.cjs` from the same synthetic fixture (UX/UI phase, 2026-11-03).
+
+## Najdi Lab identity and redesign captures (2026-11-03)
+
+The previous favicon (`d4335ecf…bf22`, unresolved authorship) is **replaced** by an original Najdi Lab mark drawn for this redesign: the Arabic letter ن as a geometric bowl with a triangular Najdi wall opening as its dot. Files: `static/favicon.svg`, `static/brand/*.svg`, and the inline sidebar logo in `static/index.html`. The wordmarks are outlines of the bundled OFL fonts (see [attribution](THIRD_PARTY_ATTRIBUTION.md#najdi-lab-interface-redesign-2026-11-03-update-project)). Rationale: [design system](design-system.md#brand).
+
+Before/after captures in `docs/images/redesign/` and the regenerated README screenshots are Chromium/Puppeteer captures of the disposable synthetic fixture (`tests/chat_browser_fixture.py`); no personal conversation, credential or real model appears.

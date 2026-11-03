@@ -122,6 +122,8 @@ The web platform is independent of external training. SQLite records and filesys
 
 ## Interface preview
 
+The interface carries the **Najdi Lab | نجدي لاب** identity: an original mark (the letter ن with a triangular Najdi wall opening as its dot), IBM Plex Sans and IBM Plex Sans Arabic bundled locally, a framed-sheet layout, and equal Arabic (RTL) and English (LTR) light and dark themes. See the [design system](docs/design-system.md) and the [redesign record](docs/development/NAJDI_LAB_REDESIGN.md).
+
 ![English interface displaying a synthetic Arabic text-storage example](docs/images/english-ui-arabic-record.jpg)
 
 This earlier preview comes from a disposable synthetic-only instance, not the private corpus. English controls use LTR and Arabic content keeps its own direction. On phones (390px) the conversation list becomes an overlay and the composer keeps a large Send button:

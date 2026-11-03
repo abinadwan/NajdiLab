@@ -117,6 +117,8 @@ from .service import (
 )
 
 STATIC_DIR = ROOT / "static"
+# The bundled interface fonts; the platform registry may not know this type (Windows often does not).
+mimetypes.add_type("font/woff2", ".woff2")
 MAX_BODY_BYTES = 2 * 1024 * 1024
 STREAM_WRITE_TIMEOUT = 30
 

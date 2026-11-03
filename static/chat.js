@@ -413,7 +413,7 @@
         if(item.display_title)open.append(literal('span',item.display_title,'chatv2-item-title'));
         else open.append(node('span','chatv2-item-title','New chat'));
         const meta=node('small','chatv2-item-meta');
-        compose(meta,[{id:item.model}]);if(item.pinned_at)meta.prepend(node('span','chatv2-pin','📌 '));
+        compose(meta,[{id:item.model}]);if(item.pinned_at)meta.prepend(node('span','chatv2-pin','Pinned'));
         open.append(meta);
         const more=node('button','chatv2-more','⋯');more.type='button';more.dataset.chatMore=item.id;
         more.setAttribute('aria-haspopup','menu');more.setAttribute('aria-expanded','false');more.setAttribute('aria-label','Conversation actions');

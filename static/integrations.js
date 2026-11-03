@@ -32,7 +32,7 @@ window.NajdiIntegrations = (() => {
       const models = Array.isArray(service.models) ? service.models : [];
       const button = (action, text, disabled = false) => `<button type="button" class="button ghost" data-integration-action="${action}" data-connector="${id}" ${disabled ? 'disabled' : ''}>${text}<span class="sr-only"> ${esc(service.name)}</span></button>`;
       return `<article class="panel integration-card" aria-labelledby="integration-name-${id}">
-        <header><h3 id="integration-name-${id}">${esc(service.name)}</h3><strong class="integration-badge">${esc(service.connection)}</strong></header>
+        <header><h3 id="integration-name-${id}">${esc(service.name)}</h3><strong class="integration-badge" data-state="${esc(service.connection)}">${esc(service.connection)}</strong></header>
         <p>Model runtime · conversations created in NajdiLab stay in NajdiLab.</p>
         ${service.endpoint ? `<code>${esc(service.endpoint)}</code>` : ''}
         <dl><div><dt>Known installation marker</dt><dd>${esc(service.installation)}</dd></div>
