@@ -19,6 +19,10 @@ from fixture_safety import refuse_default_database
 from synthetic_datasets import bind_synthetic_catalog
 from app import dataset_platform
 from app import chat_workspace,hardware
+from app.hf_hub import HubClient
+from app.model_service import ModelLibrary
+from app.model_store import ModelStore
+from fake_hub import FakeHub
 
 
 def synthetic_hardware(limits=None,limits_error=None):
@@ -97,6 +101,13 @@ def main():
             http.integrations.action(key,'connect',{'approved':True})
             http.integrations.action(key,'select',{'approved':True,'model':'fixture'})
         http.chat=ChatWorkspace(http.integrations,db,engine_factory=BrowserEngine().open)
+        # Model library: synthetic Hugging Face, an isolated models folder, a small storage reserve and
+        # fixed synthetic hardware. No network, no real model folder, no dependency on this computer.
+        http.native.models_dir=root/'models'
+        hub=HubClient(FakeHub())
+        http._models=ModelLibrary(db,http.native,hub=hub,
+            store=ModelStore(db,root/'models'/'huggingface',hub,reserve_bytes=64*1024**2,system_reserve_bytes=64*1024**2,in_use=http.native.serving),
+            snapshot=lambda:{'ram_total_bytes':16*1024**3,'ram_available_bytes':8*1024**3,'gpus':[],'warnings':['GPU_BACKEND_UNAVAILABLE']})
         print(f'BROWSER_FIXTURE=http://127.0.0.1:{http.server_port}',flush=True)
         try:http.serve_forever()
         finally:http.server_close();runtime.close()

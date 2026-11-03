@@ -2,6 +2,7 @@ const state = { view: 'dashboard', pages: {}, queue: [], queueIndex: 0, reviewSt
 
 const titles = {
   chat: ['Chat Workspace', 'Raw local model conversations, saved here. Collection for review is a separate choice.'],
+  models: ['Model library', 'Discover, check and download GGUF models for NajdiLab Native, safely and only with your approval.'],
   dashboard: ['Dashboard', 'Dataset status and local workflows in one place.'],
   'review-queue': ['Review queue', 'Review responses one at a time while preserving the original text.'],
   conversations: ['Conversations', 'Explore full context and open any earlier response for review.'],
@@ -94,7 +95,7 @@ function toast(message, error=false) {
   toast.timer=setTimeout(()=>{el.className='toast';},2800);
 }
 
-const viewPaths={chat:'/chat',dashboard:'/',conversations:'/conversations','review-queue':'/review','reviewed':'/gold','add-data':'/data/add','manual-data':'/data/manual',dataset:'/datasets/gold','dataset-health':'/datasets/health',balancer:'/datasets/balancer','dataset-versions':'/datasets/versions','eval-sets':'/datasets/eval','phase38-review':'/evaluation/remediation-review','phase39-review':'/evaluation/remediation-review-edits',exports:'/exports',analytics:'/analytics',settings:'/settings'};
+const viewPaths={chat:'/chat',models:'/models',dashboard:'/',conversations:'/conversations','review-queue':'/review','reviewed':'/gold','add-data':'/data/add','manual-data':'/data/manual',dataset:'/datasets/gold','dataset-health':'/datasets/health',balancer:'/datasets/balancer','dataset-versions':'/datasets/versions','eval-sets':'/datasets/eval','phase38-review':'/evaluation/remediation-review','phase39-review':'/evaluation/remediation-review-edits',exports:'/exports',analytics:'/analytics',settings:'/settings'};
 const pathViews=Object.fromEntries(Object.entries(viewPaths).map(([view,path])=>[path,view]));
 function selectedVersion(){return new URLSearchParams(location.search).get('version')||state.selectedDataset||'';}
 function updateLocation(view,version='',replace=false){const path=viewPaths[view]||'/';const query=version?`?version=${encodeURIComponent(version)}`:'';(replace?history.replaceState:history.pushState).call(history,{view,version},'',path+query);}
@@ -145,6 +146,7 @@ function switchView(view,options={}) {
 
 async function loadView(view) {
   if (view==='chat') return window.NajdiChat?.load();
+  if (view==='models') return window.NajdiModels?.load();
   if (view==='dashboard') return loadDashboard();
   if (view==='review-queue') return loadQueue();
   if (view==='conversations') return loadConversations();
@@ -351,6 +353,8 @@ async function loadDashboard(){
 
 async function loadConfig() {
   const config = await api('/api/v1/config'); state.tags = config.error_tags;
+  // Product version from the server's single source (app/version.py); never hard-coded here.
+  for(const id of ['app-version','settings-version']){const node=document.getElementById(id);if(node)node.textContent=config.app_version_display||'';}
   $('#error-tags').innerHTML = state.tags.map(tag=>`<button type="button" data-tag="${esc(tag)}">${esc(tagArabic[tag]||tag)}</button>`).join('');
   $('#filter-tag').innerHTML += state.tags.map(tag=>`<option value="${esc(tag)}">${esc(tagArabic[tag]||tag)}</option>`).join('');
   $('#error-tags').addEventListener('click', event=>{const button=event.target.closest('button');if(button)button.classList.toggle('selected');});

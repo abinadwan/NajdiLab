@@ -32,6 +32,10 @@
     {
       "name": "008_chat_experience_v2.sql",
       "sha256": "599b6ebafc46e9fb919f0985273979b745ce807d62452b2ed7354660520543bc"
+    },
+    {
+      "name": "009_managed_models.sql",
+      "sha256": "a507e8d337d659336e33f3768da507513e024979275b99c5dbb76e44a6f51dd2"
     }
   ]
 }

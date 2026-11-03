@@ -104,7 +104,7 @@ The web platform is independent of external training. SQLite records and filesys
 
 ## Current status
 
-**NOT READY FOR RELEASE.** The repository is private and requires authorized access. No software release number or active source license has been approved. Do not redistribute source or research artifacts.
+**NOT READY FOR RELEASE.** The repository is private and requires authorized access. The owner approved **V2.0.0** as the product version identifier of the current development candidate (`update-project`, Draft PR #23); it is not a release or production approval ([release notes](docs/development/RELEASE_NOTES_V2.0.0.md)). No active source license has been approved. Do not redistribute source or research artifacts.
 
 `main` holds the dataset-only platform (PR #11 cleanup and Phase A). Phase B (UX, bilingual operations — Draft PR #19) and Phase C (AI engine acceptance — Draft PR #20) are combined on `integration/pr19-pr20-local-20261102`. **Chat Experience V2 and NajdiLab Native are developed on `feature/chat-experience-v2`, stacked on that integration branch, in a separate Draft PR.** Nothing here is merged to `main` or accepted by the owner yet. [PROJECT_STATUS.md](PROJECT_STATUS.md) is the authoritative status reference; the [release decision](docs/public-release-decision.md) records publication gates.
 
@@ -113,8 +113,8 @@ The web platform is independent of external training. SQLite records and filesys
 | Area | ✅ Available on `main` | 🛠️ In development (draft branches, not merged) | 📋 Planned / not started |
 |---|---|---|---|
 | Review and datasets | Review queue, correction overlays, eligibility, privacy/exclusion, dedup, balance, holdout/leakage, immutable versions, Unsloth handoff | Phase B/C acceptance items (Draft PRs #19/#20) | Reviewer identity and multi-user roles |
-| Chat | Raw chat with exact context admission (LM Studio, Ollama) | **V2:** sidebar history, titles, search, pin, archive/restore, streaming, Stop, thinking panel, safe Markdown, Enter to send, context presets, phase timings | Editing or regenerating earlier turns |
-| Local runtimes | LM Studio (pinned SDK 1.5.0), Ollama 0.40.13 | **NajdiLab Native** (owner's llama.cpp `llama-server`, GGUF discovery, streaming) | Split (multi-file) GGUF, verified RTX 5070 acceptance |
+| Chat | Raw chat with exact context admission (LM Studio, Ollama) | **V2:** sidebar history, titles, search, pin, archive/restore, streaming, Stop, thinking panel, safe Markdown, Enter to send, context presets, phase timings, context usage indicator with 70/85/95 % notices | Editing or regenerating earlier turns |
+| Local runtimes | LM Studio (pinned SDK 1.5.0), Ollama 0.40.13 | **NajdiLab Native** (owner's llama.cpp `llama-server`, GGUF discovery, streaming); **Hugging Face Direct** (GGUF discovery, Smart Model Advisor, storage-safe verified downloads, model library) — synthetic tests only | Split (multi-file) GGUF, gated repositories, verified RTX 5070 acceptance |
 | Data retention | Logical delete, exclusion, archive | **Permanent chat deletion** with a declared scope and content-free tombstones | Erasure across frozen exports and backups |
 | Dataset collection | Consented single pairs, PENDING review only | **Segments:** single-turn and linked multi-turn records with context metadata; incomplete-context segments are review-only (PR #21 rule) | Automatic 60/40 multi/single balancing (experimental idea only) |
 | Interface | English and Arabic | Arabic for every new chat message | Second-speaker review of Arabic wording |
@@ -122,7 +122,7 @@ The web platform is independent of external training. SQLite records and filesys
 
 ## Interface preview
 
-The interface carries the **Najdi Lab | نجدي لاب** identity: an original mark (the letter ن with a triangular Najdi wall opening as its dot), IBM Plex Sans and IBM Plex Sans Arabic bundled locally, a framed-sheet layout, and equal Arabic (RTL) and English (LTR) light and dark themes. See the [design system](docs/design-system.md) and the [redesign record](docs/development/NAJDI_LAB_REDESIGN.md).
+The interface carries the **Najdi Lab | نجدي لاب** identity: an original mark (the letter ن with a triangular Najdi wall opening as its dot), IBM Plex Sans and IBM Plex Sans Arabic bundled locally, a framed-sheet layout, and equal Arabic (RTL) and English (LTR) light and dark themes. See the [design system](docs/design-system.md) and the [redesign record](docs/development/NAJDI_LAB_REDESIGN.md). The **Model library** (Hugging Face Direct) finds single-file GGUF models, checks them against this computer, downloads them only with approval and verified SHA-256, and hands them to NajdiLab Native: [Hugging Face Direct](docs/development/HUGGING_FACE_DIRECT.md).
 
 ![English interface displaying a synthetic Arabic text-storage example](docs/images/english-ui-arabic-record.jpg)
 

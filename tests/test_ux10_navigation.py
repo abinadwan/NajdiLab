@@ -1,4 +1,4 @@
-"""UX-10: the 15 destinations are grouped by workflow without removing any of them."""
+"""UX-10: the 16 destinations are grouped by workflow without removing any of them (Model library added with Hugging Face Direct)."""
 from __future__ import annotations
 
 import html.parser
@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = [
     ("Overview", ["dashboard"]),
-    ("Chat", ["chat"]),
+    ("Chat", ["chat", "models"]),
     ("Review", ["review-queue", "conversations", "reviewed"]),
     ("Data entry", ["add-data", "manual-data"]),
     ("Datasets", ["dataset", "dataset-health", "balancer", "dataset-versions", "eval-sets"]),
@@ -73,7 +73,7 @@ def test_every_destination_appears_once_in_workflow_order():
     groups = [(nav.ids[g["labelledby"]].strip(), [i["view"] for i in g["items"]]) for g in nav.groups]
     assert groups == EXPECTED
     views = [v for _, vs in groups for v in vs]
-    assert len(views) == 15 == len(set(views))
+    assert len(views) == 16 == len(set(views))
 
 
 def test_every_destination_is_still_routable():

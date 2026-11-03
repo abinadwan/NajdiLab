@@ -123,7 +123,7 @@
     },
     "app/chat_workspace.py": {
       "classification": "PROTECT",
-      "sha256": "e079ca274ffe576560201f2646fb3f196e7bda13a36e5b69093596023f540dd2",
+      "sha256": "9b1df6962752f8d8a8d065f526b9be3368d7d0cb953d378d958d873e905bbf00",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .chat_engine import open_engine",
@@ -4575,6 +4575,9 @@
     },
     "migrations/008_chat_experience_v2.sql": {
       "sha256": "599b6ebafc46e9fb919f0985273979b745ce807d62452b2ed7354660520543bc"
+    },
+    "migrations/009_managed_models.sql": {
+      "sha256": "a507e8d337d659336e33f3768da507513e024979275b99c5dbb76e44a6f51dd2"
     }
   },
   "removed_routes": [

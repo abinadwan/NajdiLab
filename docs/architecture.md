@@ -1,6 +1,6 @@
 # Architecture
 
-NajdiLab's local workflow is Chat → Review/correction → Quality/dedup → Dataset version → external Unsloth export. No training control plane, WSL worker, model registry/acquisition, model benchmark or deployment implementation belongs to the active application.
+NajdiLab's local workflow is Chat → Review/correction → Quality/dedup → Dataset version → external Unsloth export. No training control plane, WSL worker, trained-model registry, model benchmark or deployment implementation belongs to the active application. The one model-acquisition path is **Hugging Face Direct**: explicit, revision-pinned, SHA-256-verified downloads of single-file GGUF models into a managed folder that NajdiLab Native can load after a separate approval (`hf_hub.py`, `model_store.py`, `model_advisor.py`, `model_service.py`; [record](development/HUGGING_FACE_DIRECT.md)).
 
 `server.py` validates loopback authority/origin, framing, JSON and CSRF before dispatch. `integrations.py` owns bounded fixed-loopback discovery and session-only consent. `chat_workspace.py` owns complete-turn receipts, consent epochs, revisions and one active turn per runtime/session. `chat_engine.py` and its bounded child helper provide exact-count text inference against separately managed engines; [engine and privacy limits](chat-workspace.md).
 

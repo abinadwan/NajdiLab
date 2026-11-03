@@ -6,7 +6,7 @@ NajdiLab Native lets Chat use a local GGUF model without Ollama or LM Studio. Na
 
 ## What NajdiLab will never do
 
-- Download a program, a model, weights or a tokenizer. `llama-server` is started with `--offline`, and proxy and Hugging Face token variables are removed from its environment.
+- Download a program, a model, weights or a tokenizer by itself. `llama-server` is started with `--offline`, and proxy and Hugging Face token variables are removed from its environment. Model files may be downloaded separately, only on explicit approval, through the Model library ([Hugging Face Direct](development/HUGGING_FACE_DIRECT.md)); NajdiLab Native starts such a file only after its size and SHA-256 were verified (`MODEL_NOT_VERIFIED` otherwise).
 - Listen beyond this computer. The server always binds `127.0.0.1` on a free port, with a random API key per start (`LLAMA_API_KEY`), no web UI, no `/slots`, no `/props` writes.
 - Stop anything it did not start. Stop, restart and NajdiLab shutdown act only on the child process handle NajdiLab created.
 - Change Ollama, LM Studio or their models.

@@ -1,5 +1,16 @@
 # Changelog
 
+## V2.0.0 — development candidate (2026-11-03, `update-project`, Draft PR #23; not a release)
+
+- **Product version V2.0.0** from one source (`app/version.py`): server banner and `Server` header, Hugging Face User-Agent, `/api/v1/config`, the sidebar under the Najdi Lab / نجدي لاب name and Settings → About Najdi Lab. Release notes: `docs/development/RELEASE_NOTES_V2.0.0.md`.
+- **Hugging Face Direct** (`app/hf_hub.py`): GGUF search, revision-pinned details with license, access and per-file size/SHA-256, bounded remote GGUF header reads. HTTPS to Hugging Face hosts only, every redirect checked, no credentials, gated repositories blocked.
+- **Storage-safe downloads and model library** (`app/model_store.py`, migration 009): per-volume preflight (file + reserve, larger on the system drive, + other active downloads), live free-space monitoring with safe pause, `.part` + atomic rename, size and SHA-256 verification, pause/resume/cancel, recheck, delete with typed confirmation; files only in `data/models/huggingface/`.
+- **Smart Model Advisor** (`app/model_advisor.py`): COMPATIBLE / LIMITED / UNVERIFIED / BLOCKED with evidence labelled measured, reported or estimate; download, load and performance kept separate.
+- **NajdiLab Native**: refuses managed files that are not verified READY; loading stays an explicit approved step.
+- **Chat V2**: context usage indicator from engine-measured counts, configurable 70/85/95 % notices, context-limit panel with exact counts; exact admission and the audited `CONTEXT_LIMIT` transition unchanged; summary handoff deferred.
+- **Fixes found during acceptance**: the chat preset check held the runtime lease during the host hardware snapshot (Windows `ENGINE_BUSY` on the next Start; regression test added); a finished download could be reported active for an instant (Delete hidden; regression test added); Arabic sentence patterns ordered before a generic `{a} of {b}` pattern; analytics/balancer bar widths (CSP) carried over from the redesign.
+- **Tests**: `tests/test_hf_direct.py`, `tests/fake_hub.py`, `tests/test_version.py`, `tests/chat-context.test.cjs`, `tests/i18n-models.test.cjs`, `tests/models-browser.cjs`; CI workflow lists the new Node tests; inventory pins updated for migration 009 and the reviewed `chat_workspace.py` change.
+
 ## Unreleased — Najdi Lab premium bilingual redesign (2026-11-03, `update-project`, Draft PR #23)
 
 - **Brand identity:** original Najdi Lab mark (ن with a triangular Najdi wall opening), Arabic and English outlined wordmarks, lockups, light and dark variants, optically sized favicon and app icon (`static/brand/`, `static/favicon.svg`). Arabic interface shows نجدي لاب, English shows Najdi Lab.

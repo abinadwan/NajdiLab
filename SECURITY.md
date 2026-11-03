@@ -81,6 +81,10 @@ synchronized. Payload sizes are bounded before authentication.
 
 Settings discovery probes only fixed numeric-loopback model-list APIs and metadata on verified local known home-directory markers. No DNS/proxies/redirects, custom URLs, credentials, histories or configuration reads are supported. Connect/select/test/disconnect additionally require explicit approval and CSRF. Synthetic tests are bound to the displayed selection revision to reject cross-tab changes. Response bytes (including HTTP framing) and request time are bounded. Consent is process-local and revoked by restart; disconnect serializes with in-flight tests and does not stop upstream compute/services. See [Integrations](docs/integrations.md) for exact limits and unsupported cases. LM Studio/Ollama do not automatically expose application history.
 
+## Hugging Face Direct (model library)
+
+The only outbound internet access: explicit, CSRF-protected requests to `huggingface.co` (search, revision-pinned details, bounded header reads, downloads). HTTPS only; every redirect hop must stay on `huggingface.co`, `*.huggingface.co` or `*.hf.co` at port 443; no user-supplied URLs, credentials, cookies or tokens; gated and private repositories are refused. Only `.gguf` files are fetched (never repository code, configuration or packages), into `data/models/huggingface/` only, after a storage preflight with a safety reserve, with live free-space monitoring, and are usable only after their published size and SHA-256 match. NajdiLab Native refuses unverified managed files, and nothing loads without a separate approval. Chat text, datasets and hardware details are never sent. Details and threat table: [Hugging Face Direct](docs/development/HUGGING_FACE_DIRECT.md#10-security-boundaries).
+
 ## Files and data
 
 Keep databases, conversation exports, model artifacts, runtime logs, local

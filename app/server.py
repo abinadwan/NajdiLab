@@ -45,6 +45,8 @@ from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, valid
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .chat_workspace import ChatWorkspace, fields
 from .native_runtime import NativeRuntime
+from .model_service import ModelLibrary
+from .version import APP_VERSION, DISPLAY_VERSION, RELEASE_STATUS
 
 # Starting points, not performance guarantees. Custom values stay available.
 CONTEXT_PRESETS = [
@@ -133,6 +135,10 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
         self.native = NativeRuntime()
         self.chat = None
         self._workspace_lock = threading.Lock()
+        self._models = None
+        self._models_lock = threading.Lock()
+        # Managed (Hugging Face Direct) files must be verified READY before Native starts them.
+        self.native.start_gate = lambda path: self.models().store.native_gate(path)
         super().__init__(*args, **kwargs)
 
     def workspace(self):
@@ -144,8 +150,16 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
                                           engine_factory=self.native.engine_factory())
             return self.chat
 
+    def models(self):
+        with self._models_lock:
+            if self._models is None:
+                self._models = ModelLibrary(DB_PATH, self.native)
+            return self._models
+
     def server_close(self):
         super().server_close()
+        if self._models is not None:
+            self._models.store.shutdown()
         # Only NajdiLab's own llama-server child is stopped; nothing else.
         self.native.shutdown()
         if self.chat is not None:
@@ -163,7 +177,7 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
 
 class NajdiLabHandler(BaseHTTPRequestHandler):
-    server_version = "NajdiLab/1.1"
+    server_version = f"NajdiLab/{APP_VERSION}"
 
 
     def parse_request(self) -> bool:
@@ -326,6 +340,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.native.status())
             elif parsed.path == '/api/v1/native/models':
                 self._json(self.server.native.models())
+            elif parsed.path == '/api/v1/models/library':
+                self._json(self.server.models().store.library())
             elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
                 raw = read_handoff(*match.groups())
                 self._headers(HTTPStatus.OK, 'application/octet-stream', len(raw))
@@ -403,6 +419,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                             "format_failure", "factual_error", "other"
                         ],
                         "local_only": True,
+                        "app_version": APP_VERSION,
+                        "app_version_display": DISPLAY_VERSION,
+                        "release_status": RELEASE_STATUS,
                     }
                 )
             else:
@@ -444,6 +463,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.workspace().create(data), HTTPStatus.CREATED)
             elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/send-stream', parsed.path):
                 self._send_stream(match.group(1), data)
+            elif parsed.path.startswith('/api/v1/models/'):
+                self._json(self.server.models().handle(parsed.path[len('/api/v1/models/'):], data))
             elif parsed.path in {'/api/v1/native/start', '/api/v1/native/stop'}:
                 native = self.server.native
                 self._json(native.start(data) if parsed.path.endswith('start') else native.stop(data))
@@ -593,7 +614,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
 def run(host: str = "127.0.0.1", port: int = 8770, seed_demo: bool = True) -> None:
     if host != "127.0.0.1":
-        raise SystemExit("NajdiLab v1.1 refuses non-local bind addresses; use 127.0.0.1")
+        raise SystemExit(f"NajdiLab {DISPLAY_VERSION} refuses non-local bind addresses; use 127.0.0.1")
     if os.environ.get("NAJDILAB_ALLOW_LEGACY_INGEST") == "1":
         print("WARNING: legacy unauthenticated ingestion is enabled; remove NAJDILAB_ALLOW_LEGACY_INGEST after migration.", file=sys.stderr)
     apply_migrations()
@@ -606,7 +627,7 @@ def run(host: str = "127.0.0.1", port: int = 8770, seed_demo: bool = True) -> No
         raise SystemExit(
             f"Could not start NajdiLab on http://{host}:{port}; another instance may already be running."
         ) from exc
-    print(f"NajdiLab v1.1: http://{host}:{port}")
+    print(f"NajdiLab {DISPLAY_VERSION}: http://{host}:{port}")
     print(f"Database: {DB_PATH}")
     if seeded:
         print(f"Demo conversations created: {seeded}")

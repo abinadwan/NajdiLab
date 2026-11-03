@@ -223,12 +223,15 @@ class ChatWorkspace:
             return hardware_snapshot(self.native.model_limits(data['native_model']))
         fields(data, {'approved','provider','model','selection_revision'})
         try:
+            # The runtime lease covers only the engine call. The host snapshot (RAM, nvidia-smi)
+            # can take a second or more and must not keep the runtime busy for chats.
             with self._lease(data['provider'], data['model'], data['selection_revision']) as spec:
                 with self.engine_factory(spec, data['model']) as engine:
-                    return hardware_snapshot(engine.limits())
+                    limits = engine.limits()
         except IntegrationError as error:
             # Device numbers stay useful when the runtime cannot answer.
             return hardware_snapshot(limits_error=error.code)
+        return hardware_snapshot(limits)
 
     def collect(self, sid, data):
         fields(data, {'enabled','revision'})

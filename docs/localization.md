@@ -23,7 +23,7 @@ User and dataset content is shown exactly as stored. The localizer skips anythin
 - identifiers such as dataset version names, file names, model and provider names, session and record ids — `<bdi dir="ltr">` (or `<code>`), so they stay left to right inside Arabic sentences;
 - menu options that hold identifiers — `translate="no"`.
 
-Product and format names (NajdiLab, Ollama, LM Studio, Unsloth, Hugging Face, SFT, DPO, JSONL, SHA-256, API, GPU) stay in Latin script in both languages.
+Product and format names (NajdiLab, NajdiLab Native, Ollama, LM Studio, Unsloth, Hugging Face, GGUF, SFT, DPO, JSONL, SHA-256, API, GPU) stay in Latin script in both languages.
 
 A server message that is not in the catalog is shown in Arabic as "رسالة الخادم:" followed by the original text isolated left to right, never mixed silently into the Arabic interface.
 

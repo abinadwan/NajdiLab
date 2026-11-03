@@ -4,7 +4,7 @@ const {spawn}=require('node:child_process');
 const {test}=require('node:test');
 const puppeteer=require('puppeteer-core');
 
-const VIEWS=['dashboard','chat','review-queue','conversations','reviewed','add-data','manual-data','dataset',
+const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','dataset',
   'dataset-health','balancer','dataset-versions','eval-sets','exports','analytics','settings'];
 const FOCUSABLE='a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex="-1"])';
 
@@ -94,7 +94,7 @@ test('keyboard and assistive technology acceptance in Chromium',async t=>{
     await t.test('collapsed sidebar keeps every destination named',async()=>{
       await page.click('#collapse-sidebar');
       const names=await page.$$eval('.nav-item',els=>els.map(e=>{const label=e.querySelector('.nav-label');return [label.textContent.trim(),getComputedStyle(label).display!=='none',label.getBoundingClientRect().width<=1];}));
-      assert.equal(names.length,15);
+      assert.equal(names.length,16);
       for(const [name,rendered,hidden] of names)assert.ok(name&&rendered&&hidden,'label is visually hidden but present: '+name);
       const unnamed=(await unnamedFocusable()).filter(x=>x.includes('nav-item'));
       assert.deepEqual(unnamed,[]);

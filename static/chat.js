@@ -179,8 +179,43 @@
     return parts;
   }
 
+  /* Context usage from the engine's own counts only. After a saved turn the history is exactly
+     the last prompt plus its reply (both counted by the engine); the next prompt adds the new message
+     and its few template tokens, so "left for the next message" is an estimate. During a turn the
+     admitted prompt size is measured. Nothing here decides admission: the server still checks
+     prompt + reply reserve against the budget exactly before every reply. */
+  const CONTEXT_THRESHOLDS={info:70,warn:85,critical:95};
+  function contextUsage(session,admitted){
+    if(!session||!Number.isInteger(session.context_budget)||session.context_budget<=0)return null;
+    const budget=session.context_budget,reserve=Number.isInteger(session.reply_reserve)?session.reply_reserve:0;
+    const last=session.turns&&session.turns.length?session.turns[session.turns.length-1]:null;
+    let used=0,kind='empty';
+    if(admitted&&Number.isInteger(admitted.input_tokens)){used=admitted.input_tokens;kind='measured_prompt';}
+    else if(last&&Number.isInteger(last.input_tokens)&&Number.isInteger(last.output_tokens)){used=last.input_tokens+last.output_tokens;kind='measured_history';}
+    const committed=used+reserve;
+    return {budget,reserve,used,kind,available:Math.max(budget-committed,0),
+      percent:Math.min(100,Math.round(committed/budget*100)),availableKind:kind==='measured_prompt'?'measured':'estimate'};
+  }
+  function validThresholds(t){
+    return !!t&&['info','warn','critical'].every(k=>Number.isInteger(t[k])&&t[k]>=1&&t[k]<=99)&&t.info<t.warn&&t.warn<t.critical;
+  }
+  function contextLevel(percent,thresholds=CONTEXT_THRESHOLDS){
+    const t=validThresholds(thresholds)?thresholds:CONTEXT_THRESHOLDS;
+    return percent>=t.critical?'critical':percent>=t.warn?'warn':percent>=t.info?'info':null;
+  }
+  /* What kind of failure ended a reply, shown before the engine's own message. */
+  function failureCategory(error){
+    const code=error&&error.code;
+    if(code==='STOPPED')return 'Cancelled.';
+    if(code==='INCOMPLETE_RESPONSE')return error.check==='STOP_REASON_LENGTH'?'Reply reserve reached.':'The runtime did not finish the reply.';
+    if(code==='CONTEXT_SHRANK'||code==='ENGINE_CONTEXT_LIMIT'||code==='ENGINE_CONTEXT_MISMATCH')return 'Context capacity.';
+    if(/^(ENGINE_|MODEL_CHANGED|NATIVE_|NOT_CONNECTED)/.test(code||''))return 'Runtime error.';
+    return null;
+  }
+
   if(typeof module!=='undefined'&&module.exports){
-    module.exports={ChatController,ChatError,keyAction,shouldSendOnEnter,canSend,validBudgets,budgetPresets,shouldClearDraft,groupSessions,budgetBreakdown,presetFor,hardwareModel,ndjsonSplitter,errorParts,PRESETS,PHASES};
+    module.exports={ChatController,ChatError,keyAction,shouldSendOnEnter,canSend,validBudgets,budgetPresets,shouldClearDraft,groupSessions,budgetBreakdown,presetFor,hardwareModel,ndjsonSplitter,errorParts,PRESETS,PHASES,
+      contextUsage,contextLevel,validThresholds,failureCategory,CONTEXT_THRESHOLDS};
     return;
   }
 
@@ -321,7 +356,7 @@
     if(!live)return;
     if(event.type==='accepted')live.requestId=event.request_id;
     else if(event.type==='phase'){live.status.textContent=PHASES[event.phase]||'Working…';if(event.phase==='verifying')live.status.classList.add('verifying');}
-    else if(event.type==='admitted'){/* counts are shown after the reply is saved */}
+    else if(event.type==='admitted'){live.admitted={input_tokens:event.input_tokens};renderContext();}
     else if(event.type==='thinking'){
       if(live.thinking.hidden){live.thinking.hidden=false;setThinkingOpen(true);}
       live.thinkingText.appendData(event.text);live.thinkingAll+=event.text;scrollDown(false);
@@ -367,19 +402,55 @@
       else{el('chat-title').textContent='New chat';el('chat-title').removeAttribute('translate');}
       compose(el('chat-session-identity'),[{id:runtimeName(s.provider)},' · ',{id:s.model},' · ',
         statusLabel(s.status),' · ','Context ',{id:String(s.context_budget)},' · ','Reply ',{id:String(s.reply_reserve)}]);
-      const last=s.turns?.at(-1);
-      if(last)compose(el('chat-usage'),['Last turn: ',{id:`${last.input_tokens} + ${last.output_tokens} / ${s.context_budget}`},' ','tokens']);
-      else el('chat-usage').textContent='';
     }else{
       el('chat-title').textContent='New chat';el('chat-title').removeAttribute('translate');
-      el('chat-session-identity').textContent='No conversation selected.';el('chat-usage').textContent='';
+      el('chat-session-identity').textContent='No conversation selected.';
     }
+    renderContext();
+    renderLimit();
     if(!live)renderMessages();
     if(lingering.length&&!busy){el('chat-messages').append(...lingering);}
     renderNotice();
     renderListSelection();
   }
   function runtimeName(id){return {lmstudio:'LM Studio',ollama:'Ollama',native:'NajdiLab Native'}[id]||id;}
+  /* Context indicator: one meter, one sentence, and a notice only when a threshold is first crossed. */
+  let limit=null;
+  const announced=new Map();
+  function thresholds(){
+    try{const t=JSON.parse(global.localStorage.getItem('najdilab.contextWarnings')||'null');return validThresholds(t)?t:CONTEXT_THRESHOLDS;}catch{return CONTEXT_THRESHOLDS;}
+  }
+  function renderContext(){
+    const box=el('chat-context'),label=el('chat-usage'),meter=el('chat-context-meter'),alert=el('chat-context-alert');
+    if(!box)return;
+    const s=controller.session,u=contextUsage(s,live&&live.admitted);
+    if(!u){box.hidden=true;alert.textContent='';alert.className='chatv2-context-alert';return;}
+    const t=thresholds();
+    box.hidden=false;meter.low=t.warn;meter.high=t.critical;meter.value=u.percent;
+    box.dataset.level=contextLevel(u.percent,t)||'ok';
+    label.textContent=`Context used: ${u.used} + ${u.reserve} reserved of ${u.budget} tokens (${u.percent}%)`;
+    el('chat-context-left').textContent=u.kind==='empty'
+      ?`About ${u.available} tokens available for the first message (estimate)`
+      :u.availableKind==='measured'?`${u.available} tokens left after this prompt (measured)`:`About ${u.available} tokens left for the next message (estimate)`;
+    const level=s.status==='OPEN'?contextLevel(u.percent,t):null,rank={info:1,warn:2,critical:3};
+    const seen=announced.get(s.id)||0;
+    if(level&&rank[level]>seen){
+      announced.set(s.id,rank[level]);
+      alert.className=`chatv2-context-alert ${level}`;
+      alert.textContent={
+        info:`This conversation has used ${u.percent}% of its context. About ${u.available} tokens remain for new messages.`,
+        warn:`Approaching the context limit: ${u.percent}% used, about ${u.available} tokens left. Consider starting a new chat soon.`,
+        critical:`Context almost full: ${u.percent}% used, about ${u.available} tokens left. A longer message will not fit; NajdiLab then keeps this conversation read-only and opens a new chat with your draft kept.`
+      }[level];
+    }else if(!level){alert.textContent='';alert.className='chatv2-context-alert';}
+  }
+  function renderLimit(){
+    const box=el('chat-limit');if(!box)return;
+    const s=controller.session;
+    box.hidden=!limit||!s||s.id===limit.previous;
+    if(box.hidden)return;
+    el('chat-limit-text').textContent=`The previous conversation needed ${limit.input} prompt tokens + ${limit.reserve} reserved for the reply, more than its ${limit.budget}-token context. It is saved unchanged and read-only; nothing was summarised or dropped. This new chat starts empty, with collection off.`;
+  }
   function statusLabel(status){return {OPEN:'Open',CONTEXT_LIMIT:'Context limit reached',ARCHIVED:'Archived'}[status]||status;}
 
   // ------------------------------------------------------------ sidebar
@@ -705,8 +776,9 @@
     try{result=await controller.send(submitted,onStreamEvent);}
     catch(error){failure=error;}
     endLive(result,failure);
-    if(failure){setNotice(errorParts(failure));}
+    if(failure){const category=failureCategory(failure);setNotice(category?[category,' ',...errorParts(failure)]:errorParts(failure));}
     else if(result.status==='CONTEXT_LIMIT'){
+      limit={previous:result.session.id,input:result.input_tokens,reserve:result.reply_reserve,budget:result.context_budget};
       setNotice(['Context limit reached: ',{id:`${result.input_tokens} + ${result.reply_reserve} > ${result.context_budget}`},
         '. The conversation was saved and a new empty conversation with the same settings opened. Your message was not sent and stays below.']);
     }else if(shouldClearDraft(submitted,draft.value,result.status)){draft.value='';autosize();}
@@ -716,6 +788,7 @@
 
   function bind(){
     bound=true;
+    el('chat-limit-open').onclick=async()=>{const previous=limit&&limit.previous;if(previous){limit=null;await openSession(previous);}};
     const pref=sidebarPreference();
     setSidebar(narrow()?false:pref!=='closed',false);
     if(global.matchMedia){
@@ -813,6 +886,18 @@
   }
   global.NajdiChat={load};
   document.addEventListener('DOMContentLoaded',()=>{
+    const form=el('context-warnings-form'),ids={info:'context-warn-info',warn:'context-warn-warn',critical:'context-warn-critical'};
+    if(form){
+      const saved=thresholds();for(const [key,id] of Object.entries(ids))el(id).value=saved[key];
+      form.onsubmit=event=>{
+        event.preventDefault();
+        const value=Object.fromEntries(Object.entries(ids).map(([key,id])=>[key,Number(el(id).value)]));
+        const status=el('context-warnings-status');
+        if(!validThresholds(value)){status.textContent='Use whole numbers from 1 to 99 that increase from Information to Critical.';return;}
+        try{global.localStorage.setItem('najdilab.contextWarnings',JSON.stringify(value));status.textContent='Context warnings saved.';}
+        catch{status.textContent='This browser blocks local storage, so the default warnings (70, 85, 95) stay in use.';}
+      };
+    }
     el('unsloth-create').onclick=async()=>{
       const button=el('unsloth-create'),host=el('unsloth-result');button.disabled=true;host.replaceChildren();
       try{

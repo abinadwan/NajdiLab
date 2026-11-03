@@ -132,6 +132,8 @@ class NativeRuntime:
         self.state = 'STOPPED'
         self.last_error = None
         self._devices = None
+        # Optional check before a start (Hugging Face Direct: managed files must be verified READY).
+        self.start_gate = None
 
     # ----- discovery -------------------------------------------------------
     def _resolve(self, model_id):
@@ -269,6 +271,8 @@ class NativeRuntime:
         if not self.server_path.is_file():
             raise IntegrationError('NATIVE_SERVER_MISSING', 'No llama-server binary is configured. Set NAJDILAB_NATIVE_SERVER to an existing llama.cpp llama-server; NajdiLab never downloads one.', 409)
         path = self._resolve(data['model'])
+        if self.start_gate is not None:
+            self.start_gate(path)
         item = self.inspect(path)
         if not item['valid']:
             raise IntegrationError('NATIVE_MODEL_INVALID', 'This file is not a usable GGUF text model.', 409)
@@ -400,6 +404,15 @@ class NativeRuntime:
         finally:
             with self._lock:
                 self._leased = False
+
+    def serving(self, path):
+        """True when NajdiLab Native is running this exact file (so it must not be deleted)."""
+        with self._lock:
+            self._reap()
+            try:
+                return self._run is not None and Path(self._run['path']).resolve() == Path(path).resolve()
+            except OSError:
+                return False
 
     def same_instance(self, lease):
         with self._lock:

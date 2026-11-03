@@ -10,7 +10,7 @@ const {spawn}=require('node:child_process');
 const puppeteer=require('puppeteer-core');
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 
-const VIEWS=['dashboard','chat','review-queue','conversations','reviewed','add-data','manual-data','dataset',
+const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','dataset',
   'dataset-health','balancer','dataset-versions','eval-sets','exports','analytics','settings'];
 const VIEWPORTS={desktop:[1440,900],tablet:[820,1180],'mobile-390':[390,844],'mobile-320':[320,700],'zoom-200':[720,450],'zoom-400':[360,225]};
 
@@ -49,7 +49,7 @@ const VIEWPORTS={desktop:[1440,900],tablet:[820,1180],'mobile-390':[390,844],'mo
     for(const [vp,theme,lang] of combos){
       const [w,h]=VIEWPORTS[vp];await page.setViewport({width:w,height:h});
       await page.evaluate((theme,lang)=>{document.documentElement.setAttribute('data-theme',theme);try{localStorage.setItem('najdilab.theme',theme);}catch{}window.NajdiI18n.setLanguage(lang);},theme,lang);
-      const views=(vp==='desktop'&&theme==='light')||(vp==='mobile-390'&&theme==='dark')?VIEWS:['dashboard','chat','review-queue','settings'];
+      const views=(vp==='desktop'&&theme==='light')||(vp==='mobile-390'&&theme==='dark')?VIEWS:['dashboard','chat','models','review-queue','settings'];
       for(const view of views){
         await page.evaluate(v=>switchView(v),view);await page.waitForSelector(`#view-${view}.active`);await wait(350);
         await page.evaluate(()=>window.scrollTo(0,0));

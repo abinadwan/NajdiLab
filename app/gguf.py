@@ -7,6 +7,7 @@ tokenizer vocabulary are skipped without being stored.
 """
 from __future__ import annotations
 
+import io
 import struct
 from pathlib import Path
 
@@ -94,31 +95,41 @@ def read_header(path: Path | str) -> dict:
     presence/length of tokenizer.chat_template (not its text)."""
     path = Path(path)
     size = path.stat().st_size
+    with path.open("rb") as stream:
+        return _parse(stream, size)
+
+
+def read_header_bytes(data: bytes) -> dict:
+    """The same parser over the first bytes of a file (a bounded remote `Range` read).
+    Raises GGUFError("TRUNCATED") when the header continues past `data`."""
+    return _parse(io.BytesIO(data), len(data))
+
+
+def _parse(stream, size: int) -> dict:
     if size < 24:
         raise GGUFError("TOO_SMALL")
-    with path.open("rb") as stream:
-        reader = _Reader(stream, size)
-        if reader.take(4) != MAGIC:
-            raise GGUFError("NOT_GGUF")
-        version = reader.unpack("<I")
-        if version not in VERSIONS:
-            raise GGUFError("UNSUPPORTED_VERSION")
-        tensors, count = reader.unpack("<Q"), reader.unpack("<Q")
-        if tensors > MAX_TENSORS or count > MAX_KV:
-            raise GGUFError("HEADER_LIMITS")
-        metadata: dict = {}
-        for _ in range(count):
-            key = reader.string()
-            kind = reader.unpack("<I")
-            if key == "tokenizer.chat_template":
-                start = stream.tell()
-                reader.value(kind, keep=False)
-                metadata["tokenizer.chat_template.length"] = stream.tell() - start
-                continue
-            keep = key.startswith("general.") or ".context_length" in key or key.endswith(KV_SUFFIXES)
-            value = reader.value(kind, keep)
-            if keep:
-                metadata[key] = value
+    reader = _Reader(stream, size)
+    if reader.take(4) != MAGIC:
+        raise GGUFError("NOT_GGUF")
+    version = reader.unpack("<I")
+    if version not in VERSIONS:
+        raise GGUFError("UNSUPPORTED_VERSION")
+    tensors, count = reader.unpack("<Q"), reader.unpack("<Q")
+    if tensors > MAX_TENSORS or count > MAX_KV:
+        raise GGUFError("HEADER_LIMITS")
+    metadata: dict = {}
+    for _ in range(count):
+        key = reader.string()
+        kind = reader.unpack("<I")
+        if key == "tokenizer.chat_template":
+            start = stream.tell()
+            reader.value(kind, keep=False)
+            metadata["tokenizer.chat_template.length"] = stream.tell() - start
+            continue
+        keep = key.startswith("general.") or ".context_length" in key or key.endswith(KV_SUFFIXES)
+        value = reader.value(kind, keep)
+        if keep:
+            metadata[key] = value
     if tensors == 0:
         raise GGUFError("NO_TENSORS")
     return {"version": version, "tensor_count": tensors, "metadata": metadata}
