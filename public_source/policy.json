@@ -36,6 +36,7 @@
     "config/tool-capabilities.v1.1.json",
     "config/tool-capabilities.v1.json",
     "docs/THIRD_PARTY_ATTRIBUTION.md",
+    "docs/UX_UI_DESIGN_REVIEW.md",
     "docs/accessibility.md",
     "docs/api-reference.md",
     "docs/api-routes.md",
@@ -79,6 +80,14 @@
     "docs/images/screenshots/chat-v2-mobile.png",
     "docs/images/screenshots/chat-workspace-synthetic.png",
     "docs/images/screenshots/dashboard.png",
+    "docs/images/ux-review/after-desktop-dark-en-dashboard.png",
+    "docs/images/ux-review/after-mobile-390-dark-ar-add-data.png",
+    "docs/images/ux-review/after-tablet-light-en-chat.png",
+    "docs/images/ux-review/after-zoom-400-light-en-chat-setup-dialog.png",
+    "docs/images/ux-review/before-desktop-dark-en-dashboard.png",
+    "docs/images/ux-review/before-mobile-390-dark-ar-add-data.png",
+    "docs/images/ux-review/before-tablet-light-en-chat.png",
+    "docs/images/ux-review/before-zoom-400-light-en-chat-setup-dialog.png",
     "docs/installation.md",
     "docs/integrations-validation.md",
     "docs/integrations-windows-update.md",
@@ -172,6 +181,7 @@
     "static/theme-init.js",
     "static/theme.css",
     "static/theme.js",
+    "static/ux-refinements.css",
     "tests/a11y-browser.cjs",
     "tests/chat-browser.cjs",
     "tests/chat-enhancements-browser.cjs",
@@ -246,7 +256,8 @@
     "tests/test_theme_support.py",
     "tests/test_unsloth_export.py",
     "tests/test_ux10_navigation.py",
-    "tests/test_ux20_pagination.py"
+    "tests/test_ux20_pagination.py",
+    "tests/ux-audit.cjs"
   ],
   "files": {
     ".env.example": {

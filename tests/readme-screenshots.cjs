@@ -36,11 +36,11 @@ const OUT=path.resolve(__dirname,'..','docs','images','screenshots');
         const s=await (await fetch('/api/v1/chat/sessions',{method:'POST',headers:h,body:JSON.stringify({provider:'lmstudio',model:'fixture',selection_revision:(await (await fetch('/api/v1/integrations')).json()).items.find(i=>i.id==='lmstudio').selection_revision,context_budget:4096,reply_reserve:1024,load_approved:false})})).json();
         await fetch(`/api/v1/chat/sessions/${s.id}/rename`,{method:'POST',headers:h,body:JSON.stringify({title:t})});},text);
     await page.evaluate(()=>document.querySelector('#chat-search').dispatchEvent(new Event('input')));await wait(600);
-    await page.evaluate(()=>window.scrollTo(0,0));
+    await page.evaluate(()=>{window.scrollTo(0,0);document.querySelector('#chat-messages').scrollTop=0;});
     await page.screenshot({path:path.join(OUT,'chat-v2-desktop.png')});
 
     await page.select('#language-select','ar');await wait(900);
-    await page.evaluate(()=>window.scrollTo(0,0));
+    await page.evaluate(()=>{window.scrollTo(0,0);document.querySelector('#chat-messages').scrollTop=0;});
     await page.screenshot({path:path.join(OUT,'chat-v2-arabic.png')});
 
     await page.select('#language-select','en');

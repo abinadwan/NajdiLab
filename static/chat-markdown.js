@@ -171,7 +171,8 @@
       const box=el('div','md-code'),head=el('div','md-code-head'),label=el('span','md-code-lang'),copy=el('button','md-copy');
       label.textContent=node.lang||t('Code');label.setAttribute('translate','no');
       copy.type='button';copy.textContent=t('Copy code');copy.dataset.code=node.text;
-      const pre=el('pre'),code=el('code');pre.dir='ltr';code.textContent=node.text;pre.append(code);
+      // Focusable so a wide block can be scrolled with the keyboard (WCAG 2.1.1).
+      const pre=el('pre'),code=el('code');pre.dir='ltr';pre.tabIndex=0;pre.setAttribute('aria-label',t('Code'));code.textContent=node.text;pre.append(code);
       head.append(label,copy);box.append(head,pre);return box;
     }
     for(const node of nodes)fragment.append(make(node));

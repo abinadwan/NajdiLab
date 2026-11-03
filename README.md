@@ -328,11 +328,12 @@ This is a **trusted local single-operator service**, not a hardened public-netwo
 ```bash
 python -m pip install -r requirements-dev.txt -r requirements-chat.txt
 python -m pytest -q tests -rs
-node --test tests/integrations-ui.test.cjs tests/chat-ui.test.cjs tests/chat-v2-ui.test.cjs tests/phase39-ui.test.cjs tests/dataset-identity-ui.test.cjs tests/pagination-ui.test.cjs tests/i18n-catalog.test.cjs
+node --test tests/*.test.cjs
+python -m pytest -q public_source/tests/test_builder.py
 python scripts/check_docs.py
 ```
 
-Browser suites (`tests/chat-browser.cjs`, `i18n-browser.cjs`, `a11y-browser.cjs`, `review-restrictions-browser.cjs`) need Chromium and `puppeteer-core`; the NajdiLab Native lifecycle tests run only when `NAJDILAB_NATIVE_TEST_SERVER` points at a `llama-server`. All tests use synthetic data and disposable servers; missing private artifacts are explicit skips, and **skips are not passes**. Exact counts, the tested commit and what was not tested: [test log](docs/development/CHAT_EXPERIENCE_V2.md#test-results). Hosted GitHub Actions results are not claimed for this branch.
+Browser suites (`tests/chat-browser.cjs`, `chat-enhancements-browser.cjs`, `i18n-browser.cjs`, `a11y-browser.cjs`, `review-restrictions-browser.cjs`) need Chromium and `puppeteer-core`; `tests/ux-audit.cjs` (optional, needs `axe-core`) audits every view for WCAG 2 A/AA and overflow; the NajdiLab Native lifecycle tests run only when `NAJDILAB_NATIVE_TEST_SERVER` points at a `llama-server`. All tests use synthetic data and disposable servers; missing private artifacts are explicit skips, and **skips are not passes**. Exact counts, the tested commit and what was not tested: [test log](docs/development/CHAT_EXPERIENCE_V2.md#test-results). Hosted GitHub Actions results are not claimed for this branch.
 
 ## Development progress and roadmap
 
@@ -353,7 +354,7 @@ Start with [developer setup](docs/developer-setup.md), [code navigation](docs/co
 | Need | Guide |
 |---|---|
 | Install, configure, troubleshoot | [Installation](docs/installation.md), [configuration](docs/configuration.md), [shell commands](docs/shell-commands.md) |
-| Chat and runtimes | [Chat workspace](docs/chat-workspace.md), [NajdiLab Native](docs/native-runtime.md), [Chat V2 development log](docs/development/CHAT_EXPERIENCE_V2.md), [PR #21/#22 reconciliation](docs/development/PR21_PR22_RECONCILIATION.md), [PR #21 workflow record](docs/chat-review-workflow-results.md), [collection context audit](docs/chat-dataset-context-audit.md) |
+| Chat and runtimes | [UX/UI review](docs/UX_UI_DESIGN_REVIEW.md), [security review](docs/development/CHAT_V2_SECURITY_REVIEW.md), [deletion audit](docs/development/PERMANENT_DELETION_AUDIT.md), [Windows acceptance](docs/development/WINDOWS_ACCEPTANCE.md), [Chat workspace](docs/chat-workspace.md), [NajdiLab Native](docs/native-runtime.md), [Chat V2 development log](docs/development/CHAT_EXPERIENCE_V2.md), [PR #21/#22 reconciliation](docs/development/PR21_PR22_RECONCILIATION.md), [PR #21 workflow record](docs/chat-review-workflow-results.md), [collection context audit](docs/chat-dataset-context-audit.md) |
 | Extend API/data behavior | [API reference](docs/api-reference.md), [database/migrations](docs/database-and-migrations.md) |
 | Retention and privacy | [Data retention](docs/data-retention.md), [privacy history review](docs/privacy-history-review.md) |
 | Readiness and rights | [Release decision](docs/public-release-decision.md), [dependency matrix](docs/dependency-licensing-matrix.md), [data/model policy](docs/dataset-model-distribution-policy.md) |

@@ -389,7 +389,7 @@
     el('chat-sidebar-toggle').setAttribute('aria-expanded',String(open));
     if(store){try{global.localStorage.setItem(SIDEBAR_KEY,open?'open':'closed');}catch{}}
   }
-  const narrow=()=>global.matchMedia&&global.matchMedia('(max-width: 760px)').matches;
+  const narrow=()=>global.matchMedia&&global.matchMedia('(max-width: 1100px)').matches;
   let listItems=[];
   async function saved(more=false){
     const offset=more?savedLoaded:0;
@@ -719,13 +719,14 @@
     const pref=sidebarPreference();
     setSidebar(narrow()?false:pref!=='closed',false);
     if(global.matchMedia){
-      const query=global.matchMedia('(max-width: 760px)');
+      const query=global.matchMedia('(max-width: 1100px)');
       const change=()=>setSidebar(query.matches?false:sidebarPreference()!=='closed',false);
       if(query.addEventListener)query.addEventListener('change',change);
     }
     el('chat-sidebar-toggle').onclick=()=>setSidebar(el('chat-shell').dataset.sidebar!=='open',!narrow());
     el('chat-sidebar-close').onclick=()=>{setSidebar(false,!narrow());el('chat-sidebar-toggle').focus();};
     el('chat-new').onclick=act(async()=>{await loadRuntimes();openSetup();});
+    el('chat-new-header').onclick=act(async()=>{await loadRuntimes();openSetup();});
     el('chat-provider').onchange=fillModels;
     el('chat-model').onchange=()=>{withdrawApproval();renderPresets();updateBreakdown();};
     el('chat-preset-check').onclick=async()=>{el('chat-setup-error').textContent='';try{await checkPresets();}catch(error){compose(el('chat-setup-error'),errorParts(error));}};

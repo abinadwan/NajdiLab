@@ -825,6 +825,7 @@
     'Reviewer reasons that cannot be removed': 'أسباب مراجعين لا يمكن حذفها',
     'Some review events have a reason written by a reviewer. Those reasons are locked by the audit trail and stay as written; check that they do not quote this conversation.': 'بعض أحداث المراجعة فيها سبب كتبه مراجع. هذه الأسباب مقفلة في سجل التدقيق وتبقى كما كُتبت؛ تأكد أنها لا تقتبس من هذه المحادثة.',
     'Conversation deleted from the database, but the database journal could not be cleaned yet because another reader was using it. Old copies may remain in the journal file until NajdiLab restarts.': 'حُذفت المحادثة من قاعدة البيانات، لكن تعذّر تنظيف سجل قاعدة البيانات الآن لأن قارئًا آخر كان يستخدمه. قد تبقى نسخ قديمة في ملف السجل حتى يُعاد تشغيل نجدي لاب.',
+    'Data type': 'نوع البيانات',
     // Chat Experience V2 (2026-11-02): chat UI, permanent deletion, NajdiLab Native.
     '16384 context · 3072 reply': 'سياق 16384 · رد 3072',
     '4096 context · 1024 reply': 'سياق 4096 · رد 1024',

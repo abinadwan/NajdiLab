@@ -279,6 +279,14 @@ const puppeteer=require('puppeteer-core');
       assert.ok(send,'a visible, tappable Send button on mobile');
       await page.screenshot({path:path.join(evidence,`chat-v2-${width}.png`)});
     }
+    // 400% zoom (360×225 CSS px): the New chat dialog scrolls, so Start stays reachable.
+    await page.setViewport({width:360,height:225});await page.evaluate(()=>document.querySelector('#chat-new-header').click());
+    await page.waitForSelector('#chat-setup[open]');
+    const reach=await page.evaluate(()=>{const d=document.querySelector('#chat-setup'),b=document.querySelector('#chat-create');
+      const scrolls=getComputedStyle(d).overflowY==='auto'&&d.scrollHeight>d.clientHeight;b.scrollIntoView({block:'nearest'});
+      const r=b.getBoundingClientRect(),q=d.getBoundingClientRect();return scrolls&&r.top>=q.top-1&&r.bottom<=q.bottom+1;});
+    assert.ok(reach,'Start is reachable inside the dialog at 400% zoom');
+    await page.keyboard.press('Escape');
     await page.setViewport({width:1280,height:1000});
     // UX-14: dialog tabs must never change Add Data tabs when they are outside the dialog.
     await page.click('[data-view="add-data"]');

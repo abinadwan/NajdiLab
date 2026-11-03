@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/integrations.css">
   <link rel="stylesheet" href="/chat.css">
   <link rel="stylesheet" href="/i18n.css">
+  <link rel="stylesheet" href="/ux-refinements.css">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -98,6 +99,7 @@
                 <p id="chat-session-identity" class="chatv2-binding" role="status">No conversation selected.</p>
               </div>
               <div class="chatv2-header-actions">
+                <button id="chat-new-header" class="chatv2-icon" type="button" aria-label="New chat" title="New chat">✎</button>
                 <button id="chat-actions" class="chatv2-icon" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Conversation actions" title="Conversation actions" disabled>⋯</button>
                 <button id="chat-settings-open" class="chatv2-icon" type="button" aria-haspopup="dialog" aria-label="Chat settings and device details" title="Chat settings">⚙</button>
               </div>
@@ -313,8 +315,8 @@
       </section>
 
       <section id="view-add-data" class="view">
-        <div class="subtabs" role="tablist">
-          <button class="active" data-add-tab="sft">Conversation / SFT</button><button data-add-tab="direct">Direct language text</button><button data-add-tab="preference">Preference pair / DPO</button>
+        <div class="subtabs" role="tablist" aria-label="Data type">
+          <button class="active" role="tab" aria-selected="true" aria-controls="form-sft" data-add-tab="sft">Conversation / SFT</button><button role="tab" aria-selected="false" aria-controls="form-direct" data-add-tab="direct">Direct language text</button><button role="tab" aria-selected="false" aria-controls="form-preference" data-add-tab="preference">Preference pair / DPO</button>
         </div>
         <form id="form-sft" class="data-form panel active">
           <div class="form-intro"><h2>Manual conversation</h2><p>Add a short or multi-turn conversation while preserving context order.</p></div>

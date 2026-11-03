@@ -42,6 +42,18 @@ The task listed these as study references. For each, **no code, markup, styles, 
 | [Ollama](https://github.com/ollama/ollama) | Streaming now uses Ollama's documented NDJSON `/api/chat` stream (`stream: true`). Still an optional, separately installed external service. | Same version gate (0.40.13) as before. License evidence unchanged from the existing register. |
 | LM Studio SDK `lmstudio==1.5.0` | Same pinned optional dependency; streaming uses the SDK's existing fragment stream. | No version change; existing open review of exact-artifact/transitive notices still applies. |
 
+## 4a. Test-time tools (not shipped, not runtime dependencies)
+
+| Tool | Version | License (read from the installed package) | Use | NajdiLab files | Obligations |
+|---|---|---|---|---|---|
+| [axe-core](https://github.com/dequelabs/axe-core) | 4.10.3 | Mozilla Public License 2.0 — https://www.mozilla.org/MPL/2.0/ ; © Deque Systems, Inc. | Accessibility rule engine injected into the page by `tests/ux-audit.cjs` (UX/UI phase). Installed outside the repository (`../chat-browser-tools`); no axe code is copied or committed. | `tests/ux-audit.cjs` (loads it at test time) | None while unmodified and not distributed. If ever bundled, MPL-2.0 requires keeping its notices and offering source for the MPL files. |
+| [puppeteer-core](https://github.com/puppeteer/puppeteer) | 25.16.0 (pinned by the existing CI workflow) | Apache-2.0 | Drives Chromium in the browser suites, the PR #21 port, the screenshot tool and the UX audit. Installed outside the repository. | `tests/*-browser.cjs`, `tests/ux-audit.cjs`, `tests/readme-screenshots.cjs` | None while not distributed. |
+| Chromium (Playwright build 1243) | pre-installed on the test machine | BSD-style Chromium licenses | Headless browser for tests and screenshots. | — | Not distributed. |
+
+## 4b. PR #21 code (same repository)
+
+The reconciliation imported commit `95e7604` from PR #21 (`fix/chat-review-workflow-20261102`), authored by the repository owner. It is first-party code, attributed in the commit (`cherry picked from`) and in [PR21_PR22_RECONCILIATION.md](development/PR21_PR22_RECONCILIATION.md). No license question arises.
+
 ## 5. Dependency review for this branch
 
 - **Python:** no new runtime packages. Test tools unchanged (`pytest==9.1.1`).

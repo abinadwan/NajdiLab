@@ -114,3 +114,22 @@ def test_licensing_and_attribution_links():
     licensing = section("Licensing and attribution")
     assert "docs/THIRD_PARTY_ATTRIBUTION.md" in licensing
     assert "no active source license" in licensing.lower()
+
+
+def test_badge_urls_are_well_formed_shields_badges():
+    """shields.io renders `badge/<label>-<message>-<hex color>`; a malformed URL shows
+    a broken image on GitHub. Checked offline (the renderer is not contacted)."""
+    rows = re.findall(r'<p align="center">\s*((?:<a [^>]+><img [^>]+></a>\s*)+)</p>', README)
+    assert len(rows) == 4, f"four badge rows in the approved design, found {len(rows)}"
+    for url in re.findall(r'src="(https://img\.shields\.io/badge/[^"]+)"', README):
+        path, _, query = url.partition('?')
+        body = unquote(path.rsplit('/badge/', 1)[1])
+        parts = re.split(r'(?<!-)-(?!-)', body)
+        assert len(parts) == 3 and re.fullmatch(r'[0-9A-Fa-f]{6}', parts[2]), f"malformed badge: {url}"
+        assert 'style=for-the-badge' in query.replace('&amp;', '&'), url
+
+
+def test_badge_links_and_all_relative_links_resolve():
+    targets = re.findall(r'<a href="([^"#]+)', README) + re.findall(r'\]\((?!https?:|#)([^)#\s]+)', README)
+    missing = [t for t in targets if not t.startswith('http') and not (ROOT / unquote(t)).exists()]
+    assert not missing, f"README links to missing files: {missing}"

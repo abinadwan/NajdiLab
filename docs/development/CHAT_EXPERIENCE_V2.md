@@ -102,31 +102,43 @@ Guard: `tests/test_readme_structure.py` (8 checks) fails if a refactor removes a
 
 ## Test results
 
-Run on 2026-11-02, Linux container (Python 3.13.18, Node 22.23.4, Chromium build 1243 via `puppeteer-core@25.16.0`, llama.cpp `llama-server` b12059 CPU build). The tested code is exactly the commit that adds this log; only this section changed after the run. **Windows was not run. Hosted GitHub Actions results are not claimed.**
+### Remediation run (2026-11-03) — current
 
-| Suite | Passed | Failed | Skipped | Notes |
-|---|---:|---:|---:|---|
-| `pytest tests` with `NAJDILAB_NATIVE_TEST_SERVER` set | 729 | 0 | 33 | 59 subtests passed. Includes 3 real llama-server lifecycle tests. |
-| `pytest tests` without a llama-server | 726 | 0 | 36 | The 3 extra skips are the Native lifecycle tests. |
-| Node unit tests (7 files, CI list) | 43 | 0 | 0 | Includes the new `chat-v2-ui.test.cjs` and the extended Arabic catalog checks. |
-| Chromium `chat-browser.cjs` | PASS | — | — | One end-to-end script: keyboard, duplicates, streaming, thinking, Markdown/XSS, sidebar actions, 320/390px, rollover, Stop, Ollama approval, hardware tables, draft preservation, permanent delete. |
-| Chromium `review-restrictions-browser.cjs` | 12 | 0 | 0 | |
-| Chromium `i18n-browser.cjs` | 10 | 0 | 0 | Arabic RTL scan includes the chat view, the new-chat dialog and 390px. |
-| Chromium `a11y-browser.cjs` | 13 | 0 | 0 | Keyboard, names, 200%/400% zoom. |
-| `scripts/check_docs.py` | PASS | — | — | 73 Markdown files, links and API inventory. |
-| `compileall app scripts tests` | PASS | — | — | |
+Linux container, Python 3.13.18, SQLite 3.53.1, Node 22.23.4, Chromium build 1243 via `puppeteer-core@25.16.0`, llama.cpp `llama-server` b12059 (CPU). Tested tree: the commit that adds this section (PR #21 reconciliation `c7c4261` + security/deletion `38ea703` + UX/UI changes). Synthetic data only.
 
-Skipped tests (33) are not passes: 24 need private historical artifacts that are not in the repository; 9 need a real Ollama binary (`NAJDILAB_DISPOSABLE_OLLAMA=1`), not installed here.
+| Check | Status | Passed | Failed | Skipped | Notes |
+|---|---|---:|---:|---:|---|
+| `pytest tests` (with `NAJDILAB_NATIVE_TEST_SERVER`) | PASS | 771 | 0 | 33 | 59 subtests. Skips: 22 private historical artifacts not in the repo, 9 real-Ollama (`NAJDILAB_DISPOSABLE_OLLAMA=1`), 2 Windows-only checks. |
+| Node unit tests (`tests/*.test.cjs`, 8 files) | PASS | 49 | 0 | 0 | Includes PR #21 unit tests ported to the V2 API. |
+| Core builder `public_source/tests/test_builder.py` | PASS | 12 | 0 | 0 | **Was 8/12 (FAIL) on `d085ed2`**: new files unclassified; fixed. |
+| Core candidate build + verify + tests + harness + browser | PASS | 78 | 0 | 0 | Same steps as `public-source-candidate.yml`. |
+| Chromium `chat-browser.cjs` | PASS | — | — | — | V2 end-to-end incl. 400 % zoom dialog reachability. |
+| Chromium `chat-enhancements-browser.cjs` (PR #21, ported) | PASS | — | — | — | |
+| Chromium `review-restrictions-browser.cjs` | PASS | 12 | 0 | 0 | |
+| Chromium `i18n-browser.cjs` (Arabic RTL / English LTR, 390 px) | PASS | 10 | 0 | 0 | |
+| Chromium `a11y-browser.cjs` (keyboard, names, 200 %/400 % zoom) | PASS | 13 | 0 | 0 | |
+| UX audit `tests/ux-audit.cjs` (axe-core WCAG 2 A/AA + overflow, 212 states) | PASS | 0 violations | — | — | Before: 148 violations, 28 overflowing states. |
+| README guard `test_readme_structure.py` | PASS | 10 | 0 | 0 | Fails 8/8 core checks on the shortened PR #11 README. |
+| `check_docs.py`, `compileall` | PASS | — | — | — | |
+| Migration 008 rollback (older `634e7a5` code on a migrated DB) | PASS | — | — | — | Manual run: list/get/send/create/archive, integrity ok, no FK errors. |
+| Acceptance runner `scripts/acceptance_chat_v2.py` (Linux, CPU) | PASS for the steps it could run | — | — | — | Migration on a read-only copy PASS; Native start/stop/unload PASS; synthetic model's reply correctly refused as `STOP_REASON_LENGTH`. |
+| Windows 11 (all suites) | BLOCKED | — | — | — | No computer connected. |
+| RTX 5070 / CUDA / VRAM / OOM | BLOCKED | — | — | — | No GPU. |
+| Real Gemma 4 on Ollama, LM Studio, real GGUF | NOT TESTED | — | — | — | Needs the owner's machine. |
+| README badge rendering on GitHub | NOT TESTED | — | — | — | shields.io unreachable from here; URLs validated offline, local images verified. |
+| Hosted GitHub Actions | SKIPPED | — | — | — | Workflows skip Draft PRs by design (`if: draft == false`); hosted allocation reported exhausted. **Skipped is not PASS.** |
 
-New tests in this branch: `test_chat_v2.py` (24), `test_chat_v2_stream.py` (11), `test_native_runtime.py` (11), `test_readme_structure.py` (8), `chat-v2-ui.test.cjs` (14), the Chat V2 catalog check, and the rewritten chat section of `chat-browser.cjs`. Failure cases are covered explicitly: stale revision, wrong confirmation, active turn, exported copy, mid-transaction failure, stream error lines, data after the final chunk, missing final chunk, wrong content type, length stop, empty answer, prompt-count mismatch, changed model file, wrong context, stopped runtime, hostile GGUF headers, path traversal, unsafe links and raw HTML.
+### Earlier run (2026-11-02, `d085ed2`) — superseded
 
-Two existing UI-contract tests (`test_dataset_scope_ui.py`, `test_dataset_ui.py`) asserted the old chat wording; they were updated to the V2 labels for the same controls and disclosure. `test_chat_hardware.py` was updated for the new 4096 tier. `test_phase_a_regressions.py` now expects 008 as the last registered migration.
+The earlier table claimed all suites passed, but the Core builder suite (`public_source/tests/test_builder.py`) had **not** been run and was failing 4/12; that omission is recorded here and fixed above.
 
-Not tested: Windows; any GPU; RTX 5070; real LM Studio, Ollama or llama.cpp models; the owner's permanent installation.
+## Remediation phase (2026-11-03)
+
+PR #21 reconciliation, security review, permanent-deletion audit and UX/UI phase: [PR21_PR22_RECONCILIATION.md](PR21_PR22_RECONCILIATION.md), [CHAT_V2_SECURITY_REVIEW.md](CHAT_V2_SECURITY_REVIEW.md), [PERMANENT_DELETION_AUDIT.md](PERMANENT_DELETION_AUDIT.md), [UX_UI_DESIGN_REVIEW.md](../UX_UI_DESIGN_REVIEW.md), [WINDOWS_ACCEPTANCE.md](WINDOWS_ACCEPTANCE.md).
 
 ## Local installation update
 
-**Blocked — not performed.** The permanent installation (`C:\Users\Admin\NajdiLab-PR19-20-Local`, port 8870) is on the owner's Windows computer. No computer was attached to this cloud session (`list_computer_folders` returned none), so its source, services, database and backups could not be inspected, backed up or updated. Nothing on that machine was touched. Owner steps when ready are in [Rollback](#rollback) and the update checklist below.
+**Blocked — not performed.** The permanent installation (`C:\Users\Admin\NajdiLab-PR19-20-Local`, port 8870) is on the owner's Windows computer. According to PR #21's description it now runs PR #21 (`95e7604`, seven migrations); moving it to PR #22 applies migration 008 and needs the checklist below and [WINDOWS_ACCEPTANCE.md](WINDOWS_ACCEPTANCE.md) first. No computer was attached to this cloud session (`list_computer_folders` returned none), so its source, services, database and backups could not be inspected, backed up or updated. Nothing on that machine was touched. Owner steps when ready are in [Rollback](#rollback) and the update checklist below.
 
 Update checklist for the owner (do not skip any step):
 1. Stop NajdiLab on port 8870. Do not stop Ollama or LM Studio.

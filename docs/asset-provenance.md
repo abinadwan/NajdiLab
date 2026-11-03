@@ -22,13 +22,22 @@ Core's separate geometric SVG/generator and eight PNGs are AI-assisted engineeri
 
 Old render evidence (68 text labels, zero overlap/outside, minimum contrast6.72:1, deterministic regeneration, no PNG text/EXIF metadata) applied to the old SVG/capture set, not the replacement diagram. Current diagram checks must be recorded separately. [Verification](verification-evidence.md), [release gates](public-release-decision.md).
 
-## Chat Experience V2 captures (2026-11-02)
+## Chat Experience V2 captures (2026-11-02, regenerated 2026-11-03 after the UX/UI phase)
 
 Captured by `tests/readme-screenshots.cjs` with headless Chromium (Playwright build 1243) from the synthetic browser fixture: an empty temporary database, a synthetic engine and fixed synthetic text (titles such as "Second synthetic topic", a Markdown sample). No real conversation, model output, personal data, external icon, font file or third-party image is included; browser system fonts render the text. `dashboard.png` replaces the PR #11-removed dashboard capture (old hash above) with the current interface. The architecture SVG generator received text-only updates (Native runtime, streaming, deletion scope); it still uses only its own shapes and text. Ownership and redistribution rights remain the owner's decision as for the other assets.
 
 | Image | SHA256 |
 |---|---|
-| dashboard.png | `492e58d782029a4b9fa659c52e4b7ff95d0988b5f287cb904e8a5575f14c5a2d` |
-| chat-v2-desktop.png | `09bdadbf27c182ff21dd0f9433756d6f09ed81e6ed5ae44e528304ee705fc324` |
-| chat-v2-arabic.png | `e8d8593acc36d9010a8f53d1a881fbeb8e19152fdf6c7be295f699745e5ec450` |
-| chat-v2-mobile.png | `c0172e101bc58f91ff39d7f0d91ab6fa95386e49be47d2c9e0f7c2eac75a2643` |
+| dashboard.png | `2273c3fdd0163a6b6913c79621090161d2361f54881e51c5dbc4cf443dcd4a89` |
+| chat-v2-desktop.png | `74e650e6ae3cb57e4fbdb2cfac98e6ed3c3410d82ecafcb11eb96176fbf985f1` |
+| chat-v2-arabic.png | `137a22a2f718730da36b6ed380d79bb83b950d5c617f5385033a7d122eebb260` |
+| chat-v2-mobile.png | `d116181ed1e06690ed380ee405ca82770c1a8c439be184f2ec5b4059e54e8069` |
+| ux-review/after-desktop-dark-en-dashboard.png | `cb6f33058701d58087a5460b0be1b2b32f41f7d8342576233aeb43d80bc298ef` |
+| ux-review/after-mobile-390-dark-ar-add-data.png | `56ab89cb1882ce8c82f9d764d37abb3b6c173497a688ec5dc1a2a234c5170288` |
+| ux-review/after-tablet-light-en-chat.png | `fb9b27e10f368644edd2921e32c25d4c1bd7103c70f966314ccdfcb681c524ee` |
+| ux-review/after-zoom-400-light-en-chat-setup-dialog.png | `3c7423746c8879afe6800bf88793c0a556c6a6fa3cd3158650b9a28cbfad162a` |
+| ux-review/before-desktop-dark-en-dashboard.png | `8a85af9cd7349c4f9eb3a646262b485efd9153a9e37b96355e8e5da5b614bdab` |
+| ux-review/before-mobile-390-dark-ar-add-data.png | `6b3404f632297994629192e3a8851946c8e4d4b8838b549eef8db117a9ab50d5` |
+| ux-review/before-tablet-light-en-chat.png | `490c1a183cff3a39641ee1d8b798907bdf6e33d8247ef172967150f8984f76ea` |
+| ux-review/before-zoom-400-light-en-chat-setup-dialog.png | `ce563fb9136c211b3b275461d0bad509457c53fbd4e19c0c768e78ac39acd3d5` |
+The `ux-review/` before/after images are captured by `tests/ux-audit.cjs` from the same synthetic fixture (UX/UI phase, 2026-11-03).

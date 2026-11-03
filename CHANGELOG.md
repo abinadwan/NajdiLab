@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Chat V2 remediation (2026-11-03, same Draft PR #22)
+
+- **PR #21 reconciled** (`cherry-pick -x 95e7604`): incomplete-context collected segments are review-only; presets need a proven ceiling and a fitting estimate; Ollama approval withdrawn on any model/context change; Enter repeat/IME guards; literal Markdown escapes; raw-text view; PR #21's INCOMPLETE_RESPONSE wording with PR #22's `check` and a `hint`. See `docs/development/PR21_PR22_RECONCILIATION.md`.
+- **Security review** (`docs/development/CHAT_V2_SECURITY_REVIEW.md`): Native child env no longer inherits llama.cpp flags; symlink escapes not listed; stronger model identity; stalled stream writes time out; query strings omitted from logs; Core builder classification fixed (was failing on `d085ed2`).
+- **Permanent deletion audit** (`docs/development/PERMANENT_DELETION_AUDIT.md`): busy WAL reported and retried at start; immutable reviewer reasons disclosed.
+- **UX/UI phase** (`docs/UX_UI_DESIGN_REVIEW.md`): axe-core WCAG 2 A/AA violations 148 → 0 and page overflow 28 → 0 across 212 states; tablet layout, header New chat, dialog scrolling at 400 % zoom, dark-mode contrast, tab semantics, focusable code blocks.
+- **Windows/RTX acceptance BLOCKED** (no computer connected): `scripts/acceptance_chat_v2.py` and `docs/development/WINDOWS_ACCEPTANCE.md`.
+- README guard extended (well-formed badge URLs, four badge rows, all relative links).
+
 ## Unreleased — Chat Experience V2 and NajdiLab Native (`feature/chat-experience-v2`, Draft, stacked on the PR #19/#20 integration branch)
 
 - Chat history sidebar: local automatic titles, rename, search, pin, date groups, archive and restore (prior status recorded), collapsible with a saved preference; mobile overlay.
