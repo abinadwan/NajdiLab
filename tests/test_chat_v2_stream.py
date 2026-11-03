@@ -242,7 +242,12 @@ def test_browser_disconnect_mid_stream_stops_the_turn_and_saves_nothing(tmp_path
         sock = socket.create_connection(('127.0.0.1', http.server_port), timeout=5)
         sock.sendall((f"POST /api/v1/chat/sessions/{session['id']}/send-stream HTTP/1.1\r\nHost: 127.0.0.1:{http.server_port}\r\n"
                       f"Content-Type: application/json\r\nX-NajdiLab-CSRF: {CSRF_TOKEN}\r\nContent-Length: {len(body)}\r\n\r\n").encode() + body)
-        assert b'"accepted"' in sock.recv(65536)
+        # The headers and the first NDJSON line may arrive in separate reads (they do on Windows).
+        received = b''
+        while b'"accepted"' not in received:
+            chunk = sock.recv(65536)
+            assert chunk, received
+            received += chunk
         sock.close()  # the browser goes away mid-reply
         deadline = _time.monotonic() + 6
         while _time.monotonic() < deadline:

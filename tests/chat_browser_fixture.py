@@ -18,6 +18,17 @@ from test_chat_workspace import Engine
 from fixture_safety import refuse_default_database
 from synthetic_datasets import bind_synthetic_catalog
 from app import dataset_platform
+from app import chat_workspace,hardware
+
+
+def synthetic_hardware(limits=None,limits_error=None):
+    """The host's real RAM, but never the host's GPU: browser checks assume a machine without
+    one, so results must not change on a developer PC that has an NVIDIA card."""
+    result=hardware.snapshot(limits,limits_error)
+    result.pop('gpu_compute_processes',None)
+    result.update(gpus=[],warnings=[w for w in result['warnings'] if not w.startswith('GPU_')]+['GPU_BACKEND_UNAVAILABLE'])
+    result['recommendation']=hardware.recommendation(result,limits)
+    return result
 
 
 class BrowserEngine(Engine):
@@ -77,6 +88,7 @@ def main():
         server.reviewed_page=lambda query:service.reviewed_page(query,db)
         server.list_manual_data=lambda query:service.list_manual_data(query,db)
         service.connect=refuse_default_database(service.connect)
+        chat_workspace.hardware_snapshot=synthetic_hardware
         runtime=RuntimeFixture();runtime.models=['fixture']
         http=server.NajdiLabHTTPServer(('127.0.0.1',0),server.NajdiLabHandler)
         specs={k:replace(v,port=runtime.port) if v.port else v for k,v in CONNECTORS.items()}
