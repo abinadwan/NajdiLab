@@ -729,6 +729,20 @@
     'Dataset validation errors were found.': 'عُثر على أخطاء في التحقق من مجموعة البيانات.',
     'Schema, targets, and loss masks are valid.': 'المخطط والأهداف وأقنعة الخسارة صحيحة.',
     'Evaluation Integrity': 'سلامة التقييم',
+    "Structural validity": "السلامة البنيوية",
+    "Training compatibility": "توافق التدريب",
+    "Evaluation readiness": "جاهزية التقييم",
+    "Valid": "صالح",
+    "Invalid": "غير صالح",
+    "Structure checked": "فُحصت البنية",
+    "No evaluation data": "لا توجد بيانات تقييم",
+    "Independent samples": "عينات مستقلة",
+    "Valid. Diagnostics were computed now from the frozen files and not stored.": "صالح. حُسبت التشخيصات الآن من الملفات المجمّدة ولم تُحفظ.",
+    "Structure, targets, loss masks and diagnostics are valid.": "البنية والأهداف وأقنعة الخسارة والتشخيصات صالحة.",
+    "One approved target per record. Token-level masking is checked outside NajdiLab with the tokenizer of the training model.": "هدف معتمد واحد لكل سجل. يُفحص الإخفاء على مستوى الرموز خارج نجدي لاب بمُرمِّز نموذج التدريب.",
+    "No independent evaluation samples: a training run cannot show a quality change.": "لا توجد عينات تقييم مستقلة: لا يمكن لعملية تدريب أن تُظهر تغيّرًا في الجودة.",
+    "Evaluation samples come from conversations not used for training.": "عينات التقييم من محادثات لم تُستخدم في التدريب.",
+    "This version has no evaluation samples, so it is not evaluation-ready.": "لا يحتوي هذا الإصدار على عينات تقييم، لذا فهو غير جاهز للتقييم.",
     'Dataset Records': 'سجلات مجموعة البيانات',
     'Dataset records': 'سجلات مجموعة البيانات',
     'Reviewable warnings that do not modify the source.': 'تحذيرات قابلة للمراجعة لا تعدّل المصدر.',
@@ -1341,6 +1355,7 @@
 
   const patterns = [
     // Specific sentences first: a generic "{a} of {b}" pattern below must not capture them.
+    ["{n} conversation overlaps with training", "{n} تداخل محادثات مع التدريب"],
     ["{n} record(s) carry earlier turns as a transcript inside the context, so the only assistant text the trainer sees is the approved answer. The transcript layout differs from a live multi-turn chat.", "{n} سجل/سجلات تحمل الأدوار السابقة نصًا مدوّنًا داخل السياق، فلا يرى المدرّب من نص المساعد إلا الإجابة المعتمدة. يختلف هذا التخطيط عن محادثة حية متعددة الأدوار."],
     ["Only {n} independent source conversation(s): enough for a technical smoke test, not for measuring a quality change.", "{n} محادثة/محادثات مصدر مستقلة فقط: تكفي لاختبار تقني أولي، لا لقياس تغيّر في الجودة."],
     ["Connect {name} in Settings → Integrations first.", "اربط {name} من الإعدادات ← التكاملات أولًا."],

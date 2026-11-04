@@ -2447,6 +2447,11 @@ def create_export(
                 "filters_used": {**(filters or {}), "include_demo": include_demo},
                 "validation": validation,
             }
+            # Diagnostics belong to the version from its first moment: generate them in the staging folder,
+            # bound to this version name and the training files' fingerprint, before it is published as
+            # Frozen (V2.2.0; earlier versions needed a derived Draft just to obtain them).
+            from .dataset_platform import _generate_training_diagnostics
+            _generate_training_diagnostics(temp_dir, manifest)
             (temp_dir / "manifest.json").write_text(
                 json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
             )

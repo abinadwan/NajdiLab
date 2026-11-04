@@ -284,6 +284,7 @@
     "tests/test_complete_review_queue.py",
     "tests/test_dataset_balancer.py",
     "tests/test_dataset_boundary.py",
+    "tests/test_dataset_diagnostics_lifecycle.py",
     "tests/test_dataset_gates.py",
     "tests/test_dataset_platform.py",
     "tests/test_dataset_registry.py",
@@ -354,7 +355,7 @@
     },
     "app/dataset_platform.py": {
       "destination": "app/dataset_platform.py",
-      "sha256": "7ab62bccf102ec979b5154e96d6a7ae1cba22cfb2d96fa0e51a157b395a5442e"
+      "sha256": "d12aaf9d4e64f448d0f5633c069dcab797029acd78aba0721c31c77fb3d896c2"
     },
     "app/dataset_quality.py": {
       "destination": "app/dataset_quality.py",
@@ -378,7 +379,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "5fab47bf94fcc653a87cf3cf71436c81fa5f3d116113b968c908baf10695e548"
+      "sha256": "a4eaff087e6973ac2adb33dee19b110408480790caba298b9427b2790c96adce"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",

@@ -290,6 +290,29 @@ def _diagnostics_status(directory: Path, manifest: dict[str, Any]) -> tuple[bool
     return True, None
 
 
+def _frozen_files_intact(directory: Path, manifest: dict[str, Any]) -> bool:
+    """Every training file on disk is listed in the manifest and still has its recorded SHA-256."""
+    hashes = manifest.get("sha256")
+    if not isinstance(hashes, dict):
+        return False
+    present = [name for name in TRAIN_FILES + (NATIVE_TRAIN_FILE,) if (directory / name).is_file()]
+    return all(name in hashes for name in present) and all(
+        (directory / name).is_file() and _sha256(directory / name) == expected for name, expected in hashes.items())
+
+
+def _computed_diagnostics(directory: Path, manifest: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Diagnostics for a Frozen version created before they were stored, computed from a private copy of its
+    hash-verified files. The version itself is never written (frozen versions are immutable)."""
+    with tempfile.TemporaryDirectory(prefix="najdilab-diagnostics-") as snapshot:
+        root = Path(snapshot)
+        for item in directory.iterdir():
+            if item.is_file() and not item.is_symlink():
+                shutil.copy2(item, root / item.name)
+        copy = dict(manifest)
+        _generate_training_diagnostics(root, copy)
+        return _json(root / "balancing_report.json", {}), copy["loss_mask_validation"]
+
+
 def regenerate_training_diagnostics(version: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":
@@ -536,7 +559,18 @@ def dataset_health(version: str) -> dict[str, Any]:
     manifest = _json(directory / "manifest.json", {})
     diagnostics_valid, diagnostics_error = _diagnostics_status(directory, manifest)
     strict_diagnostics = manifest.get("state") in {"Draft", "Frozen"}
-    balancing = _json(directory / "balancing_report.json", {}) if diagnostics_valid or not strict_diagnostics else {}
+    diagnostics_source = "stored" if diagnostics_valid else None
+    computed_loss = None
+    if not manifest.get("diagnostics") and manifest.get("state") == "Frozen":
+        # A Frozen version written before diagnostics were stored at creation: compute them read-only from its
+        # hash-verified files instead of asking for a derived copy. Stored-but-stale diagnostics stay an error.
+        if _frozen_files_intact(directory, manifest):
+            balancing, computed_loss = _computed_diagnostics(directory, manifest)
+            diagnostics_valid, diagnostics_error, diagnostics_source = True, None, "computed_on_read"
+        else:
+            diagnostics_error = "the frozen training files no longer match their manifest hashes"
+    if diagnostics_source != "computed_on_read":
+        balancing = _json(directory / "balancing_report.json", {}) if diagnostics_valid or not strict_diagnostics else {}
     rows_by_file = {name: _jsonl(directory / name) for name in KNOWN_FILES if (directory / name).is_file()}
     train = [row for name in TRAIN_FILES for row in rows_by_file.get(name, [])]
     native_train = _jsonl(directory / NATIVE_TRAIN_FILE)
@@ -564,7 +598,7 @@ def dataset_health(version: str) -> dict[str, Any]:
         warnings.append({"level": "error", "code": "exact_duplicates", "message": f"There are {duplicate_extra} extra duplicate training targets."})
     if not leakage["leakage_free"]:
         warnings.append({"level": "warning", "scope": "evaluation", "code": "eval_leakage", "message": f"Detected {leakage['conversation_overlap_count']} conversation overlaps in evaluation sets."})
-    loss = manifest.get("loss_mask_validation", {}) if diagnostics_valid or not strict_diagnostics else {}
+    loss = computed_loss if computed_loss is not None else manifest.get("loss_mask_validation", {}) if diagnostics_valid or not strict_diagnostics else {}
     loss_count_mismatch = bool(strict_diagnostics and (loss.get("version") != version or loss.get("training_fingerprint") != _training_fingerprint(directory) or loss.get("total") != gradient_count or loss.get("passed") != gradient_count))
     if strict_diagnostics and (not diagnostics_valid or loss_count_mismatch):
         warnings.append({"level": "error", "code": "stale_diagnostics", "message": f"Diagnostics do not match the current training files: {diagnostics_error or 'loss-mask total mismatch'}."})
@@ -573,6 +607,31 @@ def dataset_health(version: str) -> dict[str, Any]:
     training_errors = duplicate_extra + invalid_targets + invalid_masks + len(loss.get("failures", [])) + int(strict_diagnostics and (not diagnostics_valid or loss_count_mismatch))
     readiness = "NOT_READY" if training_errors else "READY"
     target_analysis = balancing.get("target_analysis", {})
+    eval_rows = [row for name in EVAL_FILES for row in rows_by_file.get(name, [])]
+    eval_sources = {_conversation(row) or f"record:{row.get('id', '')}" for row in eval_rows}
+    source_count = balance.get("conversation_count")
+    # Three separate questions (V2.2.0): one READY label cannot answer them all.
+    separated = {
+        "structural": {"status": "VALID" if not training_errors else "INVALID", "errors": training_errors,
+                       "diagnostics_source": diagnostics_source,
+                       "meaning": "Valid structure, required fields, unique targets and current diagnostics; says nothing about quality."},
+        "training_compatibility": {
+            "status": "BLOCKED" if training_errors else "STRUCTURE_CHECKED",
+            "checked": ["exactly one approved assistant target per record", "message loss masks", "no duplicate targets"],
+            "token_level": "not verified by NajdiLab; create an Unsloth handoff and run scripts/verify_unsloth_studio.py",
+            "meaning": "Formatting and supervision checks NajdiLab can run; a trainer, model and template still need their own check."},
+        "evaluation": {
+            "status": ("NO_EVALUATION_DATA" if not eval_rows else "LEAKAGE_DETECTED" if not leakage["leakage_free"]
+                       else "INDEPENDENT_SAMPLES_AVAILABLE"),
+            "samples": len(eval_rows), "independent_sources": len(eval_sources),
+            "meaning": ("No independent evaluation samples: training on this version cannot show a quality change."
+                        if not eval_rows else "Evaluation samples share conversations or answers with training."
+                        if not leakage["leakage_free"] else "Evaluation samples come from conversations not used for training.")},
+        "independent_training_sources": source_count,
+    }
+    if not eval_rows:
+        warnings.append({"level": "warning", "scope": "evaluation", "code": "no_evaluation_data",
+                         "message": "This version has no evaluation samples, so it is not evaluation-ready."})
     return {
         "version": version,
         "checked_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -591,7 +650,9 @@ def dataset_health(version: str) -> dict[str, Any]:
         "phrase_counts": target_analysis.get("phrase_counts", {}),
         "longest_10_target_word_share": target_analysis.get("longest_10_target_word_share"),
         "loss_mask_validation": loss,
-        "diagnostics": {"valid": diagnostics_valid or not strict_diagnostics, "error": diagnostics_error if strict_diagnostics else None, "training_fingerprint": _training_fingerprint(directory)},
+        "diagnostics": {"valid": diagnostics_valid or not strict_diagnostics, "error": diagnostics_error if strict_diagnostics else None, "training_fingerprint": _training_fingerprint(directory),
+                        "source": diagnostics_source},
+        "readiness": separated,
         "leakage": leakage,
         "warnings": warnings,
     }
