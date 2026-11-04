@@ -17,6 +17,7 @@ test('review restriction integrity in Chromium',async t=>{
     assert.ok(!base.endsWith(':8770'));
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
     const page=await browser.newPage();
+    await page.evaluateOnNewDocument(()=>{try{localStorage.setItem('najdilab.chat.legacyProviders','1');}catch{}});// The synthetic fixture has no llama-server: Chat checks here use its LM Studio/Ollama runtimes via the Settings opt-in.
     await page.setViewport({width:1440,height:1000});
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     const flags=['#exclude-training','#evaluation-only','#contains-sensitive','#contains-personal','#needs-fact-check'];

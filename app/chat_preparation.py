@@ -137,25 +137,46 @@ class ChatPreparation:
         if not self._lock.acquire(blocking=False):
             raise IntegrationError('RUNTIME_PREPARING', 'NajdiLab Native is already being prepared. Wait a moment.', 409)
         try:
+            # Check memory before stopping anything (V2.2.0): a choice that cannot load must not end a healthy
+            # session. The running model's memory is counted as free, since a restart releases it first.
+            status = self.native.status()
+            host = host_profile(self.snapshot(), status)
             if running:
-                # Restart only NajdiLab's own child; Native refuses (NATIVE_BUSY) while a reply holds it.
-                self.native.stop({'approved': True})
+                host = self._as_if_stopped(host, running, status.get('measured_vram_bytes'))
             advice = assess(variant={'filename': item['file'], 'size_bytes': item['size_bytes'], 'quantization': item['quantization'],
                                      'supported': True, 'unsupported_reasons': []},
-                            access='OPEN', model=item, host=host_profile(self.snapshot(), self.native.status()),
-                            context=context, gpu_layers=layers)
+                            access='OPEN', model=item, host=host, context=context, gpu_layers=layers)
             summary = {'classification': advice['load']['classification'], 'reasons': advice['load']['reasons'][:3],
                        'placement': advice['performance']['placement'], 'expectation': advice['performance']['expectation'],
                        'estimate_bytes': (advice['estimate'] or {}).get('required_bytes')}
             if summary['classification'] == 'BLOCKED':
-                return {'state': 'BLOCKED', 'code': 'DOES_NOT_FIT', 'advice': summary, 'stopped_previous': bool(running),
-                        'message': advice['load']['reasons'][0]['message'] if advice['load']['reasons'] else 'This model cannot be loaded here.'}
+                reason = advice['load']['reasons'][0]['message'] if advice['load']['reasons'] else 'This model cannot be loaded here.'
+                return {'state': 'BLOCKED', 'code': 'DOES_NOT_FIT', 'advice': summary, 'stopped_previous': False,
+                        'message': reason + (' The current model is still running.' if running else '')}
+            if running:
+                # Restart only NajdiLab's own child; Native refuses (NATIVE_BUSY) while a reply holds it.
+                self.native.stop({'approved': True})
             self.native.start({'approved': True, 'model': model, 'context_budget': context, 'gpu_layers': layers})
             now = self.native.running()
             return {'state': 'READY', 'selection_revision': now['revision'], 'running': now, 'advice': summary,
                     'action': action, 'stopped_previous': bool(running)}
         finally:
             self._lock.release()
+
+    def _as_if_stopped(self, host, running, measured):
+        """The host as it will be once NajdiLab's running model is stopped: its GPU memory (as Windows measured
+        it, or else the Advisor's estimate for it) is free again."""
+        held = measured if type(measured) is int and measured > 0 else None
+        if held is None:
+            item = self.native.inspect(self.native._resolve(running['model']))
+            estimate = assess(variant={'filename': item['file'], 'size_bytes': item['size_bytes'], 'quantization': item['quantization'],
+                                       'supported': True, 'unsupported_reasons': []},
+                              access='OPEN', model=item, host=host, context=running['context'], gpu_layers=running['gpu_layers'])
+            held = (estimate['estimate'] or {}).get('required_bytes') or 0
+        gpus = [{**gpu, 'free_bytes': min(gpu['total_bytes'], gpu['free_bytes'] + held)}
+                if isinstance(gpu.get('free_bytes'), int) and isinstance(gpu.get('total_bytes'), int) else gpu
+                for gpu in host.get('gpus') or []]
+        return {**host, 'gpus': gpus}
 
     def _external(self, provider, model, approved, new_session):
         state = next((s for s in self.integrations().snapshot()['items'] if s['id'] == provider), None)

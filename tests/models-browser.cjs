@@ -15,7 +15,8 @@ test('Model library and context indicator in Chromium',async t=>{
     const base=await new Promise((resolve,reject)=>{let text='';const timer=setTimeout(()=>reject(Error('fixture timeout')),20000);
       child.stdout.on('data',c=>{text+=c;const m=text.match(/BROWSER_FIXTURE=(http:\/\/127\.0\.0\.1:\d+)/);if(m){clearTimeout(timer);resolve(m[1]);}});});
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
-    const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    const page=await browser.newPage();await page.evaluateOnNewDocument(()=>{try{localStorage.setItem('najdilab.chat.legacyProviders','1');}catch{}});// The fixture has no llama-server: its Chat checks use the LM Studio fixture via the Settings opt-in.
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.setViewport({width:1280,height:900});
     await page.goto(base+'/models');await page.waitForSelector('#view-models.active');
     const requests=[];page.on('request',r=>requests.push(r.url()));

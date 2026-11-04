@@ -22,7 +22,8 @@ const puppeteer=require('puppeteer-core');
       child.once('error',reject);child.once('exit',code=>{clearTimeout(timer);reject(Error('Fixture exited '+code+': '+error));});
     });
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
-    const page=await browser.newPage();await page.setViewport({width:1280,height:1000});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    const page=await browser.newPage();await page.evaluateOnNewDocument(()=>{try{localStorage.setItem('najdilab.chat.legacyProviders','1');}catch{}});// The synthetic fixture has no llama-server: Chat checks here use its LM Studio/Ollama runtimes via the Settings opt-in.
+   await page.setViewport({width:1280,height:1000});const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.evaluateOnNewDocument(()=>{
       const original=window.fetch.bind(window);window.fixtureCalls=[];window.failNextSend=false;window.wrongModel=false;
       window.fetch=async(route,options={})=>{

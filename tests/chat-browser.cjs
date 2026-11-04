@@ -16,7 +16,8 @@ const puppeteer=require('puppeteer-core');
     });
     assert.ok(!base.endsWith(':8770'));
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
-    const page=await browser.newPage();await page.setViewport({width:1280,height:1000});
+    const page=await browser.newPage();await page.evaluateOnNewDocument(()=>{try{localStorage.setItem('najdilab.chat.legacyProviders','1');}catch{}});// The synthetic fixture has no llama-server: Chat checks here use its LM Studio/Ollama runtimes via the Settings opt-in.
+   await page.setViewport({width:1280,height:1000});
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     const clickChat=async selector=>{await page.$eval(selector,e=>e.scrollIntoView({block:'center'}));await page.click(selector);};
     await page.goto(base+'/chat');
@@ -32,6 +33,14 @@ const puppeteer=require('puppeteer-core');
       throw error;
     }
     assert.equal(await page.$('[data-view="training"]'),null);
+    // V2.2.0 Native-first: without the Settings opt-in, the model menu offers NajdiLab Native only.
+    const plainContext=await browser.createBrowserContext();const plain=await plainContext.newPage();
+    await plain.goto(base+'/chat');await plain.waitForFunction(()=>window.NajdiChat&&document.querySelector('#chat-model-label').textContent.trim());
+    await plain.evaluate(()=>document.querySelector('#chat-model-button').click());await plain.waitForSelector('#chat-model-menu:not([hidden])');
+    const offered=await plain.$eval('#chat-model-menu',m=>({groups:[...m.querySelectorAll('[role="group"]')].map(x=>x.getAttribute('aria-label')),text:m.textContent}));
+    assert.ok(offered.groups.every(g=>g==='NajdiLab Native')&&!/LM Studio|Ollama/.test(offered.text),'only NajdiLab Native is offered: '+JSON.stringify(offered.groups));
+    assert.match(offered.text,/Model library/);
+    await plainContext.close();
     assert.equal(await page.$eval('#local-address',e=>e.textContent),new URL(base).host);
 
     // UX-23: 390px layout acceptance for visible workflow panes.

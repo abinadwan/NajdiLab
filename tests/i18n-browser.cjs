@@ -50,6 +50,7 @@ test('Arabic and English interface in Chromium',async t=>{
     });
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
     const page=await browser.newPage();
+    await page.evaluateOnNewDocument(()=>{try{localStorage.setItem('najdilab.chat.legacyProviders','1');}catch{}});// The synthetic fixture has no llama-server: Chat checks here use its LM Studio/Ollama runtimes via the Settings opt-in.
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.setViewport({width:1440,height:1000});
     await page.goto(base+'/');

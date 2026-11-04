@@ -31,6 +31,7 @@ class FakeNative:
         if server:
             self.server_path.write_bytes(b'x')
         self.run, self.revision, self.calls, self.start_gate, self.leased = None, 0, [], None, False
+        self.measured = None  # VRAM Windows reports for the running llama-server, when it does
 
     def _resolve(self, model):
         if model not in FILES:
@@ -52,7 +53,8 @@ class FakeNative:
         return ('RUNNING' if self.run else 'STOPPED'), None, self.run and self.run['model'], self.revision
 
     def status(self):
-        return {'server_available': True, 'devices': [{'id': 'CUDA0', 'name': 'GPU', 'total_bytes': 12 * GIB, 'free_bytes': 10 * GIB}]}
+        return {'server_available': True, 'devices': [{'id': 'CUDA0', 'name': 'GPU', 'total_bytes': 12 * GIB, 'free_bytes': 10 * GIB}],
+                **({'measured_vram_bytes': self.measured} if self.run else {})}
 
     def stop(self, data):
         assert data == {'approved': True}
@@ -199,3 +201,35 @@ def test_lm_studio_and_ollama_need_approval_to_select_or_load(tmp_path):
     assert ask(p, provider='ollama', model='missing')['code'] == 'MODEL_UNAVAILABLE'
     off, _, _ = prep(tmp_path / 'o', integrations=FakeIntegrations(connected=False))
     assert ask(off, provider='lmstudio', model='lm-model')['code'] == 'NOT_CONNECTED'
+
+
+def small_gpu(free, total=6 * GIB):
+    return lambda: {'ram_total_bytes': 32 * GIB, 'ram_available_bytes': 16 * GIB,
+                    'gpus': [{'name': 'GPU', 'total_bytes': total, 'free_bytes': free, 'backend': 'NVIDIA'}], 'warnings': []}
+
+
+def test_a_model_that_does_not_fit_never_stops_the_running_one(tmp_path):
+    # V2.2.0: memory is checked before NajdiLab stops anything; a healthy session survives a bad choice.
+    native = FakeNative(tmp_path)
+    p, native, _ = prep(tmp_path, native=native, snapshot=small_gpu(1 * GIB))
+    native.start({'approved': True, 'model': QWEN, 'context_budget': 8192, 'gpu_layers': 'all'})
+    native.measured = 1 * GIB
+    before = native.running()
+    result = ask(p, model=GEMMA, context=131072, approved=True, gpu_layers='all')
+    assert (result['state'], result['code'], result['stopped_previous']) == ('BLOCKED', 'DOES_NOT_FIT', False)
+    assert 'still running' in result['message']
+    assert native.running() == before and ('stop',) not in native.calls
+
+
+def test_memory_the_running_model_would_free_counts_toward_the_new_one(tmp_path):
+    # 3.5 GiB free while Qwen holds 3 GiB: Gemma on the GPU (about 6.1 GiB) fits only once Qwen is stopped.
+    native = FakeNative(tmp_path)
+    p, native, _ = prep(tmp_path, native=native, snapshot=small_gpu(int(3.5 * GIB), total=8 * GIB))
+    native.start({'approved': True, 'model': QWEN, 'context_budget': 8192, 'gpu_layers': 'all'})
+    native.measured = 3 * GIB
+    result = ask(p, model=GEMMA, context=4096, approved=True, gpu_layers='all')
+    assert result['state'] == 'READY' and result['stopped_previous'] is True
+    assert native.calls[-2:] == [('stop',), ('start', GEMMA, 4096, 'all')]
+    # Without the running model's memory counted, the same choice would be refused.
+    native.stop({'approved': True})
+    assert ask(p, model=GEMMA, context=4096, approved=True, gpu_layers='all')['code'] == 'DOES_NOT_FIT'

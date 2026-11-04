@@ -729,6 +729,7 @@
     'Dataset validation errors were found.': 'عُثر على أخطاء في التحقق من مجموعة البيانات.',
     'Schema, targets, and loss masks are valid.': 'المخطط والأهداف وأقنعة الخسارة صحيحة.',
     'Evaluation Integrity': 'سلامة التقييم',
+    "Also offer LM Studio and Ollama in the Chat model menu (new chats use NajdiLab Native by default; existing conversations always open)": "اعرض أيضًا LM Studio وOllama في قائمة نماذج المحادثة (تستخدم المحادثات الجديدة NajdiLab Native افتراضيًا؛ وتُفتح المحادثات الحالية دائمًا)",
     "Dialect / variety": "اللهجة / التنوع",
     "Style": "الأسلوب",
     "Not specified": "غير محدد",
@@ -1397,6 +1398,7 @@
 
   const patterns = [
     // Specific sentences first: a generic "{a} of {b}" pattern below must not capture them.
+    ["{x} The current model is still running.", "{x} النموذج الحالي ما زال يعمل."],
     ["Unable to load language options: {x}", "تعذّر تحميل خيارات اللغة: {x}"],
     ["{a} training records; the largest source supplies {b}.", "{a} سجل تدريب؛ ويوفّر أكبر مصدر {b}."],
     ["no independent evaluation samples. Guidance, not a quality guarantee.", "لا توجد عينات تقييم مستقلة. إرشاد وليس ضمانًا للجودة."],

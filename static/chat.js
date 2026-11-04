@@ -198,6 +198,10 @@
   const el=id=>document.getElementById(id);
   const tr=text=>global.NajdiI18n?global.NajdiI18n.t(text):text;
   const SELECTION_KEY='najdilab.chat.selection';
+  // Native-first (V2.2.0): new chats use NajdiLab Native. LM Studio and Ollama stay readable in existing
+  // conversations and can be offered again from Settings → Models & Integrations.
+  const LEGACY_PROVIDERS_KEY='najdilab.chat.legacyProviders';
+  function legacyProviders(){try{return global.localStorage.getItem(LEGACY_PROVIDERS_KEY)==='1';}catch{return false;}}
   let catalog=null,selection=null,plan=null,pendingSend=false,preparing=false,draftCollect=false,bound=false,notice=[];
   let listMode='active',listQuery='',savedLoaded=0,menuTarget=null,live=null,pendingUse=null;
   const thinkingByRequest=new Map(),timingsByRequest=new Map();
@@ -253,7 +257,8 @@
   function savedSelection(){try{return JSON.parse(global.localStorage.getItem(SELECTION_KEY)||'null');}catch{return null;}}
   function storeSelection(value){try{global.localStorage.setItem(SELECTION_KEY,JSON.stringify(value));}catch{}}
   function validSelection(value){return !!value&&typeof value==='object'&&validBudgets(value.context,value.reserve)&&['auto','all','0'].includes(value.gpu);}
-  function defaultSelection(){const saved=savedSelection();return validSelection(saved)?saved:{provider:null,model:null,context:8192,reserve:1024,gpu:'auto'};}
+  function defaultSelection(){const saved=savedSelection();if(!validSelection(saved))return {provider:null,model:null,context:8192,reserve:1024,gpu:'auto'};
+    return saved.provider&&saved.provider!=='native'&&!legacyProviders()?{...saved,provider:null,model:null}:saved;}
   function sessionSelection(s){return {provider:s.provider,model:s.model,context:s.context_budget,reserve:s.reply_reserve,gpu:selection?.gpu||'auto'};}
   function current(){return controller.session?sessionSelection(controller.session):selection;}
   function catalogItem(value=current()){return catalog?.items.find(i=>i.provider===value?.provider&&i.model===value?.model)||null;}
@@ -320,7 +325,7 @@
   function renderModelMenu(){
     const menu=el('chat-model-menu'),value=current(),locked=!!controller.session;menu.replaceChildren();
     const items=catalog?.items||[];
-    for(const [provider,name] of [['native','NajdiLab Native'],['lmstudio','LM Studio'],['ollama','Ollama']]){
+    for(const [provider,name] of [['native','NajdiLab Native'],...(legacyProviders()?[['lmstudio','LM Studio'],['ollama','Ollama']]:[])]){
       const group=items.filter(i=>i.provider===provider);if(!group.length)continue;
       // ARIA menu: one labelled group per runtime; the visible heading is decorative.
       const box=node('div','chatv2-menu-group');box.setAttribute('role','group');box.setAttribute('aria-label',name);
@@ -1021,6 +1026,8 @@
         catch{status.textContent='This browser blocks local storage, so the default warnings (70, 85, 95) stay in use.';}
       };
     }
+    const legacy=el('chat-legacy-providers');
+    if(legacy){legacy.checked=legacyProviders();legacy.onchange=()=>{try{global.localStorage.setItem(LEGACY_PROVIDERS_KEY,legacy.checked?'1':'0');}catch{}};}
     el('unsloth-create').onclick=async()=>{
       const button=el('unsloth-create'),host=el('unsloth-result');button.disabled=true;host.replaceChildren();
       try{

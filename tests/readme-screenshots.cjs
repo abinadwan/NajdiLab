@@ -18,6 +18,7 @@ const OUT=path.resolve(__dirname,'..','docs','images','screenshots');
     });
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--lang=en-US']});
     const page=await browser.newPage();
+    await page.evaluateOnNewDocument(()=>{try{localStorage.setItem('najdilab.chat.legacyProviders','1');}catch{}});// The synthetic fixture has no llama-server: Chat checks here use its LM Studio/Ollama runtimes via the Settings opt-in.
     await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
     const wait=ms=>new Promise(r=>setTimeout(r,ms));
     await page.goto(base+'/');await page.waitForSelector('#view-dashboard.active');await wait(800);
