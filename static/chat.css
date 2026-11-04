@@ -96,7 +96,7 @@
 .chatv2-presets label{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;font-weight:400}
 .chatv2-presets input{width:auto}
 .chatv2-presets small{color:var(--muted)}
-.chatv2-dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;margin:6px 0;font-size:.88rem}
+.chatv2-dl{display:grid;grid-template-columns:minmax(0,1fr) fit-content(65%);gap:4px 12px;margin:6px 0;font-size:.88rem}
 .chatv2-dl dt{color:var(--muted)}
 .chatv2-dl dd{margin:0;text-align:end;overflow-wrap:anywhere}
 .chatv2-budget{font-size:.85rem}

@@ -248,6 +248,11 @@ const puppeteer=require('puppeteer-core');
     assert.deepEqual(info.controls,['chat-panel-close'],'Chat information has no controls');
     assert.match(info.text,/Chat information/);assert.match(info.text,/Conversation context budget4096 tokens/);assert.match(info.text,/Reply reserve1024 tokens/);
     assert.match(info.text,/CollectionOff/);assert.match(info.text,/Prompt tokens/);
+    // A long unbreakable value (a SHA-256 identity or file path) wraps; it never squeezes its label to nothing or overlaps it.
+    const squeeze=await page.$eval('#chat-info .chatv2-dl',dl=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent='Probe label';dd.textContent='native:'+'a'.repeat(64);dl.append(dt,dd);
+      const a=dt.getBoundingClientRect(),b=dd.getBoundingClientRect(),w=dl.getBoundingClientRect().width;dt.remove();dd.remove();
+      return {ratio:a.width/w,overlap:a.right>b.left+1&&a.left<b.right-1};});
+    assert.ok(squeeze.ratio>0.25&&!squeeze.overlap,'Chat information label keeps its space next to a long value: '+JSON.stringify(squeeze));
     await page.click('#chat-panel-close');
     // Reading information must not stale the conversation that is already open.
     await page.type('#chat-draft','Second question after reading specs');await page.keyboard.press('Enter');await settled(2);

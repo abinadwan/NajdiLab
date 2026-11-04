@@ -63,7 +63,23 @@ Before anything is approved the Native path already runs the existing start gate
 | UX audit (axe WCAG 2.1 A/AA, 284 states: desktop/tablet/mobile, light/dark, Arabic/English, 200 % and 400 % zoom, model menu, context menu, Chat information, preparation card, delete dialog) | 0 violations, 0 horizontal overflow. The first run found 24 `aria-required-children` violations (headings directly inside `role="menu"`); fixed with one labelled group per runtime. |
 | review-restrictions, public-source builder, docs, API inventory, compileall | 12 passed, 12 passed, PASS, PASS, ok |
 
-Fixed during testing: the switch dialog never received `close` in the desktop app's browser (now settled by its buttons); an approved Ollama preparation re-asked instead of sending (the approved result now carries into creating the chat); a refused over-long message's bubble stayed until the lists refreshed; the model menu could extend past a 225 px-high screen; the collapsed-sidebar copyright kept its padding.
+Fixed during testing: the switch dialog never received `close` in the desktop app's browser (now settled by its buttons); an approved Ollama preparation re-asked instead of sending (the approved result now carries into creating the chat); a refused over-long message's bubble stayed until the lists refreshed; the model menu could extend past a 225 px-high screen; the collapsed-sidebar copyright kept its padding; in Chat information a long unbreakable value (SHA-256 identity) took the whole row and overlapped its label (value column now capped with `fit-content(65%)`; `chat-browser` checks it and fails on the old rule).
+
+### Installed test copy (`C:\Users\Admin\NajdiLab-Update-Test`, http://127.0.0.1:8870, 2026-11-04)
+
+Updated in place by fast-forward (no reinstall); only the NajdiLab launcher/server processes were restarted. Real models on the RTX 5070, NajdiLab Native llama.cpp `b12059-1b6935b22`:
+
+| Check | Result |
+|---|---|
+| Version | `/api/v1/health` 2.1.0, sidebar V2.1.0 |
+| Model library → *Use in Chat* (Qwen) | empty chat with *Qwen2.5-0.5B-Instruct · Q4_K_M · 8K*; nothing started |
+| Reuse | Native already running Qwen at 32K; a 32K chat sent with no card and no restart (start time unchanged); reply in 771 ms; draft cleared after save |
+| Mismatch before sending | 8K chat while Qwen ran at 32K: *Restart NajdiLab Native?* shown before anything was sent, draft kept; after approval Qwen restarted at 8K (new PID), real reply, draft cleared |
+| Switch model in a conversation with turns | *Start a new conversation?*; old conversation unchanged; draft moved along |
+| Gemma 4 E4B | card named the loaded Qwen · 8K and the needed Gemma · 8K; after approval Native ran Gemma at 8192 (new PID), real reply "The capital of Saudi Arabia is Riyadh.", thinking shown, draft cleared |
+| Opening an older conversation | 32K Qwen conversation while Gemma ran: restart card shown on open, before typing; after approval Native ran Qwen at 32768 again (the state found before testing) |
+| Chat information | read only; loaded file SHA-256 equals the conversation's model identity; actual loaded context 32768; device RTX 5070; collection Off |
+| Model library and runtime | 62 files, 6,417,019,635 bytes unchanged against the pre-update snapshot; Gemma `676c3507…53fbaee` and Qwen `74a4da8c…7d9db` re-hashed and equal to their verified records |
 
 ## 6. Risks and limitations
 
