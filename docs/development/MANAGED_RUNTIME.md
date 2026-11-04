@@ -93,6 +93,7 @@ Code: `app/runtime_catalog.py` (pinned build, host detection, package selection)
 | Rollback | Switched back to the CUDA install; start gate passed; full re-hash of every file passed. |
 | Opt-in real-build test | `NAJDILAB_RUNTIME_TEST_SERVER=<CUDA install>/llama-server.exe pytest -k real` → 1 passed (CPU and CUDA probes). |
 | Automated tests | `tests/test_managed_runtime.py` 33 passed + 1 opt-in; full Python suite 851 passed, 38 skipped, 0 failed; Node 61; models-browser 13; i18n-browser 10; a11y-browser 13; review-restrictions 12; chat-browser PASS; chat-enhancements PASS; public-source builder 12; docs and API-inventory checks PASS. |
-| Not tested | Linux packages, Vulkan package, CUDA 12.x packages on real hardware; any real model (needs the owner's approval of a specific model). |
+| Real model through the app (owner-approved) | Runtime installed in the test installation from offline archives via the UI; official Qwen2.5-0.5B-Instruct Q4_K_M loaded with all layers on CUDA0 and chatted through Chat V2: [REAL_MODEL_ACCEPTANCE.md](REAL_MODEL_ACCEPTANCE.md). The opt-in Native lifecycle tests and the real-build test passed against the installed CUDA `llama-server`. |
+| Not tested | Linux packages, Vulkan package, CUDA 12.x packages through the app; models larger than Qwen2.5-0.5B. |
 
 Unpacked size was 1.3× the CUDA archives, well inside the 4× bound used before a download.

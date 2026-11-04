@@ -4,7 +4,7 @@
 |---|---|
 | Branch | `update-project` (Draft PR #23). Started from `fcaac6f`. |
 | Scope | Discover → evaluate → download → verify → approve load → chat, for **single-file GGUF** models only, plus a context-usage indicator in Chat V2. |
-| Status | Implemented and tested with a synthetic hub and synthetic GGUF. Real-model loading, real GPU and GitHub CI acceptance are **not** done (see [Acceptance](#12-acceptance)). |
+| Status | Implemented and tested with a synthetic hub and synthetic GGUF; real download, verification, loading and chat accepted on an RTX 5070 with one small official model ([real-model acceptance](REAL_MODEL_ACCEPTANCE.md)). GitHub CI on the final commit is **not** done. |
 | Discovery modes | *Recommended for your device* and *Trending*: [MODEL_DISCOVERY.md](MODEL_DISCOVERY.md). |
 | Code | `app/hf_hub.py`, `app/model_store.py`, `app/model_advisor.py`, `app/model_service.py`, `migrations/009_managed_models.sql`, `static/models.js`, the context indicator in `static/chat.js`; small hooks in `app/server.py`, `app/native_runtime.py`, `app/gguf.py`. |
 

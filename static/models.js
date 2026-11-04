@@ -50,7 +50,8 @@
     return n;
   }
   const ident=value=>node('bdi',{dir:'ltr',translate:'no'},String(value));
-  const bytes=v=>Number.isFinite(v)?(v>=GB?`${(v/GB).toFixed(2)} GB`:v>=MB?`${(v/MB).toFixed(1)} MB`:`${v} B`):null;
+  // Binary units, labelled as such: 491,400,032 bytes is 468.6 MiB (491.4 MB decimal).
+  const bytes=v=>Number.isFinite(v)?(v>=GB?`${(v/GB).toFixed(2)} GiB`:v>=MB?`${(v/MB).toFixed(1)} MiB`:`${v} B`):null;
   const count=v=>Number.isFinite(v)?new Intl.NumberFormat('en-US').format(v):null;
   const params=v=>!Number.isFinite(v)?null:v>=1e9?`${(v/1e9).toFixed(1)}B`:v>=1e6?`${(v/1e6).toFixed(0)}M`:String(v);
   function pill(kind,text){return node('span',{class:`status-pill model-pill ${kind}`},text);}

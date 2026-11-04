@@ -18,7 +18,7 @@ The version has one source, `app/version.py`. The server banner, the `Server` he
 ## Open acceptance gates
 
 - GitHub Actions on the exact final commit (not triggered, as instructed).
-- Real model download and loading on the RTX 5070. The managed CUDA 13.4 runtime is verified on that GPU with a synthetic test model; no real model has been downloaded or run (it needs the owner's approval of a specific model).
+- Real-model acceptance is done for one small model only (official Qwen2.5-0.5B-Instruct Q4_K_M on the RTX 5070, all checks PASS: [record](REAL_MODEL_ACCEPTANCE.md)); larger models and the owner's Gemma 4 E4B (no longer present, BLOCKED) are not accepted.
 - Linux, Vulkan and CUDA 12.x runtime packages: implemented, not tested on real hardware.
 - Owner review and approval of PR #23.
 

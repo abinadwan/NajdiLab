@@ -67,7 +67,8 @@ Same rules as other runtimes: collection is off by default and after restart, on
 
 ## Known limits
 
-- Not tested: Windows, any GPU (including RTX 5070), any real model, chat templates with thinking, models larger than a few hundred KB.
+- Tested on Windows with an RTX 5070 and the managed CUDA 13.4 build using one real model, Qwen2.5-0.5B-Instruct Q4_K_M ([record](development/REAL_MODEL_ACCEPTANCE.md)). Not tested: larger real models, chat templates with thinking, Linux GPUs.
+- On Windows, per-process VRAM is not reported by `nvidia-smi` (WDDM), so *measured VRAM* stays empty there.
 - One model at a time; one request at a time.
 - Split GGUF sets are not supported yet.
 - The API key protects against other local programs using the port by accident; it is not a defense against malware running as the same user.
