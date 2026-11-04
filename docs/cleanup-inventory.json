@@ -4578,6 +4578,9 @@
     },
     "migrations/009_managed_models.sql": {
       "sha256": "a507e8d337d659336e33f3768da507513e024979275b99c5dbb76e44a6f51dd2"
+    },
+    "migrations/010_language_metadata.sql": {
+      "sha256": "92928c9dabfbef3b3b4ad9347c1da1dc3388c382647cc8514dcc840bd0db6abc"
     }
   },
   "removed_routes": [

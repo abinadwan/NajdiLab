@@ -14,7 +14,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from app.core_datasets import checked_version
-ALLOWED = {'manifest.json','sft.jsonl','multi_turn.jsonl','direct_language.jsonl','preference_pairs.jsonl','evaluation_holdout.jsonl','full_archive.json','dedup_report.json'}
+ALLOWED = {'manifest.json','sft.jsonl','multi_turn.jsonl','direct_language.jsonl','preference_pairs.jsonl','evaluation_holdout.jsonl','full_archive.json','dedup_report.json','loss-mask-validation.json','balancing_report.json'}
 MAX_FILE = 16 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
 

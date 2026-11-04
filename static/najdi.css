@@ -665,3 +665,6 @@ dialog{color:var(--ink)}
 .unsloth-profiles small{display:block;color:var(--muted)}
 .unsloth-result-list{margin:6px 0;padding-inline-start:18px}
 .unsloth-result code{overflow-wrap:anywhere}
+/* Language metadata fields sit directly in the surrounding form grid */
+.taxonomy-host{display:contents}
+.taxonomy-host input{margin-top:6px}

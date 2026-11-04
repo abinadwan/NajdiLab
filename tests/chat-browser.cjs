@@ -321,6 +321,20 @@ const puppeteer=require('puppeteer-core');
     assert.equal(await page.$eval('#toast',e=>e.classList.contains('show')),true);
     await page.click('.toast-dismiss');
     assert.equal(await page.$eval('#toast',e=>e.classList.contains('show')),false);
+    // V2.2.0 language metadata: English shows no Arabic dialects; "Other…" takes a custom value; nothing Arabic is forced.
+    await page.click('[data-add-tab="direct"]');await page.waitForSelector('#form-direct.active select[data-taxonomy="language"]');
+    await page.select('#form-direct select[data-taxonomy="language"]','en');
+    const dialects=await page.$$eval('#form-direct select[data-taxonomy="dialect"] option',o=>o.map(x=>x.value));
+    assert.ok(!dialects.includes('najdi')&&dialects.includes('uk'),'English offers English varieties, not Arabic dialects: '+dialects);
+    await page.select('#form-direct select[data-taxonomy="domain"]','__custom');
+    assert.equal(await page.$eval('#form-direct input[name="domain_custom"]',e=>e.classList.contains('hidden')),false);
+    await page.type('#form-direct input[name="domain_custom"]','Tourism');
+    await page.type('#form-direct textarea[name="text"]','A synthetic English paragraph for metadata.');
+    await page.click('#form-direct button[type="submit"]');
+    await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Record saved'));
+    const savedText=await page.evaluate(async()=>(await window.api('/api/v1/manual-data?type=direct&search=synthetic%20English%20paragraph')).items[0]);
+    assert.deepEqual([savedText.language,savedText.dialect,savedText.domain,savedText.language_layer],['en',null,'Tourism',null]);
+    await page.click('[data-add-tab="sft"]');await page.waitForSelector('#form-sft.active');
     // UX-06: show every blocker and escape untrusted reasons in the persistent panel.
     await page.evaluate(()=>{
       const original=window.api;

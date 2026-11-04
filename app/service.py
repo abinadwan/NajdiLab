@@ -18,6 +18,7 @@ from typing import Any
 from uuid import uuid4
 
 from .db import DB_PATH, ROOT, connect, json_dumps, json_loads, redact_secrets, transaction, utc_now
+from . import language_taxonomy
 from .review_integrity import ExportReadinessError, export_readiness, export_privacy
 from .review_lifecycle import append_event, validate_transition, LifecycleError
 from .collection_context import collection_context, INCOMPLETE_CONTEXT_WARNING
@@ -1259,6 +1260,9 @@ def list_manual_data(filters: dict[str, str], db_path: Path | str = DB_PATH) -> 
             all_items = [item for item in all_items if item.get("archived")]
         elif status == "excluded":
             all_items = [item for item in all_items if item.get("exclude_from_training")]
+        for key in ("language", "dialect", "style"):
+            if filters.get(key):
+                all_items = [item for item in all_items if str(item.get(key) or "") == filters[key]]
         for key in ("language_layer", "source", "origin", "domain"):
             if filters.get(key):
                 needle = filters[key].casefold()
@@ -1290,7 +1294,7 @@ def list_manual_data(filters: dict[str, str], db_path: Path | str = DB_PATH) -> 
         all_items.sort(key=key_functions.get(sort, key_functions["newest"]), reverse=reverse)
         facets = {
             key: sorted({str(item.get(key)) for item in all_items if item.get(key)})
-            for key in ("source", "origin", "domain")
+            for key in ("source", "origin", "domain", "language", "dialect", "style")
         }
         items = all_items[offset:offset + limit]
         return {"items": items, "summary": summary, "facets": facets,
@@ -1330,7 +1334,7 @@ def _validate_manual_payload(
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     common = {
-        "language_layer", "domain", "source", "source_type", "origin", "notes",
+        "language_layer", "language", "dialect", "style", "domain", "source", "source_type", "origin", "notes",
         "training_eligible", "exclude_from_training", "evaluation_only",
         "contains_sensitive_data", "contains_personal_data", "archived",
     }
@@ -1345,8 +1349,14 @@ def _validate_manual_payload(
         if key in data:
             payload[key] = data[key]
     layer = payload.get("language_layer", current.get("language_layer"))
-    if layer not in LANGUAGE_LAYERS:
+    if layer is not None and layer not in LANGUAGE_LAYERS:
         raise ValidationError("Invalid language layer")
+    if any(field in payload for field in language_taxonomy.FIELDS):
+        try:
+            normalized = language_taxonomy.normalize(payload, current)
+        except language_taxonomy.TaxonomyError as exc:
+            raise ValidationError(str(exc)) from None
+        payload.update({field: normalized[field] for field in language_taxonomy.FIELDS if field in payload})
     origin = payload.get("origin", current.get("origin"))
     if origin not in ORIGINS:
         raise ValidationError("Invalid origin")
@@ -1587,15 +1597,14 @@ def add_manual_sft(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[
     for index, message in enumerate(messages):
         if message.get("role") not in {"system", "user", "assistant"} or not str(message.get("content", "")).strip():
             raise ValidationError(f"Invalid message at position {index + 1}")
-    language_layer = data.get("language_layer") or "saudi_neutral"
-    if language_layer not in LANGUAGE_LAYERS:
+    if data.get("language_layer") and data["language_layer"] not in LANGUAGE_LAYERS:
         raise ValidationError("Invalid language layer")
     return _insert_training_item("manual_sft_items", {**data, "messages_json": json_dumps(messages)}, db_path)
 
 
 def add_direct_text(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     _required(data, "text")
-    if data.get("language_layer") not in LANGUAGE_LAYERS:
+    if data.get("language_layer") and data["language_layer"] not in LANGUAGE_LAYERS:
         raise ValidationError("Invalid language layer")
     if data.get("source_type") not in {"human_written", "human_corrected", "synthetic_reviewed", "external_licensed"}:
         raise ValidationError("Invalid source type")
@@ -1625,9 +1634,17 @@ def _insert_training_item(table: str, data: dict[str, Any], db_path: Path | str)
     exclude = _bool(data.get("exclude_from_training"))
     eligible = 0 if evaluation_only or exclude else _bool(data.get("training_eligible"))
     now = utc_now()
+    # Language metadata (V2.2.0): four dimensions; a legacy-only client gets the certain mapping of its layer.
+    described = {field: data.get(field) for field in language_taxonomy.FIELDS if data.get(field) not in (None, "")}
+    if not any(described.get(field) for field in ("language", "dialect", "style")):
+        described = {**language_taxonomy.from_legacy(data.get("language_layer")), **described}
+    try:
+        metadata = language_taxonomy.normalize(described)
+    except language_taxonomy.TaxonomyError as exc:
+        raise ValidationError(str(exc)) from None
     common = {
-        "language_layer": data.get("language_layer") or "saudi_neutral",
-        "domain": data.get("domain"),
+        "language_layer": data.get("language_layer") or None,
+        **metadata,
         "origin": origin,
         "notes": data.get("notes"),
         "training_eligible": eligible,
@@ -1654,10 +1671,13 @@ def _insert_training_item(table: str, data: dict[str, Any], db_path: Path | str)
         payload["source_type"] = payload.get("source_type") or (
             "synthetic_reviewed" if origin == "synthetic_reviewed" else "human_written"
         )
-    columns = list(payload)
     conn = connect(db_path)
     try:
         with transaction(conn):
+            # A database without migration 010 (the NajdiLab Core candidate's core schema) has no
+            # language/dialect/style columns; it keeps working with its legacy fields only.
+            existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+            columns = [column for column in payload if column in existing or column not in language_taxonomy.FIELDS]
             cursor = conn.execute(
                 f"INSERT INTO {table}({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})",
                 [payload[column] for column in columns],
@@ -2452,6 +2472,9 @@ def create_export(
             # Frozen (V2.2.0; earlier versions needed a derived Draft just to obtain them).
             from .dataset_platform import _generate_training_diagnostics
             _generate_training_diagnostics(temp_dir, manifest)
+            # Diagnostics are part of the version's content: hash them like every other file.
+            for name in ("loss-mask-validation.json", "balancing_report.json"):
+                manifest["sha256"][name] = hashlib.sha256((temp_dir / name).read_bytes()).hexdigest()
             (temp_dir / "manifest.json").write_text(
                 json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
             )

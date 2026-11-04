@@ -57,6 +57,7 @@ CONTEXT_PRESETS = [
     {"id": "long", "context_budget": 16384, "reply_reserve": 3072},
 ]
 from .unsloth_export import create_handoff, read_handoff
+from . import language_taxonomy
 from .dataset_platform import (
     DatasetPlatformError,
     apply_overlap_plan,
@@ -424,6 +425,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json({"items": list_manual_versions(match.group(1), int(match.group(2)))})
             elif match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)", parsed.path):
                 self._json(get_manual_data(match.group(1), int(match.group(2))))
+            elif parsed.path == "/api/v1/language-taxonomy":
+                self._json(language_taxonomy.catalog())
             elif parsed.path == "/api/v1/config":
                 self._json(
                     {

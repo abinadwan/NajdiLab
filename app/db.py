@@ -273,6 +273,27 @@ def _apply_migration(conn: sqlite3.Connection, name: str, sql: str) -> None:
         conn.execute("PRAGMA foreign_keys = ON")
 
 
+def backup_before_migration(conn: sqlite3.Connection, db_path: Path, first_pending: str) -> Path:
+    """A consistent copy of an existing database, written before its schema changes (V2.2.0).
+
+    Schema changes are not automatically reversible; to undo an upgrade, stop NajdiLab and replace the
+    database with this file (see docs/development/LANGUAGE_METADATA.md). Fresh databases have nothing
+    to keep and are not copied.
+    """
+    folder = db_path.parent / "backups"
+    folder.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    target = folder / f"{db_path.stem}-before-{first_pending.removesuffix('.sql')}-{stamp}.db"
+    copy = sqlite3.connect(target)
+    try:
+        conn.backup(copy)
+        if copy.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+            raise RuntimeError("The pre-migration backup failed its integrity check; the database was not changed.")
+    finally:
+        copy.close()
+    return target
+
+
 def apply_migrations(db_path: Path | str = DB_PATH) -> None:
     """Apply registered migrations only (DB-01), each atomically with its ledger row (DB-02).
 
@@ -290,6 +311,8 @@ def apply_migrations(db_path: Path | str = DB_PATH) -> None:
         pending = [name for name in sources if name not in applied]
         for name in pending:
             migration_plan(name, sources[name])
+        if pending and applied:
+            backup_before_migration(conn, Path(db_path), pending[0])
         for name in pending:
             _apply_migration(conn, name, sources[name])
         conn.execute("PRAGMA optimize")

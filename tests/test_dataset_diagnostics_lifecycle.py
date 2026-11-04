@@ -44,6 +44,7 @@ def test_first_gold_version_has_current_diagnostics_without_a_derived_copy(gold)
     assert manifest['state'] == 'Frozen'
     assert manifest['diagnostics']['version'] == manifest['version']
     assert set(manifest['diagnostics']['artifacts']) == {'loss-mask-validation.json', 'balancing_report.json'}
+    assert all(manifest['sha256'][n] == manifest['diagnostics']['artifacts'][n] for n in manifest['diagnostics']['artifacts']), 'hashed like data files'
     before = _snapshot(directory)
     health = platform.dataset_health(manifest['version'])
     assert health['diagnostics'] == {**health['diagnostics'], 'valid': True, 'error': None, 'source': 'stored'}
@@ -76,6 +77,7 @@ def _legacy(directory):
     manifest.pop('diagnostics'); manifest.pop('loss_mask_validation')
     for name in ('loss-mask-validation.json', 'balancing_report.json'):
         (directory / name).unlink()
+        manifest['sha256'].pop(name)
     (directory / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False), encoding='utf-8')
     return manifest['version']
 
