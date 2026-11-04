@@ -44,6 +44,7 @@ from .chat_history import saved_sessions_page
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .chat_workspace import ChatWorkspace, fields
+from .chat_preparation import ChatPreparation
 from .managed_runtime import ManagedRuntime
 from .native_runtime import NativeRuntime
 from .model_service import ModelLibrary
@@ -142,6 +143,8 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
         self.runtime = ManagedRuntime(self.native)
         self.runtime.attach()
         self.native.start_gate = self._native_gate
+        # The composer's one path from a model/context choice to a ready runtime.
+        self.preparation = ChatPreparation(self.native, lambda: self.integrations, lambda: self.models().store)
         super().__init__(*args, **kwargs)
 
     def workspace(self):
@@ -349,6 +352,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.native.status())
             elif parsed.path == '/api/v1/native/models':
                 self._json(self.server.native.models())
+            elif parsed.path == '/api/v1/chat/models':
+                self._json(self.server.preparation.models())
             elif parsed.path == '/api/v1/runtime':
                 self._json(self.server.runtime.status())
             elif parsed.path == '/api/v1/models/library':
@@ -476,6 +481,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._send_stream(match.group(1), data)
             elif parsed.path.startswith('/api/v1/models/'):
                 self._json(self.server.models().handle(parsed.path[len('/api/v1/models/'):], data))
+            elif parsed.path == '/api/v1/chat/prepare':
+                self._json(self.server.preparation.prepare(data))
             elif match := re.fullmatch(r'/api/v1/runtime/([a-z]+)', parsed.path):
                 self._json(self.server.runtime.handle(match.group(1), data))
             elif parsed.path in {'/api/v1/native/start', '/api/v1/native/stop'}:

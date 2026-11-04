@@ -114,6 +114,7 @@
       fact('Context length',valueOrUnknown(count(d.reported.context_length)),'reported'),
       d.base_models.length?fact('Base model',ident(d.base_models[0])):null);
     const settings=node('div',{class:'models-check-settings',role:'group','aria-label':'Compatibility check settings'},
+      node('p',{class:'muted models-simulation'},'Simulation only: these settings estimate fit for the check below. They never change a chat; choose the chat\'s context in the message box.'),
       node('label',{for:'models-context'},'Context size'),
       select('models-context',[['4096','4096'],['8192','8192'],['16384','16384'],['32768','32768']],'8192'),
       node('label',{for:'models-gpu'},'GPU use'),
@@ -252,7 +253,7 @@
     if(item.status==='PAUSED')act('Resume',()=>control(item,'resume',{approved:true}));
     if(item.active||item.status==='PAUSED'||item.status==='ERROR')act('Cancel and remove',()=>control(item,'cancel'));
     if(['READY','UNVERIFIED','ERROR'].includes(item.status)&&!item.active)act('Recheck integrity',()=>control(item,'recheck'));
-    if(item.status==='READY')act('Check fit and load…',()=>openLoad(item),'button primary');
+    if(item.status==='READY')act('Use in Chat',()=>useInChat(item),'button primary');
     if(!item.active&&!['DOWNLOADING'].includes(item.status))act('Delete…',()=>openDelete(item),'button delete-action');
     return node('article',{class:'models-library-item'},
       node('div',{class:'models-library-head'},node('h3',{},ident(item.filename)),pill(STATUS[item.status]||'neutral',STATUS_TEXT[item.status]||item.status),
@@ -262,7 +263,7 @@
         fact('SHA-256',item.verified_sha256?[node('bdi',{dir:'ltr',translate:'no',class:'hash',title:item.verified_sha256},item.verified_sha256.slice(0,16)+'…'),' ','verified']:'Not verified yet'),
         fact('Location',ident(item.path))),
       item.error_code?node('p',{class:'models-error-line'},ERROR_TEXT[item.error_code]||item.error_code):null,
-      progress,node('div',{class:'models-actions'},actions),node('div',{class:'models-load','data-load':item.id}));
+      progress,node('div',{class:'models-actions'},actions));
   }
   async function control(item,action,body={}){
     try{await api(`/api/v1/models/library/${item.id}/${action}`,body);}
@@ -270,39 +271,12 @@
     refreshLibrary();
   }
 
-  // ------------------------------------------------------------- load
-  function openLoad(item){
-    const box=document.querySelector(`[data-load="${item.id}"]`);
-    const id=`load-${item.id.slice(0,8)}`;
-    box.replaceChildren(node('div',{class:'models-check-settings',role:'group','aria-label':'Load settings'},
-      node('label',{for:`${id}-ctx`},'Context size'),select(`${id}-ctx`,[['4096','4096'],['8192','8192'],['16384','16384'],['32768','32768']],'8192'),
-      node('label',{for:`${id}-gpu`},'GPU use'),select(`${id}-gpu`,[['auto','Automatic'],['all','All layers on GPU'],['0','CPU only']],'auto'),
-      node('label',{class:'inline-check'},node('input',{type:'checkbox',id:`${id}-hw`,checked:true}),' ','Read this computer\'s hardware for the check (stays on this computer)'),
-      node('button',{type:'button',class:'button ghost',onclick:()=>checkLoad(item,id)},'Check fit')),node('div',{id:`${id}-result`,'aria-live':'polite'}));
-    el(`${id}-ctx`).focus();
-  }
-  async function checkLoad(item,id){
-    const out=el(`${id}-result`);out.replaceChildren(node('p',{class:'muted'},'Checking…'));
-    const context=Number(el(`${id}-ctx`).value),gpu=el(`${id}-gpu`).value;
-    try{
-      const r=await api(`/api/v1/models/library/${item.id}/advise`,{context,gpu_layers:gpu,hardware_approved:el(`${id}-hw`).checked});
-      const allowed=['COMPATIBLE','LIMITED'].includes(r.load.classification);
-      const confirm=node('input',{type:'checkbox',id:`${id}-approve`,disabled:!allowed});
-      const start=node('button',{type:'button',class:'button primary',disabled:true,onclick:()=>startNative(item,context,gpu,out)},'Load in NajdiLab Native');
-      confirm.onchange=()=>{start.disabled=!confirm.checked;};
-      out.replaceChildren(adviceCard(r,{load:node('section',{class:'models-load-confirm','aria-label':'Load approval'},
-        allowed?null:node('p',{},'Loading is not offered: the advisor result is ',ident(r.load.classification),'.'),
-        node('label',{class:'inline-check'},confirm,' ','Load this model now, with this context and GPU setting. Nothing loads without this approval.'),start)}));
-    }catch(error){out.replaceChildren(node('p',{class:'models-error',role:'alert'},errorText(error)));}
-  }
-  async function startNative(item,context,gpu,out){
-    out.querySelectorAll('button,input').forEach(b=>{b.disabled=true;});
-    out.append(node('p',{class:'muted',role:'status'},'Starting NajdiLab Native… verifying the file and loading the model.'));
-    try{
-      await api('/api/v1/native/start',{approved:true,model:item.native_id,context_budget:context,gpu_layers:gpu});
-      global.toast?.('NajdiLab Native is running this model. Start a new chat with NajdiLab Native to use it.');
-    }catch(error){out.append(node('p',{class:'models-error',role:'alert'},errorText(error)));}
-    refreshLibrary();
+  // ------------------------------------------------------------- use in chat
+  /* Opens Chat with an empty draft and this model chosen. Context stays the user's choice;
+     nothing is loaded or started until the chat asks and the user approves. */
+  function useInChat(item){
+    global.NajdiChat?.useModel({provider:'native',model:item.native_id});
+    global.switchView?.('chat');
   }
 
   // ------------------------------------------------------------- delete
@@ -444,7 +418,7 @@
     if(!r.host&&r.platform.supported)act('Check this computer',()=>runtimeAction('detect',{approved:true}),'button primary',Boolean(r.job));
     if(r.active){
       act('Verify files',()=>runtimeAction('verify',{}),'button ghost',Boolean(r.job));
-      if(['READY','STOPPED'].includes(r.state))act('Start a model…',()=>showTab('library'),'button primary');
+      if(['READY','STOPPED'].includes(r.state))act('Choose a model to use in Chat…',()=>showTab('library'),'button primary');
       if(r.native_state==='RUNNING')act('Stop the model…',()=>openRuntimeDialog('stop'));
       if(r.previous)act('Roll back…',()=>openRuntimeDialog('rollback'),'button ghost',busy);
       act('Uninstall…',()=>openRuntimeDialog('uninstall'),'button delete-action',busy);

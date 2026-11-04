@@ -1,8 +1,8 @@
 /* PR #21 (95e7604) chat-enhancement acceptance, ported to the Chat V2 interface.
  * Only the disposable fixture and synthetic replies; hardware evidence is mocked in
- * the page. Same guarantees as the original script: preset gating by a proven
- * engine ceiling and a fitting estimate, read-only evidence (no /select), approval
- * withdrawn on change, Enter/Shift+Enter/IME/repeat/blank guards, exact safe
+ * the page. Same guarantees, on the V2.1.0 composer: choosing a model or context is
+ * read-only (no /select, no approved preparation), approval is never reused for another
+ * chat, Enter/Shift+Enter/IME/repeat/blank guards, exact safe
  * Markdown with a raw view, failed and newer drafts preserved, wrong model never
  * sends, Arabic labels around untranslated content, mobile fit. */
 const assert=require('node:assert/strict');
@@ -30,46 +30,42 @@ const puppeteer=require('puppeteer-core');
         if(options.method==='POST')window.fixtureCalls.push({route:url,body:options.body?JSON.parse(options.body):null});
         if(url.endsWith('/send-stream')&&window.failNextSend){window.failNextSend=false;
           return new Response(JSON.stringify({ok:false,error:'Synthetic send failure',code:'ENGINE_FAILED'}),{status:502,headers:{'Content-Type':'application/json'}});}
-        if(url==='/api/v1/chat/hardware')return new Response(JSON.stringify({gpus:[],recommendation:{model_max_context:131072,runtime_context:4096,budget_ceiling:4096,candidates:[
-          {context:4096,assessment:'ESTIMATE_FITS_FREE_VRAM',estimated_required_bytes:5*1024**3},
-          {context:8192,assessment:'ESTIMATE_FITS_FREE_VRAM',estimated_required_bytes:6*1024**3}],reason:'Synthetic evidence only.'}}),{status:200,headers:{'Content-Type':'application/json'}});
-        const response=await original(route,options);
-        if(url==='/api/v1/integrations'&&window.wrongModel){
-          const data=await response.json();for(const item of data.items)if(item.id==='lmstudio')item.selected_model='different-fixture';
-          return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
-        }
-        return response;
+        // The runtime selection moved elsewhere: preparation says so, and sending waits for approval.
+        if(url==='/api/v1/chat/prepare'&&window.wrongModel)return new Response(JSON.stringify({state:'NEEDS_APPROVAL',needs_select:true,needs_load:false,
+          message:'LM Studio must already have this model loaded; NajdiLab will select it for chat.'}),{status:200,headers:{'Content-Type':'application/json'}});
+        return original(route,options);
       };
     });
     await page.goto(base+'/chat');await page.waitForSelector('#view-chat.active');
     const setDraft=async value=>page.$eval('#chat-draft',(e,value)=>{e.value=value;e.dispatchEvent(new Event('input',{bubbles:true}));},value);
     const sendCount=()=>page.evaluate(()=>window.fixtureCalls.filter(c=>c.route.endsWith('/send-stream')||c.route.endsWith('/send')).length);
     const value=id=>page.$eval('#'+id,e=>e.value);
-    const preset=id=>page.$eval(`input[name="chat-preset"][value="${id}"]`,e=>e.disabled);
     const settled=async n=>{try{await page.waitForFunction(n=>document.querySelectorAll('.chatv2-msg.assistant:not(.streaming):not(.incomplete)').length===n,{timeout:10000},n);}catch(e){console.error('STATE',JSON.stringify(await page.evaluate(()=>({notice:document.querySelector('#chat-notice').textContent,calls:window.fixtureCalls.map(c=>c.route),draft:document.querySelector('#chat-draft').value,msgs:document.querySelectorAll('.chatv2-msg').length,send:document.querySelector('#chat-send').disabled}))));throw e;}};
 
-    // Presets need evidence; Custom keeps PR #21's 4096/1024 defaults.
-    await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
-    assert.equal(await value('chat-budget'),'4096');assert.equal(await value('chat-reserve'),'1024');
-    for(const id of ['light','balanced','long'])assert.equal(await preset(id),true,id+' locked without evidence');
-    assert.equal(await page.$eval('input[name="chat-preset"][value="custom"]',e=>e.checked),true);
-    await page.click('#chat-preset-check');await page.waitForFunction(()=>!document.querySelector('input[name="chat-preset"][value="light"]').disabled);
-    assert.equal(await preset('balanced'),true,'8192 is above the proven 4096 ceiling');assert.equal(await preset('long'),true);
-    assert.match(await page.$eval('#chat-preset-evidence',e=>e.textContent),/Proven engine ceiling: 4096/);
-    assert.match(await page.$eval('label:has(input[value="balanced"]) .chatv2-preset-reason',e=>e.textContent),/Above engine ceiling/);
-    assert.equal(await page.evaluate(()=>window.fixtureCalls.filter(c=>c.route.includes('/select')).length),0,'evidence is read-only');
-    await page.click('input[name="chat-preset"][value="light"]');
-    assert.equal(await value('chat-budget'),'4096');assert.equal(await value('chat-reserve'),'1024');
-    // A different provider never reuses this snapshot, and approval is withdrawn on any change.
-    await page.select('#chat-provider','ollama');assert.equal(await preset('light'),true,'never reuse another provider snapshot');
-    await page.click('#chat-load-approved');assert.equal(await page.$eval('#chat-load-approved',e=>e.checked),true);
-    await page.$eval('#chat-budget',e=>{e.value='5000';e.dispatchEvent(new Event('input'));});
-    assert.equal(await page.$eval('#chat-load-approved',e=>e.checked),false,'changing the context withdraws load approval');
-    await page.click('#chat-load-approved');await page.$eval('#chat-model',e=>e.dispatchEvent(new Event('change')));
-    assert.equal(await page.$eval('#chat-load-approved',e=>e.checked),false,'changing the model withdraws load approval');
-    await page.select('#chat-provider','lmstudio');
-    await page.$eval('#chat-budget',e=>{e.value='4096';e.dispatchEvent(new Event('input'));});
-    await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-setup').open&&!document.querySelector('#chat-collect').disabled);
+    // V2.1.0: New chat is immediate; choosing model and context only reads, never selects or approves.
+    await page.click('#chat-new');assert.equal(await page.$('dialog[open]'),null);
+    await page.click('#chat-context-button');await page.waitForSelector('#chat-context-menu:not([hidden])');
+    assert.deepEqual(await page.$$eval('#chat-context-options input',es=>es.map(e=>e.value)),['4096','8192','16384','32768']);
+    assert.equal(await value('chat-reserve'),'1024','default reply reserve');
+    await page.keyboard.press('Escape');
+    const pick=async name=>{await page.click('#chat-model-button');await page.waitForSelector('#chat-model-menu:not([hidden]) .chatv2-model-item');
+      await page.evaluate(name=>[...document.querySelectorAll('#chat-model-menu h4')].find(h=>h.textContent===name).nextElementSibling.click(),name);};
+    await pick('Ollama');
+    await page.click('#chat-context-button');await page.click('#chat-context-options label:first-child');
+    assert.equal(await page.$eval('#chat-context-label',e=>e.textContent),'4K');
+    // An Ollama approval belongs to one new chat: refusing it creates nothing; nothing is reused.
+    await setDraft('Ollama needs approval');await page.click('#chat-send');await page.waitForSelector('#chat-prepare:not([hidden])');
+    await page.click('#chat-prepare-cancel');
+    await page.click('#chat-context-button');await page.click('#chat-context-options label:nth-child(2)');
+    await page.click('#chat-send');await page.waitForSelector('#chat-prepare:not([hidden])');
+    assert.match(await page.$eval('#chat-prepare',e=>e.textContent),/Allow Ollama to load this model/,'a changed context asks again');
+    await page.click('#chat-prepare-cancel');
+    assert.equal(await page.evaluate(()=>window.fixtureCalls.filter(c=>c.route.includes('/select')).length),0,'choosing is read-only');
+    assert.equal(await page.evaluate(()=>window.fixtureCalls.filter(c=>c.route.endsWith('/chat/prepare')&&c.body.approved).length),0,'nothing approved yet');
+    assert.equal(await page.evaluate(()=>window.fixtureCalls.filter(c=>c.route.endsWith('/chat/sessions')).length),0,'no conversation created');
+    await pick('LM Studio');
+    await page.click('#chat-context-button');await page.click('#chat-context-options label:first-child');
+    await setDraft('');
     assert.equal(await page.$eval('#chat-send',e=>e.disabled),true,'blank draft cannot be sent');assert.equal(await page.$eval('#chat-collect',e=>e.checked),false);
 
     // Keyboard guards: repeat, composition and IME keyCode never send.
@@ -102,13 +98,14 @@ const puppeteer=require('puppeteer-core');
     await page.evaluate(()=>{window.failNextSend=true;});await setDraft('Keep failed draft');await page.click('#chat-send');
     await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('Synthetic send failure'));assert.equal(await value('chat-draft'),'Keep failed draft');assert.equal(await sendCount(),3);
     await page.evaluate(async()=>{window.wrongModel=true;await window.NajdiChat.load();});
-    await page.waitForFunction(()=>document.querySelector('#chat-notice').textContent.includes('bound to its original model'));
+    await page.waitForFunction(()=>!document.querySelector('#chat-prepare').hidden&&document.querySelector('#chat-prepare').textContent.includes('Select this model in LM Studio'));
     await page.focus('#chat-draft');await page.keyboard.press('Enter');assert.equal(await sendCount(),3,'wrong selected model never sends');
-    assert.equal(await page.$eval('#chat-send',e=>e.disabled),true);
+    assert.equal(await value('chat-draft'),'Keep failed draft','the draft stays while the runtime is prepared');
+    await page.click('#chat-prepare-cancel');
     await page.evaluate(async()=>{window.wrongModel=false;await window.NajdiChat.load();});await page.waitForFunction(()=>!document.querySelector('#chat-send').disabled);
 
     // A completion never clears text typed while it ran.
-    await setDraft('DELAY_FIXTURE');await page.click('#chat-send');await page.waitForFunction(()=>!document.querySelector('#chat-stop').disabled);
+    await setDraft('DELAY_FIXTURE');await page.click('#chat-send');await page.waitForFunction(()=>!document.querySelector('#chat-stop').hidden);
     await setDraft('Newer draft');await page.focus('#chat-draft');await page.keyboard.press('Enter');
     await settled(3);assert.equal(await sendCount(),4);assert.equal(await value('chat-draft'),'Newer draft');
 
@@ -123,6 +120,6 @@ const puppeteer=require('puppeteer-core');
     await page.setViewport({width:390,height:844});await page.evaluate(()=>window.scrollTo(0,0));
     const bounds=await page.$eval('.chatv2-main',e=>({left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right}));assert.ok(bounds.left>=0&&bounds.right<=391,JSON.stringify(bounds));
     await page.screenshot({path:path.join(artifacts,'chat-enhancements-mobile.png')});
-    assert.deepEqual(errors,[]);console.log('PASS: (PR #21 port) preset gates/read-only evidence/approval withdrawal, Enter/Shift+Enter/IME/repeat/blank guards, exact safe Markdown + raw view, failure/new-typing drafts, wrong-model block, Arabic and mobile chat.');
+    assert.deepEqual(errors,[]);console.log('PASS: (PR #21 port, V2.1.0 composer) read-only model/context choice, approval never reused, Enter/Shift+Enter/IME/repeat/blank guards, exact safe Markdown + raw view, failure/new-typing drafts, wrong-model block, Arabic and mobile chat.');
   }finally{if(browser)await browser.close();child.kill();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

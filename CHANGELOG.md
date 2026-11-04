@@ -1,5 +1,18 @@
 # Changelog
 
+## V2.1.0 — development candidate (2026-11-04, `update-project`, Draft PR #23; not a release)
+
+**Version step:** minor (2.0.0 → 2.1.0): a new user-facing capability without incompatible API or data changes. From this batch on, each owner-approved batch of features or fixes gets one SemVer step recorded here with its reason; commits within a batch do not bump the version.
+
+- **Unified chat composer** (`static/chat.js`, `static/index.html`, `static/najdi.css`): model and context selectors inside the message box, round icon Send that becomes Stop during a reply, visible Collect state, quiet context meter, one short hint line. Context options 4K–32K, disabled above the model's maximum; Advanced holds custom context, reply reserve and GPU use.
+- **New chat without a dialog**: an empty chat opens immediately with the last valid choice; the conversation is created by the first send. Changing model or context in a conversation with saved turns asks to start a new conversation; history is never rebound; the unsent message moves along; collection starts off.
+- **One runtime-preparation path** (`app/chat_preparation.py`, `GET /api/v1/chat/models`, `POST /api/v1/chat/prepare`): reuse a matching NajdiLab Native, or explain and, with one approval, check memory with the Smart Model Advisor and start / restart NajdiLab's own process (never during a reply), select the model in LM Studio, or approve Ollama's load for one new chat. All existing per-turn safety checks unchanged.
+- **Chat information** (was Chat settings) is read only; runtime Start/Stop moved to the model menu (stop) and the preparation card (start), and stays in Model library → llama.cpp runtime.
+- **Model library**: *Use in Chat* replaces *Check fit and load…*; Advisor settings in Discover are marked as simulation only.
+- **Copyright** moved from every page footer to the sidebar under the local address, translated and accessible when collapsed.
+- **Version V2.1.0** from `app/version.py` everywhere it is shown.
+- **Tests**: `tests/test_chat_preparation.py`; composer, New chat, switch confirmation, preparation card, Use in Chat, read-only Chat information, copyright location and version in `tests/chat-browser.cjs`, `tests/chat-enhancements-browser.cjs`, `tests/models-browser.cjs`, `tests/i18n-browser.cjs`, `tests/ux-audit.cjs`; unit tests for context options and the switch rule. Record: `docs/development/CHAT_COMPOSER.md`, release notes `docs/development/RELEASE_NOTES_V2.1.0.md`.
+
 ## V2.0.0 — development candidate (2026-11-03, `update-project`, Draft PR #23; not a release)
 
 - **Product version V2.0.0** from one source (`app/version.py`): server banner and `Server` header, Hugging Face User-Agent, `/api/v1/config`, `/api/v1/health`, the sidebar under the Najdi Lab / نجدي لاب name and Settings → About Najdi Lab. Release notes: `docs/development/RELEASE_NOTES_V2.0.0.md`.

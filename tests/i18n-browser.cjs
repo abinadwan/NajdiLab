@@ -151,11 +151,19 @@ test('Arabic and English interface in Chromium',async t=>{
 
     await t.test('chat session in Arabic keeps messages verbatim and translates its status',async()=>{
       await page.evaluate(()=>switchView('chat'));await page.waitForSelector('#view-chat.active');
-      await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
-      await settle();
-      const setup={};await scanInto(setup,'chat: new chat dialog');
+      await page.click('#chat-new');await settle();
+      const pick=async name=>{await page.evaluate(()=>document.querySelector('#chat-model-button').click());await page.waitForSelector('#chat-model-menu:not([hidden]) .chatv2-model-item');
+      await page.evaluate(name=>[...document.querySelectorAll('#chat-model-menu h4')].find(h=>h.textContent===name).nextElementSibling.click(),name);};
+      const setup={};
+      await page.click('#chat-model-button');await page.waitForSelector('#chat-model-menu:not([hidden])');await settle();await scanInto(setup,'chat: model menu');
+      await page.keyboard.press('Escape');
+      await page.click('#chat-context-button');await page.evaluate(()=>{document.querySelector('#chat-context-advanced').open=true;});await settle();
+      await scanInto(setup,'chat: context menu');await page.keyboard.press('Escape');
+      await pick('Ollama');await page.$eval('#chat-draft',e=>{e.value='Synthetic';e.dispatchEvent(new Event('input'));});
+      await page.click('#chat-send');await page.waitForSelector('#chat-prepare:not([hidden])');await settle();await scanInto(setup,'chat: preparation card');
+      await page.click('#chat-prepare-cancel');await page.$eval('#chat-draft',e=>{e.value='';e.dispatchEvent(new Event('input'));});
       assert.deepEqual(setup,{},'untranslated text:\n'+JSON.stringify(setup,null,1));
-      await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled);
+      await pick('LM Studio');
       await page.type('#chat-draft','Approve');await page.click('#chat-send');
       await page.waitForFunction(()=>document.querySelectorAll('.chat-message').length===2&&!document.querySelector('.chatv2-msg.streaming'));
       const first=await page.$eval('.chat-message [dir="auto"], .chat-message p',e=>e.textContent);
@@ -164,6 +172,9 @@ test('Arabic and English interface in Chromium',async t=>{
       await page.waitForFunction(()=>/[؀-ۿ]/.test(document.querySelector('#chat-notice').textContent));
       await settle();
       const report={};await scanInto(report,'chat: active session');
+      await page.click('#chat-info-open');await page.waitForSelector('#chat-panel[open]');
+      await page.waitForFunction(()=>document.querySelector('#chat-info').children.length>2);await settle();
+      await scanInto(report,'chat: information');await page.click('#chat-panel-close');
       assert.deepEqual(report,{},'untranslated text:\n'+JSON.stringify(report,null,1));
     });
 

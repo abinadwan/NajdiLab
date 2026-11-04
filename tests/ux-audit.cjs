@@ -28,8 +28,9 @@ const VIEWPORTS={desktop:[1440,900],tablet:[820,1180],'mobile-390':[390,844],'mo
     await page.setViewport({width:1440,height:900});
     await page.goto(base+'/chat');await page.waitForSelector('#view-chat.active');
     // Synthetic content: a chat with a Markdown reply and thinking, a second titled chat.
-    await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
-    await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-setup').open&&!document.querySelector('#chat-collect').disabled);
+    const pick=async name=>{await page.evaluate(()=>document.querySelector('#chat-model-button').click());await page.waitForSelector('#chat-model-menu:not([hidden]) .chatv2-model-item');
+    await page.evaluate(name=>[...document.querySelectorAll('#chat-model-menu h4')].find(h=>h.textContent===name).nextElementSibling.click(),name);};
+    await page.click('#chat-new');await pick('LM Studio');
     await page.type('#chat-draft','MARKDOWN_FIXTURE');await page.keyboard.press('Enter');
     await page.waitForFunction(()=>document.querySelectorAll('.chatv2-msg.assistant:not(.streaming)').length===1,{timeout:10000});
     const audit=async(label)=>{
@@ -55,17 +56,28 @@ const VIEWPORTS={desktop:[1440,900],tablet:[820,1180],'mobile-390':[390,844],'mo
         await page.evaluate(()=>window.scrollTo(0,0));
         await audit(`${vp}-${theme}-${lang}-${view}`);
       }
-      // Chat dialogs and the action menu, per combination.
+      // Composer menus, Chat information, the preparation card and the action menu, per combination.
       await page.evaluate(()=>switchView('chat'));await page.waitForSelector('#view-chat.active');await wait(300);
-      await page.evaluate(()=>document.querySelector('#chat-new').click());await page.waitForSelector('#chat-setup[open]');await wait(300);await audit(`${vp}-${theme}-${lang}-chat-setup-dialog`);
-      await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('#chat-setup').open);
-      await page.evaluate(()=>document.querySelector('#chat-settings-open').click());await page.waitForSelector('#chat-panel[open]');await wait(200);
-      await audit(`${vp}-${theme}-${lang}-chat-settings-drawer`);
+      await page.evaluate(()=>document.querySelector('#chat-list [data-chat-open]').click());await page.waitForFunction(()=>!document.querySelector('#chat-actions').disabled);await wait(200);
+      await page.evaluate(()=>document.querySelector('#chat-model-button').click());await page.waitForSelector('#chat-model-menu:not([hidden])');await wait(150);
+      await audit(`${vp}-${theme}-${lang}-chat-model-menu`);await page.keyboard.press('Escape');
+      await page.evaluate(()=>document.querySelector('#chat-context-button').click());await page.waitForSelector('#chat-context-menu:not([hidden])');
+      await page.evaluate(()=>{document.querySelector('#chat-context-advanced').open=true;});await wait(150);
+      await audit(`${vp}-${theme}-${lang}-chat-context-menu`);await page.keyboard.press('Escape');
+      await page.evaluate(()=>document.querySelector('#chat-info-open').click());await page.waitForSelector('#chat-panel[open]');
+      await page.waitForFunction(()=>document.querySelector('#chat-info').textContent.includes('Token usage')||/[؀-ۿ]/.test(document.querySelector('#chat-info').textContent));await wait(200);
+      await audit(`${vp}-${theme}-${lang}-chat-information`);
       await page.evaluate(()=>document.querySelector('#chat-panel-close').click());
       await page.evaluate(()=>document.querySelector('#chat-actions').click());await wait(150);
       await page.evaluate(()=>document.querySelector('#chat-action-menu [data-chat-action="delete"]').click());
       await page.waitForSelector('#chat-delete[open]');await wait(200);await audit(`${vp}-${theme}-${lang}-chat-delete-dialog`);
       await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('#chat-delete').open);
+      await page.evaluate(()=>document.querySelector('#chat-new').click());await pick('Ollama');
+      await page.$eval('#chat-draft',e=>{e.value='Synthetic draft';e.dispatchEvent(new Event('input'));});
+      await page.evaluate(()=>document.querySelector('#chat-send').click());await page.waitForSelector('#chat-prepare:not([hidden])');await wait(150);
+      await audit(`${vp}-${theme}-${lang}-chat-prepare-card`);
+      await page.evaluate(()=>document.querySelector('#chat-prepare-cancel').click());
+      await page.$eval('#chat-draft',e=>{e.value='';e.dispatchEvent(new Event('input'));});
     }
     fs.writeFileSync(path.join(out,'ux-audit.json'),JSON.stringify(report,null,1));
     const rules={};for(const r of report)for(const v of r.violations){const k=`${v.id} (${v.impact})`;rules[k]=(rules[k]||0)+1;}

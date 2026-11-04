@@ -58,14 +58,32 @@ test('sessions group by local day of last activity, pinned first',()=>{
   assert.deepEqual(groups.map(g=>[g.key,g.items.map(i=>i.id)]),[['pinned',['p']],['today',['t']],['yesterday',['y']],['month',['w']],['older',['o','bad']]]);
 });
 
-test('presets match the approved table and the budget breakdown validates limits',()=>{
-  assert.deepEqual(chat.PRESETS,{light:{context_budget:4096,reply_reserve:1024},balanced:{context_budget:8192,reply_reserve:2048},long:{context_budget:16384,reply_reserve:3072}});
-  assert.equal(chat.presetFor(8192,2048),'balanced');assert.equal(chat.presetFor(8192,999),'custom');
+test('the budget breakdown validates limits',()=>{
   assert.deepEqual(chat.budgetBreakdown(8192,2048),{context:8192,reserve:2048,input:6144,valid:true,warnings:[]});
   assert.equal(chat.budgetBreakdown(4096,4096).valid,false);
   assert.equal(chat.budgetBreakdown(4096,9000).valid,false);
   assert.match(chat.budgetBreakdown(8192,256).warnings[0],/Thinking models/);
   assert.match(chat.budgetBreakdown(65536,2048,32768).warnings[0],/maximum context/);
+});
+
+test('V2.1.0 composer: readable context sizes, enabled only up to the model maximum when known',()=>{
+  assert.deepEqual(chat.CONTEXTS,[4096,8192,16384,32768]);
+  assert.deepEqual([4096,8192,16384,32768,6000,0].map(chat.contextLabel),['4K','8K','16K','32K','6000','—']);
+  assert.deepEqual(chat.contextOptions(8192).map(o=>[o.label,o.enabled]),[['4K',true],['8K',true],['16K',false],['32K',false]]);
+  assert.ok(chat.contextOptions(null).every(o=>o.enabled),'unknown maximum: the runtime checks it when the chat is prepared');
+  assert.ok(chat.contextOptions(131072).every(o=>o.enabled));
+});
+
+test('V2.1.0 composer: a conversation with saved turns never changes model or context silently',()=>{
+  const session={provider:'native',model:'m.gguf',context_budget:8192,reply_reserve:1024,turns:[{}]};
+  const same={provider:'native',model:'m.gguf',context:8192,reserve:1024};
+  assert.equal(chat.sameSelection(same,{...same}),true);
+  assert.equal(chat.switchNeedsNewChat(session,same),false,'the same choice keeps the conversation');
+  assert.equal(chat.switchNeedsNewChat(session,{...same,context:16384}),true,'another context needs a new chat');
+  assert.equal(chat.switchNeedsNewChat(session,{...same,model:'other.gguf'}),true,'another model needs a new chat');
+  assert.equal(chat.switchNeedsNewChat(session,{...same,reserve:2048}),true);
+  assert.equal(chat.switchNeedsNewChat({...session,turns:[]},{...same,model:'other.gguf'}),false,'an empty conversation may simply change');
+  assert.equal(chat.switchNeedsNewChat(null,same),false,'a draft has nothing to protect');
 });
 
 test('errors keep the readable message and the technical code',()=>{
@@ -123,18 +141,8 @@ test('pathological input is bounded',()=>{
 
 // ---------------------------------------------------------------------------
 // Ported from PR #21 (95e7604, tests/chat-ui.test.cjs) onto the Chat V2 API.
-test('(PR #21) presets require the actual engine ceiling and an explicit unverified memory estimate',()=>{
-  const snapshot={recommendation:{budget_ceiling:8192,model_max_context:131072,runtime_context:8192,candidates:[
-    {context:4096,assessment:'ESTIMATE_FITS_FREE_VRAM',estimated_required_bytes:5},
-    {context:8192,assessment:'ESTIMATE_EXCEEDS_FREE_VRAM',estimated_required_bytes:10},
-    {context:16384,assessment:'ESTIMATE_FITS_FREE_VRAM',estimated_required_bytes:15}]}};
-  assert.deepEqual(chat.budgetPresets(snapshot).map(p=>[p.id,p.context,p.reply,p.enabled]),[['light',4096,1024,true],['balanced',8192,2048,false],['long',16384,3072,false]]);
-  assert.equal(chat.budgetPresets({recommendation:{model_max_context:131072}}).every(p=>!p.enabled),true);
-  assert.equal(chat.budgetPresets().every(p=>!p.enabled),true);
-  assert.equal(chat.budgetPresets({recommendation:{budget_ceiling:4096,candidates:[{context:8192,assessment:'ESTIMATE_FITS_FREE_VRAM'}]}})[0].enabled,false,'never borrow a larger estimate');
-  assert.equal(chat.budgetPresets({recommendation:{budget_ceiling:4096,candidates:[{context:4096,assessment:'ESTIMATE_FITS_FREE_VRAM'}]}})[0].enabled,false,'missing estimate bytes remain unknown');
-  assert.deepEqual(chat.budgetPresets().map(p=>p.reason),['Engine ceiling unknown','Engine ceiling unknown','Engine ceiling unknown']);
-});
+// The evidence-gated presets were replaced in V2.1.0 by the composer's context options plus the server's
+// memory check before any start (tests/test_chat_preparation.py) and the engine ceiling check at chat creation.
 
 test('(PR #21) manual budgets preserve backend integer bounds without rounding',()=>{
   for(const [context,reply] of [[128,1],[4096,1024],[1048576,8192]])assert.equal(chat.validBudgets(context,reply),true);

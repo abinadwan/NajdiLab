@@ -241,6 +241,14 @@ class NativeRuntime:
             self._reap()
             return self.state, self.last_error, self._run['model'] if self._run else None, self.revision
 
+    def running(self):
+        """What is loaded now (model, context, GPU use, identity), or None. No device or VRAM probing."""
+        with self._lock:
+            self._reap()
+            run = self._run
+            return None if run is None else {k: run[k] for k in ('model', 'context', 'gpu_layers', 'sha256', 'build', 'started_at')} | {
+                'revision': self.revision, 'leased': self._leased}
+
     def busy(self):
         """True while a model is starting or running; the managed runtime must not change files then."""
         with self._lock:

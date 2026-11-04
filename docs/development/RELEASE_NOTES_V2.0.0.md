@@ -1,5 +1,7 @@
 # Najdi Lab V2.0.0 — development candidate
 
+> Superseded by [V2.1.0](RELEASE_NOTES_V2.1.0.md) (unified chat composer). Kept as the record of V2.0.0.
+
 **Status:** development candidate on `update-project`, Draft PR #23. V2.0.0 is the owner-approved product version identifier; it is **not** a public release, a production approval or a merge to `main`. Acceptance gates that remain open are listed below.
 
 The version has one source, `app/version.py`. The server banner, the `Server` header, the Hugging Face client's User-Agent and `/api/v1/config` (`app_version`, `app_version_display`, `release_status`) read it; the interface shows it under the Najdi Lab / نجدي لاب name in the sidebar and in Settings → About Najdi Lab. Dataset versions, model files, migration numbers and dependency versions are unrelated and unchanged. `tests/test_version.py` and `tests/models-browser.cjs` check that the source, the API and the interface agree, in Arabic and English, light and dark, expanded and collapsed sidebar and on a phone.

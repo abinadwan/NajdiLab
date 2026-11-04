@@ -26,9 +26,9 @@ const OUT=path.resolve(__dirname,'..','docs','images','screenshots');
     await page.goto(base+'/chat');await page.waitForSelector('#view-chat.active');
     const chat=async(text)=>{await page.type('#chat-draft',text);await page.keyboard.press('Enter');
       await page.waitForFunction(()=>!document.querySelector('.chatv2-msg.streaming')&&!document.querySelector('#chat-collect').disabled,{timeout:10000});};
-    await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
-    await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-setup').open);
-    await page.waitForFunction(()=>!document.querySelector('#chat-collect').disabled);
+    const pick=async name=>{await page.evaluate(()=>document.querySelector('#chat-model-button').click());await page.waitForSelector('#chat-model-menu:not([hidden]) .chatv2-model-item');
+    await page.evaluate(name=>[...document.querySelectorAll('#chat-model-menu h4')].find(h=>h.textContent===name).nextElementSibling.click(),name);};
+    await page.click('#chat-new');await pick('LM Studio');
     await chat('MARKDOWN_FIXTURE');
     await page.evaluate(()=>{const d=document.querySelector('.chatv2-thinking');if(d)d.open=true;});
     for(const text of ['Synthetic question about a weekend plan','Second synthetic topic'])

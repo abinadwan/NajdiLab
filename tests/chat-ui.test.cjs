@@ -33,30 +33,6 @@ test('stop remains available during send and only calls own chat endpoint',async
   assert.deepEqual(calls,['/api/v1/chat/sessions/s/stop']);
 });
 
-test('hardware model keeps maximum, runtime, measured and estimated evidence separate',()=>{
-  const {hardwareModel}=require('../static/chat.js');
-  const view=hardwareModel({ram_total_bytes:32*1024**3,ram_available_bytes:20*1024**3,gpus:[{name:'GPU',free_bytes:10*1024**3,total_bytes:12*1024**3}],
-    model:{architecture:'gemma4',quantization:'Q4',weights_bytes:5*1024**3,other_loaded_models:[]},
-    recommendation:{model_max_context:131072,runtime_context:16384,measured:{context:16384,size_bytes:7*1024**3,size_vram_bytes:7*1024**3},
-      candidates:[{context:4096,estimated_required_bytes:6*1024**3,assessment:'ESTIMATE_FITS_FREE_VRAM'},{context:65536,estimated_required_bytes:20*1024**3,assessment:'ESTIMATE_EXCEEDS_FREE_VRAM'}],
-      recommended_context:4096,status:'ESTIMATE_UNVERIFIED'}});
-  const kind=label=>view.model.find(r=>r.label===label);
-  assert.equal(kind('Maximum context').value,131072);assert.equal(kind('Maximum context').kind,'reported');
-  assert.equal(kind('Loaded context now').kind,'measured');
-  assert.equal(kind('Measured memory now').value,'7.0 GiB');
-  assert.deepEqual(view.estimates.map(e=>[e.context,e.kind,e.assessment]),[[4096,'estimate','May fit in free GPU memory'],[65536,'estimate','Likely exceeds free GPU memory']]);
-  assert.equal(view.device[1].kind,'measured');
-  assert.equal(view.recommended,4096);
-});
-
-test('hardware model marks missing evidence as unknown, never as zero',()=>{
-  const {hardwareModel}=require('../static/chat.js');
-  const view=hardwareModel({gpus:[],recommendation:{recommended_context:null,reason:'GPU free memory is unavailable.'}});
-  assert.equal(view.device.find(d=>d.label==='GPU').kind,'unknown');
-  assert.ok(view.model.every(r=>r.value===null&&r.kind==='unknown'));
-  assert.equal(view.recommended,null);
-});
-
 test('newer typing is never cleared by an older completed Send; rollover and failed requests keep drafts',()=>{
   const {shouldClearDraft}=require('../static/chat.js');
   assert.equal(shouldClearDraft('old question','new unfinished question','COMPLETED'),false);

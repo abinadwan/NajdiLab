@@ -3,7 +3,7 @@
  * `done` event returns the committed session. */
 (function(global){
   'use strict';
-  const PRESETS={light:{context_budget:4096,reply_reserve:1024},balanced:{context_budget:8192,reply_reserve:2048},long:{context_budget:16384,reply_reserve:3072}};
+  const CONTEXTS=[4096,8192,16384,32768];
   const PHASES={
     engine_check:'Checking the model runtime…',
     admission:'Verifying the model and the full conversation context…',
@@ -93,19 +93,24 @@
   function validBudgets(context,reply){
     return Number.isInteger(context)&&context>=128&&context<=1048576&&Number.isInteger(reply)&&reply>=1&&reply<=Math.min(8192,context-1);
   }
-  /* Presets are offered only with evidence (ported from PR #21): a proven engine
-     ceiling at least as large, and an estimate for exactly that context that fits
-     free GPU memory. Estimates stay labelled unverified; Custom is always available. */
-  const PRESET_LABELS={light:'Light',balanced:'Balanced',long:'Long'};
-  function budgetPresets(snapshot){
-    const r=snapshot?.recommendation||{},ceiling=r.budget_ceiling;
-    return Object.entries(PRESETS).map(([id,p])=>{
-      const estimate=r.candidates?.find(c=>c.context===p.context_budget);
-      const reason=!Number.isInteger(ceiling)||ceiling<1?'Engine ceiling unknown':p.context_budget>ceiling?'Above engine ceiling'
-        :!estimate||!Number.isFinite(estimate.estimated_required_bytes)||estimate.estimated_required_bytes<=0?'Memory estimate unavailable'
-        :estimate.assessment!=='ESTIMATE_FITS_FREE_VRAM'?'Memory estimate does not fit':'Unverified memory estimate';
-      return {id,label:PRESET_LABELS[id],context:p.context_budget,reply:p.reply_reserve,enabled:reason==='Unverified memory estimate',reason,estimatedBytes:estimate?.estimated_required_bytes};
-    });
+  /* Composer context choices: readable sizes, enabled only up to the model's own maximum when it is
+     known. Hardware fit and the engine's real ceiling are checked when the chat is prepared. */
+  function contextLabel(tokens){
+    if(!Number.isInteger(tokens)||tokens<=0)return '—';
+    return tokens%1024===0?`${tokens/1024}K`:String(tokens);
+  }
+  function contextOptions(maxContext,contexts=CONTEXTS){
+    const known=Number.isInteger(maxContext)&&maxContext>0;
+    return (contexts||CONTEXTS).map(value=>({value,label:contextLabel(value),enabled:!known||value<=maxContext}));
+  }
+  function sameSelection(a,b){
+    return !!a&&!!b&&a.provider===b.provider&&a.model===b.model&&a.context===b.context&&a.reserve===b.reserve;
+  }
+  /* A conversation with saved turns never changes model or context; a different choice needs an
+     explicit new conversation. An empty draft (or a conversation with no turns) can simply change. */
+  function switchNeedsNewChat(session,next){
+    return !!session&&(session.turns||[]).length>0&&!sameSelection({provider:session.provider,model:session.model,
+      context:session.context_budget,reserve:session.reply_reserve},next);
   }
 
   // Clear only the exact draft submitted to this request. A user may continue
@@ -139,36 +144,6 @@
     if(ok&&modelMax&&context>modelMax)result.warnings.push('This is larger than the model\'s maximum context.');
     if(ok&&reserve<512)result.warnings.push('Thinking models can use most of a small reply space before answering.');
     return result;
-  }
-
-  function presetFor(context,reserve){
-    return Object.entries(PRESETS).find(([,p])=>p.context_budget===context&&p.reply_reserve===reserve)?.[0]||'custom';
-  }
-
-  const gib=n=>typeof n==='number'?`${(n/1024**3).toFixed(1)} GiB`:null;
-  /* Structured device/model evidence. Each value says whether it was measured,
-     estimated or is unknown: an estimate must never read as a measurement. */
-  function hardwareModel(data){
-    const r=data.recommendation||{},m=data.model||{},seen=r.measured||null;
-    const device=[
-      {label:'RAM available',value:gib(data.ram_available_bytes),of:gib(data.ram_total_bytes),kind:data.ram_total_bytes==null?'unknown':'measured'},
-      ...(data.gpus||[]).map(g=>({label:'GPU',name:g.name,value:gib(g.free_bytes),of:gib(g.total_bytes),kind:'measured'}))
-    ];
-    if(!(data.gpus||[]).length)device.push({label:'GPU',value:null,kind:'unknown'});
-    const model=[
-      {label:'Architecture',value:m.architecture||null,kind:m.architecture?'reported':'unknown'},
-      {label:'Quantization',value:m.quantization||null,kind:m.quantization?'reported':'unknown'},
-      {label:'Weights size',value:gib(m.weights_bytes),kind:m.weights_bytes?'reported':'unknown'},
-      {label:'Maximum context',value:r.model_max_context??null,kind:r.model_max_context?'reported':'unknown'},
-      {label:'Proven engine ceiling',value:Number.isInteger(r.budget_ceiling)&&r.budget_ceiling>0?r.budget_ceiling:null,kind:Number.isInteger(r.budget_ceiling)&&r.budget_ceiling>0?'reported':'unknown'},
-      {label:'Loaded context now',value:r.runtime_context??null,kind:r.runtime_context?'measured':'unknown'}
-    ];
-    if(seen&&typeof seen.size_vram_bytes==='number')model.push({label:'Measured memory now',value:gib(seen.size_vram_bytes),kind:'measured'});
-    const estimates=(r.candidates||[]).map(c=>({context:c.context,value:gib(c.estimated_required_bytes),kind:'estimate',
-      assessment:{ABOVE_MODEL_MAX:'Above model maximum',ESTIMATE_FITS_FREE_VRAM:'May fit in free GPU memory',ESTIMATE_EXCEEDS_FREE_VRAM:'Likely exceeds free GPU memory'}[c.assessment]||'Unknown'}));
-    return {device,model,estimates,status:r.status||'INSUFFICIENT_EVIDENCE',recommended:r.recommended_context||null,
-      reason:r.reason||null,otherModels:m.other_loaded_models||[],systemPrompt:!!m.model_system_prompt,
-      processes:typeof data.gpu_compute_processes==='number'?data.gpu_compute_processes:null};
   }
 
   /* Error text keeps the readable message and the technical code for diagnosis. */
@@ -214,16 +189,17 @@
   }
 
   if(typeof module!=='undefined'&&module.exports){
-    module.exports={ChatController,ChatError,keyAction,shouldSendOnEnter,canSend,validBudgets,budgetPresets,shouldClearDraft,groupSessions,budgetBreakdown,presetFor,hardwareModel,ndjsonSplitter,errorParts,PRESETS,PHASES,
-      contextUsage,contextLevel,validThresholds,failureCategory,CONTEXT_THRESHOLDS};
+    module.exports={ChatController,ChatError,keyAction,shouldSendOnEnter,canSend,validBudgets,shouldClearDraft,groupSessions,budgetBreakdown,ndjsonSplitter,errorParts,PHASES,
+      contextUsage,contextLevel,validThresholds,failureCategory,CONTEXT_THRESHOLDS,CONTEXTS,contextLabel,contextOptions,sameSelection,switchNeedsNewChat};
     return;
   }
 
   // ======================================================================= DOM
   const el=id=>document.getElementById(id);
   const tr=text=>global.NajdiI18n?global.NajdiI18n.t(text):text;
-  let runtimes=[],nativeState=null,bound=false,notice=[];
-  let listMode='active',listQuery='',savedLoaded=0,menuTarget=null,live=null;
+  const SELECTION_KEY='najdilab.chat.selection';
+  let catalog=null,selection=null,plan=null,pendingSend=false,preparing=false,draftCollect=false,bound=false,notice=[];
+  let listMode='active',listQuery='',savedLoaded=0,menuTarget=null,live=null,pendingUse=null;
   const thinkingByRequest=new Map(),timingsByRequest=new Map();
 
   async function request(path,options={}){
@@ -255,9 +231,8 @@
     return final;
   }
   const controller=new ChatController(request,render,undefined,stream);
+  controller.modelReady=false;
 
-  // literal=true marks identifiers (model, provider, session) that the localizer must not translate.
-  function option(select,value,label,literal=false){const item=new Option(label,value);if(literal)item.setAttribute('translate','no');select.add(item);}
   function compose(target,parts){target.replaceChildren(...parts.map(part=>{if(typeof part==='string')return document.createTextNode(part);const id=document.createElement('bdi');id.dir='ltr';id.setAttribute('translate','no');id.textContent=part.id;return id;}));}
   function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
   function literal(tag,text,cls){const e=node(tag,cls,text);e.dir='auto';e.setAttribute('translate','no');return e;}
@@ -265,16 +240,232 @@
   function renderNotice(){
     const s=controller.session,busy=controller.pending||s?.busy;
     if(notice.length&&!(notice.length===1&&notice[0]===''))return compose(el('chat-notice'),notice);
-    const ready=sessionRuntimeReady();
-    const text=busy?'':
-      s&&s.status==='OPEN'&&!ready?'This conversation is bound to its original model and runtime. Connect and select that exact model to continue; nothing was changed automatically.':
+    el('chat-notice').textContent=busy?'':
       s&&s.status==='CONTEXT_LIMIT'?'This conversation reached its context limit. Start a new chat to continue.':
       s&&s.status==='ARCHIVED'?'This conversation is archived. Restore it to continue.':'';
-    el('chat-notice').textContent=text;
+  }
+  function runtimeName(id){return {lmstudio:'LM Studio',ollama:'Ollama',native:'NajdiLab Native'}[id]||id;}
+  function statusLabel(status){return {OPEN:'Open',CONTEXT_LIMIT:'Context limit reached',ARCHIVED:'Archived'}[status]||status;}
+
+  // ------------------------------------------------------------ model and context selection
+  /* One choice drives the composer: the open conversation's own settings, or the draft's. A
+     conversation never changes model or context; a different choice starts a new chat. */
+  function savedSelection(){try{return JSON.parse(global.localStorage.getItem(SELECTION_KEY)||'null');}catch{return null;}}
+  function storeSelection(value){try{global.localStorage.setItem(SELECTION_KEY,JSON.stringify(value));}catch{}}
+  function validSelection(value){return !!value&&typeof value==='object'&&validBudgets(value.context,value.reserve)&&['auto','all','0'].includes(value.gpu);}
+  function defaultSelection(){const saved=savedSelection();return validSelection(saved)?saved:{provider:null,model:null,context:8192,reserve:1024,gpu:'auto'};}
+  function sessionSelection(s){return {provider:s.provider,model:s.model,context:s.context_budget,reserve:s.reply_reserve,gpu:selection?.gpu||'auto'};}
+  function current(){return controller.session?sessionSelection(controller.session):selection;}
+  function catalogItem(value=current()){return catalog?.items.find(i=>i.provider===value?.provider&&i.model===value?.model)||null;}
+  function modelLabel(value=current()){return catalogItem(value)?.label||(value?.model?value.model.split('/').pop().replace(/\.gguf$/i,''):null);}
+  async function loadCatalog(){catalog=await request('/api/v1/chat/models');renderControls();}
+
+  function confirmSwitch(next){
+    return new Promise(resolve=>{
+      const dialog=el('chat-switch');
+      compose(el('chat-switch-text'),['New chat with ',{id:modelLabel(next)||next.model},' · ',{id:contextLabel(next.context)},'.']);
+      // Settled by the buttons themselves; Escape and `close` are fallbacks (some embedded browsers never fire `close`).
+      let settled=false;
+      const finish=value=>{if(settled)return;settled=true;if(dialog.open)dialog.close();resolve(value);};
+      el('chat-switch-go').onclick=event=>{event.preventDefault();finish(true);};
+      el('chat-switch-cancel').onclick=event=>{event.preventDefault();finish(false);};
+      dialog.oncancel=()=>finish(false);
+      dialog.onclose=()=>finish(dialog.returnValue==='new');
+      dialog.returnValue='';dialog.showModal();el('chat-switch-go').focus();
+    });
+  }
+  /* The only way a choice changes: an empty draft simply takes it; a conversation with saved
+     turns stays as it is and, after confirmation, a new empty chat starts with the choice. */
+  async function choose(next){
+    if(!validSelection(next))return;
+    const s=controller.session;
+    if(s&&sameSelection(sessionSelection(s),next))return;
+    if(switchNeedsNewChat(s,next)&&!await confirmSwitch(next))return;
+    if(s){controller.session=null;limit=null;lingering=[];}
+    selection=next;storeSelection(next);draftCollect=false;plan=null;pendingSend=false;notice=[];
+    hideCard();controller.modelReady=false;render();el('chat-draft').focus();
+  }
+  function newChat(){
+    controller.session=null;selection=defaultSelection();draftCollect=false;plan=null;pendingSend=false;
+    limit=null;lingering=[];notice=[];hideCard();controller.modelReady=false;render();
+    if(narrow())setSidebar(false,false);
+    el('chat-draft').focus();
   }
 
-  function sessionRuntime(s=controller.session){return s&&runtimes.find(p=>p.id===s.provider);}
-  function sessionRuntimeReady(){const s=controller.session,p=sessionRuntime();return !!p&&p.selected_model===s?.model;}
+  // ------------------------------------------------------------ popovers
+  let popover=null;
+  function placePopover(panel,anchor){
+    const rect=anchor.getBoundingClientRect(),rtl=document.documentElement.dir==='rtl';
+    panel.hidden=false;
+    const width=Math.min(panel.offsetWidth||320,global.innerWidth-16);
+    let left=rtl?rect.right-width:rect.left;left=Math.max(8,Math.min(left,global.innerWidth-width-8));
+    panel.style.left=`${left}px`;
+    const below=global.innerHeight-rect.bottom,above=rect.top;
+    // Open on the roomier side and never past the screen edge (the menu scrolls instead), even at 400% zoom.
+    panel.style.maxHeight=`${Math.max(64,Math.min(520,Math.max(above,below)-14))}px`;
+    if(above>=below){panel.style.top='';panel.style.bottom=`${global.innerHeight-rect.top+6}px`;}
+    else{panel.style.bottom='';panel.style.top=`${rect.bottom+6}px`;}
+  }
+  function openPopover(panel,anchor,focus){
+    closePopover(false);popover={panel,anchor};
+    placePopover(panel,anchor);anchor.setAttribute('aria-expanded','true');
+    (focus||panel.querySelector('button:not([aria-disabled="true"]),input:not(:disabled),select'))?.focus();
+  }
+  function closePopover(focusBack=true){
+    if(!popover)return;const {panel,anchor}=popover;popover=null;
+    panel.hidden=true;anchor.setAttribute('aria-expanded','false');if(focusBack)anchor.focus();
+  }
+  const VERIFICATION={VERIFIED:'Verified',LOCAL:'Local file',UNVERIFIED:'Not verified yet',RUNTIME:'Connected runtime'};
+  const UNAVAILABLE={NATIVE_SERVER_MISSING:'llama.cpp runtime not installed',MODEL_NOT_VERIFIED:'Not verified yet'};
+  function renderModelMenu(){
+    const menu=el('chat-model-menu'),value=current(),locked=!!controller.session;menu.replaceChildren();
+    const items=catalog?.items||[];
+    for(const [provider,name] of [['native','NajdiLab Native'],['lmstudio','LM Studio'],['ollama','Ollama']]){
+      const group=items.filter(i=>i.provider===provider);if(!group.length)continue;
+      // ARIA menu: one labelled group per runtime; the visible heading is decorative.
+      const box=node('div','chatv2-menu-group');box.setAttribute('role','group');box.setAttribute('aria-label',name);
+      const heading=node('h4',null,name);heading.setAttribute('translate','no');heading.setAttribute('aria-hidden','true');box.append(heading);menu.append(box);
+      for(const item of group){
+        const button=node('button','chatv2-model-item');button.type='button';button.setAttribute('role','menuitemradio');
+        const checked=value?.provider===item.provider&&value?.model===item.model;
+        button.setAttribute('aria-checked',String(checked));
+        if(!item.available)button.setAttribute('aria-disabled','true');
+        button.append(node('span','check','✓'),literal('strong',item.label));
+        const meta=node('small');
+        const parts=[item.available?VERIFICATION[item.verification]||item.verification:UNAVAILABLE[item.reason]||'Not usable now'];
+        if(item.quantization)parts.push(' · ',{id:item.quantization});
+        if(item.max_context)parts.push(' · ','up to',' ',{id:contextLabel(item.max_context)});
+        if(item.state==='RUNNING')parts.push(' · ','loaded at',' ',{id:contextLabel(item.loaded_context)});
+        if(item.state==='SELECTED')parts.push(' · ','selected in the runtime');
+        compose(meta,parts);button.append(meta);
+        button.onclick=()=>{
+          if(!item.available)return;
+          closePopover();
+          if(locked&&checked)return;
+          const base=current()||defaultSelection(),max=item.max_context;
+          const context=max&&base.context>max?Math.max(...contextOptions(max).filter(o=>o.enabled).map(o=>o.value),128):base.context;
+          choose({...base,provider:item.provider,model:item.model,context,reserve:Math.min(base.reserve,context-1)}).catch(error=>setNotice(errorParts(error)));
+        };
+        box.append(button);
+      }
+    }
+    if(!items.length){const none=node('button','chatv2-menu-action muted','No local models yet. Download one in Model library, or connect LM Studio or Ollama in Settings.');
+      none.type='button';none.setAttribute('role','menuitem');none.setAttribute('aria-disabled','true');menu.append(none);}
+    const sep=node('div','chatv2-menu-sep');sep.setAttribute('role','separator');menu.append(sep);
+    const library=node('button','chatv2-menu-action','Open Model library');library.type='button';library.setAttribute('role','menuitem');
+    library.onclick=()=>{closePopover(false);global.switchView?.('models');};menu.append(library);
+    const native=catalog?.native;
+    if(native?.state==='RUNNING'){
+      const stop=node('button','chatv2-menu-action','Stop NajdiLab Native (frees memory)');stop.type='button';stop.setAttribute('role','menuitem');
+      if(native.busy)stop.setAttribute('aria-disabled','true');
+      stop.onclick=act(async()=>{
+        if(native.busy||!global.confirm(tr('Stop NajdiLab Native? Only the server process NajdiLab started is stopped; conversations keep their history.')))return;
+        closePopover();await request('/api/v1/native/stop',{method:'POST',body:JSON.stringify({approved:true})});
+        await loadCatalog();plan=null;controller.modelReady=false;render();
+      });
+      menu.append(stop);
+    }
+  }
+  function renderContextMenu(){
+    const value=current()||defaultSelection(),item=catalogItem(value),box=el('chat-context-options');box.replaceChildren();
+    for(const option of contextOptions(item?.max_context,catalog?.contexts)){
+      const label=node('label');const input=node('input');input.type='radio';input.name='chat-context-choice';input.value=String(option.value);
+      input.checked=option.value===value.context;input.disabled=!option.enabled;
+      if(!option.enabled)label.title=tr('Above this model\'s maximum context');
+      input.onchange=()=>{closePopover();choose({...value,context:option.value,reserve:Math.min(value.reserve,option.value-1)}).catch(error=>setNotice(errorParts(error)));};
+      label.append(input);const text=node('span',null,option.label);text.setAttribute('translate','no');label.append(text);box.append(label);
+    }
+    const note=el('chat-context-note');
+    if(item?.provider==='native')compose(note,['Model maximum:',' ',{id:`${item.max_context} tokens`},'. ','Memory is checked before the model starts.']);
+    else if(item)note.textContent='The runtime\'s own limit is checked when the chat starts.';
+    else note.textContent='Choose a model first.';
+    el('chat-budget').value=value.context;el('chat-reserve').value=value.reserve;el('chat-gpu').value=value.gpu||'auto';
+    el('chat-gpu').disabled=item?.provider!=='native';
+    updateBreakdown();
+  }
+  function updateBreakdown(){
+    const context=Number(el('chat-budget').value),reserve=Number(el('chat-reserve').value);
+    const b=budgetBreakdown(context,reserve,catalogItem()?.max_context||null);
+    const ok=b.valid&&validBudgets(context,reserve)&&!b.warnings.some(w=>/maximum/.test(w));
+    const box=el('chat-budget-breakdown');
+    if(!ok)box.textContent=b.warnings[0]||'Reply space must be between 1 and 8192 tokens and smaller than the total context.';
+    else compose(box,['Message and history space:',' ',{id:String(b.input)},' ','tokens',b.warnings.length?[' · ',b.warnings[0]].join(''):'']);
+    el('chat-budget-apply').disabled=!ok;
+  }
+  function renderControls(){
+    const value=current(),item=catalogItem(value),label=modelLabel(value),busy=controller.pending||!!controller.session?.busy;
+    el('chat-model-label').textContent=label||tr('Choose a model');
+    if(label)el('chat-model-label').setAttribute('translate','no');else el('chat-model-label').removeAttribute('translate');
+    el('chat-model-state').dataset.state=item?.state||'';
+    el('chat-context-label').textContent=value?contextLabel(value.context):'—';
+    // The full name (often cut with an ellipsis) as a tooltip on the untranslated label itself.
+    el('chat-model-label').title=label||'';
+    el('chat-context-button').title=value?`${value.context} tokens · reply ${value.reserve}`:'';
+    el('chat-model-button').disabled=busy||preparing;el('chat-context-button').disabled=busy||preparing;
+  }
+
+  // ------------------------------------------------------------ runtime preparation (one path)
+  function showCard({kind='info',title,parts=[],action=null,error=null}){
+    const card=el('chat-prepare');card.hidden=false;card.dataset.kind=kind;
+    el('chat-prepare-title').textContent=title;compose(el('chat-prepare-text'),parts);
+    if(error)compose(el('chat-prepare-error'),errorParts(error));else el('chat-prepare-error').textContent='';
+    const go=el('chat-prepare-go');go.hidden=!action;if(action){go.textContent=action;go.disabled=preparing;}
+  }
+  function hideCard(){el('chat-prepare').hidden=true;}
+  function describe(result,value){
+    const what=[{id:modelLabel(value)||value.model},' · ',{id:contextLabel(value.context)}];
+    if(result.state==='NEEDS_START')return {title:'Start the model?',action:'Start model',
+      parts:[...what,'. ','NajdiLab Native is stopped. NajdiLab checks memory first, then loads the model on this computer only. Your message stays here.']};
+    if(result.state==='NEEDS_RESTART'){
+      const was=result.running?[' ','Now loaded:',' ',{id:modelLabel({provider:'native',model:result.running.model})||result.running.model},' · ',{id:contextLabel(result.running.context)},'.']:[];
+      return {title:'Restart NajdiLab Native?',action:'Restart with this model',
+        parts:[result.message,...was,' ','This chat needs',' ',...what,'. ','Restarting stops only NajdiLab\'s own model server; other conversations keep their history. Memory is checked first.']};
+    }
+    if(result.state==='NEEDS_APPROVAL')return {title:result.needs_load?'Allow Ollama to load this model?':'Select this model in LM Studio?',action:'Allow',parts:[...what,'. ',result.message]};
+    if(result.state==='BUSY')return {kind:'blocked',title:'A reply is running',parts:[result.message]};
+    const reasons=(result.advice?.reasons||[]).map(r=>r.message);
+    return {kind:'blocked',title:'This model cannot be used now',parts:[result.message,...(reasons.length&&reasons[0]!==result.message?[' ',reasons[0]]:[]),' ',{id:result.code}],
+      action:result.code==='NATIVE_SERVER_MISSING'?'Open Model library':null};
+  }
+  async function check(sendAfter){
+    const value=current();
+    if(!value?.model){showCard({kind:'blocked',title:'Choose a model',parts:['Pick a model in the message box. Download more in Model library.']});return null;}
+    const body={provider:value.provider,model:value.model,context_budget:value.context,reply_reserve:value.reserve,gpu_layers:value.gpu||'auto',
+      approved:false,new_session:!controller.session};
+    const result=await controller.post('/api/v1/chat/prepare',body);
+    plan={...result,body};
+    if(result.state==='READY'){hideCard();controller.selectionRevision=result.selection_revision;controller.modelReady=true;return result;}
+    controller.modelReady=false;pendingSend=!!sendAfter;showCard(describe(result,value));return null;
+  }
+  async function approvePlan(){
+    if(!plan)return;
+    if(plan.code==='NATIVE_SERVER_MISSING'){global.switchView?.('models');return;}
+    preparing=true;const value=current();
+    showCard({...describe(plan,value),title:plan.state==='NEEDS_APPROVAL'?describe(plan,value).title:'Preparing the model…',
+      parts:['Checking memory and loading the model. This can take a minute; nothing else changes.']});
+    el('chat-prepare-go').disabled=true;render();
+    try{
+      const result=await controller.post('/api/v1/chat/prepare',{...plan.body,approved:true});
+      plan={...result,body:plan.body};
+      await loadCatalog().catch(()=>{});
+      if(result.state==='READY'){
+        hideCard();controller.selectionRevision=result.selection_revision;controller.modelReady=true;
+        // The approved result itself carries on (an Ollama load approval belongs to this one new chat).
+        if(pendingSend){pendingSend=false;preparing=false;await submit(result);return;}
+        setNotice(['Ready: ',{id:modelLabel(value)||value.model},' · ',{id:contextLabel(value.context)},'.']);
+      }else showCard(describe(result,value));
+    }catch(error){showCard({...describe(plan,value),error});}
+    finally{preparing=false;render();}
+  }
+  async function createSession(ready){
+    const value=current();
+    const session=await controller.post('/api/v1/chat/sessions',{provider:value.provider,model:value.model,selection_revision:ready.selection_revision,
+      context_budget:value.context,reply_reserve:value.reserve,load_approved:!!ready.load_approved});
+    controller.session=session;controller.selectionRevision=ready.selection_revision;controller.modelReady=true;
+    // Collection is this new chat's own explicit choice, made before its first message; never carried over.
+    if(draftCollect){draftCollect=false;await controller.collect(true);}
+    await saved();
+  }
 
   // ------------------------------------------------------------ messages
   function bubble(role){
@@ -314,16 +505,16 @@
     model.append(foot);
     return [user,model];
   }
-  function timingDetails(t){
-    const d=node('details','chatv2-timings');d.append(node('summary',null,'Performance details'));
-    const rows=[['Runtime check',t.engine_check_ms],['Model identity and context check',t.admission_ms],
-      ['First token',t.generation?.first_token_ms],['Thinking',t.generation?.thinking_ms],['Answer',t.generation?.answer_ms],
-      ['Whole generation',t.generation_total_ms],['Final check and save',t.verify_commit_ms]];
+  const TIMING_ROWS=t=>[['Runtime check',t.engine_check_ms],['Model identity and context check',t.admission_ms],
+    ['First token',t.generation?.first_token_ms],['Thinking',t.generation?.thinking_ms],['Answer',t.generation?.answer_ms],
+    ['Whole generation',t.generation_total_ms],['Final check and save',t.verify_commit_ms]];
+  function timingList(t){
     const list=node('dl','chatv2-dl');
-    for(const [label,value] of rows){if(typeof value!=='number')continue;list.append(node('dt',null,label));const dd=node('dd');compose(dd,[{id:`${value} ms`}]);list.append(dd);}
+    for(const [label,value] of TIMING_ROWS(t)){if(typeof value!=='number')continue;list.append(node('dt',null,label));const dd=node('dd');compose(dd,[{id:`${value} ms`}]);list.append(dd);}
     if(t.admission?.context_proof){list.append(node('dt',null,'Context proof'));list.append(node('dd',null,t.admission.context_proof==='reused'?'Reused (same engine version, model and context)':'Measured this turn'));}
-    d.append(list);return d;
+    return list;
   }
+  function timingDetails(t){const d=node('details','chatv2-timings');d.append(node('summary',null,'Performance details'),timingList(t));return d;}
   function renderMessages(){
     const box=el('chat-messages'),s=controller.session;
     const keepLive=live&&live.sid===s?.id?live.nodes:[];
@@ -387,25 +578,28 @@
   let lingering=[];
 
   // ------------------------------------------------------------ render
+  function sendEnabled(){
+    const s=controller.session,text=el('chat-draft').value;
+    if(!text.trim()||controller.pending||preparing||s?.busy)return false;
+    return s?s.status==='OPEN':!!selection?.model;
+  }
   function render(){
-    const s=controller.session,busy=controller.pending||!!s?.busy,open=s?.status==='OPEN';
-    const ready=sessionRuntimeReady();
-    controller.modelReady=ready;
-    el('chat-send').disabled=!controller.canSend(el('chat-draft').value);
-    el('chat-stop').disabled=!busy;
-    el('chat-collect').disabled=!open||busy;el('chat-collect').checked=!!s?.collect;
+    const s=controller.session,busy=controller.pending||!!s?.busy,open=s?s.status==='OPEN':true;
+    el('chat-send').disabled=!sendEnabled();
+    el('chat-send').hidden=busy;el('chat-stop').hidden=!busy;el('chat-stop').disabled=!busy;
+    el('chat-collect').disabled=!open||busy||preparing;el('chat-collect').checked=s?!!s.collect:draftCollect;
     el('chat-actions').disabled=!s;
-    el('chat-draft').setAttribute('aria-busy',busy?'true':'false');
+    el('chat-draft').setAttribute('aria-busy',busy||preparing?'true':'false');
     if(s){
       const title=s.display_title;
       if(title){el('chat-title').textContent=title;el('chat-title').setAttribute('translate','no');}
       else{el('chat-title').textContent='New chat';el('chat-title').removeAttribute('translate');}
-      compose(el('chat-session-identity'),[{id:runtimeName(s.provider)},' · ',{id:s.model},' · ',
-        statusLabel(s.status),' · ','Context ',{id:String(s.context_budget)},' · ','Reply ',{id:String(s.reply_reserve)}]);
+      compose(el('chat-session-identity'),[{id:runtimeName(s.provider)},' · ',{id:modelLabel()||s.model},' · ',statusLabel(s.status)]);
     }else{
       el('chat-title').textContent='New chat';el('chat-title').removeAttribute('translate');
-      el('chat-session-identity').textContent='No conversation selected.';
+      el('chat-session-identity').textContent='New conversation. It is saved when you send the first message.';
     }
+    renderControls();
     renderContext();
     renderLimit();
     if(!live)renderMessages();
@@ -413,7 +607,6 @@
     renderNotice();
     renderListSelection();
   }
-  function runtimeName(id){return {lmstudio:'LM Studio',ollama:'Ollama',native:'NajdiLab Native'}[id]||id;}
   /* Context indicator: one meter, one sentence, and a notice only when a threshold is first crossed. */
   let limit=null;
   const announced=new Map();
@@ -423,7 +616,9 @@
   function renderContext(){
     const box=el('chat-context'),label=el('chat-usage'),meter=el('chat-context-meter'),alert=el('chat-context-alert');
     if(!box)return;
-    const s=controller.session,u=contextUsage(s,live&&live.admitted);
+    // A draft shows its chosen budget too (nothing used yet); a conversation shows the engine's counts.
+    const s=controller.session||(selection?.model?{id:'draft',status:'OPEN',context_budget:selection.context,reply_reserve:selection.reserve,turns:[]}:null);
+    const u=contextUsage(s,live&&live.admitted);
     if(!u){box.hidden=true;alert.textContent='';alert.className='chatv2-context-alert';return;}
     const t=thresholds();
     box.hidden=false;meter.low=t.warn;meter.high=t.critical;meter.value=u.percent;
@@ -451,7 +646,6 @@
     if(box.hidden)return;
     el('chat-limit-text').textContent=`The previous conversation needed ${limit.input} prompt tokens + ${limit.reserve} reserved for the reply, more than its ${limit.budget}-token context. It is saved unchanged and read-only; nothing was summarised or dropped. This new chat starts empty, with collection off.`;
   }
-  function statusLabel(status){return {OPEN:'Open',CONTEXT_LIMIT:'Context limit reached',ARCHIVED:'Archived'}[status]||status;}
 
   // ------------------------------------------------------------ sidebar
   function sidebarPreference(){try{return global.localStorage.getItem(SIDEBAR_KEY);}catch{return null;}}
@@ -484,7 +678,7 @@
         if(item.display_title)open.append(literal('span',item.display_title,'chatv2-item-title'));
         else open.append(node('span','chatv2-item-title','New chat'));
         const meta=node('small','chatv2-item-meta');
-        compose(meta,[{id:item.model}]);if(item.pinned_at)meta.prepend(node('span','chatv2-pin','Pinned'));
+        compose(meta,[{id:modelLabel({provider:item.provider,model:item.model})||item.model}]);if(item.pinned_at)meta.prepend(node('span','chatv2-pin','Pinned'));
         open.append(meta);
         const more=node('button','chatv2-more','⋯');more.type='button';more.dataset.chatMore=item.id;
         more.setAttribute('aria-haspopup','menu');more.setAttribute('aria-expanded','false');more.setAttribute('aria-label','Conversation actions');
@@ -496,16 +690,19 @@
   }
   function renderListSelection(){
     for(const button of document.querySelectorAll('#chat-list [data-chat-open]')){
-      const current=controller.session?.id===button.dataset.chatOpen;
-      if(current)button.setAttribute('aria-current','true');else button.removeAttribute('aria-current');
+      const isCurrent=controller.session?.id===button.dataset.chatOpen;
+      if(isCurrent)button.setAttribute('aria-current','true');else button.removeAttribute('aria-current');
     }
   }
   async function openSession(id){
     controller.session=await request(`/api/v1/chat/sessions/${id}`);
-    controller.selectionRevision=sessionRuntime()?.selection_revision??null;
-    lingering=[];notice=[];render();
+    controller.modelReady=false;draftCollect=false;plan=null;pendingSend=false;
+    lingering=[];notice=[];hideCard();render();
     if(narrow())setSidebar(false,false);
     el('chat-draft').focus();
+    // Explain a runtime mismatch now, before any message is sent.
+    if(controller.session.status==='OPEN')await check(false).catch(error=>setNotice(errorParts(error)));
+    render();
   }
 
   // ------------------------------------------------------------ action menu
@@ -552,9 +749,9 @@
       await saved();render();return;
     }
     if(action==='archive'||action==='restore'){
-      const current=await revisionOf(id);
+      const latest=await revisionOf(id);
       if(action==='archive'&&!global.confirm(tr('Archive this conversation? It is hidden from the list and its collected pairs are excluded from future dataset selection. You can restore it later.')))return;
-      const s=await controller.post(`/api/v1/chat/sessions/${id}/${action}`,{revision:current.revision});
+      const s=await controller.post(`/api/v1/chat/sessions/${id}/${action}`,{revision:latest.revision});
       if(controller.session?.id===id)controller.session=s;
       setNotice(action==='archive'?'Conversation archived. You can restore it from Archived.':'Conversation restored. Collection is off; earlier collected pairs stay excluded until a new human decision.');
       await saved();render();return;
@@ -604,173 +801,65 @@
     el('chat-delete').showModal();el('chat-delete-confirm').focus();
   }
 
-  // ------------------------------------------------------------ setup dialog
-  function providerSelect(){return runtimes.find(x=>x.id===el('chat-provider').value);}
-  let presetEvidence=null;
-  function evidenceKey(){const p=providerSelect();return JSON.stringify([p?.id,el('chat-model').value,p?.selection_revision]);}
-  function currentEvidence(){return presetEvidence?.key===evidenceKey()?presetEvidence.data:undefined;}
-  // Approval to load is tied to one model and one context: any change withdraws it.
-  function withdrawApproval(){el('chat-load-approved').checked=false;}
-  function renderPresets(){
-    const evidence=currentEvidence();
-    for(const p of budgetPresets(evidence)){
-      const radio=document.querySelector(`input[name="chat-preset"][value="${p.id}"]`);if(!radio)continue;
-      radio.disabled=!p.enabled;if(!p.enabled&&radio.checked)document.querySelector('input[name="chat-preset"][value="custom"]').checked=true;
-      const reason=radio.parentElement.querySelector('.chatv2-preset-reason');if(reason)reason.textContent=p.reason;
+  // ------------------------------------------------------------ chat information (read only)
+  async function renderInfo(){
+    const box=el('chat-info'),s=controller.session,value=current(),item=catalogItem(value);
+    box.replaceChildren();
+    const section=title=>{const sec=node('section');sec.append(node('h3',null,title));box.append(sec);return sec;};
+    const rows=(sec,pairs)=>{const list=node('dl','chatv2-dl');for(const [label,v,lit] of pairs){if(v==null||v==='')continue;list.append(node('dt',null,label));const dd=node('dd');if(lit===false)dd.textContent=v;else compose(dd,[{id:String(v)}]);list.append(dd);}sec.append(list);};
+    const conv=section('Conversation');
+    if(s){
+      rows(conv,[['Model',modelLabel()||s.model],['Model file or name',s.model],['Runtime',runtimeName(s.provider)],['Status',statusLabel(s.status),false],
+        ['Conversation ID',s.id],[s.provider==='native'?'Model identity (SHA-256)':'Model identity',s.model_fingerprint],['Conversation context budget',`${s.context_budget} tokens`],
+        ['Reply reserve',`${s.reply_reserve} tokens`],['Message and history space',`${s.context_budget-s.reply_reserve} tokens`]]);
+    }else{
+      conv.append(node('p','muted','New conversation. It is saved when you send the first message.'));
+      if(value?.model)rows(conv,[['Model',modelLabel(value)],['Runtime',runtimeName(value.provider)],['Conversation context budget',`${value.context} tokens`],['Reply reserve',`${value.reserve} tokens`]]);
     }
-    const r=evidence?.recommendation;
-    if(r)compose(el('chat-preset-evidence'),['Proven engine ceiling: ',{id:Number.isInteger(r.budget_ceiling)&&r.budget_ceiling>0?String(r.budget_ceiling):'Unknown'}]);
-    else el('chat-preset-evidence').textContent='Presets unlock after checking this model. The engine ceiling and memory estimate are unknown until then; Custom is always available.';
-  }
-  function fillModels(){
-    const p=providerSelect();el('chat-model').replaceChildren();
-    for(const model of p?.models||[])option(el('chat-model'),model,model,true);
-    if(p?.selected_model)el('chat-model').value=p.selected_model;
-    el('chat-load-row').hidden=p?.id!=='ollama';withdrawApproval();
-    renderPresets();updateBreakdown();
-  }
-  /* Read-only: never selects or loads a model, even if another model is highlighted. */
-  async function checkPresets(){
-    const p=providerSelect(),model=el('chat-model').value,key=evidenceKey();
-    if(!p||!model)throw new ChatError('Connect and select a model first.','NOT_CONNECTED');
-    const data=await request('/api/v1/chat/hardware',{method:'POST',body:JSON.stringify({approved:true,provider:p.id,model,selection_revision:p.selection_revision})});
-    presetEvidence={key,data};renderPresets();
-  }
-  function readBudget(){return {context:Number(el('chat-budget').value),reserve:Number(el('chat-reserve').value)};}
-  function applyPreset(name){
-    const preset=PRESETS[name];if(!preset){el('chat-advanced').open=true;return updateBreakdown();}
-    el('chat-budget').value=preset.context_budget;el('chat-reserve').value=preset.reply_reserve;updateBreakdown();
-  }
-  function updateBreakdown(){
-    const {context,reserve}=readBudget(),b=budgetBreakdown(context,reserve,currentEvidence()?.recommendation?.model_max_context||null);
-    b.valid=b.valid&&validBudgets(context,reserve);
-    const box=el('chat-budget-breakdown');box.replaceChildren();
-    const list=node('dl','chatv2-dl');
-    const row=(label,value)=>{list.append(node('dt',null,label));const dd=node('dd');compose(dd,[{id:value==null?'—':String(value)}]);list.append(dd);};
-    row('Total context',b.context);row('Message and history space',b.input);row('Reply and thinking space',b.reserve);
-    box.append(list);for(const w of b.warnings)box.append(node('p','chatv2-warning',w));
-    el('chat-create').disabled=!b.valid;
-  }
-  async function selectModel(p,model){
-    if(p.id==='native'||p.selected_model===model)return p.selection_revision;
-    const snap=await request(`/api/v1/integrations/${p.id}/select`,{method:'POST',body:JSON.stringify({approved:true,model})});
-    Object.assign(p,snap.items.find(x=>x.id===p.id));
-    return p.selection_revision;
-  }
-  function openSetup(){
-    el('chat-setup-error').textContent='';
-    const previous=el('chat-provider').value;el('chat-provider').replaceChildren();
-    for(const p of runtimes)option(el('chat-provider'),p.id,p.name,true);
-    if(runtimes.some(p=>p.id===previous))el('chat-provider').value=previous;
-    fillModels();
-    el('chat-provider-note').hidden=runtimes.length>0;
-    renderPresets();
-    const checked=document.querySelector('input[name="chat-preset"]:checked:not(:disabled)');applyPreset(checked?.value||'custom');
-    el('chat-setup').showModal();
-  }
-  async function createSession(){
-    const p=providerSelect(),model=el('chat-model').value,{context,reserve}=readBudget();
-    if(!p||!model)throw new ChatError('Connect and select a model first.','NOT_CONNECTED');
-    if(!validBudgets(context,reserve))throw new ChatError('Reply space must be between 1 and 8192 tokens and smaller than the total context.','INVALID_LIMIT');
-    const revision=await selectModel(p,model);
-    const session=await controller.post('/api/v1/chat/sessions',{provider:p.id,model,selection_revision:revision,
-      context_budget:context,reply_reserve:reserve,load_approved:p.id==='ollama'&&el('chat-load-approved').checked});
-    controller.session=session;controller.selectionRevision=revision;
-    el('chat-load-approved').checked=false;lingering=[];notice=[];
-    el('chat-setup').close();await saved();render();el('chat-draft').focus();
-  }
-
-  // ------------------------------------------------------------ settings drawer
-  function renderDetails(){
-    const box=el('chat-details'),s=controller.session;box.replaceChildren();
-    if(!s){box.append(node('p','muted','No conversation selected.'));return;}
-    const list=node('dl','chatv2-dl');
-    const row=(label,value)=>{list.append(node('dt',null,label));const dd=node('dd');compose(dd,[{id:String(value??'—')}]);list.append(dd);};
-    row('Runtime',runtimeName(s.provider));row('Model',s.model);row('Conversation ID',s.id);
-    list.append(node('dt',null,'Status'));list.append(node('dd',null,statusLabel(s.status)));
-    row('Total context',s.context_budget);row('Message and history space',s.context_budget-s.reply_reserve);row('Reply and thinking space',s.reply_reserve);
-    const last=s.turns?.at(-1);
-    if(last)row('Last turn tokens (prompt + reply)',`${last.input_tokens} + ${last.output_tokens}`);
-    if(s.model_fingerprint)row('Model identity',s.model_fingerprint);
-    box.append(list);
-  }
-  function evidence(kind){
-    return {measured:'Measured',reported:'Reported by the runtime',estimate:'Estimate',unknown:'Unknown'}[kind]||'Unknown';
-  }
-  function renderHardware(data){
-    const view=hardwareModel(data),box=el('chat-hardware-result');box.replaceChildren();
-    const card=(title,rows,columns)=>{
-      const section=node('section','chatv2-card');section.append(node('h3',null,title));
-      const table=node('table','chatv2-table');const head=node('tr');for(const c of columns)head.append(node('th',null,c));
-      const thead=node('thead');thead.append(head);const tbody=node('tbody');
-      for(const r of rows){const tr=node('tr');for(const cell of r){const td=node('td');if(cell&&typeof cell==='object'&&'id' in cell)compose(td,[cell]);else td.textContent=cell??'Unknown';tr.append(td);}tbody.append(tr);}
-      table.append(thead,tbody);section.append(table);box.append(section);
-    };
-    card('Device',view.device.map(d=>[d.label,d.name?{id:d.name}:'—',d.value?{id:d.of?`${d.value} / ${d.of}`:d.value}:'Unknown',evidence(d.kind)]),['Item','Name','Free / total','Evidence']);
-    card('Model',view.model.map(m=>[m.label,m.value==null?'Unknown':{id:String(m.value)},evidence(m.kind)]),['Item','Value','Evidence']);
-    if(view.estimates.length)card('Memory estimates by context',view.estimates.map(e=>[{id:String(e.context)},e.value?{id:e.value}:'Unknown',e.assessment]),['Context','Estimated need','Assessment']);
-    const note=node('p','muted');
-    if(view.recommended)compose(note,['Largest estimated fit: ',{id:String(view.recommended)},'. Unverified estimate, not a guaranteed safe limit. No allocation test was run.']);
-    else note.textContent='No reliable recommendation. Estimates need the model size, layer sizes and free GPU memory.';
-    box.append(note);
-    if(view.systemPrompt)box.append(node('p','muted','This model defines its own system prompt. That is part of the model, not added by NajdiLab.'));
-    if(view.otherModels.length){const p=node('p','muted');compose(p,['Also loaded in this runtime: ',{id:view.otherModels.join(', ')}]);box.append(p);}
-    if(view.processes!=null){const p=node('p','muted');compose(p,['Other GPU compute processes now: ',{id:String(view.processes)}]);box.append(p);}
-  }
-  async function readHardware(nativeModel){
-    const s=controller.session,body={approved:true};
-    if(nativeModel)body.native_model=nativeModel;
-    else if(s&&sessionRuntimeReady())Object.assign(body,{provider:s.provider,model:s.model,selection_revision:controller.selectionRevision});
-    renderHardware(await controller.post('/api/v1/chat/hardware',body));
-  }
-  async function loadNative(){
-    const [status,models]=await Promise.all([request('/api/v1/native/status'),request('/api/v1/native/models')]);
-    nativeState=status;
-    const box=el('chat-native-status');box.replaceChildren();
-    const list=node('dl','chatv2-dl');
-    const row=(label,value)=>{list.append(node('dt',null,label));const dd=node('dd');compose(dd,[{id:String(value??'—')}]);list.append(dd);};
-    list.append(node('dt',null,'State'));list.append(node('dd',null,{STOPPED:'Stopped',STARTING:'Starting',RUNNING:'Running',STOPPING:'Stopping',FAILED:'Failed'}[status.state]||status.state));
-    row('llama-server',status.server_available?status.server_path:'Not found');row('Models folder',status.models_dir);
-    if(status.state==='RUNNING'){row('Model',status.model);row('Context',status.context);row('GPU layers',status.gpu_layers);
-      row('Measured GPU memory',typeof status.measured_vram_bytes==='number'?`${(status.measured_vram_bytes/1024**3).toFixed(2)} GiB`:'Unknown');row('Build',status.build);}
-    if(status.devices?.length)row('Devices seen by llama-server',status.devices.map(d=>d.name).join(', '));
-    box.append(list);
-    if(status.last_error){const p=node('p','chatv2-error');compose(p,[status.last_error.message,' ',{id:status.last_error.code}]);box.append(p);}
-    if(!status.server_available)box.append(node('p','muted','Set NAJDILAB_NATIVE_SERVER to the path of an existing llama-server, then restart NajdiLab.'));
-    const select=el('chat-native-model');select.replaceChildren();
-    for(const m of models.items){
-      const label=m.valid?`${m.id} · ${m.quantization||'?'} · ${m.model_max_context||'?'}`:`${m.id} · ${m.error}`;
-      option(select,m.id,label,true);if(!m.valid)select.options[select.options.length-1].disabled=true;
-    }
-    if(!models.items.length)option(select,'','No GGUF files in the models folder');
-    el('chat-native-start').disabled=status.state==='RUNNING'||!status.server_available||!models.items.some(m=>m.valid);
-    el('chat-native-stop').disabled=status.state!=='RUNNING';
-  }
-  async function loadRuntimes(){
-    const items=(await request('/api/v1/integrations')).items.filter(x=>x.kind==='model_runtime'&&x.connection==='CONNECTED');
-    let native=null;
-    try{native=await request('/api/v1/native/status');}catch{native=null;}
-    nativeState=native;
-    if(native&&native.state==='RUNNING')items.push({id:'native',name:'NajdiLab Native',models:[native.model],selected_model:native.model,selection_revision:native.revision});
-    runtimes=items;
-    if(controller.session)controller.selectionRevision=sessionRuntime()?.selection_revision??null;
-  }
-  async function load(){
-    if(!bound)bind();
-    // A refresh replaces stale notices, so a current binding warning is never hidden.
-    notice=[];
-    await loadRuntimes();
-    if(controller.session)await controller.refresh();
-    await saved();render();
+    const runtime=section('Runtime');
+    if((s?.provider||value?.provider)==='native'){
+      let status=null;try{status=await request('/api/v1/native/status');}catch{}
+      if(status){
+        const state={STOPPED:'Stopped',STARTING:'Starting',RUNNING:'Running',STOPPING:'Stopping',FAILED:'Failed'}[status.state]||status.state;
+        rows(runtime,[['State',state,false],['Loaded model',status.model],['Actual loaded context',status.context?`${status.context} tokens`:null],
+          ['GPU use',status.gpu_layers],['Runtime version',status.build],['Loaded file SHA-256',status.sha256],
+          ['Devices seen by llama-server',(status.devices||[]).map(d=>d.name).join(', ')||null],
+          ['Measured GPU memory',typeof status.measured_vram_bytes==='number'?`${(status.measured_vram_bytes/1024**3).toFixed(2)} GiB`:null]]);
+        if(status.state==='RUNNING'&&s&&(status.model!==s.model||status.context!==s.context_budget))
+          runtime.append(node('p','chatv2-warning','NajdiLab Native is running a different model or context than this conversation. Sending asks to prepare it first.'));
+        if(status.last_error){const p=node('p','chatv2-error');compose(p,[status.last_error.message,' ',{id:status.last_error.code}]);runtime.append(p);}
+      }
+      if(item)rows(runtime,[['Verification',VERIFICATION[item.verification]||item.verification,false],['Model maximum context',item.max_context?`${item.max_context} tokens`:null]]);
+    }else if(s||value?.model){
+      runtime.append(node('p','muted','This runtime is managed by its own application. NajdiLab checks its context limit and model identity on every reply.'));
+    }else runtime.append(node('p','muted','No model chosen yet.'));
+    const usage=section('Token usage');
+    if(s?.turns?.length){
+      const table=node('table');const head=node('tr');for(const h of ['Turn','Prompt tokens','Reply tokens','Collected'])head.append(node('th',null,h));
+      const thead=node('thead');thead.append(head);const body=node('tbody');
+      s.turns.forEach((turn,index)=>{const row=node('tr');row.append(literal('td',String(index+1)),literal('td',String(turn.input_tokens)),literal('td',String(turn.output_tokens)),node('td',null,turn.collected?'Yes':'No'));body.append(row);});
+      table.append(thead,body);usage.append(table);
+      const u=contextUsage(s);if(u){const p=node('p','muted');compose(p,['Context used: ',{id:`${u.used} + ${u.reserve} / ${u.budget}`},' (',{id:`${u.percent}%`},')']);usage.append(p);}
+      const timings=timingsByRequest.get(s.turns.at(-1).request_id);
+      if(timings){usage.append(node('h4',null,'Last reply timing'),timingList(timings));}
+    }else usage.append(node('p','muted','No saved turns yet.'));
+    const privacy=section('Privacy and collection');
+    rows(privacy,[['Collection',(s?s.collect:draftCollect)?'On for this conversation':'Off',false]]);
+    privacy.append(node('p','muted','Collection is off by default and after restart; only future completed replies enter human review as pending items, never training-approved automatically. No system prompt, tools, retrieval or memory are added.'));
   }
 
   function act(fn){return async event=>{try{await fn(event);}catch(error){setNotice(errorParts(error));render();}};}
   function autosize(){const t=el('chat-draft');t.style.height='auto';t.style.height=Math.min(t.scrollHeight,240)+'px';}
 
-  async function submit(){
+  async function submit(prepared=null){
     const draft=el('chat-draft'),submitted=draft.value;
-    if(!controller.canSend(submitted)||!sessionRuntimeReady())return;
-    notice=[];lingering=[];
+    if(!sendEnabled())return;
+    notice=[];
+    const ready=prepared||await check(true);
+    if(!ready){render();return;}
+    if(!controller.session)await createSession(ready);
+    if(!controller.canSend(submitted))return render();
+    lingering=[];
     startLive(submitted);render();
     let result=null,failure=null;
     try{result=await controller.send(submitted,onStreamEvent);}
@@ -782,8 +871,44 @@
       setNotice(['Context limit reached: ',{id:`${result.input_tokens} + ${result.reply_reserve} > ${result.context_budget}`},
         '. The conversation was saved and a new empty conversation with the same settings opened. Your message was not sent and stays below.']);
     }else if(shouldClearDraft(submitted,draft.value,result.status)){draft.value='';autosize();}
-    await saved();render();
+    // Show the outcome at once (an unsent message's bubble disappears now), then refresh the lists.
+    render();
+    await saved();await loadCatalog().catch(()=>{});render();
     if(result&&result.status==='COMPLETED')scrollDown(true);
+  }
+
+  /* Model library → "Use in Chat": an empty draft with that model chosen. Nothing loads. */
+  function useModel(choice){pendingUse=choice;}
+  function applyPendingUse(){
+    if(!pendingUse)return;
+    const choice=pendingUse;pendingUse=null;
+    const item=catalogItem({provider:choice.provider,model:choice.model}),base=defaultSelection();
+    let context=base.context;
+    if(item?.max_context&&context>item.max_context)context=Math.max(...contextOptions(item.max_context).filter(o=>o.enabled).map(o=>o.value),128);
+    controller.session=null;selection={...base,provider:choice.provider,model:choice.model,context,reserve:Math.min(base.reserve,context-1)};
+    storeSelection(selection);draftCollect=false;plan=null;pendingSend=false;limit=null;lingering=[];hideCard();controller.modelReady=false;
+    notice=['Model chosen: ',{id:modelLabel(selection)||choice.model},'. ','Pick a context if needed, then send; NajdiLab asks before loading anything.'];
+  }
+
+  async function load(){
+    if(!bound)bind();
+    if(selection===null)selection=defaultSelection();
+    // A refresh replaces stale notices, so a current binding warning is never hidden.
+    notice=[];
+    await loadCatalog();
+    applyPendingUse();
+    if(controller.session){await controller.refresh();if(controller.session.status==='OPEN'&&!controller.pending)await check(false).catch(()=>{});}
+    await saved();render();
+  }
+
+  function menuKeys(panel){
+    panel.addEventListener('keydown',event=>{
+      const items=[...panel.querySelectorAll('button:not([hidden]),input:not(:disabled),select,summary')],at=items.indexOf(document.activeElement);
+      if(event.key==='Escape'){event.preventDefault();closePopover();}
+      else if(panel.getAttribute('role')==='menu'&&event.key==='ArrowDown'){event.preventDefault();items[(at+1)%items.length]?.focus();}
+      else if(panel.getAttribute('role')==='menu'&&event.key==='ArrowUp'){event.preventDefault();items[(at-1+items.length)%items.length]?.focus();}
+      else if(event.key==='Tab'&&panel.getAttribute('role')==='menu')closePopover(false);
+    });
   }
 
   function bind(){
@@ -798,19 +923,30 @@
     }
     el('chat-sidebar-toggle').onclick=()=>setSidebar(el('chat-shell').dataset.sidebar!=='open',!narrow());
     el('chat-sidebar-close').onclick=()=>{setSidebar(false,!narrow());el('chat-sidebar-toggle').focus();};
-    el('chat-new').onclick=act(async()=>{await loadRuntimes();openSetup();});
-    el('chat-new-header').onclick=act(async()=>{await loadRuntimes();openSetup();});
-    el('chat-provider').onchange=fillModels;
-    el('chat-model').onchange=()=>{withdrawApproval();renderPresets();updateBreakdown();};
-    el('chat-preset-check').onclick=async()=>{el('chat-setup-error').textContent='';try{await checkPresets();}catch(error){compose(el('chat-setup-error'),errorParts(error));}};
-    for(const radio of document.querySelectorAll('input[name="chat-preset"]'))radio.onchange=()=>{withdrawApproval();applyPreset(radio.value);};
-    for(const id of ['chat-budget','chat-reserve'])el(id).oninput=()=>{
-      withdrawApproval();
-      const {context,reserve}=readBudget(),candidate=presetFor(context,reserve),allowed=budgetPresets(currentEvidence()).find(p=>p.id===candidate)?.enabled;
-      const name=allowed?candidate:'custom';
-      const radio=document.querySelector(`input[name="chat-preset"][value="${name}"]`);if(radio)radio.checked=true;updateBreakdown();
+    el('chat-new').onclick=()=>newChat();
+    el('chat-new-header').onclick=()=>newChat();
+    el('chat-model-button').onclick=act(async()=>{
+      if(popover?.panel===el('chat-model-menu'))return closePopover();
+      await loadCatalog();renderModelMenu();
+      const checked=el('chat-model-menu').querySelector('[aria-checked="true"]');
+      openPopover(el('chat-model-menu'),el('chat-model-button'),checked);
+    });
+    el('chat-context-button').onclick=()=>{
+      if(popover?.panel===el('chat-context-menu'))return closePopover();
+      renderContextMenu();openPopover(el('chat-context-menu'),el('chat-context-button'),el('chat-context-menu').querySelector('input:checked')||undefined);
     };
-    el('chat-create').onclick=async()=>{try{await createSession();}catch(error){compose(el('chat-setup-error'),errorParts(error));}};
+    menuKeys(el('chat-model-menu'));menuKeys(el('chat-context-menu'));
+    for(const id of ['chat-budget','chat-reserve'])el(id).oninput=updateBreakdown;
+    el('chat-budget-apply').onclick=act(async()=>{
+      const value=current()||defaultSelection();
+      const next={...value,context:Number(el('chat-budget').value),reserve:Number(el('chat-reserve').value),gpu:el('chat-gpu').value};
+      closePopover();await choose(next);
+    });
+    el('chat-gpu').onchange=()=>{if(!controller.session){selection={...current(),gpu:el('chat-gpu').value};storeSelection(selection);}};
+    document.addEventListener('mousedown',event=>{if(popover&&!popover.panel.contains(event.target)&&!popover.anchor.contains(event.target))closePopover(false);});
+    global.addEventListener('resize',()=>{if(popover)placePopover(popover.panel,popover.anchor);});
+    el('chat-prepare-go').onclick=act(approvePlan);
+    el('chat-prepare-cancel').onclick=()=>{pendingSend=false;hideCard();el('chat-draft').focus();};
     let searchTimer=null;
     el('chat-search').oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(act(async()=>{listQuery=el('chat-search').value.trim();await saved();}),200);};
     for(const [id,mode] of [['chat-show-active','active'],['chat-show-archived','archived']])el(id).onclick=act(async()=>{
@@ -835,46 +971,31 @@
       else if(event.key==='Tab')closeMenu(false);
     });
     document.addEventListener('click',event=>{if(!event.target.closest('#chat-action-menu,[data-chat-more],#chat-actions'))closeMenu(false);});
-    el('chat-settings-open').onclick=act(async()=>{renderDetails();el('chat-panel').showModal();loadNative().catch(()=>{});});
+    el('chat-info-open').onclick=act(async()=>{el('chat-panel').showModal();await renderInfo();});
     el('chat-panel-close').onclick=()=>el('chat-panel').close();
-    el('chat-hardware').onclick=act(async()=>{await readHardware();});
-    el('chat-native-estimate').onclick=act(async()=>{const m=el('chat-native-model').value;if(m)await readHardware(m);el('chat-hardware-section').open=true;});
-    el('chat-native-start').onclick=act(async()=>{
-      el('chat-native-start').disabled=true;
-      try{
-        await request('/api/v1/native/start',{method:'POST',body:JSON.stringify({approved:true,model:el('chat-native-model').value,
-          context_budget:Number(el('chat-native-context').value),gpu_layers:el('chat-native-gpu').value})});
-      }finally{await loadNative().catch(()=>{});await loadRuntimes();render();}
-    });
-    el('chat-native-stop').onclick=act(async()=>{
-      try{await request('/api/v1/native/stop',{method:'POST',body:JSON.stringify({approved:true})});}
-      finally{await loadNative().catch(()=>{});await loadRuntimes();render();}
-    });
     window.addEventListener('najdilab:languagechange',()=>{renderList();render();});
     el('chat-draft').addEventListener('input',autosize);
     // In a method="dialog" form, Enter would press the first button (Cancel/close).
     el('chat-rename-input').addEventListener('keydown',event=>{if(keyAction(event)==='send'){event.preventDefault();el('chat-rename').close('save');}});
-    el('chat-setup-form').addEventListener('keydown',event=>{
-      if(keyAction(event)==='send'&&event.target.tagName==='INPUT'){event.preventDefault();if(!el('chat-create').disabled)el('chat-create').click();}
-    });
     el('chat-delete-confirm').addEventListener('keydown',event=>{if(keyAction(event)==='send'){event.preventDefault();if(!el('chat-delete-go').disabled)el('chat-delete-go').click();}});
     let composing=false;
     el('chat-draft').addEventListener('compositionstart',()=>{composing=true;});
     el('chat-draft').addEventListener('compositionend',()=>{composing=false;});
-    el('chat-draft').addEventListener('input',()=>{el('chat-send').disabled=!controller.canSend(el('chat-draft').value);});
+    el('chat-draft').addEventListener('input',()=>{el('chat-send').disabled=!sendEnabled();});
     el('chat-draft').addEventListener('keydown',event=>{
       const action=composing?'compose':keyAction(event);
       // A held Enter never inserts a stray newline into a ready message, and never sends.
       if(action==='repeat'){event.preventDefault();return;}
       if(action!=='send')return;
       event.preventDefault();
-      submit().catch(error=>{setNotice(errorParts(error));render();});
+      submit(null).catch(error=>{setNotice(errorParts(error));render();});
     });
-    el('chat-form').onsubmit=event=>{event.preventDefault();submit().catch(error=>{setNotice(errorParts(error));render();});};
+    el('chat-form').onsubmit=event=>{event.preventDefault();submit(null).catch(error=>{setNotice(errorParts(error));render();});};
     el('chat-stop').onclick=act(async()=>{await controller.stop();if(live)live.status.textContent='Stopping… nothing from this reply will be saved.';});
     el('chat-collect').onchange=act(async()=>{
-      await controller.collect(el('chat-collect').checked);
-      setNotice(el('chat-collect').checked?'Collection is on for this conversation until you turn it off or NajdiLab restarts. Only future completed replies enter human review.':'Collection is off for this conversation.');
+      const on=el('chat-collect').checked;
+      if(controller.session)await controller.collect(on);else draftCollect=on;
+      setNotice(on?'Collection is on for this conversation until you turn it off or NajdiLab restarts. Only future completed replies enter human review.':'Collection is off for this conversation.');
       render();
     });
     el('chat-messages').addEventListener('click',event=>{
@@ -884,7 +1005,7 @@
       if(global.navigator.clipboard)global.navigator.clipboard.writeText(text).then(done,()=>{});
     });
   }
-  global.NajdiChat={load};
+  global.NajdiChat={load,useModel};
   document.addEventListener('DOMContentLoaded',()=>{
     const form=el('context-warnings-form'),ids={info:'context-warn-info',warn:'context-warn-warn',critical:'context-warn-critical'};
     if(form){

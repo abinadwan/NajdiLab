@@ -29,7 +29,7 @@ $env:NAJDILAB_NATIVE_MODELS = 'D:\models\gguf'
 NAJDILAB_NATIVE_SERVER=/opt/llama.cpp/llama-server NAJDILAB_NATIVE_MODELS=~/models sh ./run.sh
 ```
 
-4. In Chat, open **⚙ Chat settings → NajdiLab Native**, choose a model, a context size and GPU use, then **Start**. When it shows *Running*, **New chat** offers *NajdiLab Native* as a runtime.
+4. In Chat, choose the model and context in the message box (or use **Use in Chat** in Model library) and send. If NajdiLab Native is stopped or runs another model or context, a card explains it and asks once; NajdiLab checks memory, then starts or restarts only its own process. GPU use is under the context button → Advanced. ([Chat composer](development/CHAT_COMPOSER.md))
 
 ## How a model is checked
 

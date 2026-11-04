@@ -99,13 +99,25 @@ test('Model library and context indicator in Chromium',async t=>{
       assert.match(await page.$eval('.models-library-item',e=>e.innerText),/verified/);
     });
 
-    await t.test('loading stays an approved step and is refused while blocked',async()=>{
-      await page.click('.models-library-item .button.primary');await page.waitForSelector('.models-load .models-check-settings');
-      await page.click('.models-load .models-check-settings .button');await page.waitForSelector('.models-load .models-advice-card');
-      assert.equal(await page.$eval('.models-load-confirm input',e=>e.disabled),true);
-      assert.equal(await page.$eval('.models-load-confirm .button',e=>e.disabled),true);
+    await t.test('Use in Chat opens an empty chat with the model chosen and starts nothing',async()=>{
+      assert.match(await page.$eval('.models-library-item .button.primary',e=>e.textContent),/Use in Chat/);
+      assert.equal(await page.$('.models-load'),null,'the library has no load or runtime-context form any more');
+      await page.click('.models-library-item .button.primary');
+      await page.waitForSelector('#view-chat.active');
+      await page.waitForFunction(()=>/Tiny-Chat/.test(document.querySelector('#chat-model-label').textContent));
+      assert.match(await page.$eval('#chat-session-identity',e=>e.textContent),/New conversation/);
+      assert.equal(await page.$('dialog[open]'),null);
       const native=await page.evaluate(async()=>(await window.api('/api/v1/native/status')).state);
       assert.equal(native,'STOPPED','nothing was started');
+      // Sending explains why it cannot run here (no llama.cpp runtime in the fixture) and keeps the draft.
+      await page.$eval('#chat-draft',e=>{e.value='Synthetic draft';e.dispatchEvent(new Event('input'));});
+      await page.click('#chat-send');await page.waitForSelector('#chat-prepare:not([hidden])');
+      assert.match(await page.$eval('#chat-prepare',e=>e.textContent),/This model cannot be used now[\s\S]*NATIVE_SERVER_MISSING/);
+      assert.equal(await page.$eval('#chat-draft',e=>e.value),'Synthetic draft');
+      await page.click('#chat-prepare-cancel');
+      await page.evaluate(()=>switchView('models'));await page.click('#models-tab-library');
+      await page.waitForSelector('#models-library:not([hidden]) .models-library-item');
+      await page.waitForNetworkIdle({idleTime:400});
     });
 
     await t.test('delete requires the exact file name',async()=>{
@@ -134,8 +146,10 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.click('#context-warnings-form button');
       assert.equal(await page.$eval('#context-warnings-status',e=>e.textContent),'Context warnings saved.');
       await page.evaluate(()=>switchView('chat'));await page.waitForSelector('#view-chat.active');
-      await page.click('#chat-new');await page.waitForSelector('#chat-setup[open] #chat-provider option');
-      await page.click('#chat-create');await page.waitForFunction(()=>!document.querySelector('#chat-setup').open&&!document.querySelector('#chat-collect').disabled);
+      await page.click('#chat-new');
+      await page.click('#chat-model-button');await page.waitForSelector('#chat-model-menu:not([hidden]) .chatv2-model-item');
+      await page.evaluate(()=>[...document.querySelectorAll('#chat-model-menu h4')].find(h=>h.textContent==='LM Studio').nextElementSibling.click());
+      await page.click('#chat-context-button');await page.click('#chat-context-options label:first-child');
       const before=await page.$eval('#chat-usage',e=>e.textContent);
       assert.match(before,/Context used: 0 \+ 1024 reserved of 4096 tokens \(25%\)/);
       assert.match(await page.$eval('#chat-context-left',e=>e.textContent),/estimate/);
@@ -152,20 +166,42 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.evaluate(()=>localStorage.removeItem('najdilab.contextWarnings'));
     });
 
+    await t.test('copyright: once, in the sidebar under the local address, translated, quiet and accessible',async()=>{
+      await page.setViewport({width:1280,height:900});
+      assert.equal(await page.$$eval('.app-footer',e=>e.length),0,'no page footer');
+      assert.equal(await page.$$eval('#copyright-year',e=>e.length),1);
+      const where=()=>page.$eval('.sidebar-copyright',e=>{const r=e.getBoundingClientRect(),badge=document.querySelector('.local-badge').getBoundingClientRect(),nav=getComputedStyle(document.querySelector('.nav-label'));
+        return {inSidebar:!!e.closest('.sidebar'),below:r.top>=badge.bottom-1,smaller:parseFloat(getComputedStyle(e).fontSize)<parseFloat(nav.fontSize),text:e.textContent.trim(),align:getComputedStyle(e).textAlign};});
+      const year=String(new Date().getFullYear());
+      for(const theme of ['light','dark']){
+        await page.evaluate(th=>{document.documentElement.setAttribute('data-theme',th);window.NajdiI18n.setLanguage('en');},theme);
+        const en=await where();
+        assert.deepEqual([en.inSidebar,en.below,en.smaller,en.text],[true,true,true,`© ${year} Najdi Lab. All rights reserved.`],theme);
+        await page.evaluate(()=>window.NajdiI18n.setLanguage('ar'));
+        const ar=await where();
+        assert.deepEqual([ar.inSidebar,ar.below,ar.text],[true,true,`© ${year} نجدي لاب. جميع الحقوق محفوظة.`],theme+' Arabic');
+      }
+      await page.evaluate(()=>window.NajdiI18n.setLanguage('en'));
+      await page.click('#collapse-sidebar');
+      const collapsed=await page.$eval('.sidebar-copyright',e=>({width:e.getBoundingClientRect().width,text:e.textContent.trim().length>0}));
+      assert.ok(collapsed.width<=1&&collapsed.text,'collapsed sidebar: hidden visually, still read by screen readers');
+      await page.click('#collapse-sidebar');
+    });
+
     await t.test('version label: one value from the server, in both languages, themes and layouts',async()=>{
       const served=await page.evaluate(async()=>(await window.api('/api/v1/config')).app_version_display);
-      assert.equal(served,'V2.0.0');
+      assert.equal(served,'V2.1.0');
       const label=()=>page.$eval('#app-version',e=>{const r=e.getBoundingClientRect();return {text:e.textContent,visible:r.width>0&&r.height>0,
         inside:r.right<=e.closest('.sidebar').getBoundingClientRect().right+0.5&&r.left>=e.closest('.sidebar').getBoundingClientRect().left-0.5,
         below:r.top>=document.querySelector('.brand-mark').getBoundingClientRect().top};});
       for(const lang of ['en','ar'])for(const theme of ['light','dark']){
         await page.evaluate((l,th)=>{document.documentElement.setAttribute('data-theme',th);window.NajdiI18n.setLanguage(l);},lang,theme);
         const v=await label();
-        assert.deepEqual(v,{text:'V2.0.0',visible:true,inside:true,below:true},`${lang} ${theme}`);
+        assert.deepEqual(v,{text:'V2.1.0',visible:true,inside:true,below:true},`${lang} ${theme}`);
       }
-      assert.equal(await page.$eval('#settings-version',e=>e.textContent),'V2.0.0','Settings shows the same version');
+      assert.equal(await page.$eval('#settings-version',e=>e.textContent),'V2.1.0','Settings shows the same version');
       await page.click('#collapse-sidebar');
-      assert.deepEqual(await label(),{text:'V2.0.0',visible:true,inside:true,below:true},'collapsed sidebar');
+      assert.deepEqual(await label(),{text:'V2.1.0',visible:true,inside:true,below:true},'collapsed sidebar');
       await page.click('#collapse-sidebar');
       await page.setViewport({width:390,height:844});
       // Crossing the phone breakpoint slides the sidebar off-screen (0.2 s); click once it is out of the way.
