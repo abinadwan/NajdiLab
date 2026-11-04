@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/najdilab-readme-banner.webp" alt="NajdiLab — Local AI workspace for model interaction, data curation, and fine-tuning preparation" width="100%">
+</p>
+
 # NajdiLab
 
 **Local model conversations → human review and correction → validated, versioned datasets → external Unsloth training.**
