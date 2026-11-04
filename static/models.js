@@ -25,7 +25,19 @@
     STOPPED:'Stopped',NOT_INSTALLED:'Not installed',UNVERIFIED:'Unverified',BLOCKED:'Blocked',ERROR:'Error'};
   const PHASE_TEXT={PREPARING:'Preparing',DOWNLOADING:'Downloading',CHECKING_OFFLINE_COPY:'Checking the offline copy',
     EXTRACTING:'Unpacking',VERIFYING:'Verifying on this computer'};
-  const TABS=['discover','library','runtime'];
+  const TABS=['recommended','trending','discover','library','runtime'];
+  const PROVENANCE={OFFICIAL:['ready','Verified official publisher'],COMMUNITY:['info','Community conversion'],
+    MODIFIED:['warning','Fine-tuned / modified'],UNVERIFIED:['neutral','Unverified source']};
+  const LICENSE_TEXT={OPEN:'Open license',TERMS:'Custom terms: read them before use',NON_COMMERCIAL:'Non-commercial use only',UNKNOWN:'No license stated'};
+  const PLACEMENT_TEXT={GPU:'Fully on the GPU',PARTIAL_OFFLOAD:'Split between GPU and system memory',CPU:'CPU only',NONE:'Does not fit',UNKNOWN:'Unknown'};
+  const FILTERS={
+    sort:['Ranking',[['trending','Trending score'],['downloads','Downloads'],['likes','Likes'],['updated','Recently updated']],'trending'],
+    size:['Size (total parameters)',[['all','Up to 12B'],['small','Up to 3B'],['medium','Above 3B through 7B'],['large','Above 7B through 12B']],'all'],
+    source:['Source',[['official','Verified official publishers'],['community','Official and community conversions'],['all','All sources, including modified and unverified']],'official'],
+    purpose:['Purpose',[['chat','Instruct / chat'],['any','Any purpose']],'chat'],
+    context:['Context size',[['4096','4096'],['8192','8192'],['16384','16384'],['32768','32768']],'8192'],
+    gpu:['GPU use',[['auto','Automatic'],['all','All layers on GPU'],['0','CPU only']],'auto']};
+  let trending=null;
   let current=null,adviceFor=null,timer=null,loaded=false,library=null,runtime=null,runtimeTimer=null,pending=null;
 
   function node(tag,attrs={},...children){
@@ -56,7 +68,7 @@
     for(const tab of document.querySelectorAll('[data-models-tab]')){
       const on=tab.dataset.modelsTab===name;tab.classList.toggle('active',on);tab.setAttribute('aria-selected',String(on));tab.tabIndex=on?0:-1;
     }
-    el('models-discover').hidden=name!=='discover';el('models-library').hidden=name!=='library';el('models-runtime').hidden=name!=='runtime';
+    for(const tab of TABS)el(`models-${tab}`).hidden=name!==tab;
     if(name==='library')refreshLibrary();
     if(name==='runtime')refreshRuntime();
   }
@@ -306,6 +318,99 @@
     }catch(error){say('models-delete-error',errorText(error));}
   }
 
+  // ------------------------------------------------------------- trending and recommended
+  function buildFilters(){
+    for(const box of document.querySelectorAll('[data-filters]')){
+      const prefix=box.dataset.filters==='trending'?'trend':'rec';
+      const keys=prefix==='trend'?['sort','size','source','purpose']:['size','source','purpose','context','gpu'];
+      box.replaceChildren(...keys.map(key=>{const [label,options,value]=FILTERS[key];const id=`${prefix}-${key}`;
+        return node('div',{class:'field'},node('label',{for:id},label),select(id,options,value));}));
+    }
+  }
+  const value=id=>el(id).value;
+  function leftOut(counts){
+    const parts=[['over_12b','above 12B parameters'],['unknown_size','with an unknown parameter count'],['outside_size_filter','outside the size filter'],
+      ['not_chat','not instruct / chat'],['other_sources','from other sources'],['no_single_file_gguf','without a single-file GGUF'],
+      ['merged_duplicates','duplicate conversions merged']].filter(([k])=>counts[k]);
+    return parts.length?node('div',{},node('p',{class:'muted'},'Left out of',' ',ident(count(counts.fetched)),' ','models read from Hugging Face:'),
+      node('ul',{class:'models-left-out'},parts.map(([k,text])=>node('li',{},ident(count(counts[k])),' ',text)))):null;
+  }
+  function fetchedLine(r){
+    return node('p',{class:r.cache==='stale'?'models-error-line':'muted'},'Rankings fetched from Hugging Face at',' ',ident(r.fetched_at||'—'),
+      r.cache==='cached'?[' · ','cached copy, less than 10 minutes old']:null,
+      r.cache==='stale'?[' · ','Hugging Face could not be reached; this is the last ranking fetched.']:null);
+  }
+  function parameterFact(check){
+    if(check.status!=='CONFIRMED')return [pill('hold','UNVERIFIED'),' ',check.reasons.length?check.reasons[0].message:''];
+    return [ident(`${check.billions}B`),' ','total',check.mixture_of_experts?[' · ','mixture of experts, all experts counted']:null];
+  }
+  function discoveryCard(item,mode){
+    const [kind,label]=PROVENANCE[item.provenance.class];
+    const check=item.parameter_check;
+    const facts=[fact('Publisher',ident(item.author)),
+      fact('Model family',[item.family.architecture?ident(item.family.architecture):'Unknown',item.family.base_model?[' · ',ident(item.family.base_model)]:null],'reported'),
+      fact('Total parameters',parameterFact(check),check.status==='CONFIRMED'?'reported':'unknown'),
+      fact('Quantizations',node('span',{class:'models-chips'},item.quantizations.slice(0,10).map(q=>node('span',{class:'models-chip',translate:'no'},q)))),
+      fact('License',[item.license?ident(item.license):null,item.license?' · ':null,LICENSE_TEXT[item.license_class]])];
+    if(mode==='trending')facts.push(fact('Hugging Face ranking',[ident(`#${item.rank}`),item.trending_score!=null?[' · ','trending score',' ',ident(count(item.trending_score))]:null,
+      ' · ',ident(count(item.downloads)),' ','downloads',' · ',ident(count(item.likes)),' ','likes'],'reported'),fact('Last updated',ident(item.last_modified||'—'),'reported'));
+    if(item.also_converted_by&&item.also_converted_by.length)facts.push(fact('Also converted by',item.also_converted_by.map((a,i)=>[i?', ':null,ident(a)])));
+    let fit=null;
+    if(mode==='recommended'){
+      const a=item.advice,c=item.chosen;
+      fit=node('section',{class:'models-download-check','aria-label':'Fit on this computer'},
+        node('div',{class:'models-verdict-line'},node('h4',{},'Compatibility (estimate)'),pill(VERDICT[a.load.classification],a.load.classification),
+          node('span',{class:'muted'},'Where it would run:',' ',PLACEMENT_TEXT[a.performance.placement]||a.performance.placement)),
+        node('p',{class:'models-performance'},'Expected performance:',' ',a.performance.expectation),
+        node('dl',{class:'models-facts compact'},fact('Suggested file',[ident(c.filename),' · ',ident(bytes(c.size_bytes))],'reported'),
+          a.estimate?fact('Estimated memory needed',ident(bytes(a.estimate.required_bytes)),'estimate'):null,
+          a.load.recommended_context?fact('Largest context that fits (estimate)',ident(count(a.load.recommended_context))):null,
+          fact('Download check',a.download.decision==='ALLOWED'?pill('ready','Download allowed'):pill('hold','Download blocked'))),
+        a.load.reasons.length?node('ul',{class:'models-reasons'},a.load.reasons.slice(0,3).map(x=>node('li',{},x.message))):null);
+    }
+    return node('li',{},node('article',{class:'models-discovery-item'},
+      node('div',{class:'models-library-head'},node('h3',{},ident(item.id)),pill(kind,label),check.status!=='CONFIRMED'?pill('hold','UNVERIFIED size'):null,
+        item.access&&item.access!=='OPEN'?pill('hold','Needs approval on Hugging Face'):null),
+      node('dl',{class:'models-facts compact'},facts),
+      node('ul',{class:'models-reasons'},item.provenance.evidence.map(e=>node('li',{},e))),fit,
+      node('div',{class:'models-actions'},node('button',{type:'button',class:'button ghost',onclick:()=>{showTab('discover');openRepo(item.id);}},'View files and download…'))));
+  }
+  async function loadTrending(more=false,refresh=false){
+    const body={sort:value('trend-sort'),size:value('trend-size'),source:value('trend-source'),purpose:value('trend-purpose'),
+      include_unknown_size:el('trend-unknown').checked,refresh};
+    if(more&&trending){body.cursor=trending.next_cursor;body.offset=trending.next_offset;}
+    say('models-trending-status','Reading the ranking from Hugging Face…');el('models-trending-more').hidden=true;
+    try{
+      const r=await api('/api/v1/models/hub/trending',body);
+      const shown=more?new Set([...el('models-trending-list').querySelectorAll('h3')].map(h=>h.textContent)):new Set();
+      const items=r.items.filter(i=>!shown.has(i.id));
+      if(!more)el('models-trending-list').replaceChildren();
+      el('models-trending-list').append(...items.map(i=>discoveryCard(i,'trending')));
+      trending=r;
+      say('models-trending-summary',fetchedLine(r),leftOut(r.counts));
+      say('models-trending-status',el('models-trending-list').children.length?null:'No model matches these filters on the pages read. Load more, or widen the filters.');
+      el('models-trending-more').hidden=!r.next_cursor;el('models-trending-refresh').hidden=false;
+    }catch(error){say('models-trending-status',node('span',{class:'models-error',role:'alert'},errorText(error),error.hint?[' ',error.hint]:null));}
+  }
+  async function loadRecommended(refresh=false){
+    if(!el('rec-hardware').checked){say('models-recommend-status','Allow reading this computer\'s hardware first: recommendations depend on it.');return;}
+    say('models-recommend-status','Checking up to 10 models against this computer… this reads their file lists and GGUF headers from Hugging Face.');
+    el('models-recommend-list').replaceChildren();say('models-recommend-summary');
+    try{
+      const r=await api('/api/v1/models/hub/recommended',{size:value('rec-size'),source:value('rec-source'),purpose:value('rec-purpose'),
+        context:Number(value('rec-context')),gpu_layers:value('rec-gpu'),hardware_approved:true,refresh});
+      const gpu=(r.host.gpus||[])[0];
+      say('models-recommend-summary',node('dl',{class:'models-facts compact'},
+          fact('GPU',gpu?[ident(gpu.name||'GPU'),' · ',ident(bytes(gpu.free_bytes)),' ','free of',' ',ident(bytes(gpu.total_bytes))]:'No GPU reported','measured'),
+          fact('System memory free',ident(bytes(r.host.ram_available_bytes)),'measured'),
+          fact('NajdiLab Native runtime',r.host.runtime.server_available?'llama-server configured':'llama-server not configured')),
+        node('p',{class:'muted'},r.method),node('p',{class:'muted'},r.note),fetchedLine({...r,cache:'fresh'}),leftOut(r.counts));
+      el('models-recommend-list').replaceChildren(...r.items.map(i=>discoveryCard(i,'recommended')));
+      say('models-recommend-status',r.items.length?null:'No model matched these filters among the models checked. Widen the source or size filter.');
+      el('models-recommend-refresh').hidden=false;
+    }catch(error){say('models-recommend-status',node('span',{class:'models-error',role:'alert'},errorText(error),error.hint?[' ',error.hint]:null));}
+  }
+
   // ------------------------------------------------------------- managed llama.cpp runtime
   async function refreshRuntime(){
     clearTimeout(runtimeTimer);
@@ -438,6 +543,12 @@
 
   function bind(){
     el('models-search').onsubmit=search;
+    buildFilters();
+    el('models-trending-form').onsubmit=event=>{event.preventDefault();loadTrending();};
+    el('models-trending-more').onclick=()=>loadTrending(true);
+    el('models-trending-refresh').onclick=()=>loadTrending(false,true);
+    el('models-recommend-form').onsubmit=event=>{event.preventDefault();loadRecommended();};
+    el('models-recommend-refresh').onclick=()=>loadRecommended(true);
     for(const tab of document.querySelectorAll('[data-models-tab]')){
       tab.onclick=()=>showTab(tab.dataset.modelsTab);
       tab.onkeydown=event=>{

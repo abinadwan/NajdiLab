@@ -51,7 +51,7 @@ test('every fixed Model library text has an Arabic translation',()=>{
 });
 
 test('every Hugging Face Direct server message and advisor reason has an Arabic translation',()=>{
-  const strings=['app/hf_hub.py','app/model_store.py','app/model_service.py','app/model_advisor.py'].flatMap(pythonMessages);
+  const strings=['app/hf_hub.py','app/model_store.py','app/model_service.py','app/model_advisor.py','app/model_discovery.py'].flatMap(pythonMessages);
   assert.ok(strings.length>45,'expected the server messages: '+strings.length);
   const absent=missing(strings);
   assert.deepEqual(absent,[],'missing Arabic:\n'+absent.join('\n'));
@@ -75,6 +75,23 @@ test('every managed llama.cpp runtime message has an Arabic translation, numbers
     const ar=I18N.translate(text,'ar');
     assert.notEqual(ar,text,text);
     for(const kept of text.match(/\d+(?:\.\d+)?|[\w.-]+\.zip|CUDA/g))assert.ok(ar.includes(kept),`${kept} kept in: ${ar}`);
+  }
+});
+
+test('provenance evidence sentences translate with repository names kept',()=>{
+  for(const text of ['Declares that it is a finetune of najdi-labs/Najm-3B-Instruct, so its weights differ from the original.',
+    'Its name says it was changed ("Uncensored"), although it declares only a quantized copy of najdi-labs/Najm-3B-Instruct.',
+    'Published by najdi-labs, the Hugging Face account that also published najdi-labs/Najm-3B-Instruct. Only members of an account can publish under its name.',
+    'This is a GGUF conversion (quantized weights) by the original publisher, not the original unmodified weights.',
+    "It claims to convert google/gemma-4-12B-it, but its name does not contain that model's name.",
+    'A GGUF conversion of najdi-labs/Najm-3B-Instruct by community-quant, a different account from the original publisher.',
+    'The repository names other/Base but does not say how it relates to it.',
+    'The origin of najdi-labs/Najm-3B-Instruct could not be checked on Hugging Face, so this source is not confirmed.',
+    'partner-ai/Partner-4B-Instruct is a finetune of najdi-labs/Najm-3B-Instruct, which another account published; its weights differ from that original.',
+    "Popularity only chooses which models are checked (Hugging Face's most downloaded and trending GGUF models). The order comes from the Smart Model Advisor on this computer: compatibility first, then provenance, license and where the model would run."]){
+    const ar=I18N.translate(text,'ar');
+    assert.notEqual(ar,text,text);
+    for(const kept of text.match(/[\w-]+\/[\w.-]*\w/g)||[])assert.ok(ar.includes(kept),`${kept} kept in: ${ar}`);
   }
 });
 

@@ -220,9 +220,32 @@
 
       <section id="view-models" class="view">
         <div class="subtabs" role="tablist" aria-label="Model library sections">
-          <button class="active" role="tab" type="button" id="models-tab-discover" aria-selected="true" aria-controls="models-discover" data-models-tab="discover">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button>
+          <button class="active" role="tab" type="button" id="models-tab-recommended" aria-selected="true" aria-controls="models-recommended" data-models-tab="recommended">Recommended for your device</button><button role="tab" type="button" id="models-tab-trending" aria-selected="false" aria-controls="models-trending" data-models-tab="trending" tabindex="-1">Trending</button><button role="tab" type="button" id="models-tab-discover" aria-selected="false" aria-controls="models-discover" data-models-tab="discover" tabindex="-1">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button>
         </div>
-        <div id="models-discover" role="tabpanel" aria-labelledby="models-tab-discover">
+        <div id="models-recommended" role="tabpanel" aria-labelledby="models-tab-recommended">
+          <p class="safety-banner models-privacy">This computer's memory, GPU and llama.cpp runtime are read here and never sent. Only list and file-header requests go to huggingface.co. Popularity only chooses which models are checked; the order comes from how each model fits this computer. Nothing downloads or loads without your approval.</p>
+          <form id="models-recommend-form" class="panel models-filter-form" aria-label="Recommendation settings">
+            <div class="models-filter-grid" data-filters="recommend"></div>
+            <label class="inline-check"><input id="rec-hardware" type="checkbox"> Read this computer's hardware for the check (stays on this computer)</label>
+            <div class="models-actions"><button class="button primary" type="submit">Find models for this computer</button><button id="models-recommend-refresh" class="button ghost" type="button" hidden>Refresh from Hugging Face</button></div>
+          </form>
+          <p id="models-recommend-status" class="models-status" role="status" aria-live="polite"></p>
+          <div id="models-recommend-summary"></div>
+          <ol id="models-recommend-list" class="models-library-items models-discovery-list"></ol>
+        </div>
+        <div id="models-trending" role="tabpanel" aria-labelledby="models-tab-trending" hidden>
+          <p class="safety-banner models-privacy">Rankings come from Hugging Face in its own order: trending score, downloads, likes or last update. NajdiLab only removes models that do not match the filters. Popularity is not a measure of quality or of compatibility with this computer.</p>
+          <form id="models-trending-form" class="panel models-filter-form" aria-label="Trending filters">
+            <div class="models-filter-grid" data-filters="trending"></div>
+            <label class="inline-check"><input id="trend-unknown" type="checkbox"> Include models whose parameter count is unknown (shown as UNVERIFIED)</label>
+            <div class="models-actions"><button class="button primary" type="submit">Show models</button><button id="models-trending-refresh" class="button ghost" type="button" hidden>Refresh from Hugging Face</button></div>
+          </form>
+          <p id="models-trending-status" class="models-status" role="status" aria-live="polite"></p>
+          <div id="models-trending-summary"></div>
+          <ol id="models-trending-list" class="models-library-items models-discovery-list"></ol>
+          <div class="models-actions"><button id="models-trending-more" class="button ghost" type="button" hidden>Load more</button></div>
+        </div>
+        <div id="models-discover" role="tabpanel" aria-labelledby="models-tab-discover" hidden>
           <p class="safety-banner models-privacy">Searching sends only your search words to huggingface.co. Chats, datasets and this computer's hardware details never leave it. Single-file GGUF models only; nothing downloads or loads without your approval.</p>
           <form id="models-search" class="panel models-search" role="search">
             <div class="field"><label for="models-query">Model name</label><input id="models-query" type="search" maxlength="100" autocomplete="off" dir="auto" translate="no" placeholder="qwen2.5 instruct"></div>

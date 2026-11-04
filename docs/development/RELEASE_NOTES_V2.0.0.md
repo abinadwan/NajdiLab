@@ -10,6 +10,7 @@ The version has one source, `app/version.py`. The server banner, the `Server` he
 |---|---|---|
 | Interface and brand | Najdi Lab identity, design system, framed-sheet shell, Arabic and English, light and dark | [Redesign](NAJDI_LAB_REDESIGN.md), [design system](../design-system.md) |
 | Hugging Face Direct | GGUF discovery, Smart Model Advisor, storage-safe verified downloads, model library, approved loading through NajdiLab Native | [Hugging Face Direct](HUGGING_FACE_DIRECT.md) |
+| Trending and recommended models | Recommended for your device (Smart Model Advisor ranking) and Hugging Face trending with provenance labels and a 12B total-parameter limit | [Model discovery](MODEL_DISCOVERY.md) |
 | Managed llama.cpp runtime | Pinned official llama.cpp build installed only on approval, verified by SHA-256, identity and a GPU probe; rollback and uninstall | [Managed runtime](MANAGED_RUNTIME.md) |
 | Chat V2 | Context usage indicator and configurable notices; exact admission unchanged | [Hugging Face Direct §8](HUGGING_FACE_DIRECT.md#8-chat-v2-context-window) |
 | Database | Migration 009 (`managed_models`, additive) | [Hugging Face Direct §5](HUGGING_FACE_DIRECT.md#5-storage-safety) |

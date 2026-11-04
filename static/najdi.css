@@ -461,6 +461,16 @@ dialog{color:var(--ink)}
 
 /* ---------- Model library (Hugging Face Direct) ---------- */
 .models-privacy{margin-bottom:16px}
+.models-filter-form{padding:16px 20px;display:grid;gap:12px}
+.models-filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px 16px}
+.models-filter-grid .field{margin:0;display:grid;gap:6px}
+.models-filter-grid select{width:100%}
+.models-discovery-list{list-style:none;padding:0;margin:0}
+.models-chips{display:flex;flex-wrap:wrap;gap:4px}
+.models-chip{font-family:var(--font-mono);font-size:.75rem;border:1px solid var(--line);border-radius:var(--radius-control);padding:1px 6px;background:var(--surface-soft)}
+.models-left-out{display:flex;flex-wrap:wrap;gap:4px 16px;margin:4px 0 12px;padding:0;list-style:none;font-size:.8125rem;color:var(--muted)}
+.models-verdict-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}
+.models-actions .button[hidden]{display:none}
 .models-search{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:12px 16px;align-items:end;padding:16px 20px}
 .models-search .field{margin:0;display:grid;gap:6px}
 .models-search input{width:100%}
@@ -512,7 +522,7 @@ dialog{color:var(--ink)}
 .models-storage h2{margin:0}
 .models-storage p{margin:4px 0 0;font-size:.8125rem}
 .models-library-items{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.models-library-item{border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;background:var(--surface)}
+.models-library-item,.models-discovery-item{border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;background:var(--surface)}
 .models-library-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .models-library-head h3{margin:0;font-size:.9375rem;font-family:var(--font-mono);overflow-wrap:anywhere}
 .models-progress{display:grid;gap:6px;margin:8px 0}
@@ -563,6 +573,6 @@ dialog{color:var(--ink)}
 }
 @media (max-width:760px){
   .models-search{grid-template-columns:minmax(0,1fr)}
-  .models-detail,.models-storage,.models-library-item,.models-advice-card{padding:14px 16px}
+  .models-detail,.models-storage,.models-library-item,.models-discovery-item,.models-advice-card{padding:14px 16px}
   .chatv2-context{grid-template-columns:minmax(0,1fr)}
 }

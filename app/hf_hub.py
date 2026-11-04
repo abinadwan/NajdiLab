@@ -18,7 +18,7 @@ import http.client
 import json
 import re
 import ssl
-from urllib.parse import quote, urlencode, urlsplit
+from urllib.parse import parse_qs, quote, urlencode, urlsplit
 
 from .gguf import GGUFError, describe, read_header_bytes
 from .version import APP_VERSION
@@ -130,6 +130,55 @@ def variant(sibling: dict) -> dict | None:
             'supported': not reasons, 'unsupported_reasons': reasons}
 
 
+LIST_SORTS = ('trendingScore', 'downloads', 'likes', 'lastModified')
+LIST_FIELDS = ('trendingScore', 'downloads', 'likes', 'lastModified', 'gguf', 'cardData', 'tags', 'siblings', 'gated')
+CURSOR = re.compile(r'[A-Za-z0-9+/=_-]{1,4096}\Z')
+RELATIONS = ('quantized', 'finetune', 'merge', 'adapter')
+
+
+def next_cursor(link: str) -> str | None:
+    """The `cursor` of the rel="next" page in a Link header, if it points back to the same API."""
+    match = re.search(r'<([^>]{1,8192})>;\s*rel="next"', link or '')
+    if not match:
+        return None
+    parts = urlsplit(match.group(1))
+    if parts.scheme != 'https' or parts.hostname != API_HOST or parts.path != '/api/models':
+        return None
+    value = parse_qs(parts.query).get('cursor', [None])[0]
+    return value if isinstance(value, str) and CURSOR.fullmatch(value) else None
+
+
+def listing(row) -> dict | None:
+    """One list entry, reduced to validated facts. Everything else from the list is ignored."""
+    repo = row.get('id') if isinstance(row, dict) else None
+    if not isinstance(repo, str) or not REPO_ID.fullmatch(repo):
+        return None
+    tags = [t for t in row.get('tags') or [] if isinstance(t, str)][:128] if isinstance(row.get('tags'), list) else []
+    card = row.get('cardData') if isinstance(row.get('cardData'), dict) else {}
+    gguf = row.get('gguf') if isinstance(row.get('gguf'), dict) else {}
+    relations = []
+    for tag in tags:
+        parts = tag.split(':')
+        if parts[0] == 'base_model' and len(parts) == 3 and parts[1] in RELATIONS and REPO_ID.fullmatch(parts[2]):
+            relations.append((parts[1], parts[2]))
+    declared = {b for _, b in relations}
+    relations += [('', t[11:]) for t in tags if t.startswith('base_model:') and t.count(':') == 1
+                  and REPO_ID.fullmatch(t[11:]) and t[11:] not in declared]
+    siblings = row.get('siblings') if isinstance(row.get('siblings'), list) else []
+    files = [s['rfilename'] for s in siblings[:2000] if isinstance(s, dict) and isinstance(s.get('rfilename'), str)
+             and GGUF_NAME.fullmatch(s['rfilename']) and not SPLIT.search(s['rfilename']) and 'mmproj' not in s['rfilename'].lower()]
+    gated = row.get('gated')
+    score = row.get('trendingScore')
+    return {'id': repo, 'author': repo.split('/')[0], 'name': repo.split('/')[1],
+            'trending_score': score if type(score) in (int, float) and score >= 0 else None,
+            'downloads': _int(row.get('downloads')), 'likes': _int(row.get('likes')),
+            'last_modified': _text(row.get('lastModified'), 40), 'license': license_of(card, tags),
+            'access': GATED.get(gated, 'UNKNOWN') if gated in GATED else 'UNKNOWN',
+            'parameters': _int(gguf.get('total')) or None, 'architecture': _text(gguf.get('architecture'), 60),
+            'context_length': _int(gguf.get('context_length')), 'tags': [t for t in tags if t == 'conversational'],
+            'base_models': relations[:8], 'gguf_files': files[:200]}
+
+
 class HubClient:
     def __init__(self, transport=https_transport):
         self.transport = transport
@@ -153,7 +202,10 @@ class HubClient:
         raise HubError('HUB_URL_REFUSED', 'Too many redirects; nothing was fetched.')
 
     def _json(self, path, params=None):
-        url = f'https://{API_HOST}{path}' + (f'?{urlencode(params)}' if params else '')
+        return self._json_with_headers(path, params)[0]
+
+    def _json_with_headers(self, path, params=None):
+        url = f'https://{API_HOST}{path}' + (f'?{urlencode(params, doseq=True)}' if params else '')
         response = self._request('GET', url, {'Accept': 'application/json'})
         try:
             self._raise_for(response)
@@ -163,7 +215,7 @@ class HubClient:
         if len(body) > MAX_JSON:
             raise HubError('INVALID_RESPONSE', 'Hugging Face sent an unexpectedly large response; it was discarded.')
         try:
-            return json.loads(body.decode('utf-8'))
+            return json.loads(body.decode('utf-8')), response.headers
         except (UnicodeDecodeError, ValueError):
             raise HubError('INVALID_RESPONSE', 'Hugging Face sent a response NajdiLab cannot read.') from None
 
@@ -210,6 +262,31 @@ class HubClient:
                           'last_modified': _text(row.get('lastModified') or row.get('createdAt'), 40),
                           'private': row.get('private') is True, 'gguf': 'gguf' in tags})
         return {'items': items, 'source': 'huggingface.co /api/models', 'format_filter': 'gguf'}
+
+    def list_models(self, sort, cursor=None, limit=50):
+        """One page of GGUF text-generation repositories in Hugging Face's own order for `sort`
+        (trendingScore, downloads, likes or lastModified), and the cursor of the next page."""
+        if sort not in LIST_SORTS:
+            raise HubError('INVALID_SEARCH', 'Unknown ranking.', 400)
+        if cursor is not None and not (isinstance(cursor, str) and CURSOR.fullmatch(cursor)):
+            raise HubError('INVALID_CURSOR', 'The page marker is not valid; start the list again.', 400)
+        params = [('filter', 'gguf'), ('pipeline_tag', 'text-generation'), ('sort', sort), ('direction', '-1'),
+                  ('limit', max(1, min(int(limit), 100)))] + [('expand[]', field) for field in LIST_FIELDS]
+        if cursor:
+            params.append(('cursor', cursor))
+        rows, headers = self._json_with_headers('/api/models', params)
+        if not isinstance(rows, list):
+            raise HubError('INVALID_RESPONSE', 'Hugging Face sent a model list NajdiLab cannot read.')
+        return [item for item in (listing(row) for row in rows[:100]) if item], next_cursor(headers.get('link', ''))
+
+    def relations(self, repo_id):
+        """The base models a repository declares, with their relation (quantized, finetune, merge, adapter)."""
+        if not isinstance(repo_id, str) or not REPO_ID.fullmatch(repo_id):
+            raise HubError('INVALID_REPOSITORY', 'Use a repository id such as publisher/model-name.', 400)
+        data = self._json(f'/api/models/{quote(repo_id)}', [('expand[]', 'tags')])
+        if not isinstance(data, dict) or data.get('id') != repo_id:
+            raise HubError('INVALID_RESPONSE', 'Hugging Face returned details for a different repository.')
+        return listing(data)['base_models']
 
     def model(self, repo_id, revision=None):
         if not isinstance(repo_id, str) or not REPO_ID.fullmatch(repo_id):

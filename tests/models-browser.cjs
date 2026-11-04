@@ -22,10 +22,51 @@ test('Model library and context indicator in Chromium',async t=>{
 
     await t.test('nothing reaches Hugging Face until the user searches',async()=>{
       assert.equal(await page.$('.models-result'),null);
-      assert.ok(!requests.some(u=>u.includes('/api/v1/models/hub')),'no hub request on page load');
+      assert.ok(!requests.some(u=>u.includes('/api/v1/models/hub')),'no hub request on page load, not even for the default tab');
+    });
+
+    await t.test('recommended for your device is the default tab and needs the hardware approval',async()=>{
+      assert.equal(await page.$eval('#models-tab-recommended',e=>e.getAttribute('aria-selected')),'true');
+      assert.equal(await page.$eval('#models-recommended',e=>e.hidden),false);
+      assert.equal(await page.$eval('#rec-size',e=>e.value),'all');assert.equal(await page.$eval('#rec-source',e=>e.value),'official');
+      assert.equal(await page.$eval('#rec-purpose',e=>e.value),'chat');
+      assert.equal(await page.$eval('#models-recommend-refresh',e=>getComputedStyle(e).display),'none','refresh appears only after a first result');
+      await page.click('#models-recommend-form .button.primary');
+      assert.match(await page.$eval('#models-recommend-status',e=>e.textContent),/Allow reading this computer/);
+      assert.ok(!requests.some(u=>u.includes('/hub/recommended')),'nothing is checked without the approval');
+      await page.click('#rec-hardware');await page.click('#models-recommend-form .button.primary');
+      await page.waitForSelector('#models-recommend-list .models-discovery-item',{timeout:20000});
+      const cards=await page.$$eval('#models-recommend-list .models-discovery-item',c=>c.map(x=>x.innerText));
+      assert.equal(cards.length,3);
+      assert.match(cards[0],/Compatibility \(estimate\)[\s\S]*BLOCKED/,'no llama-server in the fixture: compatibility is blocked, and says so');
+      assert.match(cards[0],/Expected performance:/);assert.match(cards[0],/Verified official publisher/);
+      assert.match(await page.$eval('#models-recommend-summary',e=>e.innerText),/Popularity only chooses which models are checked/);
+    });
+
+    await t.test('trending keeps Hugging Face order, with provenance and size labels',async()=>{
+      await page.click('#models-tab-trending');await page.waitForSelector('#models-trending:not([hidden])');
+      await page.click('#models-trending-form .button.primary');
+      await page.waitForSelector('#models-trending-list .models-discovery-item');
+      const ids=await page.$$eval('#models-trending-list h3',h=>h.map(x=>x.textContent));
+      assert.deepEqual(ids,['najdi-labs/Najm-3B-Instruct-GGUF','najdi-labs/Najm-0.5B-Chat-GGUF','najdi-labs/Najm-11B-Instruct-GGUF']);
+      const first=await page.$eval('#models-trending-list .models-discovery-item',e=>e.innerText);
+      assert.match(first,/#3/);assert.match(first,/trending score/);assert.match(first,/community-quant/);assert.match(first,/not the original unmodified weights/);
+      assert.match(await page.$eval('#models-trending-summary',e=>e.innerText),/Rankings fetched from Hugging Face at[\s\S]*above 12B parameters/);
+      await page.select('#trend-source','all');await page.click('#trend-unknown');await page.click('#models-trending-form .button.primary');
+      await page.waitForFunction(()=>/Fine-tuned \/ modified/.test(document.querySelector('#models-trending-list')?.innerText||''));
+      const all=await page.$eval('#models-trending-list',e=>e.innerText);
+      assert.match(all,/UNVERIFIED size/);assert.match(all,/Unverified source/);
+      assert.ok(!all.includes('Najm-MoE-30B-A3B'),'a mixture of experts above 12B total is never shown as small');
+      await page.setViewport({width:390,height:844});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal scrolling on a phone');
+      await page.evaluate(()=>window.NajdiI18n.setLanguage('ar'));await page.waitForFunction(()=>document.documentElement.dir==='rtl');
+      assert.equal(await page.$eval('#models-tab-trending',e=>e.textContent),'الرائجة');
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal scrolling in Arabic');
+      await page.evaluate(()=>window.NajdiI18n.setLanguage('en'));await page.setViewport({width:1280,height:900});
     });
 
     await t.test('search, details and unsupported files are explained',async()=>{
+      await page.click('#models-tab-discover');
       await page.type('#models-query','tiny');await page.keyboard.press('Enter');
       await page.waitForSelector('.models-result');
       assert.equal(await page.$$eval('.models-result',b=>b.length),1,'the hostile search entry is not shown');

@@ -65,7 +65,7 @@ async function api(path, options={}, retried=false) {
     sessionTokenPromise = null;
     return api(path, options, true);
   }
-  if (!response.ok) throw new Error(payload.message || payload.error || `HTTP ${response.status}`);
+  if (!response.ok) throw Object.assign(new Error(payload.message || payload.error || `HTTP ${response.status}`), {code: payload.code, hint: payload.hint});
   return payload;
 }
 
