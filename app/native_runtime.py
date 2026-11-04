@@ -145,6 +145,8 @@ class NativeRuntime:
         self.start_timeout = start_timeout
         self._lock = threading.RLock()
         self._hashes = {}
+        # Parsed GGUF headers by path, valid only while the file identity (size, mtime, file id) is unchanged.
+        self._headers = {}
         self._proc = None
         self._run = None
         self._leased = False
@@ -176,7 +178,13 @@ class NativeRuntime:
             item['error'] = 'SPLIT_UNSUPPORTED'
             return item
         try:
-            info = describe(read_header(path))
+            stat = file_stat(path)
+            cached = self._headers.get(str(path))
+            if cached and cached[0] == stat:
+                info = cached[1]
+            else:
+                info = describe(read_header(path))
+                self._headers[str(path)] = (stat, info)
         except GGUFError as error:
             item['error'] = error.code
             return item

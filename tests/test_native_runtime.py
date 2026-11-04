@@ -217,6 +217,21 @@ def test_symlinked_gguf_outside_the_folder_is_never_listed_or_loaded(models, tmp
         runtime.model_limits('escape.gguf')
 
 
+def test_listing_parses_an_unchanged_header_once_and_a_replaced_file_again(models, tmp_path, monkeypatch):
+    # The composer lists models on every open of its model menu; re-reading multi-GB headers made it lag.
+    import app.native_runtime as native_runtime
+    calls = []
+    monkeypatch.setattr(native_runtime, 'read_header', lambda path: calls.append(path.name) or read_header(path))
+    runtime = NativeRuntime(tmp_path / 'missing-server', models)
+    first = runtime.models()['items'][0]
+    assert runtime.models()['items'][0] == first and calls == ['synthetic.gguf']
+    path = models / 'synthetic.gguf'
+    replacement = models / 'replacement.tmp'
+    replacement.write_bytes(b'GGML' + path.read_bytes()[4:])
+    os.replace(replacement, path)
+    assert runtime.models()['items'][0]['error'] == 'NOT_GGUF' and calls == ['synthetic.gguf'] * 2
+
+
 def test_replacing_a_model_file_changes_its_identity_even_with_the_same_size_and_mtime(models):
     from app.native_runtime import file_stat
     path = models / 'synthetic.gguf'

@@ -11,6 +11,7 @@
 - **Model library**: *Use in Chat* replaces *Check fit and load…*; Advisor settings in Discover are marked as simulation only.
 - **Copyright** moved from every page footer to the sidebar under the local address, translated and accessible when collapsed.
 - **Version V2.1.0** from `app/version.py` everywhere it is shown.
+- **Found on the installed copy**: Chat information let a long SHA-256 value squeeze its label to nothing (value column capped); the model menu waited ~0.8 s because every listing re-parsed each GGUF header (`NativeRuntime` now caches parsed headers per file identity; a replaced file is read again).
 - **Tests**: `tests/test_chat_preparation.py`; composer, New chat, switch confirmation, preparation card, Use in Chat, read-only Chat information, copyright location and version in `tests/chat-browser.cjs`, `tests/chat-enhancements-browser.cjs`, `tests/models-browser.cjs`, `tests/i18n-browser.cjs`, `tests/ux-audit.cjs`; unit tests for context options and the switch rule. Record: `docs/development/CHAT_COMPOSER.md`, release notes `docs/development/RELEASE_NOTES_V2.1.0.md`.
 
 ## V2.0.0 — development candidate (2026-11-03, `update-project`, Draft PR #23; not a release)
