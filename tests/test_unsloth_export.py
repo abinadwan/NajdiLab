@@ -144,3 +144,52 @@ def test_real_db_review_version_to_unsloth_preserves_only_target_loss(tmp_path,m
     assert handoff['record_count']==1
     row=json.loads((Path(handoff['directory'])/'dataset.jsonl').read_text())
     assert row=={'prompt':[{'role':'user','content':'question'}],'completion':[{'role':'assistant','content':'target'}]}
+
+
+def _rewrite(directory, rows):
+    file = directory / 'sft.jsonl'
+    file.write_text(''.join(json.dumps(r, ensure_ascii=False) + '\n' for r in rows), encoding='utf-8')
+    manifest = json.loads((directory / 'manifest.json').read_text())
+    manifest['sha256']['sft.jsonl'] = hashlib.sha256(file.read_bytes()).hexdigest()
+    (directory / 'manifest.json').write_text(json.dumps(manifest))
+
+
+def test_studio_chat_sends_only_the_approved_answer_as_an_assistant_turn(source):
+    # Unsloth Studio's "assistant completions only" trains every assistant turn it sees, so a corrected
+    # earlier answer must never reach it as an assistant turn (V2.2.0 P0).
+    directory, row, output = source
+    single = {**row, 'id': 'manual:2', 'conversation_id': 'synthetic-2', 'messages': [{'role': 'user', 'content': 'سؤال واحد'}, {'role': 'assistant', 'content': 'جواب معتمد'}],
+              'target_message_index': 1, 'message_loss_mask': [0, 1]}
+    _rewrite(directory, [row, single])
+    before = {p.name: p.read_bytes() for p in directory.iterdir()}
+    handoff = create_handoff('gold-v001', profile='studio_chat', output_root=output)
+    rows = [json.loads(line) for line in (Path(handoff['directory']) / 'dataset.jsonl').read_text(encoding='utf-8').splitlines()]
+    for data, source_row in zip(rows, (row, single)):
+        assistants = [m for m in data['messages'] if m['role'] == 'assistant']
+        assert [m['content'] for m in assistants] == [source_row['messages'][-1]['content']]
+        assert [m['role'] for m in data['messages']] == ['user', 'assistant']
+    assert 'UNREVIEWED CONTEXT' in rows[0]['messages'][0]['content'], 'history stays as context'
+    assert rows[0]['messages'][0]['content'] == 'User: before\nAssistant: UNREVIEWED CONTEXT\nUser:  now '
+    assert rows[1]['messages'][0]['content'] == 'سؤال واحد', 'a single-turn record is exported unchanged'
+    assert (handoff['profile'], handoff['format'], handoff['multi_turn_records'], handoff['single_turn_records']) == ('studio_chat', 'chat_messages_single_target', 1, 1)
+    assert handoff['trainer_requirements'] == {'train_on_completions': True, 'packing': False, 'truncation': 'reject_overlength_before_training'}
+    assert handoff['independent_source_conversations'] == 2 and any('smoke test' in w for w in handoff['warnings'])
+    assert 'not run by NajdiLab' in handoff['verification']['token_level']
+    assert {p.name: p.read_bytes() for p in directory.iterdir()} == before
+
+
+def test_studio_alpaca_puts_history_in_input_and_only_the_target_in_output(source):
+    directory, row, output = source
+    handoff = create_handoff('gold-v001', profile='studio_alpaca', output_root=output)
+    data = json.loads((Path(handoff['directory']) / 'dataset.jsonl').read_text(encoding='utf-8'))
+    assert data == {'instruction': ' now ', 'input': 'User: before\nAssistant: UNREVIEWED CONTEXT', 'output': ' approved target '}
+    assert 'differs from the model' in handoff['chat_template']
+
+
+def test_programmatic_profile_warns_against_studio_and_unknown_profiles_are_refused(source):
+    directory, row, output = source
+    handoff = create_handoff('gold-v001', profile='trl_prompt_completion', output_root=output)
+    assert handoff['trainer_requirements']['completion_only_loss'] is True
+    assert any('Do not load this file in Unsloth Studio' in w for w in handoff['warnings'])
+    with pytest.raises(ValidationError):
+        create_handoff('gold-v001', profile='sharegpt_everything', output_root=output)

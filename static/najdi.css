@@ -657,3 +657,11 @@ dialog{color:var(--ink)}
 .chatv2-menu-action:hover,.chatv2-menu-action:focus-visible{background:var(--active);outline:none}
 .chatv2-menu-action[aria-disabled="true"]{opacity:.62;cursor:not-allowed}
 @media (max-width: 640px){.chatv2-send{width:40px;height:40px}}
+/* Export Center: training tool choice for the Unsloth handoff */
+.unsloth-profiles{border:0;margin:12px 0;padding:0;display:grid;gap:8px}
+.unsloth-profiles legend{font-size:.78rem;font-weight:700;color:var(--muted);padding:0;margin-bottom:4px}
+.unsloth-profiles .inline-check{align-items:flex-start}
+.unsloth-profiles .inline-check input{margin-top:3px;flex:none}
+.unsloth-profiles small{display:block;color:var(--muted)}
+.unsloth-result-list{margin:6px 0;padding-inline-start:18px}
+.unsloth-result code{overflow-wrap:anywhere}

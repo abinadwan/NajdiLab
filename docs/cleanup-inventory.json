@@ -1053,7 +1053,7 @@
     },
     "app/unsloth_export.py": {
       "classification": "PROTECT",
-      "sha256": "7c889b984519abd99e38a562faf9ab72fd9182560ad8802d4a390c881ab92c74",
+      "sha256": "2bebe00de3794a5f3787c5010cb53125ab12f86c29c2e2e22bea03cf13f070f7",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .dataset_platform import _version_dir, KNOWN_FILES, NATIVE_TRAIN_FILE",
@@ -1069,7 +1069,11 @@
         "import tempfile"
       ],
       "declarations": [
+        "PROFILES",
+        "ROLE_LABELS",
         "digest",
+        "_transcript",
+        "convert",
         "create_handoff",
         "read_handoff"
       ]

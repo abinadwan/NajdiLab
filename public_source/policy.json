@@ -198,6 +198,7 @@
     "scripts/runtime_setup.py",
     "scripts/validate_dataset_masks.py",
     "scripts/verify_audit.py",
+    "scripts/verify_unsloth_studio.py",
     "static/app.js",
     "static/brand/app-icon.svg",
     "static/brand/logo-ar-dark.svg",
@@ -326,6 +327,7 @@
     "tests/test_unsloth_export.py",
     "tests/test_ux10_navigation.py",
     "tests/test_ux20_pagination.py",
+    "tests/test_verify_unsloth_studio.py",
     "tests/test_version.py",
     "tests/ux-audit.cjs"
   ],

@@ -1024,8 +1024,19 @@
     el('unsloth-create').onclick=async()=>{
       const button=el('unsloth-create'),host=el('unsloth-result');button.disabled=true;host.replaceChildren();
       try{
-        const data=await api('/api/v1/unsloth-exports',{method:'POST',body:JSON.stringify({version:el('unsloth-version').value.trim()})});
-        host.textContent=`${data.record_count} conversational targets. `;
+        const profile=document.querySelector('input[name="unsloth-profile"]:checked')?.value||'studio_chat';
+        const data=await api('/api/v1/unsloth-exports',{method:'POST',body:JSON.stringify({version:el('unsloth-version').value.trim(),profile})});
+        host.className='unsloth-result';
+        const summary=document.createElement('p');
+        compose(summary,[{id:String(data.record_count)},' ','training records',' · ',{id:String(data.independent_source_conversations)},' ','independent source conversations',' · ',data.target_trainer]);
+        host.append(summary);
+        const settings=document.createElement('p');
+        compose(settings,['Trainer settings:',' ',{id:Object.entries(data.trainer_requirements).map(([k,v])=>`${k}=${v}`).join(', ')}]);
+        host.append(settings);
+        if(data.warnings.length){const list=document.createElement('ul');list.className='unsloth-result-list';for(const text of data.warnings)list.append(node('li',null,text));host.append(list);}
+        const check=document.createElement('p');
+        compose(check,['Token-level check: not run by NajdiLab. With your Unsloth Studio Python, run',' ',{id:`scripts/verify_unsloth_studio.py ${data.directory} --model <training model>`}]);
+        host.append(check);
         for(const name of ['dataset.jsonl','provenance.jsonl','manifest.json']){
           const link=document.createElement('a');link.textContent=`Download ${name} `;link.href=`/api/v1/unsloth-exports/${data.id}/${name}`;link.download=name;host.append(link);
         }

@@ -467,10 +467,10 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         try:
             data = self._body()
             if parsed.path == '/api/v1/unsloth-exports':
-                fields(data, {'version'})
-                if not isinstance(data['version'],str):
-                    raise ValidationError('Choose a dataset version.')
-                self._json(create_handoff(data['version']), HTTPStatus.CREATED)
+                fields(data, {'version', 'profile'})
+                if not isinstance(data['version'],str) or not isinstance(data['profile'],str):
+                    raise ValidationError('Choose a dataset version and an export profile.')
+                self._json(create_handoff(data['version'], profile=data['profile']), HTTPStatus.CREATED)
             elif parsed.path == '/api/v1/chat/hardware':
                 if data.get('approved') is not True:
                     raise IntegrationError('APPROVAL_REQUIRED', 'Approve the read-only hardware snapshot first.', 403)

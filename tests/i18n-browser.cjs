@@ -7,12 +7,14 @@ const puppeteer=require('puppeteer-core');
 const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','dataset',
   'dataset-health','balancer','dataset-versions','eval-sets','exports','analytics','settings'];
 // Product, protocol and format names stay in Latin script in both languages.
-const LATIN_ALLOWED=['NajdiLab','llama.cpp','Ollama','LM Studio','Unsloth','TRL','Hugging Face','SFT','DPO','JSONL','JSON','SHA-256',
+const LATIN_ALLOWED=['NajdiLab','llama.cpp','Ollama','LM Studio','Unsloth Studio','Unsloth','TRL','Hugging Face','SFT','DPO','JSONL','JSON','SHA-256',
   'API','GPU','RAM','VRAM','HTTP','UUID','RAG','p90','p95','Gold','completion_only_loss=True','packing=False','Reply with OK.',
   '127.0.0.1','application/json','gold-v009-remediation-draft','Ctrl + Enter','Shift+Enter','Enter','Markdown','HTML',
   // Model library: the GGUF file format, the Hugging Face host name, and the product name
   // "NajdiLab Native", which the catalog writes as "نجدي لاب Native" in Arabic.
-  'GGUF','huggingface.co','Native'];
+  'GGUF','huggingface.co','Native',
+  // Export Center: the trainer's dataset format, Python, and Studio's own option label (shown in English there).
+  'Alpaca','Python','Train on completions'];
 
 function scanUntranslated(allowed){
   const skip='script,style,code,pre,textarea,bdi,kbd,samp,time,[dir="auto"],[dir="ltr"],[translate="no"],[data-i18n-skip]';
