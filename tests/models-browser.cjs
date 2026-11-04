@@ -188,6 +188,22 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.click('#collapse-sidebar');
     });
 
+    await t.test('local address: the sidebar shows the host and port actually serving the page, never a fixed one',async()=>{
+      const served=new URL(base);
+      assert.ok(!['8770','8870'].includes(served.port),'the fixture runs on an ephemeral port, so a hard-coded default cannot pass');
+      const shown=()=>page.$eval('#local-address',e=>e.textContent.trim());
+      assert.equal(await shown(),served.host);
+      // The HTML itself carries no address; only the running page fills it in.
+      const html=await page.evaluate(async()=>(await fetch('/')).text());
+      assert.doesNotMatch(html.match(/id="local-address"[^>]*>[^<]*/)[0],/\d+\.\d+\.\d+\.\d+|localhost|:\d{2,5}/);
+      // Opened under another accepted host name, the same server shows that name and port.
+      const other=await browser.newPage();
+      try{
+        await other.goto(`http://localhost:${served.port}/models`);await other.waitForSelector('#view-models.active');
+        assert.equal(await other.$eval('#local-address',e=>e.textContent.trim()),`localhost:${served.port}`);
+      }finally{await other.close();}
+    });
+
     await t.test('version label: one value from the server, in both languages, themes and layouts',async()=>{
       const served=await page.evaluate(async()=>(await window.api('/api/v1/config')).app_version_display);
       assert.equal(served,'V2.1.0');
