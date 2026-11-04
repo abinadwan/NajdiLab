@@ -313,6 +313,62 @@ def _computed_diagnostics(directory: Path, manifest: dict[str, Any]) -> tuple[di
         return _json(root / "balancing_report.json", {}), copy["loss_mask_validation"]
 
 
+METADATA_FIELDS = ("language", "dialect", "style", "domain", "language_layer")
+
+
+def _quality(directory: Path, version: str) -> dict[str, Any]:
+    from .dataset_quality import analyze_directory  # dataset_quality imports this module
+    return analyze_directory(directory, version=version)
+
+
+def dataset_statistics(directory: Path, quality: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Size and diversity of a version, from its own files. Many records from few conversations are not a
+    diverse dataset; these figures describe the data and never certify its quality."""
+    rows = {name: _jsonl(directory / name) for name in KNOWN_FILES if (directory / name).is_file()}
+    train = [row for name in TRAIN_FILES for row in rows.get(name, [])]
+    other_training = rows.get("direct_language.jsonl", []) + rows.get("preference_pairs.jsonl", [])
+    evaluation = [row for name in EVAL_FILES for row in rows.get(name, [])]
+    source = lambda row: _conversation(row) or f"record:{row.get('id', '')}"
+    by_source = Counter(source(row) for row in train)
+    targets = [len(_words(_target(row))) for row in train]
+    contexts = [len(_words(" ".join(str(m.get("content") or "") for m in (row.get("messages") or [])[:-1] if isinstance(m, dict)))) for row in train]
+    every = train + other_training + evaluation
+    distributions = {field: dict(Counter(str(row.get(field)) if row.get(field) not in (None, "") else "not recorded" for row in every))
+                     for field in METADATA_FIELDS if any(field in row for row in every)}
+    findings = (quality or {}).get("findings", [])
+    near = lambda code: sum(f["code"] == code for f in findings)
+    sources, eval_sources = len(by_source), len({source(row) for row in evaluation})
+    clean = not any(f["code"].startswith("TRAIN_EVAL_") and f["severity"] == "confirmed_blocker" for f in findings)
+    if not evaluation or not clean:
+        stage, reason = "technical_smoke_test", ("no independent evaluation samples" if not evaluation else "evaluation shares data with training")
+    elif sources < 3:
+        stage, reason = "small_exploratory", "independent evaluation exists, but training comes from fewer than three source conversations"
+    else:
+        stage, reason = "measurable_evaluation", "independent, leakage-free evaluation samples exist"
+    return {
+        "total_records": sum(len(r) for r in rows.values()), "training_records": len(train),
+        "by_type": {"sft": len(rows.get("sft.jsonl", [])), "multi_turn": len(rows.get("multi_turn.jsonl", [])),
+                    "direct_language": len(rows.get("direct_language.jsonl", [])), "preference_pairs": len(rows.get("preference_pairs.jsonl", [])),
+                    "evaluation": len(evaluation)},
+        "independent_source_conversations": sources,
+        "independent_source_groups": len({source(row) for row in train + other_training}),
+        "largest_source_share": (max(by_source.values()) / len(train)) if train else 0,
+        "records_sharing_a_conversation": sum(n for n in by_source.values() if n > 1),
+        "review_status": dict(Counter(str(row.get("review_status") or "not recorded") for row in train)),
+        "origin": dict(Counter(str(row.get("origin") or "not recorded") for row in train + other_training)),
+        "exact_duplicate_findings": near("EXACT_DUPLICATE"), "near_duplicate_findings": near("NEAR_DUPLICATE_PROMPT"),
+        "cross_split_near_duplicates": near("TRAIN_EVAL_NEAR_DUPLICATE"), "cross_split_shared_contexts": near("TRAIN_EVAL_CONTEXT_LEAKAGE"),
+        "metadata": distributions,
+        "missing_language_metadata": sum(1 for row in every if not any(row.get(f) for f in ("language", "language_layer"))),
+        "target_words": {"min": min(targets, default=0), "median": sorted(targets)[len(targets) // 2] if targets else 0, "max": max(targets, default=0)},
+        "context_words_max": max(contexts, default=0),
+        "length_note": "Token lengths depend on the training model's tokenizer; scripts/verify_unsloth_studio.py reports truncation.",
+        "split": {"training": len(train), "evaluation": len(evaluation), "evaluation_sources": eval_sources},
+        "stage": stage, "stage_reason": reason,
+        "stage_note": "Guidance from the evidence available, not a quality guarantee; no record count alone makes training improve a model.",
+    }
+
+
 def regenerate_training_diagnostics(version: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":
@@ -653,6 +709,7 @@ def dataset_health(version: str) -> dict[str, Any]:
         "diagnostics": {"valid": diagnostics_valid or not strict_diagnostics, "error": diagnostics_error if strict_diagnostics else None, "training_fingerprint": _training_fingerprint(directory),
                         "source": diagnostics_source},
         "readiness": separated,
+        "statistics": dataset_statistics(directory, _quality(directory, version)),
         "leakage": leakage,
         "warnings": warnings,
     }

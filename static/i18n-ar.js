@@ -729,6 +729,11 @@
     'Dataset validation errors were found.': 'عُثر على أخطاء في التحقق من مجموعة البيانات.',
     'Schema, targets, and loss masks are valid.': 'المخطط والأهداف وأقنعة الخسارة صحيحة.',
     'Evaluation Integrity': 'سلامة التقييم',
+    "Independent sources": "مصادر مستقلة",
+    "Dataset stage": "مرحلة مجموعة البيانات",
+    "Technical smoke test": "اختبار تقني أولي",
+    "Small exploratory": "استكشافية صغيرة",
+    "Measurable evaluation": "تقييم قابل للقياس",
     "Structural validity": "السلامة البنيوية",
     "Training compatibility": "توافق التدريب",
     "Evaluation readiness": "جاهزية التقييم",
@@ -1355,6 +1360,11 @@
 
   const patterns = [
     // Specific sentences first: a generic "{a} of {b}" pattern below must not capture them.
+    ["{a} training records; the largest source supplies {b}.", "{a} سجل تدريب؛ ويوفّر أكبر مصدر {b}."],
+    ["no independent evaluation samples. Guidance, not a quality guarantee.", "لا توجد عينات تقييم مستقلة. إرشاد وليس ضمانًا للجودة."],
+    ["evaluation shares data with training. Guidance, not a quality guarantee.", "يتشارك التقييم بيانات مع التدريب. إرشاد وليس ضمانًا للجودة."],
+    ["independent evaluation exists, but training comes from fewer than three source conversations. Guidance, not a quality guarantee.", "يوجد تقييم مستقل، لكن التدريب يأتي من أقل من ثلاث محادثات مصدر. إرشاد وليس ضمانًا للجودة."],
+    ["independent, leakage-free evaluation samples exist. Guidance, not a quality guarantee.", "توجد عينات تقييم مستقلة وخالية من التسرّب. إرشاد وليس ضمانًا للجودة."],
     ["{n} conversation overlaps with training", "{n} تداخل محادثات مع التدريب"],
     ["{n} record(s) carry earlier turns as a transcript inside the context, so the only assistant text the trainer sees is the approved answer. The transcript layout differs from a live multi-turn chat.", "{n} سجل/سجلات تحمل الأدوار السابقة نصًا مدوّنًا داخل السياق، فلا يرى المدرّب من نص المساعد إلا الإجابة المعتمدة. يختلف هذا التخطيط عن محادثة حية متعددة الأدوار."],
     ["Only {n} independent source conversation(s): enough for a technical smoke test, not for measuring a quality change.", "{n} محادثة/محادثات مصدر مستقلة فقط: تكفي لاختبار تقني أولي، لا لقياس تغيّر في الجودة."],

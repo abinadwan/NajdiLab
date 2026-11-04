@@ -288,6 +288,7 @@
     "tests/test_dataset_diagnostics_lifecycle.py",
     "tests/test_dataset_gates.py",
     "tests/test_dataset_platform.py",
+    "tests/test_dataset_quality_v22.py",
     "tests/test_dataset_registry.py",
     "tests/test_dataset_scope_ui.py",
     "tests/test_dataset_ui.py",
@@ -356,11 +357,11 @@
     },
     "app/dataset_platform.py": {
       "destination": "app/dataset_platform.py",
-      "sha256": "d12aaf9d4e64f448d0f5633c069dcab797029acd78aba0721c31c77fb3d896c2"
+      "sha256": "269f9de7e03600fccc5deb51cda99d67cba3ed24766fa14071b0fe018d9ac786"
     },
     "app/dataset_quality.py": {
       "destination": "app/dataset_quality.py",
-      "sha256": "047cf004dac322fedc039b15e8601fc622e509437b20b0049c4b8652ce4fc187"
+      "sha256": "7ff036c65fc334becf78187d3e98d363287f88b829535889028d8c1686b57d83"
     },
     "app/db.py": {
       "destination": "app/db.py",
