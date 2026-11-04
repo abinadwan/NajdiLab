@@ -23,6 +23,7 @@ import importlib.metadata
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -87,6 +88,9 @@ def main(argv=None) -> int:
 
     manifest, rows, provenance = load_handoff(args.handoff)
     backend = studio_backend(args.studio_backend)
+    # Unsloth writes a compiled-code cache into the current folder unless told otherwise; keep the
+    # user's folders (and a NajdiLab checkout) untouched.
+    os.environ.setdefault('UNSLOTH_COMPILE_LOCATION', str(Path(tempfile.gettempdir()) / 'najdilab-unsloth-compiled-cache'))
     sys.path[:0] = [str(backend), str(backend / 'core' / 'training')]
     try:
         from transformers import AutoTokenizer
