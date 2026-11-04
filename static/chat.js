@@ -376,7 +376,7 @@
       label.append(input);const text=node('span',null,option.label);text.setAttribute('translate','no');label.append(text);box.append(label);
     }
     const note=el('chat-context-note');
-    if(item?.provider==='native')compose(note,['Model maximum:',' ',{id:`${item.max_context} tokens`},'. ','Memory is checked before the model starts.']);
+    if(item?.provider==='native')compose(note,['Model maximum:',' ',{id:String(item.max_context)},' ','tokens','. ','Memory is checked before the model starts.']);
     else if(item)note.textContent='The runtime\'s own limit is checked when the chat starts.';
     else note.textContent='Choose a model first.';
     el('chat-budget').value=value.context;el('chat-reserve').value=value.reserve;el('chat-gpu').value=value.gpu||'auto';
@@ -806,22 +806,24 @@
     const box=el('chat-info'),s=controller.session,value=current(),item=catalogItem(value);
     box.replaceChildren();
     const section=title=>{const sec=node('section');sec.append(node('h3',null,title));box.append(sec);return sec;};
-    const rows=(sec,pairs)=>{const list=node('dl','chatv2-dl');for(const [label,v,lit] of pairs){if(v==null||v==='')continue;list.append(node('dt',null,label));const dd=node('dd');if(lit===false)dd.textContent=v;else compose(dd,[{id:String(v)}]);list.append(dd);}sec.append(list);};
+    // A value is an identifier (never translated), text to translate (`false`), or compose() parts such as tokens(n).
+    const rows=(sec,pairs)=>{const list=node('dl','chatv2-dl');for(const [label,v,lit] of pairs){if(v==null||v==='')continue;list.append(node('dt',null,label));const dd=node('dd');if(Array.isArray(v))compose(dd,v);else if(lit===false)dd.textContent=v;else compose(dd,[{id:String(v)}]);list.append(dd);}sec.append(list);};
+    const tokens=n=>n==null?null:[{id:String(n)},' ','tokens'];
     const conv=section('Conversation');
     if(s){
       rows(conv,[['Model',modelLabel()||s.model],['Model file or name',s.model],['Runtime',runtimeName(s.provider)],['Status',statusLabel(s.status),false],
-        ['Conversation ID',s.id],[s.provider==='native'?'Model identity (SHA-256)':'Model identity',s.model_fingerprint],['Conversation context budget',`${s.context_budget} tokens`],
-        ['Reply reserve',`${s.reply_reserve} tokens`],['Message and history space',`${s.context_budget-s.reply_reserve} tokens`]]);
+        ['Conversation ID',s.id],[s.provider==='native'?'Model identity (SHA-256)':'Model identity',s.model_fingerprint],['Conversation context budget',tokens(s.context_budget)],
+        ['Reply reserve',tokens(s.reply_reserve)],['Message and history space',tokens(s.context_budget-s.reply_reserve)]]);
     }else{
       conv.append(node('p','muted','New conversation. It is saved when you send the first message.'));
-      if(value?.model)rows(conv,[['Model',modelLabel(value)],['Runtime',runtimeName(value.provider)],['Conversation context budget',`${value.context} tokens`],['Reply reserve',`${value.reserve} tokens`]]);
+      if(value?.model)rows(conv,[['Model',modelLabel(value)],['Runtime',runtimeName(value.provider)],['Conversation context budget',tokens(value.context)],['Reply reserve',tokens(value.reserve)]]);
     }
     const runtime=section('Runtime');
     if((s?.provider||value?.provider)==='native'){
       let status=null;try{status=await request('/api/v1/native/status');}catch{}
       if(status){
         const state={STOPPED:'Stopped',STARTING:'Starting',RUNNING:'Running',STOPPING:'Stopping',FAILED:'Failed'}[status.state]||status.state;
-        rows(runtime,[['State',state,false],['Loaded model',status.model],['Actual loaded context',status.context?`${status.context} tokens`:null],
+        rows(runtime,[['State',state,false],['Loaded model',status.model],['Actual loaded context',status.context?tokens(status.context):null],
           ['GPU use',status.gpu_layers],['Runtime version',status.build],['Loaded file SHA-256',status.sha256],
           ['Devices seen by llama-server',(status.devices||[]).map(d=>d.name).join(', ')||null],
           ['Measured GPU memory',typeof status.measured_vram_bytes==='number'?`${(status.measured_vram_bytes/1024**3).toFixed(2)} GiB`:null]]);
@@ -829,7 +831,7 @@
           runtime.append(node('p','chatv2-warning','NajdiLab Native is running a different model or context than this conversation. Sending asks to prepare it first.'));
         if(status.last_error){const p=node('p','chatv2-error');compose(p,[status.last_error.message,' ',{id:status.last_error.code}]);runtime.append(p);}
       }
-      if(item)rows(runtime,[['Verification',VERIFICATION[item.verification]||item.verification,false],['Model maximum context',item.max_context?`${item.max_context} tokens`:null]]);
+      if(item)rows(runtime,[['Verification',VERIFICATION[item.verification]||item.verification,false],['Model maximum context',item.max_context?tokens(item.max_context):null]]);
     }else if(s||value?.model){
       runtime.append(node('p','muted','This runtime is managed by its own application. NajdiLab checks its context limit and model identity on every reply.'));
     }else runtime.append(node('p','muted','No model chosen yet.'));

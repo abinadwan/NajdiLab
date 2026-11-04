@@ -174,7 +174,11 @@ test('Arabic and English interface in Chromium',async t=>{
       const report={};await scanInto(report,'chat: active session');
       await page.click('#chat-info-open');await page.waitForSelector('#chat-panel[open]');
       await page.waitForFunction(()=>document.querySelector('#chat-info').children.length>2);await settle();
-      await scanInto(report,'chat: information');await page.click('#chat-panel-close');
+      await scanInto(report,'chat: information');
+      // Numbers stay untranslated identifiers, but their unit is text: "32768 tokens" must read "32768 رمزًا".
+      const units=await page.$eval('#chat-info',e=>[...e.querySelectorAll('[translate="no"]')].map(n=>n.textContent).filter(t=>/\d\s*tokens/.test(t)));
+      assert.deepEqual(units,[],'token counts with an untranslated unit in Chat information');
+      await page.click('#chat-panel-close');
       assert.deepEqual(report,{},'untranslated text:\n'+JSON.stringify(report,null,1));
     });
 
