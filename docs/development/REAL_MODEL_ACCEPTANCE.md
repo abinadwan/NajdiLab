@@ -26,7 +26,7 @@
 | 11 | Conversation persistence | **PASS** | Two turns (English, Arabic) read back equal to the streamed `done` events; opened in Chat V2 with the context meter (178 + 1,024 reserved of 8,192, 15 %) and *Not collected for review*. |
 | 12 | Explicit consent for dataset collection | **PASS** | All real turns without consent: conversations / messages / reviews 0 / 0 / 0 → 0 / 0 / 0. A non-boolean choice: HTTP 400 `CONSENT_REQUIRED`. After an explicit opt-in, one turn created exactly 1 conversation and 1 review, `PENDING`, `training_eligible = 0`. |
 | 13 | Runtime stop and GPU memory release | **PASS** | `/api/v1/native/stop` (approved): state STOPPED, process 13564 exited, device memory 2,248 → 1,576 MiB (−672 MiB, the amount the model had added; other applications share the GPU). |
-| 14 | Gemma 4 E4B Q4_0 (existing NajdiLab download) | **BLOCKED** | No NajdiLab-managed Gemma 4 file exists on this computer (searched the user profile and drive F:). It would have been in the test installation's `data/models/huggingface/`, which was deleted when the test installation was replaced earlier on 2026-11-04 (deletion of that installation was owner-authorized; its downloaded models were not checked for first). Not downloaded again: that needs separate approval. LM Studio's own Gemma 4 files were not read or used. |
+| 14 | Gemma 4 E4B Q4_0 | **PASS** (after a new, owner-approved download) | The earlier NajdiLab download no longer existed (it was in the test installation's `data/models/huggingface/`, deleted when that installation was replaced on 2026-11-04; its models were not checked for first). With the owner's approval it was downloaded again through the Model library; all checks in §6. LM Studio's own Gemma 4 files were not read or used. |
 | 15 | Per-process VRAM figure in NajdiLab | **NOT TESTED (not available)** | On Windows (WDDM) `nvidia-smi` reports per-process memory as N/A, so NajdiLab's *measured VRAM* field stays empty; the device-level numbers above were taken with `nvidia-smi` directly. |
 | 16 | Linux, Vulkan, CUDA 12.x packages; models other than Qwen 0.5B | **NOT TESTED** | — |
 
@@ -60,9 +60,24 @@ With the real CUDA `llama-server` the normally skipped opt-in tests ran: `tests/
 
 After the MiB/GiB label fix (development checkout): models-browser 15 and i18n-browser 10 passed.
 
+## 6. Gemma 4 E4B (owner-approved download, same day)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Source | **PASS** | `google/gemma-4-E4B-it-qat-q4_0-gguf` (verified official publisher; open access, Apache-2.0), revision `4b4a2c1d584be7264f87aac328a1bc739ce81b6c`, file `gemma-4-E4B_q4_0-it.gguf`; the vision projector was listed as *not a text model* and not fetched. |
+| Download and SHA-256 | **PASS** | 5,154,941,280 bytes in about 3 minutes, *Ready — verified*; SHA-256 `676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee`, re-hashed independently: equal. Storage preflight kept the 10 GiB system-drive reserve. |
+| Fit before loading (context 8192, GPU Automatic) | **PASS** | Advisor COMPATIBLE: estimate 7.53 GiB (weights 4.80 + KV upper bound 1.31 + overhead 1.42) against 10.50 GiB GPU free and 15.6 GiB RAM free; largest context fully on GPU (estimate) 16,384. Context stayed 8192; full offload was not forced. |
+| Load | **PASS** | PID 52036, build `b12059-1b6935b22`, `-ngl auto`. A separate diagnostic start of the same file and settings with verbose logging (stopped through its own handle) showed **43/43 layers offloaded to CUDA0**: 2,696 MiB of weights, 168 MiB KV cache and 136 MiB compute buffers on the GPU; the per-layer embedding tables (2,730 MiB) stay mapped in system memory by llama.cpp's design. |
+| Memory | measured | Device GPU memory 1,206 → 4,358 MiB loaded (+3,152 MiB) → 4,481 MiB peak while generating → 1,179 MiB after stop. `llama-server` RAM 3,245 MiB working set, 3,919 MiB private. |
+| Inference, streaming, thinking | **PASS** | English reply: 30 prompt + 438 output tokens; Gemma streamed a *thinking* section (386 deltas) before the answer (47 deltas); thinking is shown and never saved. Server timings: first token 250 ms, thinking 2.61 s, answer 0.31 s, total 3.17 s → **≈150 tokens/s**; peak GPU utilisation 98 %. Arabic reply: 111 Arabic letters, correct sentence. |
+| Stop, incomplete, context, identity, persistence, consent, runtime stop | **PASS** | Stop at 0.62 s → `STOPPED` at 0.68 s, 0 saved, runtime kept running; reserve 8 → `INCOMPLETE_RESPONSE`, 0 saved; 6,020 measured = 6,020 reported; 9,000 words → `CONTEXT_LIMIT`, new chat, 0 saved (`chat_turns` 11 → 11); 4,096 vs 8,192 → `ENGINE_CONTEXT_MISMATCH`; sessions bound to `native:676c3507…`; 2 turns read back equal; no dataset rows without consent (1/2/1 → 1/2/1); non-boolean consent → `CONSENT_REQUIRED`; opt-in → 1 PENDING review, not training-eligible; runtime stop → process exited, GPU memory released. |
+
+**Observation:** the Advisor's estimate (7.53 GiB) is far above the real GPU use (≈3.0 GiB) for Gemma 4: it assumes every weight on the GPU and a full-size f16 KV cache, while llama.cpp keeps Gemma's per-layer embeddings in system memory and its KV cache is much smaller. The estimate stays on the safe side (it never under-estimated here), but it can understate the largest context that fits.
+
 ## 5. Defects and limitations found
 
 - **Fixed:** the Model library labelled binary sizes as "MB"/"GB" (Qwen showed "468.6 MB" for 491.4 million bytes); they are now labelled MiB/GiB.
 - **Limitation:** no per-process VRAM on Windows (WDDM), see #15.
-- **Limitation:** only the smallest official instruct model was run; larger models, long generations and sustained-load behaviour were not measured.
+- **Limitation:** two official models were run (Qwen2.5-0.5B, Gemma 4 E4B); models above about 8 B, long generations and sustained load were not measured.
+- **Limitation:** the Advisor's memory estimate is very conservative for Gemma 4 (see §6).
 - **Model quality:** Qwen2.5-0.5B is too small for reliable answers; it is a pipeline test model only.
