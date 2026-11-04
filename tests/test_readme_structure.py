@@ -57,7 +57,9 @@ def anchor(text: str) -> str:
 
 
 def test_title_and_tagline():
-    assert README.startswith("# NajdiLab\n")
+    # The owner's workflow banner (an image from assets/ with alt text) may sit above the title; nothing else may.
+    banner = re.match(r'<p align="center">\s*<img src="assets/[\w.-]+" alt="[^"]+"[^>]*>\s*</p>\s*', README)
+    assert README[banner.end() if banner else 0:].startswith("# NajdiLab\n")
     assert "local-first platform" in README and "Arabic" in README
 
 

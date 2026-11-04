@@ -43,6 +43,7 @@
     "app/synthetic_gguf.py",
     "app/unsloth_export.py",
     "app/version.py",
+    "assets/najdilab-readme-banner.webp",
     "config/tool-capabilities.v1.1.json",
     "config/tool-capabilities.v1.json",
     "docs/THIRD_PARTY_ATTRIBUTION.md",
