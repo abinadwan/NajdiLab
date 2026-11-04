@@ -313,3 +313,12 @@ def test_one_unreachable_model_does_not_stop_the_others(tmp_path, hub, monkeypat
     assert result['counts']['not_checked'] == 1
     monkeypatch.setattr(models.discovery, 'details', lambda repo_id, refresh=False: (_ for _ in ()).throw(HubError('HUB_UNREACHABLE', 'down')))
     assert code(lambda: recommend(models)) == 'HUB_UNREACHABLE'
+
+
+def test_removed_safety_training_is_modified_even_when_the_base_carries_the_same_name():
+    same_account = provenance(listing('Model-12b-heretic-abliterated-GGUF', 'remixer',
+                                      base_models=[('quantized', 'remixer/Model-12b-heretic-abliterated')]))
+    assert same_account['class'] == 'MODIFIED', 'live case: the base declares no origin, but its name says it was altered'
+    lineage = {'foreign': None, 'via': 'remixer/Model-12b-heretic-abliterated'}
+    row = listing('Model-12b-heretic-abliterated-GGUF', 'remixer', base_models=[('quantized', 'remixer/Model-12b-heretic-abliterated')])
+    assert provenance(row, lineage, check_lineage=True)['class'] == 'MODIFIED'

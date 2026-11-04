@@ -45,8 +45,10 @@ WANT = 24
 CANDIDATES = 10
 OPEN_LICENSES = {'apache-2.0', 'mit', 'bsd', 'bsd-2-clause', 'bsd-3-clause', 'cc-by-4.0', 'cc-by-sa-4.0', 'cc0-1.0',
                  'unlicense', 'mpl-2.0', 'artistic-2.0', 'afl-3.0', 'ecl-2.0', 'gpl-3.0', 'lgpl-3.0', 'agpl-3.0', 'isc'}
-MODIFIED_WORDS = re.compile(r'(?i)(uncensored|abliterat|heretic|decensor|nsfw|erotic|roleplay|(?<![a-z])rp(?![a-z])|merge|'
-                            r'fine-?tune|(?<![a-z])(?:dpo|orpo|sft|lora)(?![a-z])|distill)')
+# Removing safety training always changes the weights, whoever publishes them and whatever the base is called.
+ALTERED_WORDS = re.compile(r'(?i)(uncensored|abliterat|heretic|decensor|nsfw|erotic|roleplay|(?<![a-z])rp(?![a-z]))')
+# Training words describe a change only when the model the copy claims to convert does not already carry them.
+MODIFIED_WORDS = re.compile(r'(?i)(merge|fine-?tune|(?<![a-z])(?:dpo|orpo|sft|lora)(?![a-z])|distill)')
 PRECISION_SUFFIX = re.compile(r'(?i)[-_.](?:bf16|fp16|f16|fp8|nvfp4|fp32)$')
 CHAT_WORDS = re.compile(r'(?i)(instruct|chat|(?<![a-z])it(?![a-z])|assistant)')
 SIZE_IN_NAME = re.compile(r'(?<![A-Za-z0-9.])(\d{1,4}(?:\.\d{1,2})?)([BbMm])(?![A-Za-z0-9])')
@@ -125,8 +127,8 @@ def _declared(listing: dict) -> dict:
     if modifying:
         return {**result, 'class': 'MODIFIED',
                 'evidence': [f'Declares that it is a {relation} of {base}, so its weights differ from the original.']}
-    words = MODIFIED_WORDS.search(name)
-    if words and not MODIFIED_WORDS.search(base_name):
+    words = ALTERED_WORDS.search(name) or (MODIFIED_WORDS.search(name) if not MODIFIED_WORDS.search(base_name) else None)
+    if words:
         return {**result, 'class': 'MODIFIED',
                 'evidence': [f'Its name says it was changed ("{words[0]}"), although it declares only a quantized copy of {base}.']}
     if quantized and base_owner.lower() == author.lower():
