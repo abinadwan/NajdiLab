@@ -380,7 +380,7 @@
     },
     "app/db.py": {
       "destination": "app/db.py",
-      "sha256": "a3cbd2d34627f3da6c0d9d9d44664c052e2c98849a05b65f721c3558b0c47aed"
+      "sha256": "640cb3c6e265bc916f360e1a244ccfac3c2514d1e809e13e37e9c80b6f8b9ab8"
     },
     "app/http_security.py": {
       "destination": "app/http_security.py",

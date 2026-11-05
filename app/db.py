@@ -287,6 +287,7 @@ def backup_before_migration(conn: sqlite3.Connection, db_path: Path, first_pendi
     copy = sqlite3.connect(target)
     try:
         conn.backup(copy)
+        copy.execute("PRAGMA journal_mode = DELETE")  # one self-contained file, no -wal/-shm sidecars
         if copy.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise RuntimeError("The pre-migration backup failed its integrity check; the database was not changed.")
     finally:

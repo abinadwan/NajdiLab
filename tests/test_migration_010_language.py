@@ -82,6 +82,7 @@ def test_an_existing_database_is_copied_before_its_schema_changes(legacy_db, tmp
     copies = list((path.parent / 'backups').glob('v210-before-010_language_metadata-*.db'))
     assert len(copies) == 1
     conn = sqlite3.connect(copies[0])
+    assert conn.execute('PRAGMA journal_mode').fetchone()[0] == 'delete', 'a single self-contained file'
     applied = [r[0] for r in conn.execute('SELECT version FROM schema_migrations ORDER BY version')]
     assert applied[-1] == '009_managed_models.sql', 'the copy is the database as it was before 010'
     assert [tuple(r) for r in conn.execute('SELECT * FROM manual_sft_items ORDER BY id')] == snapshot['manual_sft_items']
