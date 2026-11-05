@@ -7,7 +7,29 @@ const src=fs.readFileSync('static/app.js','utf8');
 const catalog=src.slice(src.indexOf('async function ensureDatasetVersions('),src.indexOf('function pct(',src.indexOf('async function ensureDatasetVersions(')));
 const library=src.slice(src.indexOf('async function loadDatasetVersions('),src.indexOf('async function showVersionDetail(',src.indexOf('async function loadDatasetVersions(')));
 const evaluation=src.slice(src.indexOf('async function loadEvalSets('),src.indexOf('async function loadDashboard(',src.indexOf('async function loadEvalSets(')));
+const health=src.slice(src.indexOf('function pct('),src.indexOf('function showHealthDetail('));
 assert.ok(catalog.startsWith('async function')&&library.startsWith('async function')&&evaluation.startsWith('async function'));
+
+test('conversation concentration is unavailable without a measurable share',async()=>{
+  const elements=new Map();
+  const element=key=>{
+    if(!elements.has(key))elements.set(key,{value:'gold-v001',innerHTML:'',textContent:'',className:'',disabled:false,classList:{add(){},remove(){}}});
+    return elements.get(key);
+  };
+  const data={version:'gold-v001',checked_at:'2026-11-06',training_count:0,exact_duplicate_extra:0,training_readiness:{},
+    readiness:{structural:{status:'VALID',errors:0},training_compatibility:{status:'STRUCTURE_CHECKED'},evaluation:{status:'NO_EVALUATION_DATA',samples:0}},
+    evaluation_integrity:{status:'CLEAN',conversation_overlap_count:0},counts:{},warnings:[],highest_record_share:null,
+    statistics:{independent_source_conversations:0,training_records:0,largest_source_share:0,stage:'technical_smoke_test',stage_reason:'no independent evaluation samples',split:{evaluation:0}}};
+  const catalogRequests=[];
+  const context={state:{datasetVersions:[{version:'gold-v001'}]},$:element,api:async()=>data,ensureDatasetVersions:async force=>{catalogRequests.push(force);},updateLocation(){},esc:String};
+  vm.createContext(context);vm.runInContext(health,context);
+  await context.loadHealth();
+  assert.match(element('#health-checks').innerHTML,/Unavailable<\/span><h3>Conversation Balance<\/h3><strong>—<\/strong>/);
+  data.highest_record_share=['c1',{record_share:.5}];
+  await context.loadHealth();
+  assert.match(element('#health-checks').innerHTML,/WARNING<\/span><h3>Conversation Balance<\/h3><strong>50.00%<\/strong>/);
+  assert.deepEqual(catalogRequests,[true,true],'each visit refreshes the catalog after another version is created');
+});
 
 test('UX-13 dataset library refreshes from API and never selects a deleted/stale version',async()=>{
   const elements=new Map(),byName=key=>{

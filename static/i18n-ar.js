@@ -1601,6 +1601,7 @@
   };
 
   const patterns = [
+    ["Invalid conversation balance statistic: {field}", "إحصائية موازنة المحادثات غير صالحة: {field}"],
     // Specific sentences first: a generic "{a} of {b}" pattern below must not capture them.
     ["Could not delete {f} ({e}); {n} file(s) remain. The entry stays listed so you can try again.", "تعذّر حذف {f} ({e})؛ تبقّى {n} ملف. يبقى السجل ظاهرًا لتعيد المحاولة."],
     ["Could not delete {f} ({e}); another program may be using it. The library entry was kept so you can try again.", "تعذّر حذف {f} ({e})؛ قد يكون برنامج آخر يستخدمه. أُبقي سجل المكتبة لتعيد المحاولة."],

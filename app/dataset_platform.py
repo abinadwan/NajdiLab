@@ -610,6 +610,34 @@ def eval_leakage(version: str) -> dict[str, Any]:
     }
 
 
+def _conversation_balance(report: dict[str, Any], version: str) -> dict[str, Any]:
+    """Read optional concentration diagnostics, retaining unavailable measurements as None."""
+    balance = report.get("conversation_balance")
+    if balance is None:
+        return {}
+    if not isinstance(balance, dict):
+        raise DatasetPlatformError("INVALID_DIAGNOSTICS", "Invalid conversation balance statistic: conversation_balance", dataset=version)
+    balance = dict(balance)
+    count = balance.get("conversation_count")
+    if count is not None and (type(count) is not int or count < 0):
+        raise DatasetPlatformError("INVALID_DIAGNOSTICS", "Invalid conversation balance statistic: conversation_count", dataset=version)
+    for metric in ("record_share", "context_word_share", "target_word_share"):
+        key = f"highest_{metric}"
+        highest = balance.get(key)
+        if highest is None:
+            continue
+        if not isinstance(highest, (list, tuple)) or len(highest) != 2 or not isinstance(highest[1], dict):
+            raise DatasetPlatformError("INVALID_DIAGNOSTICS", f"Invalid conversation balance statistic: {key}", dataset=version)
+        share = highest[1].get(metric)
+        if share is None:
+            balance[key] = None
+            continue
+        if (not isinstance(highest[0], str) or type(share) not in (int, float)
+                or not 0 <= share <= 1):
+            raise DatasetPlatformError("INVALID_DIAGNOSTICS", f"Invalid conversation balance statistic: {key}", dataset=version)
+    return balance
+
+
 def dataset_health(version: str) -> dict[str, Any]:
     directory = _version_dir(version)
     manifest = _json(directory / "manifest.json", {})
@@ -645,10 +673,12 @@ def dataset_health(version: str) -> dict[str, Any]:
             invalid_masks += 1
     leakage = eval_leakage(version)
     warnings = []
-    balance = balancing.get("conversation_balance", {})
-    if balance.get("highest_record_share", [None, {}])[1].get("record_share", 0) > .15:
+    balance = _conversation_balance(balancing, version)
+    highest_record = balance.get("highest_record_share")
+    highest_context = balance.get("highest_context_word_share")
+    if highest_record is not None and highest_record[1]["record_share"] > .15:
         warnings.append({"level": "warning", "code": "conversation_concentration", "message": "A single conversation exceeds 15% of training records."})
-    if balance.get("highest_context_word_share", [None, {}])[1].get("context_word_share", 0) > .30:
+    if highest_context is not None and highest_context[1]["context_word_share"] > .30:
         warnings.append({"level": "warning", "code": "context_concentration", "message": "A single conversation context exceeds 30% of context words."})
     if duplicate_extra:
         warnings.append({"level": "error", "code": "exact_duplicates", "message": f"There are {duplicate_extra} extra duplicate training targets."})

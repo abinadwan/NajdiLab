@@ -1,5 +1,12 @@
 # Changelog
 
+## P1 Gold health — unversioned development fix (2026-11-06, `update-v2.3.1`)
+
+- Health, Balance and Version Details handle Direct Language-only and evaluation-only Gold versions whose conversation concentration diagnostics are unavailable. Missing measurements retain `None`, measured zero and existing warning thresholds retain their meaning, and malformed concentration statistics return HTTP 422.
+- Balance preserves validation errors from its conversation statistics and balancing report. Health displays unavailable concentration explicitly. Health and Balance refresh their version selectors after another Gold version is created.
+- Regression coverage reproduces the original HTTP 500 before the fix and exercises the real Arabic/English browser journey, deliberate repeated creation, all three read endpoints, manifest hashes, split isolation and Frozen immutability. The browser regression is included in Source checks.
+- Application version remains V2.2.0. Details and verification are in the [P1 report](docs/development/GOLD_HEALTH_P1.md).
+
 ## UX consistency — unversioned development changes (2026-11-05, `update-v2.3.1`)
 
 - Dashboard opens the existing three-step Prepare data workflow, My versions and independent human review. Candidate counts are labelled Records to check and retain the explicit backend-readiness caveat.

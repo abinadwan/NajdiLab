@@ -39,7 +39,7 @@ def test_every_node_unit_test_runs_in_source_checks():
         assert f"tests/{path.name}" in text, f"{path.name} is not run by Source checks"
 
 
-@pytest.mark.parametrize("script", ["tests/chat-browser.cjs", "tests/chat-enhancements-browser.cjs", "tests/review-restrictions-browser.cjs", "tests/i18n-browser.cjs", "tests/a11y-browser.cjs"])
+@pytest.mark.parametrize("script", ["tests/chat-browser.cjs", "tests/chat-enhancements-browser.cjs", "tests/review-restrictions-browser.cjs", "tests/i18n-browser.cjs", "tests/a11y-browser.cjs", "tests/gold-health-browser.cjs"])
 def test_browser_acceptance_runs_with_a_step_timeout(script):
     text = _text("checks.yml")
     assert re.search(rf"- run: node (?:--test )?{re.escape(script)}\n        timeout-minutes: \d+", text)

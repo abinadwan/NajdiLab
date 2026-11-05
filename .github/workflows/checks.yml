@@ -62,6 +62,8 @@ jobs:
         timeout-minutes: 10
       - run: node --test tests/i18n-browser.cjs
         timeout-minutes: 10
+      - run: node --test tests/gold-health-browser.cjs
+        timeout-minutes: 10
       - run: node --test tests/a11y-browser.cjs
         timeout-minutes: 10
       - uses: actions/upload-artifact@v4
