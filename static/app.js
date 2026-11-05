@@ -4,6 +4,7 @@ const titles = {
   chat: ['Chat Workspace', 'Raw local model conversations, saved here. Collection for review is a separate choice.'],
   models: ['Model library', 'Discover, check and download GGUF models for NajdiLab Native, safely and only with your approval.'],
   dashboard: ['Dashboard', 'Dataset status and local workflows in one place.'],
+  prepare: ['Prepare training data', 'Choose records, check them, and create a frozen Gold version ready for Unsloth.'],
   'review-queue': ['Review queue', 'Review responses one at a time while preserving the original text.'],
   conversations: ['Conversations', 'Explore full context and open any earlier response for review.'],
   reviewed: ['Reviewed', 'Search and filter previous decisions and corrections.'],
@@ -95,7 +96,7 @@ function toast(message, error=false) {
   toast.timer=setTimeout(()=>{el.className='toast';},2800);
 }
 
-const viewPaths={chat:'/chat',models:'/models',dashboard:'/',conversations:'/conversations','review-queue':'/review','reviewed':'/gold','add-data':'/data/add','manual-data':'/data/manual',dataset:'/datasets/gold','dataset-health':'/datasets/health',balancer:'/datasets/balancer','dataset-versions':'/datasets/versions','eval-sets':'/datasets/eval','phase38-review':'/evaluation/remediation-review','phase39-review':'/evaluation/remediation-review-edits',exports:'/exports',analytics:'/analytics',settings:'/settings'};
+const viewPaths={prepare:'/datasets/prepare',chat:'/chat',models:'/models',dashboard:'/',conversations:'/conversations','review-queue':'/review','reviewed':'/gold','add-data':'/data/add','manual-data':'/data/manual',dataset:'/datasets/gold','dataset-health':'/datasets/health',balancer:'/datasets/balancer','dataset-versions':'/datasets/versions','eval-sets':'/datasets/eval','phase38-review':'/evaluation/remediation-review','phase39-review':'/evaluation/remediation-review-edits',exports:'/exports',analytics:'/analytics',settings:'/settings'};
 const pathViews=Object.fromEntries(Object.entries(viewPaths).map(([view,path])=>[path,view]));
 function selectedVersion(){return new URLSearchParams(location.search).get('version')||state.selectedDataset||'';}
 function updateLocation(view,version='',replace=false){const path=viewPaths[view]||'/';const query=version?`?version=${encodeURIComponent(version)}`:'';(replace?history.replaceState:history.pushState).call(history,{view,version},'',path+query);}
@@ -147,6 +148,7 @@ function switchView(view,options={}) {
 async function loadView(view) {
   if (view==='chat') return window.NajdiChat?.load();
   if (view==='models') return window.NajdiModels?.load();
+  if (view==='prepare') return window.NajdiPrepare?.load();
   if (view==='dashboard') return loadDashboard();
   if (view==='review-queue') return loadQueue();
   if (view==='conversations') return loadConversations();

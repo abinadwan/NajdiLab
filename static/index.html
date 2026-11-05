@@ -50,6 +50,7 @@
           <button class="nav-item" data-view="manual-data" title="Manual data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-table"/></svg></span><span class="nav-label">Manual data</span></button>
         </div>
         <div class="nav-section" role="group" aria-labelledby="nav-group-datasets"><span class="nav-group" id="nav-group-datasets">Datasets</span>
+          <button class="nav-item" data-view="prepare" title="Prepare training data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Prepare training data</span></button>
           <button class="nav-item" data-view="dataset" title="Dataset records"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-database"/></svg></span><span class="nav-label">Dataset records</span></button>
           <button class="nav-item" data-view="dataset-health" title="Dataset health"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-health"/></svg></span><span class="nav-label">Dataset health</span></button>
           <button class="nav-item" data-view="balancer" title="Dataset balancer"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-balance"/></svg></span><span class="nav-label">Dataset balancer</span></button>
@@ -454,6 +455,31 @@
         </form>
       </section>
 
+      <section id="view-prepare" class="view">
+        <div class="panel chat-intro"><h2>Prepare training data</h2><p>One path from eligible records to a frozen Gold version and an Unsloth export. Dataset Records, Dataset Health, the Balancer, Dataset Versions, Evaluation Sets and the Export Center stay available for detailed work.</p></div>
+        <section class="panel prepare-step" aria-labelledby="prepare-step1"><h3 id="prepare-step1">1. Choose records</h3>
+          <p>Every eligible record is listed. Leave out any record you do not want in this version; open a preview to read it first.</p>
+          <div class="toolbar"><button id="prepare-all" type="button" class="button ghost">Select all</button><button id="prepare-none" type="button" class="button ghost">Select none</button>
+            <label for="prepare-type">Type</label><select id="prepare-type"><option value="">All types</option><option value="sft">Single-turn</option><option value="multi_turn">Multi-turn</option><option value="direct_language">Direct language</option><option value="preference_pair">Preference pair</option></select>
+            <span id="prepare-count" role="status" aria-live="polite"></span></div>
+          <div id="prepare-records" class="prepare-records"></div></section>
+        <section class="panel prepare-step" aria-labelledby="prepare-step2"><h3 id="prepare-step2">2. Check quality, duplicates, privacy and compatibility</h3>
+          <p>Runs every check a version build runs, for exactly the chosen records. Nothing is written.</p>
+          <button id="prepare-check" type="button" class="button primary">Check selected records</button>
+          <p id="prepare-check-status" role="status" aria-live="polite"></p><div id="prepare-problems"></div></section>
+        <section class="panel prepare-step" aria-labelledby="prepare-step3"><h3 id="prepare-step3">3. Training and evaluation</h3>
+          <p>Evaluation records are kept apart by conversation, so no conversation is used for both. Records marked evaluation only always go to evaluation; with at least 20 records, part of the rest is held out automatically.</p>
+          <div id="prepare-split" role="status" aria-live="polite"></div></section>
+        <section class="panel prepare-step" aria-labelledby="prepare-step4"><h3 id="prepare-step4">4. Create the version and export</h3>
+          <p>The version is frozen with its files, hashes and diagnostics. Earlier versions are never changed.</p>
+          <button id="prepare-create" type="button" class="button primary" disabled>Create Gold version</button>
+          <div id="prepare-created" role="status" aria-live="polite"></div>
+          <div id="prepare-export" hidden><fieldset class="unsloth-profiles"><legend>Training tool</legend>
+            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_chat" checked> <span><strong>Unsloth Studio — SFT (chat)</strong></span></label>
+            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_alpaca"> <span><strong>Unsloth Studio — SFT (Alpaca)</strong></span></label>
+            <label class="inline-check"><input type="radio" name="prepare-profile" value="trl_prompt_completion"> <span><strong>Unsloth / TRL in Python</strong></span></label></fieldset>
+            <button id="prepare-export-go" type="button" class="button primary">Create Unsloth handoff</button><div id="prepare-export-result" role="status" aria-live="polite"></div></div></section>
+      </section>
       <section id="view-dataset" class="view">
         <div id="dataset-stats" class="stat-grid"></div>
         <div class="panel"><div class="panel-heading"><div><span class="eyebrow">Approved only</span><h2>Gold dataset records</h2></div><label class="inline-check"><input id="dataset-demo" type="checkbox"> Include demo</label></div><div id="dataset-list" class="dataset-list"></div></div>
@@ -582,6 +608,7 @@
   <script src="/chat.js" defer></script>
   <script src="/models.js" defer></script>
   <script src="/training-models.js" defer></script>
+  <script src="/prepare-data.js" defer></script>
 </body>
 </html>
 

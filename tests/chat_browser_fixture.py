@@ -86,6 +86,10 @@ def main():
         for name,fn in list(vars(server).items()):
             if inspect.isfunction(fn) and fn.__module__=='app.service' and 'db_path' in inspect.signature(fn).parameters:
                 setattr(server,name,partial(fn,db_path=db))
+        # Dataset versions and Unsloth handoffs are written in this fixture's folder, never into the checkout.
+        import app.unsloth_export as unsloth_export
+        unsloth_export.HANDOFFS=root/'exports'/'unsloth-handoffs'
+        server.create_export=partial(service.create_export,db_path=db,exports_dir=root/'exports')
         server.analytics=lambda:service.analytics(db)
         server.list_exports=lambda:service.list_exports(db)
         server.training_dataset=lambda **kw:service.training_dataset(db,**kw)

@@ -243,6 +243,7 @@
     "static/phase1.css",
     "static/phase38-review.html",
     "static/phase38-review.js",
+    "static/prepare-data.js",
     "static/review-lifecycle.css",
     "static/rtl-overhaul.css",
     "static/styles.css",
@@ -401,7 +402,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "931aaefea7d76c339176c83d78b4afbce7b381244f0ae52c46619cf09eeb48ba"
+      "sha256": "60577c5fcd93fab3e23bb2ead4abc61f2cdb5244e0c3b46c1fce16cd56cc5989"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",

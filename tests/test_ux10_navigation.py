@@ -11,7 +11,7 @@ EXPECTED = [
     ("Chat", ["chat", "models"]),
     ("Review", ["review-queue", "conversations", "reviewed"]),
     ("Data entry", ["add-data", "manual-data"]),
-    ("Datasets", ["dataset", "dataset-health", "balancer", "dataset-versions", "eval-sets"]),
+    ("Datasets", ["prepare", "dataset", "dataset-health", "balancer", "dataset-versions", "eval-sets"]),
     ("Export", ["exports"]),
     ("Administration", ["analytics", "settings"]),
 ]
@@ -73,7 +73,7 @@ def test_every_destination_appears_once_in_workflow_order():
     groups = [(nav.ids[g["labelledby"]].strip(), [i["view"] for i in g["items"]]) for g in nav.groups]
     assert groups == EXPECTED
     views = [v for _, vs in groups for v in vs]
-    assert len(views) == 16 == len(set(views))
+    assert len(views) == 17 == len(set(views))
 
 
 def test_every_destination_is_still_routable():

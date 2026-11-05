@@ -83,3 +83,20 @@ def test_only_eligible_records_can_be_selected(reported, tmp_path):
         create_export(db, tmp_path / 'exports', selection=[f'manual_sft_items:{dropped}'])
     one = create_export(db, tmp_path / 'exports', selection=[f'manual_sft_items:{keep[0]}'])
     assert json.loads((Path(one['path']) / 'manifest.json').read_text(encoding='utf-8'))['training_record_count'] == 1
+
+
+def test_prepare_lists_previews_and_checks_without_writing(reported, tmp_path):
+    from app.service import prepare_check, prepare_records
+    db, keep, dropped = reported
+    before = db.read_bytes()
+    listed = prepare_records(db)
+    ids = [r['id'] for r in listed['items']]
+    assert ids == [f'manual_sft_items:{keep[0]}', f'manual_sft_items:{keep[1]}'], 'ignored and excluded records are not offered'
+    assert listed['items'][0]['question'] == 'كيف أبدأ؟' and listed['items'][0]['answer'] == 'ابدأ بخطوة صغيرة.'
+    check = prepare_check([ids[1]], db)
+    assert check['readiness']['ok'] and check['preview']['training'] == 1 and check['preview']['shared_conversations'] == 0
+    assert prepare_check([], db)['readiness']['blocking_findings'][0]['code'] == 'NO_EXPORTABLE_DATA'
+    assert db.read_bytes() == before, 'checking never writes'
+    export = create_export(db, tmp_path / 'exports', selection=[ids[1]])
+    rows = (Path(export['path']) / 'sft.jsonl').read_text(encoding='utf-8')
+    assert 'Hello!' in rows and 'ابدأ بخطوة' not in rows, 'the version holds exactly the checked records'

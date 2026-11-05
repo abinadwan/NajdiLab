@@ -89,6 +89,8 @@ from .service import (
     approve_review,
     bulk_review_actions,
     create_conversation,
+    prepare_check,
+    prepare_records,
     create_export,
     dedup_report,
     bulk_update_manual_data,
@@ -388,6 +390,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(dataset_catalog())
             elif parsed.path == "/api/v1/review-integrity":
                 self._json(export_readiness(DB_PATH, include_demo=query.get("include_demo") == "1"))
+            elif parsed.path == "/api/v1/prepare/records":
+                self._json(prepare_records(db_path=DB_PATH, include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/exports/readiness":
                 self._json(export_readiness(DB_PATH, include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/conversations":
@@ -554,15 +558,24 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "item": add_direct_text(data)}, HTTPStatus.CREATED)
             elif parsed.path == "/api/v1/manual-data/preference":
                 self._json({"ok": True, "item": add_preference_pair(data)}, HTTPStatus.CREATED)
+            elif parsed.path == "/api/v1/prepare/check":
+                selection = data.get("selection")
+                if selection is not None and not (isinstance(selection, list) and all(isinstance(x, str) for x in selection)):
+                    raise ValidationError("selection must be a list of record ids")
+                self._json(prepare_check(selection, db_path=DB_PATH, include_demo=bool(data.get("include_demo"))))
             elif parsed.path == "/api/v1/exports":
                 include_demo = bool(data.get("include_demo"))
+                selection = data.get("selection")
+                if selection is not None and not (isinstance(selection, list) and all(isinstance(x, str) for x in selection)):
+                    raise ValidationError("selection must be a list of record ids")
                 self._json(
                     {
                         "ok": True,
                         "export": create_export(
-                            DB_PATH,
+                            db_path=DB_PATH,
                             include_demo=include_demo,
                             filters=data.get("filters") or {},
+                            selection=selection,
                         ),
                     },
                     HTTPStatus.CREATED,

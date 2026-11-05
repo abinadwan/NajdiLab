@@ -2301,6 +2301,86 @@ def _validate_jsonl_files(temp_dir: Path, files: dict[str, list[dict[str, Any]]]
             raise ValidationError(f"{filename}: written record count does not match the expected count")
 
 
+def _gather_export_entries(conn, db_path, include_demo):
+    """Every eligible record as (kind, record): training candidates and explicit evaluation-only records.
+    The single source for building a version and for previewing one."""
+    dataset = training_dataset(db_path, include_demo)
+    training_entries = (
+        [("sft", _annotate_sft_record(item)) for item in dataset["reviews"] + dataset["manual_sft"]]
+        + [("direct_language", item) for item in dataset["direct_language"]]
+        + [("preference_pairs", item) for item in dataset["preference_pairs"]]
+    )
+    explicit_evaluation_entries = (
+        [("sft", _annotate_sft_record(item)) for item in (
+            _review_training_records(conn, include_demo, evaluation=True)
+            + _manual_records(conn, "manual_sft_items", include_demo, evaluation=True))]
+        + [("direct_language", item) for item in _manual_records(conn, "direct_language_texts", include_demo, evaluation=True)]
+        + [("preference_pairs", item) for item in _manual_records(conn, "preference_pairs", include_demo, evaluation=True)]
+    )
+    return training_entries, explicit_evaluation_entries
+
+
+def _preview_text(value, limit=280):
+    text = str(value or "")
+    return text if len(text) <= limit else text[:limit] + "…"
+
+
+def prepare_records(db_path: Path | str = DB_PATH, include_demo: bool = False) -> dict[str, Any]:
+    """The eligible records a training data version can contain, with a short preview of each."""
+    conn = connect(db_path)
+    try:
+        training, evaluation = _gather_export_entries(conn, db_path, include_demo)
+    finally:
+        conn.close()
+    rows = []
+    for split, entries in (("training", training), ("evaluation_only", evaluation)):
+        for kind, item in entries:
+            messages = item.get("messages") or []
+            context = item.get("prompt_context") or []
+            if kind == "sft":
+                users = [m.get("content") for m in messages if isinstance(m, dict) and m.get("role") == "user"]
+                question, answer = (users[-1] if users else ""), (messages[-1].get("content") if messages else "")
+                record_type = "multi_turn" if len(messages) > 2 else "sft"
+            elif kind == "direct_language":
+                question, answer, record_type = "", item.get("text"), "direct_language"
+            else:
+                question = " ".join(str(m.get("content") or "") for m in context if isinstance(m, dict)) if isinstance(context, list) else context
+                answer, record_type = item.get("preferred_response"), "preference_pair"
+            rows.append({"id": item.get("id"), "type": record_type, "split": split,
+                         "source": "collected" if str(item.get("id", "")).startswith("review:") else "manual",
+                         "conversation_id": item.get("conversation_id"), "turns": len(messages) or None,
+                         "status": item.get("review_status") or item.get("origin"),
+                         **{field: item.get(field) for field in ("language", "dialect", "style", "domain", "language_layer")},
+                         "question": _preview_text(question), "answer": _preview_text(answer)})
+    rows.sort(key=lambda r: r["id"] or "")
+    return {"items": rows, "count": len(rows)}
+
+
+def prepare_check(selection: list[str] | None, db_path: Path | str = DB_PATH, include_demo: bool = False) -> dict[str, Any]:
+    """Run every check a version build runs, for exactly these records, without writing anything."""
+    readiness = export_readiness(db_path, include_demo=include_demo, selection=selection)
+    preview = {"selected": len(readiness.get("selection") or []), "training": 0, "evaluation": 0, "split": None,
+               "duplicates": None, "evaluation_conversations": 0, "shared_conversations": 0}
+    if readiness.get("selection") is not None:
+        chosen = set(readiness["selection"])
+        conn = connect(db_path)
+        try:
+            training, explicit = _gather_export_entries(conn, db_path, include_demo)
+        finally:
+            conn.close()
+        training = [(k, i) for k, i in training if i.get("id") in chosen]
+        explicit = [(k, i) for k, i in explicit if i.get("id") in chosen]
+        kept, evaluation, split_stats = _split_export_entries(training, explicit)
+        _, duplicates = _duplicate_analysis({kind: [i for k, i in kept if k == kind] for kind in ("sft", "direct_language", "preference_pairs")})
+        train_conversations = {c for _, i in kept if (c := _conversation_id(i))}
+        eval_conversations = {c for i in evaluation if (c := _conversation_id(i))}
+        preview.update(training=len(kept), evaluation=len(evaluation), split=split_stats, duplicates=duplicates,
+                       evaluation_conversations=len(eval_conversations),
+                       shared_conversations=len(train_conversations & eval_conversations))
+    return {"readiness": readiness, "preview": preview,
+            "note": "Nothing was written. Creating the version runs these checks again on the same records."}
+
+
 def create_export(
     db_path: Path | str = DB_PATH,
     exports_dir: Path | str | None = None,
@@ -2331,31 +2411,7 @@ def create_export(
             version = f"gold-v{number:03d}"
             if (exports_dir / version).exists():
                 raise ValidationError("The version directory already exists")
-            dataset = training_dataset(db_path, include_demo)
-            reviews = dataset["reviews"]
-            manual = dataset["manual_sft"]
-            training_entries = (
-                [("sft", _annotate_sft_record(item)) for item in reviews + manual]
-                + [("direct_language", item) for item in dataset["direct_language"]]
-                + [("preference_pairs", item) for item in dataset["preference_pairs"]]
-            )
-            explicit_evaluation_entries = (
-                [
-                    ("sft", _annotate_sft_record(item))
-                    for item in (
-                        _review_training_records(conn, include_demo, evaluation=True)
-                        + _manual_records(conn, "manual_sft_items", include_demo, evaluation=True)
-                    )
-                ]
-                + [
-                    ("direct_language", item)
-                    for item in _manual_records(conn, "direct_language_texts", include_demo, evaluation=True)
-                ]
-                + [
-                    ("preference_pairs", item)
-                    for item in _manual_records(conn, "preference_pairs", include_demo, evaluation=True)
-                ]
-            )
+            training_entries, explicit_evaluation_entries = _gather_export_entries(conn, db_path, include_demo)
             archive = {
                 "conversations": [dict(x) for x in conn.execute("SELECT * FROM conversations")],
                 "messages": [dict(x) for x in conn.execute("SELECT * FROM messages")],
@@ -2367,6 +2423,10 @@ def create_export(
             }
         training_entries = [(kind, item) for kind, item in training_entries if item.get('id') in chosen]
         explicit_evaluation_entries = [(kind, item) for kind, item in explicit_evaluation_entries if item.get('id') in chosen]
+        # Manifest summaries describe the records in this version (training candidates, as before).
+        reviews = [item for kind, item in training_entries if str(item.get('id', '')).startswith('review:')]
+        manual = [item for kind, item in training_entries if str(item.get('id', '')).startswith('manual_sft_items:')]
+        other_manual = [item for kind, item in training_entries if kind in ('direct_language', 'preference_pairs')]
         training_entries, evaluation, split_stats = _split_export_entries(
             training_entries, explicit_evaluation_entries
         )
@@ -2420,10 +2480,10 @@ def create_export(
             status_counts = Counter(item.get("review_status") for item in reviews)
             source_models = sorted({item.get("model_name") for item in reviews if item.get("model_name")})
             language_layers = sorted(
-                {item.get("language_layer") for item in manual + dataset["direct_language"] + dataset["preference_pairs"] if item.get("language_layer")}
+                {item.get("language_layer") for item in manual + other_manual if item.get("language_layer")}
             )
             domains = sorted(
-                {item.get("domain") for item in manual + dataset["direct_language"] + dataset["preference_pairs"] if item.get("domain")}
+                {item.get("domain") for item in manual + other_manual if item.get("domain")}
             )
             excluded_count = conn.execute(
                 "SELECT (SELECT COUNT(*) FROM reviews WHERE exclude_from_training = 1) + "
