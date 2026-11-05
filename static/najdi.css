@@ -670,3 +670,5 @@ dialog{color:var(--ink)}
 .taxonomy-host input{margin-top:6px}
 .export-guide ol{margin:6px 0;padding-inline-start:20px}
 .unsloth-readiness p{margin:2px 0}
+#training-models-form{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#training-models-form input{flex:1 1 18rem;min-width:0}
