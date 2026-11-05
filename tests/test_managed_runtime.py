@@ -528,3 +528,48 @@ def test_install_runs_the_runtime_step_only_where_it_exists(tmp_path):
                             stdin=subprocess.DEVNULL, timeout=60, env={k: v for k, v in os.environ.items() if k != 'NAJDILAB_NATIVE_SERVER'})
     assert result.returncode == 0, result.stderr
     assert 'not installed by a non-interactive setup' in result.stdout
+
+
+def _archive_part(tmp_path, pkg):
+    return tmp_path / 'runtime' / 'archives' / (pkg['assets'][0]['name'] + '.part')
+
+
+def test_a_dropped_connection_resumes_from_the_exact_byte_and_still_checks_the_whole_file(tmp_path, native):
+    managed, hub, pkg = runtime(tmp_path, native, chunk=64)
+    managed.retry_delay = 0
+    hub.drop_after = 100
+    status = installed(managed, pkg)
+    assert status['state'] == 'READY' and status['active']['package'] == pkg['id']
+    assert hub.ranges == [0, 100], 'the second request continues where the first stopped'
+    assert not _archive_part(tmp_path, pkg).exists()
+
+
+def test_a_download_that_keeps_failing_is_kept_and_continued_by_the_next_install(tmp_path, native):
+    managed, hub, pkg = runtime(tmp_path, native, chunk=64)
+    managed.retry_delay = 0
+    original = hub.__call__
+
+    class Flaky:
+        """Every response drops after 50 more bytes, three times in a row."""
+        drops = 3
+
+    def flaky(url, headers, timeout):
+        if Flaky.drops and not url.startswith(catalog.RELEASE_URL):
+            Flaky.drops -= 1
+            hub.drop_after = 50
+        return original(url, headers, timeout)
+    managed.transport = flaky
+    managed.detect({'approved': True})
+    assert code(lambda: managed.install(approve(pkg), wait=True)) == 'RUNTIME_DOWNLOAD_UNREACHABLE'
+    assert _archive_part(tmp_path, pkg).stat().st_size == 150 and managed.status()['active'] is None
+    managed.install(approve(pkg), wait=True)
+    assert managed.status()['state'] == 'READY' and hub.ranges[-1] == 150
+    assert not _archive_part(tmp_path, pkg).exists()
+
+
+def test_a_server_that_ignores_the_range_restarts_the_file_cleanly(tmp_path, native):
+    managed, hub, pkg = runtime(tmp_path, native, chunk=64)
+    managed.retry_delay = 0
+    hub.drop_after, hub.honour_range = 100, False
+    status = installed(managed, pkg)
+    assert status['state'] == 'READY' and hub.ranges == [0, 100]

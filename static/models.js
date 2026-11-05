@@ -23,7 +23,7 @@
     NOT_INSTALLED:'neutral',UNVERIFIED:'warning',BLOCKED:'hold',ERROR:'blocked'};
   const RUNTIME_TEXT={READY:'Ready — verified',RUNNING:'Running a model',STARTING:'Starting',STOPPING:'Stopping',INSTALLING:'Installing',
     STOPPED:'Stopped',NOT_INSTALLED:'Not installed',UNVERIFIED:'Unverified',BLOCKED:'Blocked',ERROR:'Error'};
-  const PHASE_TEXT={PREPARING:'Preparing',DOWNLOADING:'Downloading',CHECKING_OFFLINE_COPY:'Checking the offline copy',
+  const PHASE_TEXT={PREPARING:'Preparing',DOWNLOADING:'Downloading',RETRYING:'Connection lost — resuming',CHECKING_OFFLINE_COPY:'Checking the offline copy',
     EXTRACTING:'Unpacking',VERIFYING:'Verifying on this computer'};
   const TABS=['recommended','trending','discover','library','runtime'];
   const PROVENANCE={OFFICIAL:['ready','Verified official publisher'],COMMUNITY:['info','Community conversion'],

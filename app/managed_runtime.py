@@ -46,6 +46,7 @@ from .version import APP_VERSION
 GITHUB_HOSTS = {'github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'}
 USER_AGENT = f'NajdiLab/{APP_VERSION} (local; managed llama.cpp runtime)'
 MAX_REDIRECTS = 3
+DOWNLOAD_ATTEMPTS = 3  # one download plus two automatic resumes after a dropped connection
 MANIFEST = 'najdilab-runtime.json'
 EXPANSION = 4  # unpacked-size bound used before the archive is available
 MAX_UNPACKED = 8 * GIB
@@ -162,6 +163,7 @@ class ManagedRuntime:
         self.packages = tuple(packages or catalog.PACKAGES)
         self.verifier = verifier or self.verify_build
         self.chunk, self.check_every = chunk, check_every
+        self.retry_delay = 1.0
         self.system = system or platform.system()
         self.machine = machine or platform.machine()
         self._lock = threading.RLock()
@@ -572,10 +574,30 @@ class ManagedRuntime:
         if progress:
             progress(f"Downloading {asset['name']} ({asset['size'] / 1024 ** 2:.1f} MiB)...")
         part = self.archives / (asset['name'] + '.part')
-        url, response = asset['url'], None
+        # A network interruption keeps the verified-so-far `.part` file; later attempts (automatic, or the
+        # next install) continue it with an HTTP Range request. The whole file is still hashed at the end.
+        for attempt in range(DOWNLOAD_ATTEMPTS):
+            try:
+                return self._download(asset, job, part, final), True
+            except IntegrationError as error:
+                if error.code != 'RUNTIME_DOWNLOAD_UNREACHABLE' or job.cancel.is_set() or attempt == DOWNLOAD_ATTEMPTS - 1:
+                    raise
+                job.phase = 'RETRYING'
+                if progress:
+                    progress(f"Connection lost; resuming {asset['name']} (attempt {attempt + 2} of {DOWNLOAD_ATTEMPTS})...")
+                time.sleep(self.retry_delay * (attempt + 1))
+                job.phase = 'DOWNLOADING'
+
+    def _download(self, asset, job, part, final):
+        offset = part.stat().st_size if part.is_file() else 0
+        if offset >= asset['size']:
+            part.unlink(missing_ok=True)
+            offset = 0
+        headers = {'User-Agent': USER_AGENT, 'Accept': 'application/octet-stream', **({'Range': f'bytes={offset}-'} if offset else {})}
+        url, response, keep = asset['url'], None, False
         try:
             for _ in range(MAX_REDIRECTS + 1):
-                response = self.transport(url, {'User-Agent': USER_AGENT, 'Accept': 'application/octet-stream'}, 30)
+                response = self.transport(url, headers, 30)
                 if response.status in (301, 302, 303, 307, 308) and response.headers.get('location'):
                     response.close()
                     url, response = urljoin(url, response.headers['location']), None
@@ -583,22 +605,35 @@ class ManagedRuntime:
                 break
             if response is None:
                 raise IntegrationError('RUNTIME_DOWNLOAD_FAILED', 'Too many redirects; nothing was installed.', 502)
-            if response.status != 200:
+            if offset and response.status == 206:
+                expected = f"bytes {offset}-{asset['size'] - 1}/{asset['size']}"
+                if response.headers.get('content-range') != expected:
+                    raise IntegrationError('RUNTIME_DIGEST_MISMATCH', 'The resumed download does not continue the pinned file; nothing was installed.', 409)
+                remaining = asset['size'] - offset
+            elif response.status == 200:
+                offset, remaining = 0, asset['size']  # the server ignored the range: start over
+            else:
                 raise IntegrationError('RUNTIME_DOWNLOAD_FAILED', f'GitHub answered HTTP {response.status}; nothing was installed.', 502)
             length = response.headers.get('content-length')
-            if length is not None and length != str(asset['size']):
+            if length is not None and length != str(remaining):
                 raise IntegrationError('RUNTIME_DIGEST_MISMATCH', 'The download size differs from the pinned size; nothing was installed.', 409)
-            digest, count, since = hashlib.sha256(), 0, 0
+            digest, count, since = hashlib.sha256(), offset, 0
+            if offset:
+                with part.open('rb') as done:
+                    for block in iter(lambda: done.read(self.chunk), b''):
+                        digest.update(block)
+            job.done += offset
             volume = volume_of(self.root)
             reserve = max(self.reserve, self.system_reserve) if volume['system_volume'] else self.reserve
-            with part.open('wb') as target:
+            with part.open('ab' if offset else 'wb') as target:
                 while True:
                     if job.cancel.is_set():
                         raise IntegrationError('RUNTIME_CANCELLED', 'Installation cancelled; nothing was changed.', 409)
                     try:
                         block = response.body.read(self.chunk)
                     except (OSError, http.client.HTTPException):
-                        raise IntegrationError('RUNTIME_DOWNLOAD_UNREACHABLE', 'The download was interrupted; nothing was installed. Try again.', 502) from None
+                        keep = True
+                        raise IntegrationError('RUNTIME_DOWNLOAD_UNREACHABLE', 'The download was interrupted; nothing was installed. Try again to resume it.', 502) from None
                     if not block:
                         break
                     count += len(block)
@@ -615,11 +650,16 @@ class ManagedRuntime:
             if count != asset['size'] or digest.hexdigest() != asset['sha256']:
                 raise IntegrationError('RUNTIME_DIGEST_MISMATCH', f"{asset['name']} does not match the pinned SHA-256; nothing was installed.", 409)
             os.replace(part, final)
-            return final, True
+            return final
+        except IntegrationError as error:
+            if error.code == 'RUNTIME_DOWNLOAD_UNREACHABLE' and keep:
+                job.done -= count  # counted again when the next attempt re-reads the partial file
+            raise
         finally:
             if response is not None:
                 response.close()
-            part.unlink(missing_ok=True)
+            if not keep:
+                part.unlink(missing_ok=True)
 
     def _extract_all(self, archives, staging, job):
         plans = [self._plan(path) for path in archives]
