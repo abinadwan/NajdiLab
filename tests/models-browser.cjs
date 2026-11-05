@@ -189,6 +189,23 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.click('#collapse-sidebar');
     });
 
+    await t.test('training models: GGUF and Safetensors are told apart; a download needs a reviewed, complete checkpoint and the license',async()=>{
+      await page.evaluate(()=>switchView('models'));await page.waitForSelector('#view-models.active');
+      await page.click('#models-tab-training');await page.waitForSelector('#models-training:not([hidden])');
+      assert.match(await page.$eval('#models-training',e=>e.textContent),/A GGUF file is not a training checkpoint/);
+      await page.waitForFunction(()=>document.querySelector('#training-models-list').textContent.includes('No training checkpoints yet.'));
+      const check=async repo=>{await page.$eval('#training-models-repo',(e,v)=>{e.value=v;},repo);await page.click('#training-models-form button[type="submit"]');
+        await page.waitForFunction(()=>!document.querySelector('#training-models-review').textContent.includes('Checking'));
+        return page.$eval('#models-training',e=>({review:document.querySelector('#training-models-review').textContent,confirm:!document.querySelector('#training-models-confirm').hidden,
+          download:document.querySelector('#training-models-download').disabled}));};
+      const good=await check('najdi-synthetic/Tiny-Train');
+      assert.ok(good.confirm&&good.download,'offered, but disabled until the license is acknowledged');
+      assert.match(good.review,/config\.json[\s\S]*model\.safetensors/);assert.doesNotMatch(good.review,/modeling_custom\.py/,'code files are never offered');
+      await page.click('#training-models-ack');assert.equal(await page.$eval('#training-models-download',e=>e.disabled),false);
+      const gguf=await check('najdi-synthetic/Tiny-Chat-GGUF');
+      assert.ok(!gguf.confirm);assert.match(gguf.review,/not a training checkpoint/);assert.match(gguf.review,/complete training checkpoint/);
+    });
+
     await t.test('local address: the sidebar shows the host and port actually serving the page, never a fixed one',async()=>{
       const served=new URL(base);
       assert.ok(!['8770','8870'].includes(served.port),'the fixture runs on an ephemeral port, so a hard-coded default cannot pass');

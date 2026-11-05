@@ -25,7 +25,7 @@
     STOPPED:'Stopped',NOT_INSTALLED:'Not installed',UNVERIFIED:'Unverified',BLOCKED:'Blocked',ERROR:'Error'};
   const PHASE_TEXT={PREPARING:'Preparing',DOWNLOADING:'Downloading',RETRYING:'Connection lost — resuming',CHECKING_OFFLINE_COPY:'Checking the offline copy',
     EXTRACTING:'Unpacking',VERIFYING:'Verifying on this computer'};
-  const TABS=['recommended','trending','discover','library','runtime'];
+  const TABS=['recommended','trending','discover','library','runtime','training'];
   const PROVENANCE={OFFICIAL:['ready','Verified official publisher'],COMMUNITY:['info','Community conversion'],
     MODIFIED:['warning','Fine-tuned / modified'],UNVERIFIED:['neutral','Unverified source']};
   const LICENSE_TEXT={OPEN:'Open license',TERMS:'Custom terms: read them before use',NON_COMMERCIAL:'Non-commercial use only',UNKNOWN:'No license stated'};
@@ -72,6 +72,7 @@
     for(const tab of TABS)el(`models-${tab}`).hidden=name!==tab;
     if(name==='library')refreshLibrary();
     if(name==='runtime')refreshRuntime();
+    if(name==='training')global.NajdiTraining?.refresh();
   }
 
   // ------------------------------------------------------------- discover

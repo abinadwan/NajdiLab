@@ -111,6 +111,8 @@ def main():
         http._models=ModelLibrary(db,http.native,hub=hub,
             store=ModelStore(db,root/'models'/'huggingface',hub,reserve_bytes=64*1024**2,system_reserve_bytes=64*1024**2,in_use=http.native.serving),
             snapshot=lambda:{'ram_total_bytes':16*1024**3,'ram_available_bytes':8*1024**3,'gpus':[],'warnings':['GPU_BACKEND_UNAVAILABLE']})
+        from app.training_models import TrainingModels
+        http._training=TrainingModels(hub,Path(temp)/'training-models',cache_roots=[])  # never the owner's real cache
         # Managed llama.cpp runtime: a synthetic release, a synthetic Blackwell-class GPU and a recorded
         # verification. Nothing runs and nothing is downloaded; the real build is never used here.
         os.environ.pop('NAJDILAB_NATIVE_SERVER',None)

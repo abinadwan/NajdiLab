@@ -208,7 +208,7 @@
 
       <section id="view-models" class="view">
         <div class="subtabs" role="tablist" aria-label="Model library sections">
-          <button class="active" role="tab" type="button" id="models-tab-recommended" aria-selected="true" aria-controls="models-recommended" data-models-tab="recommended">Recommended for your device</button><button role="tab" type="button" id="models-tab-trending" aria-selected="false" aria-controls="models-trending" data-models-tab="trending" tabindex="-1">Trending</button><button role="tab" type="button" id="models-tab-discover" aria-selected="false" aria-controls="models-discover" data-models-tab="discover" tabindex="-1">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button>
+          <button class="active" role="tab" type="button" id="models-tab-recommended" aria-selected="true" aria-controls="models-recommended" data-models-tab="recommended">Recommended for your device</button><button role="tab" type="button" id="models-tab-trending" aria-selected="false" aria-controls="models-trending" data-models-tab="trending" tabindex="-1">Trending</button><button role="tab" type="button" id="models-tab-discover" aria-selected="false" aria-controls="models-discover" data-models-tab="discover" tabindex="-1">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button><button role="tab" type="button" id="models-tab-training" aria-selected="false" aria-controls="models-training" data-models-tab="training" tabindex="-1">Training models</button>
         </div>
         <div id="models-recommended" role="tabpanel" aria-labelledby="models-tab-recommended">
           <p class="safety-banner models-privacy">This computer's memory, GPU and llama.cpp runtime are read here and never sent. Only list and file-header requests go to huggingface.co. Popularity only chooses which models are checked; the order comes from how each model fits this computer. Nothing downloads or loads without your approval.</p>
@@ -253,6 +253,18 @@
         <div id="models-runtime" role="tabpanel" aria-labelledby="models-tab-runtime" hidden>
           <section id="runtime-status" class="panel models-storage" aria-label="Managed llama.cpp runtime"></section>
           <div id="runtime-packages" class="models-library-list"></div>
+        </div>
+        <div id="models-training" role="tabpanel" aria-labelledby="models-tab-training" hidden>
+          <section class="panel models-storage" aria-labelledby="training-models-title">
+            <h2 id="training-models-title">Training models</h2>
+            <p>Inference models are GGUF files that NajdiLab Native runs. Training models are Hugging Face checkpoints (configuration, tokenizer and Safetensors weights) that external tools such as Unsloth use for fine-tuning. A GGUF file is not a training checkpoint. NajdiLab does not train; it only prepares and verifies the files.</p>
+            <form id="training-models-form" class="models-search"><label for="training-models-repo">Hugging Face repository</label><input id="training-models-repo" placeholder="Example: unsloth/Qwen2.5-0.5B-Instruct" autocomplete="off" spellcheck="false" required><button class="button ghost" type="submit">Check repository</button></form>
+            <div id="training-models-review" role="status" aria-live="polite"></div>
+            <div id="training-models-confirm" hidden><label class="inline-check"><input id="training-models-ack" type="checkbox"> I have reviewed this model's license and will follow it.</label><button id="training-models-download" class="button primary" type="button" disabled>Download and verify</button></div>
+            <div id="training-models-job" role="status" aria-live="polite"></div>
+          </section>
+          <h3>On this computer</h3>
+          <div id="training-models-list" class="models-library-list"></div>
         </div>
         <dialog id="models-download-dialog" class="chatv2-dialog models-dialog" aria-labelledby="models-download-title">
           <form method="dialog" class="chatv2-dialog-body">
@@ -568,6 +580,7 @@
   <script src="/chat-markdown.js" defer></script>
   <script src="/chat.js" defer></script>
   <script src="/models.js" defer></script>
+  <script src="/training-models.js" defer></script>
 </body>
 </html>
 

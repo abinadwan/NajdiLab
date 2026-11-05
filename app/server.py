@@ -58,6 +58,7 @@ CONTEXT_PRESETS = [
 ]
 from .unsloth_export import create_handoff, read_handoff
 from . import language_taxonomy
+from .training_models import TrainingModels
 from .dataset_platform import (
     DatasetPlatformError,
     apply_overlap_plan,
@@ -140,6 +141,7 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
         self._workspace_lock = threading.Lock()
         self._models = None
         self._models_lock = threading.Lock()
+        self._training = None
         # Native uses the managed llama.cpp build unless the owner set NAJDILAB_NATIVE_SERVER.
         self.runtime = ManagedRuntime(self.native)
         self.runtime.attach()
@@ -167,6 +169,12 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
             if self._models is None:
                 self._models = ModelLibrary(DB_PATH, self.native)
             return self._models
+
+    def training(self):
+        with self._models_lock:
+            if self._training is None:
+                self._training = TrainingModels(self.models().hub)
+            return self._training
 
     def server_close(self):
         super().server_close()
@@ -357,6 +365,11 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.preparation.models())
             elif parsed.path == '/api/v1/runtime':
                 self._json(self.server.runtime.status())
+            elif parsed.path == '/api/v1/checkpoints':
+                self._json(self.server.training().library())
+            elif parsed.path == '/api/v1/checkpoints/inspect':
+                repo = parse_qs(parsed.query).get('repo', [''])[0]
+                self._json(self.server.training().inspect(repo))
             elif parsed.path == '/api/v1/models/library':
                 self._json(self.server.models().store.library())
             elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
@@ -482,6 +495,11 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.workspace().create(data), HTTPStatus.CREATED)
             elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/send-stream', parsed.path):
                 self._send_stream(match.group(1), data)
+            elif parsed.path == '/api/v1/checkpoints/downloads':
+                self._json(self.server.training().start(data), HTTPStatus.ACCEPTED)
+            elif parsed.path == '/api/v1/checkpoints/downloads/cancel':
+                fields(data, set())
+                self._json(self.server.training().cancel())
             elif parsed.path.startswith('/api/v1/models/'):
                 self._json(self.server.models().handle(parsed.path[len('/api/v1/models/'):], data))
             elif parsed.path == '/api/v1/chat/prepare':

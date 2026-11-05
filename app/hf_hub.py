@@ -34,6 +34,8 @@ AUTHOR = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,95}\Z')
 COMMIT = re.compile(r'[0-9a-f]{40}\Z')
 SHA256 = re.compile(r'[0-9a-f]{64}\Z')
 GGUF_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,250}\.gguf\Z')
+# Training checkpoints (V2.2.0): top-level config, tokenizer and Safetensors files only, never code or pickles.
+TRAINING_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,250}\.(?:json|safetensors|model|txt|jinja|tiktoken)\Z')
 SPLIT = re.compile(r'-\d{5}-of-\d{5}\.gguf\Z', re.IGNORECASE)
 QUANT = re.compile(r'(?<![A-Za-z0-9])((?:I?Q[1-8](?:_[0-9A-Z]{1,4}){0,3})|F16|BF16|F32|MXFP4(?:_MOE)?|TQ[12]_0)(?![A-Za-z0-9])',
                    re.IGNORECASE)
@@ -323,16 +325,46 @@ class HubClient:
             'formats': 'GGUF only; other formats are not supported by NajdiLab yet.',
         }
 
+    def files(self, repo_id, revision=None):
+        """Every file of a repository at one immutable revision, with size and the hash Hugging Face publishes
+        (LFS SHA-256, or the git blob id for small files). Used for training checkpoints, which span many files."""
+        if not isinstance(repo_id, str) or not REPO_ID.fullmatch(repo_id):
+            raise HubError('INVALID_REPOSITORY', 'Use a repository id such as publisher/model-name.', 400)
+        if revision is not None and (not isinstance(revision, str) or not COMMIT.fullmatch(revision)):
+            raise HubError('INVALID_REVISION', 'A revision must be a full 40-character commit id.', 400)
+        data = self._json(f'/api/models/{quote(repo_id)}' + (f'/revision/{revision}' if revision else ''), {'blobs': 'true'})
+        if not isinstance(data, dict) or data.get('id') != repo_id or not COMMIT.fullmatch(str(data.get('sha') or '')):
+            raise HubError('INVALID_RESPONSE', 'Hugging Face did not report an immutable revision for this repository.')
+        if revision and data['sha'] != revision:
+            raise HubError('REVISION_CHANGED', 'The repository no longer matches the reviewed revision. Review it again before downloading.', 409)
+        tags = [t for t in data.get('tags') or [] if isinstance(t, str)][:128]
+        card = data.get('cardData') if isinstance(data.get('cardData'), dict) else {}
+        gated = data.get('gated') if data.get('gated') in GATED else 'UNKNOWN'
+        rows = []
+        for sibling in (data.get('siblings') or [])[:5000]:
+            name, lfs = sibling.get('rfilename'), sibling.get('lfs') if isinstance(sibling.get('lfs'), dict) else {}
+            if not isinstance(name, str):
+                continue
+            sha256 = lfs.get('sha256') if isinstance(lfs.get('sha256'), str) and SHA256.fullmatch(lfs['sha256']) else None
+            blob = sibling.get('blobId') if isinstance(sibling.get('blobId'), str) and re.fullmatch(r'[0-9a-f]{40}', sibling['blobId']) else None
+            rows.append({'name': name, 'size_bytes': _int(lfs.get('size') if lfs else sibling.get('size')), 'sha256': sha256, 'git_blob': blob})
+        return {'id': repo_id, 'revision': data['sha'], 'access': GATED.get(gated, 'UNKNOWN') if gated != 'UNKNOWN' else 'UNKNOWN',
+                'private': data.get('private') is True, 'disabled': data.get('disabled') is True,
+                'license': license_of(card, tags), 'license_name': _text(card.get('license_name'), 100),
+                'license_link': _text(card.get('license_link'), 300), 'tags': tags,
+                'base_models': [t[11:] for t in tags if t.startswith('base_model:') and REPO_ID.fullmatch(t[11:])][:5],
+                'files': rows}
+
     # ----- files ---------------------------------------------------------
-    def _resolve_url(self, repo_id, revision, filename):
-        if not REPO_ID.fullmatch(repo_id or '') or not COMMIT.fullmatch(revision or '') or not GGUF_NAME.fullmatch(filename or ''):
-            raise HubError('INVALID_FILE', 'Only a top-level .gguf file at a pinned revision can be fetched.', 400)
+    def _resolve_url(self, repo_id, revision, filename, names=GGUF_NAME):
+        if not REPO_ID.fullmatch(repo_id or '') or not COMMIT.fullmatch(revision or '') or not names.fullmatch(filename or ''):
+            raise HubError('INVALID_FILE', 'Only a supported top-level file at a pinned revision can be fetched.', 400)
         return f'https://{API_HOST}/{quote(repo_id)}/resolve/{revision}/{quote(filename)}'
 
-    def open_file(self, repo_id, revision, filename, *, start=0, end=None, expected_size=None, expected_sha256=None):
+    def open_file(self, repo_id, revision, filename, *, start=0, end=None, expected_size=None, expected_sha256=None, names=GGUF_NAME):
         """A pinned GGUF file stream (optionally a byte range). The first hop's headers must agree
         with the reviewed metadata: commit, size and SHA-256."""
-        url = self._resolve_url(repo_id, revision, filename)
+        url = self._resolve_url(repo_id, revision, filename, names)
         sent = {'User-Agent': USER_AGENT, 'Accept-Encoding': 'identity'}
         if start or end is not None:
             sent['Range'] = f'bytes={start}-' + ('' if end is None else str(end))

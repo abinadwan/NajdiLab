@@ -100,6 +100,13 @@ class FakeHub:
                 'sha': COMMIT_A, 'gated': 'manual', 'license': 'other', 'downloads': 50, 'likes': 1,
                 'gguf': {}, 'files': {'Locked-Q4_K_M.gguf': (len(self.gguf), digest)}},
         }
+        # Details only (never in search or lists): a Safetensors training checkpoint (V2.2.0 training models).
+        self.detail_only = {
+            'najdi-synthetic/Tiny-Train': {
+                'sha': COMMIT_A, 'gated': False, 'license': 'apache-2.0', 'downloads': 40, 'likes': 2, 'gguf': {},
+                'files': {'config.json': (23, 'f' * 64), 'tokenizer.json': (18, 'a' * 64), 'model.safetensors': (10240, 'b' * 64),
+                          'modeling_custom.py': (9, None), 'README.md': (100, None)}},
+        }
         for entry in CATALOG:
             name = entry['id'].split('/')[1].removesuffix('-GGUF')
             files = {}
@@ -182,7 +189,7 @@ class FakeHub:
         if match and match.group(1) not in self.repos and (match.group(1) in LINEAGE or match.group(1).endswith('-Base')):
             relations = LINEAGE.get(match.group(1), [])
             return self._json({'id': match.group(1), 'tags': [f'base_model:{r}:{b}' for r, b in relations] + [f'base_model:{b}' for _, b in relations]})
-        repo = self.repos.get(match.group(1)) if match else None
+        repo = (self.repos.get(match.group(1)) or self.detail_only.get(match.group(1))) if match else None
         if repo is None or (match.group(2) and match.group(2) != repo['sha']):
             return self._reply(401, {}, b'{"error":"Repository not found"}')
         siblings = []
