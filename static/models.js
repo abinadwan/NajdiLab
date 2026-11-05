@@ -282,10 +282,28 @@
 
   // ------------------------------------------------------------- delete
   let deleting=null;
+  // Deleting shows first exactly what is removed and how much space is freed; a running model must be stopped first.
+  let deletePlan=null;
+  async function loadDeletePlan(){
+    deletePlan=null;el('models-delete-go').disabled=true;say('models-delete-plan','Checking what will be removed…');
+    try{
+      deletePlan=await api(`/api/v1/models/library/${deleting.id}/delete-plan`,{});
+      const action=deletePlan.action==='delete_model_file'?'Deletes the model file and its library entry.':'Removes this download record and its partial data. No complete model file exists.';
+      const rows=deletePlan.files.map(f=>node('li',{},({'model file':'Model file','partial download':'Partial download','download progress':'Download progress'})[f.role]||f.role,' · ',ident(bytes(f.size_bytes)||'0 B')));
+      const parts=[node('p',{},action),rows.length?node('ul',{},...rows):null,node('p',{},'Space freed:',' ',node('strong',{},ident(bytes(deletePlan.frees_bytes)||'0 B')))];
+      if(deletePlan.blocked==='MODEL_IN_USE'){
+        const stop=node('button',{type:'button',class:'button ghost'},'Stop NajdiLab Native');
+        stop.onclick=async()=>{stop.disabled=true;try{await global.api('/api/v1/native/stop',{method:'POST',body:JSON.stringify({approved:true})});}catch(error){say('models-delete-error',errorText(error));}loadDeletePlan();};
+        parts.push(node('p',{class:'chatv2-warning'},'NajdiLab Native is running this model. Stop it before deleting; chats keep their history.'),stop);
+      }else if(deletePlan.blocked==='DOWNLOAD_ACTIVE'){parts.push(node('p',{class:'chatv2-warning'},'This model is still downloading. Cancel the download first.'));}
+      say('models-delete-plan',...parts);
+      el('models-delete-go').disabled=!!deletePlan.blocked||el('models-delete-confirm').value!==deleting.filename;
+    }catch(error){say('models-delete-plan');say('models-delete-error',errorText(error));}
+  }
   function openDelete(item){
     deleting=item;
     say('models-delete-name',ident(item.filename));el('models-delete-confirm').value='';el('models-delete-go').disabled=true;say('models-delete-error');
-    el('models-delete-dialog').showModal();el('models-delete-confirm').focus();
+    el('models-delete-dialog').showModal();el('models-delete-confirm').focus();loadDeletePlan();
   }
   async function confirmDelete(){
     try{
@@ -536,7 +554,7 @@
     }
     el('models-license-ack').onchange=()=>{el('models-download-start').disabled=!el('models-license-ack').checked;};
     el('models-download-start').onclick=startDownload;
-    el('models-delete-confirm').oninput=()=>{el('models-delete-go').disabled=el('models-delete-confirm').value!==deleting?.filename;};
+    el('models-delete-confirm').oninput=()=>{el('models-delete-go').disabled=!deletePlan||!!deletePlan.blocked||el('models-delete-confirm').value!==deleting?.filename;};
     el('models-delete-go').onclick=confirmDelete;
     el('runtime-license-ack').onchange=()=>{el('runtime-dialog-go').disabled=!el('runtime-license-ack').checked;};
     el('runtime-dialog-confirm').oninput=()=>{el('runtime-dialog-go').disabled=el('runtime-dialog-confirm').value!=='UNINSTALL';};

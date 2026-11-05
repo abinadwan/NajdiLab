@@ -209,7 +209,7 @@
 
       <section id="view-models" class="view">
         <div class="subtabs" role="tablist" aria-label="Model library sections">
-          <button class="active" role="tab" type="button" id="models-tab-recommended" aria-selected="true" aria-controls="models-recommended" data-models-tab="recommended">Recommended for your device</button><button role="tab" type="button" id="models-tab-trending" aria-selected="false" aria-controls="models-trending" data-models-tab="trending" tabindex="-1">Trending</button><button role="tab" type="button" id="models-tab-discover" aria-selected="false" aria-controls="models-discover" data-models-tab="discover" tabindex="-1">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button><button role="tab" type="button" id="models-tab-training" aria-selected="false" aria-controls="models-training" data-models-tab="training" tabindex="-1">Training models</button>
+          <button class="active" role="tab" type="button" id="models-tab-recommended" aria-selected="true" aria-controls="models-recommended" data-models-tab="recommended">Recommended for your device</button><button role="tab" type="button" id="models-tab-trending" aria-selected="false" aria-controls="models-trending" data-models-tab="trending" tabindex="-1">Trending</button><button role="tab" type="button" id="models-tab-discover" aria-selected="false" aria-controls="models-discover" data-models-tab="discover" tabindex="-1">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button><button role="tab" type="button" id="models-tab-training" aria-selected="false" aria-controls="models-training" data-models-tab="training" tabindex="-1">Customization models</button>
         </div>
         <div id="models-recommended" role="tabpanel" aria-labelledby="models-tab-recommended">
           <p class="safety-banner models-privacy">This computer's memory, GPU and llama.cpp runtime are read here and never sent. Only list and file-header requests go to huggingface.co. Popularity only chooses which models are checked; the order comes from how each model fits this computer. Nothing downloads or loads without your approval.</p>
@@ -257,15 +257,18 @@
         </div>
         <div id="models-training" role="tabpanel" aria-labelledby="models-tab-training" hidden>
           <section class="panel models-storage" aria-labelledby="training-models-title">
-            <h2 id="training-models-title">Training models</h2>
-            <p>Inference models are GGUF files that NajdiLab Native runs. Training models are Hugging Face checkpoints (configuration, tokenizer and Safetensors weights) that external tools such as Unsloth use for fine-tuning. A GGUF file is not a training checkpoint. NajdiLab does not train; it only prepares and verifies the files.</p>
+            <h2 id="training-models-title">Customization models</h2>
+            <p>Customization models are Safetensors checkpoints (configuration, tokenizer and weights) that external tools such as Unsloth use to fine-tune a model. NajdiLab does not fine-tune: it checks, downloads and verifies these files and prepares the data. The GGUF files that NajdiLab Native runs for chat are a different format and cannot be used for customization.</p>
             <form id="training-models-form" class="models-search"><label for="training-models-repo">Hugging Face repository</label><input id="training-models-repo" placeholder="Example: unsloth/Qwen2.5-0.5B-Instruct" autocomplete="off" spellcheck="false" required><button class="button ghost" type="submit">Check repository</button></form>
             <div id="training-models-review" role="status" aria-live="polite"></div>
             <div id="training-models-confirm" hidden><label class="inline-check"><input id="training-models-ack" type="checkbox"> I have reviewed this model's license and will follow it.</label><button id="training-models-download" class="button primary" type="button" disabled>Download and verify</button></div>
             <div id="training-models-job" role="status" aria-live="polite"></div>
           </section>
-          <h3>On this computer</h3>
+          <h3>Managed by NajdiLab</h3>
           <div id="training-models-list" class="models-library-list"></div>
+          <h3>Hugging Face cache (read only)</h3>
+          <p class="muted">Shared with other tools on this computer, for example Unsloth Studio. NajdiLab lists these files but never changes or deletes them; use Hugging Face's own cache tools to remove them.</p>
+          <div id="training-models-cache" class="models-library-list"></div>
         </div>
         <dialog id="models-download-dialog" class="chatv2-dialog models-dialog" aria-labelledby="models-download-title">
           <form method="dialog" class="chatv2-dialog-body">
@@ -294,6 +297,7 @@
             <div class="dialog-head"><h2 id="models-delete-title">Delete this model file</h2></div>
             <p class="chatv2-warning">This permanently removes the file from NajdiLab's managed folder. Files of other applications are never touched.</p>
             <p>File: <span id="models-delete-name"></span></p>
+            <div id="models-delete-plan" role="status" aria-live="polite"></div>
             <label for="models-delete-confirm">Type the file name to confirm</label><input id="models-delete-confirm" dir="ltr" autocomplete="off" spellcheck="false">
             <p id="models-delete-error" class="chatv2-error" role="alert"></p>
             <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="models-delete-go" class="button delete-action" type="button" disabled>Delete permanently</button></div>

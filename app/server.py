@@ -371,6 +371,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.runtime.status())
             elif parsed.path == '/api/v1/checkpoints':
                 self._json(self.server.training().library())
+            elif parsed.path == '/api/v1/checkpoints/delete-plan':
+                self._json(self.server.training().delete_plan(parse_qs(parsed.query).get('id', [''])[0]))
             elif parsed.path == '/api/v1/checkpoints/inspect':
                 repo = parse_qs(parsed.query).get('repo', [''])[0]
                 self._json(self.server.training().inspect(repo))
@@ -503,6 +505,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._send_stream(match.group(1), data)
             elif parsed.path == '/api/v1/checkpoints/downloads':
                 self._json(self.server.training().start(data), HTTPStatus.ACCEPTED)
+            elif parsed.path == '/api/v1/checkpoints/delete':
+                self._json(self.server.training().delete(data))
             elif parsed.path == '/api/v1/checkpoints/downloads/cancel':
                 fields(data, set())
                 self._json(self.server.training().cancel())

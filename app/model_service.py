@@ -82,6 +82,8 @@ class ModelLibrary:
             return self.advise(data)
         if path == 'downloads':
             return self.store.start(data)
+        if match := re.fullmatch(r'library/([a-f0-9]{32})/delete-plan', path):
+            return self.store.delete_plan(match.group(1))
         if match := re.fullmatch(r'library/([a-f0-9]{32})/(pause|resume|cancel|recheck|delete|advise)', path):
             model_id, action = match.groups()
             if action == 'recheck':

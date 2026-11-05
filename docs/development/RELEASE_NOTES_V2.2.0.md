@@ -2,7 +2,7 @@
 
 **Status:** development candidate on `update-project`, Draft PR #23. V2.2.0 is the product version identifier of this batch; it is **not** a public release, a production approval or a merge to `main`.
 
-**Why V2.2.0 (SemVer minor):** new user-facing capabilities (Unsloth Studio export profiles, training-model manager, language metadata, Native-first chat) with no incompatible API or data change for existing records. Migration 010 adds columns and keeps every existing value; the database is copied automatically before it runs. Everything in [V2.1.0](RELEASE_NOTES_V2.1.0.md) is included.
+**Why V2.2.0 (SemVer minor):** new user-facing capabilities (Unsloth Studio export profiles, Prepare training data, customization-model manager, language metadata, Native-first chat) with no incompatible API or data change for existing records. Migration 010 adds columns and keeps every existing value; the database is copied automatically before it runs. Everything in [V2.1.0](RELEASE_NOTES_V2.1.0.md) is included.
 
 | Area | Change | Record |
 |---|---|---|
@@ -12,8 +12,9 @@
 | Language metadata (P0) | Language, dialect / variety, style and domain as separate optional fields with custom values; Arabic dialects only for Arabic; legacy layers kept and mapped only where certain; migration 010 with an automatic pre-migration backup | [Language metadata](LANGUAGE_METADATA.md) |
 | Manual data | SFT, Direct Language and DPO tested end to end; each reaches its own export file; only SFT enters the Unsloth handoff | `tests/test_dataset_quality_v22.py` |
 | Chat | NajdiLab Native first in the model menu (existing LM Studio / Ollama conversations stay readable; opt-in in Settings); memory checked before a running model is stopped | [Chat composer](CHAT_COMPOSER.md) |
-| Runtime and models | Runtime downloads resume after a dropped connection; Model library → Training models checks and downloads Safetensors checkpoints with approval and lists the Hugging Face cache read-only | [Managed runtime §3](MANAGED_RUNTIME.md#3-safety-rules) |
-| Usability | Export Center step guide and readiness summary before export; optional data-entry presets | — |
+| Runtime and models | Runtime downloads resume after a dropped connection; Model library → Customization models checks and downloads Safetensors checkpoints for external fine-tuning with approval, separate from the read-only Hugging Face cache; safe deletion of GGUF models and managed checkpoints with a preview of files and space freed | [Managed runtime §3](MANAGED_RUNTIME.md#3-safety-rules) |
+| Usability | **Datasets → Prepare training data**: choose records with previews, check exactly that choice, see the split, create the version and export; Export Center guide and readiness summary; optional data-entry presets | `static/prepare-data.js`, `tests/test_gold_selection.py` |
+| Gold selection | Ignored corrected reviews no longer block builds (13 false errors in the reported case); exact selections; privacy checked for the chosen records; review integrity still fail-closed | `tests/test_gold_selection.py` |
 | Public readiness | Security review, personal paths removed from documentation | [Public readiness](PUBLIC_READINESS.md) |
 
 ## Open acceptance gates

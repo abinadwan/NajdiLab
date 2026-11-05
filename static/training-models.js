@@ -1,4 +1,4 @@
-/* Model library → Training models: Safetensors checkpoints for external fine-tuning.
+/* Model library → Customization models: Safetensors checkpoints for fine-tuning in external tools.
    Inference models (GGUF, NajdiLab Native) and training models (config + tokenizer + Safetensors, used by
    Unsloth/TRL outside NajdiLab) are different files. Nothing downloads without approval and a license check. */
 (function(global){
@@ -11,21 +11,44 @@
   let review=null,timer=null;
 
   function row(item){
-    const status={READY:'Verified',CHANGED:'Files changed since download',READ_ONLY:'In the Hugging Face cache (read only)'}[item.status]||item.status;
-    return node('div',{class:'models-library-item'},
-      node('div',{},node('strong',{},ident(item.repo_id)),node('small',{},' · ',ident(item.revision.slice(0,12)))),
-      node('p',{},status,' · ',ident(size(item.total_bytes)),' · ',item.complete?'Complete checkpoint':['Incomplete: ',ident(item.missing.join(', '))]),
+    const status={READY:'Verified',CHANGED:'Files changed or incomplete',READ_ONLY:'Read only',PARTIAL:'Interrupted download'}[item.status]||item.status;
+    const title=item.repo_id?[node('strong',{},ident(item.repo_id)),node('small',{},' · ',ident((item.revision||'').slice(0,12)))]:[node('strong',{},'Interrupted download')];
+    const box=node('div',{class:'models-library-item'},node('div',{},...title),
+      node('p',{},status,' · ',ident(size(item.total_bytes)),' · ',item.complete?'Complete checkpoint':['Incomplete: ',ident((item.missing||[]).join(', '))]),
       ...(item.notes||[]).map(n=>node('p',{class:'muted'},n.message)),
       node('p',{class:'muted'},ident(item.path)));
+    if(item.source==='najdilab'){const del=node('button',{type:'button',class:'button ghost'},'Delete…');del.onclick=()=>openDelete(item,box);box.append(del);}
+    return box;
+  }
+
+  // Delete: show what is removed and the space freed, then require the exact name. Only NajdiLab's own folders.
+  async function openDelete(item,box){
+    box.querySelector('.delete-panel')?.remove();
+    const panel=node('div',{class:'delete-panel',role:'group','aria-label':'Delete this customization model'},node('p',{},'Checking what will be removed…'));box.append(panel);
+    try{
+      const plan=await global.api(`/api/v1/checkpoints/delete-plan?id=${encodeURIComponent(item.id)}`);
+      const input=node('input',{dir:'ltr',autocomplete:'off',spellcheck:'false','aria-label':'Type the name to confirm'});
+      const go=node('button',{type:'button',class:'button delete-action',disabled:true},'Delete permanently');
+      const cancel=node('button',{type:'button',class:'button ghost'},'Cancel');
+      const message=node('p',{role:'alert',class:'chatv2-error'});
+      input.oninput=()=>{go.disabled=!!plan.blocked||input.value!==plan.confirm_text;};
+      cancel.onclick=()=>panel.remove();
+      go.onclick=async()=>{go.disabled=true;try{await global.api('/api/v1/checkpoints/delete',{method:'POST',body:JSON.stringify({approved:true,confirm:input.value,id:item.id})});refresh();}
+        catch(error){message.textContent=error.message;go.disabled=false;}};
+      panel.replaceChildren(node('p',{},plan.action==='delete_checkpoint'?'Deletes this checkpoint folder and every file in it.':'Removes the files of this interrupted download.'),
+        node('p',{},ident(String(plan.files.length)),' ','files',' · ','Space freed:',' ',node('strong',{},ident(size(plan.frees_bytes)))),
+        plan.blocked?node('p',{class:'chatv2-warning'},'This model is still downloading. Cancel the download first.'):null,
+        node('label',{},'Type to confirm:',' ',ident(plan.confirm_text)),input,node('div',{class:'confirmation-actions'},cancel,go),message);
+      input.focus();
+    }catch(error){panel.replaceChildren(node('p',{role:'alert'},error.message));}
   }
 
   async function refresh(){
     clearTimeout(timer);
     try{
       const data=await global.api('/api/v1/checkpoints');
-      const list=el('training-models-list');
-      const all=[...data.models,...data.cache];
-      list.replaceChildren(...(all.length?all.map(row):[node('p',{},'No training checkpoints yet.')]));
+      el('training-models-list').replaceChildren(...(data.models.length?data.models.map(row):[node('p',{},'No customization models downloaded by NajdiLab yet.')]));
+      el('training-models-cache').replaceChildren(...(data.cache.length?data.cache.map(row):[node('p',{},'No checkpoints found in the Hugging Face cache.')]));
       renderJob(data.job);
       if(data.job&&data.job.state==='DOWNLOADING')timer=setTimeout(refresh,1000);
     }catch(error){el('training-models-list').replaceChildren(node('p',{role:'alert'},error.message));}

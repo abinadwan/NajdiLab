@@ -171,3 +171,68 @@ def test_hugging_face_cache_is_listed_read_only(tmp_path):
     assert found['unsloth/Qwen2.5-0.5B-Instruct']['complete'] is True
     assert found['org/Model-GGUF']['complete'] is False and found['org/Model-GGUF']['notes'][0]['code'] == 'GGUF_ONLY'
     assert {p: p.read_bytes() for p in (tmp_path / 'hub').rglob('*') if p.is_file()} == before
+
+
+def _downloaded(tmp_path):
+    hub = FakeHub(COMPLETE)
+    m = manager(tmp_path, hub)
+    assert m.start(approve(), wait=True)['state'] == 'READY'
+    return m, m.library()['models'][0]
+
+
+def test_deleting_a_checkpoint_shows_what_is_freed_then_removes_only_its_folder(tmp_path):
+    m, entry = _downloaded(tmp_path)
+    neighbour = tmp_path / 'training-models' / 'keep.txt'
+    neighbour.write_text('not managed')
+    plan = m.delete_plan(entry['id'])
+    assert plan['action'] == 'delete_checkpoint' and plan['confirm_text'] == 'unsloth/Model-Instruct'
+    assert plan['frees_bytes'] == sum(f['size_bytes'] for f in plan['files']) > len(WEIGHTS)
+    with pytest.raises(IntegrationError) as caught:
+        m.delete({'approved': True, 'confirm': 'wrong', 'id': entry['id']})
+    assert caught.value.code == 'CONFIRMATION_REQUIRED' and (tmp_path / 'training-models' / entry['id']).exists()
+    done = m.delete({'approved': True, 'confirm': 'unsloth/Model-Instruct', 'id': entry['id']})
+    assert done['freed_bytes'] == plan['frees_bytes'] and m.library()['models'] == []
+    assert not (tmp_path / 'training-models' / 'unsloth--Model-Instruct').exists() and neighbour.read_text() == 'not managed'
+
+
+def test_an_interrupted_download_is_listed_and_removable(tmp_path):
+    hub = FakeHub(COMPLETE)
+    hub.drop_once = 'model.safetensors'
+    m = manager(tmp_path, hub)
+    assert m.start(approve(), wait=True)['state'] == 'ERROR'
+    partial = next(x for x in m.library()['models'] if x['status'] == 'PARTIAL')
+    plan = m.delete_plan(partial['id'])
+    assert plan['action'] == 'remove_partial_download' and plan['frees_bytes'] > 0
+    m.delete({'approved': True, 'confirm': partial['id'], 'id': partial['id']})
+    assert m.library()['models'] == []
+
+
+def test_cache_and_paths_outside_the_folder_can_never_be_deleted(tmp_path):
+    m, entry = _downloaded(tmp_path)
+    snapshot = tmp_path / 'hub' / 'models--unsloth--Qwen' / 'snapshots' / REV
+    snapshot.mkdir(parents=True)
+    (snapshot / 'config.json').write_bytes(CONFIG)
+    for bad in ('../hub', str(snapshot), r'..\hub', 'unsloth--Model-Instruct', ''):
+        with pytest.raises(IntegrationError):
+            m.delete_plan(bad)
+    assert (snapshot / 'config.json').exists()
+
+
+def test_a_locked_file_keeps_the_entry_listed_for_a_retry(tmp_path, monkeypatch):
+    from pathlib import Path
+    m, entry = _downloaded(tmp_path)
+    folder = tmp_path / 'training-models' / entry['id']
+    real_unlink = Path.unlink
+
+    def locked(self, missing_ok=False):
+        if self.name == 'model.safetensors':
+            raise PermissionError(13, 'in use')
+        return real_unlink(self, missing_ok=missing_ok)
+    monkeypatch.setattr(Path, 'unlink', locked)
+    with pytest.raises(IntegrationError) as caught:
+        m.delete({'approved': True, 'confirm': 'unsloth/Model-Instruct', 'id': entry['id']})
+    assert caught.value.code == 'DELETE_FAILED' and (folder / MANIFEST).exists()
+    assert [x['status'] for x in m.library()['models']] == ['CHANGED'], 'still listed, marked as changed'
+    monkeypatch.setattr(Path, 'unlink', real_unlink)
+    m.delete({'approved': True, 'confirm': 'unsloth/Model-Instruct', 'id': entry['id']})
+    assert m.library()['models'] == []

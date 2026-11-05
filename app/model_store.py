@@ -439,22 +439,47 @@ class ModelStore:
             self._update(model_id, status=status, error_code=code, verified_sha256=actual, verified_at=utc_now(), **self._header_values(path))
         return self._row(model_id)
 
+    def delete_plan(self, model_id):
+        """Exactly what deleting this library entry removes, before anything is removed."""
+        row = self._row(model_id)
+        path = self._path(row['relative_path'])
+        files = []
+        for candidate, role in ((path, 'model file'), (self._path(row['relative_path'] + '.part'), 'partial download'),
+                                (self._path(row['relative_path'] + '.part.json'), 'download progress')):
+            if candidate.is_file() and not candidate.is_symlink():
+                files.append({'path': str(candidate), 'role': role, 'size_bytes': candidate.stat().st_size})
+        complete = any(f['role'] == 'model file' for f in files)
+        with self._lock:
+            downloading = model_id in self._jobs
+        in_use = complete and self.in_use(path)
+        blocked = ('DOWNLOAD_ACTIVE' if downloading else 'MODEL_IN_USE' if in_use else None)
+        return {'id': model_id, 'filename': row['filename'], 'repo_id': row['repo_id'], 'status': row['status'],
+                'action': 'delete_model_file' if complete else 'remove_download_record',
+                'files': files, 'frees_bytes': sum(f['size_bytes'] for f in files), 'in_use': in_use,
+                'blocked': blocked, 'confirm_text': row['filename'],
+                'note': 'Removes the library entry and the files listed; nothing outside the NajdiLab models folder is touched.'}
+
     def delete(self, model_id, data):
         row = self._row(model_id)
         if not isinstance(data, dict) or data.get('approved') is not True or data.get('confirm') != row['filename'] or set(data) != {'approved', 'confirm'}:
             raise IntegrationError('CONFIRMATION_REQUIRED', 'Type the exact file name to confirm deleting this model.', 403)
-        with self._lock:
-            if model_id in self._jobs:
-                raise IntegrationError('DOWNLOAD_ACTIVE', 'Cancel the download before deleting.', 409)
-        path = self._path(row['relative_path'])
-        if self.in_use(path):
+        plan = self.delete_plan(model_id)
+        if plan['blocked'] == 'DOWNLOAD_ACTIVE':
+            raise IntegrationError('DOWNLOAD_ACTIVE', 'Cancel the download before deleting.', 409)
+        if plan['blocked'] == 'MODEL_IN_USE':
             raise IntegrationError('MODEL_IN_USE', 'NajdiLab Native is running this model. Stop it first.', 409)
-        if path.is_file() and not path.is_symlink():
-            path.unlink()
-        self._discard_partial(row)
+        freed = 0
+        for item in plan['files']:  # model file first: if it cannot be removed, the entry stays and can be retried
+            try:
+                Path(item['path']).unlink(missing_ok=True)
+            except OSError as error:
+                raise IntegrationError('DELETE_FAILED', f"Could not delete {Path(item['path']).name} ({error.strerror or error}); "
+                                       'another program may be using it. The library entry was kept so you can try again.', 409) from None
+            freed += item['size_bytes']
+        self._prune(self._path(row['relative_path']).parent)
         with connect(self.db_path) as conn:
             conn.execute('DELETE FROM managed_models WHERE id=?', (model_id,))
-        return {'deleted': True, 'id': model_id, 'filename': row['filename']}
+        return {'deleted': True, 'id': model_id, 'filename': row['filename'], 'action': plan['action'], 'freed_bytes': freed}
 
     def native_gate(self, path):
         """Called by NajdiLab Native before it starts a file: managed files must be READY."""

@@ -121,8 +121,11 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.waitForNetworkIdle({idleTime:400});
     });
 
-    await t.test('delete requires the exact file name',async()=>{
+    await t.test('delete shows the files and space freed first, then requires the exact file name',async()=>{
       await page.click('.models-library-item .delete-action');await page.waitForSelector('#models-delete-dialog[open]');
+      await page.waitForFunction(()=>document.querySelector('#models-delete-plan').textContent.includes('Space freed'));
+      const plan=await page.$eval('#models-delete-plan',e=>e.textContent);
+      assert.match(plan,/Deletes the model file and its library entry\.[\s\S]*Model file[\s\S]*Space freed:/);
       await page.type('#models-delete-confirm','wrong.gguf');
       assert.equal(await page.$eval('#models-delete-go',b=>b.disabled),true);
       await page.$eval('#models-delete-confirm',e=>{e.value='';});await page.type('#models-delete-confirm','Tiny-Chat-Q4_K_M.gguf');
@@ -189,11 +192,11 @@ test('Model library and context indicator in Chromium',async t=>{
       await page.click('#collapse-sidebar');
     });
 
-    await t.test('training models: GGUF and Safetensors are told apart; a download needs a reviewed, complete checkpoint and the license',async()=>{
+    await t.test('customization models: GGUF and Safetensors are told apart; a download needs a reviewed, complete checkpoint and the license',async()=>{
       await page.evaluate(()=>switchView('models'));await page.waitForSelector('#view-models.active');
       await page.click('#models-tab-training');await page.waitForSelector('#models-training:not([hidden])');
-      assert.match(await page.$eval('#models-training',e=>e.textContent),/A GGUF file is not a training checkpoint/);
-      await page.waitForFunction(()=>document.querySelector('#training-models-list').textContent.includes('No training checkpoints yet.'));
+      assert.match(await page.$eval('#models-training',e=>e.textContent),/Customization models[\s\S]*NajdiLab does not fine-tune[\s\S]*cannot be used for customization/);
+      await page.waitForFunction(()=>document.querySelector('#training-models-list').textContent.includes('No customization models downloaded by NajdiLab yet.'));
       const check=async repo=>{await page.$eval('#training-models-repo',(e,v)=>{e.value=v;},repo);await page.click('#training-models-form button[type="submit"]');
         await page.waitForFunction(()=>!document.querySelector('#training-models-review').textContent.includes('Checking'));
         return page.$eval('#models-training',e=>({review:document.querySelector('#training-models-review').textContent,confirm:!document.querySelector('#training-models-confirm').hidden,
@@ -202,8 +205,9 @@ test('Model library and context indicator in Chromium',async t=>{
       assert.ok(good.confirm&&good.download,'offered, but disabled until the license is acknowledged');
       assert.match(good.review,/config\.json[\s\S]*model\.safetensors/);assert.doesNotMatch(good.review,/modeling_custom\.py/,'code files are never offered');
       await page.click('#training-models-ack');assert.equal(await page.$eval('#training-models-download',e=>e.disabled),false);
+      assert.match(await page.$eval('#models-training',e=>e.textContent),/Managed by NajdiLab[\s\S]*Hugging Face cache \(read only\)[\s\S]*never changes or deletes them/);
       const gguf=await check('najdi-synthetic/Tiny-Chat-GGUF');
-      assert.ok(!gguf.confirm);assert.match(gguf.review,/not a training checkpoint/);assert.match(gguf.review,/complete training checkpoint/);
+      assert.ok(!gguf.confirm);assert.match(gguf.review,/cannot be used for customization/);assert.match(gguf.review,/complete customization checkpoint/);
     });
 
     await t.test('prepare training data: choose records, fix blockers by leaving records out, create a version, export',async()=>{

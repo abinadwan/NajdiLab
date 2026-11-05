@@ -514,3 +514,49 @@ def test_routes_need_the_csrf_token_and_report_hub_errors_with_codes(tmp_path, h
     finally:
         http_server.shutdown()
         http_server.server_close()
+
+
+def test_delete_plan_shows_files_and_space_before_anything_is_removed(store_factory, hub):
+    store = store_factory()
+    row = wait(store, store.start(approve())['id'])
+    model = store.root / row['relative_path']
+    plan = store.delete_plan(row['id'])
+    assert plan['action'] == 'delete_model_file' and plan['blocked'] is None
+    assert [(f['role'], f['size_bytes']) for f in plan['files']] == [('model file', model.stat().st_size)]
+    assert plan['frees_bytes'] == model.stat().st_size and model.exists(), 'a plan never deletes'
+    store.in_use = lambda path: True
+    assert store.delete_plan(row['id'])['blocked'] == 'MODEL_IN_USE'
+    store.in_use = lambda path: False
+    done = store.delete(row['id'], {'approved': True, 'confirm': TINY_FILE})
+    assert done['freed_bytes'] == plan['frees_bytes'] and not model.exists()
+    assert store.library()['items'] == [], 'the list no longer shows the entry'
+
+
+def test_an_interrupted_download_is_removed_as_a_record_with_its_partial_data(store_factory, hub):
+    store = store_factory()
+    hub.fail_after = 8192
+    row = wait(store, store.start(approve())['id'])
+    assert row['status'] == 'PAUSED'
+    plan = store.delete_plan(row['id'])
+    assert plan['action'] == 'remove_download_record'
+    assert {f['role'] for f in plan['files']} <= {'partial download', 'download progress'} and plan['frees_bytes'] > 0
+    store.delete(row['id'], {'approved': True, 'confirm': TINY_FILE})
+    assert not any((store.root / row['relative_path']).parent.glob('*.part*'))
+
+
+def test_a_file_that_cannot_be_deleted_keeps_its_entry_for_a_retry(store_factory, hub, monkeypatch):
+    store = store_factory()
+    row = wait(store, store.start(approve())['id'])
+    model = store.root / row['relative_path']
+    real_unlink = Path.unlink
+
+    def locked(self, missing_ok=False):
+        if self == model:
+            raise PermissionError(13, 'The process cannot access the file because it is being used by another process')
+        return real_unlink(self, missing_ok=missing_ok)
+    monkeypatch.setattr(Path, 'unlink', locked)
+    assert code(lambda: store.delete(row['id'], {'approved': True, 'confirm': TINY_FILE})) == 'DELETE_FAILED'
+    assert model.exists() and [i['id'] for i in store.library()['items']] == [row['id']]
+    monkeypatch.setattr(Path, 'unlink', real_unlink)
+    store.delete(row['id'], {'approved': True, 'confirm': TINY_FILE})
+    assert not model.exists() and store.library()['items'] == []

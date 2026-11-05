@@ -52,8 +52,8 @@ def plan(names, shards_from_index=None) -> dict:
     missing += [shard for shard in shards if shard not in names]
     notes = []
     if not weights and any(n.endswith('.gguf') for n in names):
-        notes.append({'code': 'GGUF_ONLY', 'message': 'This repository holds GGUF files: they run in llama.cpp for inference, '
-                      'but they are not a training checkpoint. Use the matching Safetensors repository for training.'})
+        notes.append({'code': 'GGUF_ONLY', 'message': 'This repository holds GGUF files: they run in llama.cpp for chat, '
+                      'but they cannot be used for customization. Use the matching Safetensors repository to customize the model.'})
     if not weights and any(n.endswith(('.bin', '.pt', '.pth')) for n in names):
         notes.append({'code': 'PICKLE_WEIGHTS', 'message': 'Only PyTorch pickle weights (.bin/.pt) are published; loading them can run code, '
                       'so NajdiLab does not download them. Choose a Safetensors repository.'})
@@ -94,7 +94,7 @@ class TrainingModels:
         if info['access'] != 'OPEN' or info['private'] or info['disabled']:
             blocked = 'This repository needs an account and license approval on Hugging Face. NajdiLab does not bypass that.'
         elif not layout['complete']:
-            blocked = 'This revision does not contain a complete training checkpoint: ' + ', '.join(layout['missing']) + '.'
+            blocked = 'This revision does not contain a complete customization checkpoint: ' + ', '.join(layout['missing']) + '.'
         elif unverifiable:
             blocked = 'Hugging Face publishes no hash for: ' + ', '.join(unverifiable[:5]) + '.'
         return {'repo_id': repo_id, 'revision': info['revision'], 'license': info['license'], 'license_name': info['license_name'],
@@ -140,7 +140,7 @@ class TrainingModels:
             raise IntegrationError('NOT_DOWNLOADABLE', review['blocked_reason'], 409)
         final = self.root.joinpath(*_safe_dir_name(repo_id, revision))
         if final.exists():
-            raise IntegrationError('ALREADY_PRESENT', 'This training model revision is already downloaded; NajdiLab never replaces it.', 409)
+            raise IntegrationError('ALREADY_PRESENT', 'This customization model revision is already downloaded; NajdiLab never replaces it.', 409)
         files = [f for f in self.hub.files(repo_id, revision)['files'] if f['name'] in {x['name'] for x in review['files']}]
         staging = self.root / f'.staging-{_safe_dir_name(repo_id, revision)[0]}-{revision[:12]}'
         done = sum((staging / f['name']).stat().st_size for f in files if (staging / f['name']).is_file())
@@ -148,7 +148,7 @@ class TrainingModels:
             raise IntegrationError('INSUFFICIENT_SPACE', 'Not enough free space for this checkpoint plus the safety reserve; nothing was downloaded.', 409)
         with self._lock:
             if self.job and self.job['state'] == 'DOWNLOADING':
-                raise IntegrationError('DOWNLOADS_BUSY', 'A training model is already downloading. Wait for it or cancel it.', 409)
+                raise IntegrationError('DOWNLOADS_BUSY', 'A customization model is already downloading. Wait for it or cancel it.', 409)
             self.job = {'repo_id': repo_id, 'revision': revision, 'state': 'DOWNLOADING', 'file': None, 'done_bytes': done,
                         'total_bytes': review['total_bytes'], 'error': None, 'started_at': utc_now(), 'cancel': threading.Event()}
             job = self.job
@@ -166,7 +166,7 @@ class TrainingModels:
 
     def cancel(self):
         if not self.job or self.job['state'] != 'DOWNLOADING':
-            raise IntegrationError('NOTHING_TO_CANCEL', 'No training model is downloading.', 409)
+            raise IntegrationError('NOTHING_TO_CANCEL', 'No customization model is downloading.', 409)
         self.job['cancel'].set()
         return self.public_job()
 
@@ -248,12 +248,78 @@ class TrainingModels:
                 folder = manifest.parent
                 present = {p.name: p.stat().st_size for p in folder.iterdir() if p.is_file()}
                 intact = all(present.get(f['name']) == f['size_bytes'] for f in data.get('files', []))
-                own.append({'repo_id': data.get('repo_id'), 'revision': data.get('revision'), 'license': data.get('license'),
+                own.append({'id': folder.relative_to(self.root).as_posix(), 'repo_id': data.get('repo_id'), 'revision': data.get('revision'), 'license': data.get('license'),
                             'total_bytes': data.get('total_bytes'), 'verified_at': data.get('verified_at'), 'path': str(folder),
                             'source': 'najdilab', 'status': 'READY' if intact else 'CHANGED',
                             **{k: v for k, v in plan(present).items() if k in ('complete', 'missing')}})
+            for staging in sorted(self.root.glob('.staging-*')):
+                if staging.is_dir() and not staging.is_symlink():
+                    size = sum(f.stat().st_size for f in staging.iterdir() if f.is_file())
+                    own.append({'id': staging.name, 'repo_id': None, 'revision': None, 'license': None, 'total_bytes': size,
+                                'verified_at': None, 'path': str(staging), 'source': 'najdilab', 'status': 'PARTIAL',
+                                'complete': False, 'missing': ['interrupted download']})
         return {'models': own, 'cache': self.cache(), 'job': self.public_job(), 'root': str(self.root),
-                'note': 'Training happens outside NajdiLab (for example in Unsloth Studio). Inference models (GGUF) are listed in Downloads and library.'}
+                'note': 'Customization (fine-tuning) happens outside NajdiLab, for example in Unsloth Studio. Chat models (GGUF) are listed in Downloads and library.'}
+
+    # ----- delete (NajdiLab's own checkpoints only; the shared Hugging Face cache is never deleted) ---------
+    def _folder(self, entry_id):
+        if not isinstance(entry_id, str) or not entry_id or '\\' in entry_id or entry_id.startswith('/') or '..' in entry_id.split('/'):
+            raise IntegrationError('INVALID_ENTRY', 'Choose a customization model from the list.', 400)
+        root = self.root.resolve()
+        folder = self.root / entry_id
+        if folder.is_symlink() or not folder.is_dir():
+            raise IntegrationError('ENTRY_NOT_FOUND', 'This customization model is no longer on this computer.', 404)
+        resolved = folder.resolve()
+        parts = resolved.relative_to(root).parts if resolved.is_relative_to(root) else ()
+        staging = len(parts) == 1 and parts[0].startswith('.staging-')
+        managed = len(parts) == 2 and (resolved / MANIFEST).is_file()
+        if not (staging or managed):
+            raise IntegrationError('INVALID_ENTRY', 'Only customization models NajdiLab downloaded can be deleted here.', 400)
+        return resolved, staging
+
+    def delete_plan(self, entry_id):
+        folder, staging = self._folder(entry_id)
+        files = [{'path': str(f), 'size_bytes': f.stat().st_size} for f in sorted(folder.iterdir()) if f.is_file() and not f.is_symlink()]
+        name = entry_id
+        if not staging:
+            data = json.loads((folder / MANIFEST).read_text(encoding='utf-8'))
+            name = data.get('repo_id') or entry_id
+        busy = bool(self.job and self.job['state'] == 'DOWNLOADING' and (
+            staging or (self.job['repo_id'] == name and folder.name == self.job['revision'])))
+        return {'id': entry_id, 'name': name, 'action': 'remove_partial_download' if staging else 'delete_checkpoint',
+                'files': files, 'frees_bytes': sum(f['size_bytes'] for f in files), 'confirm_text': name,
+                'blocked': 'DOWNLOAD_ACTIVE' if busy else None,
+                'note': 'Removes only this folder inside the NajdiLab customization models folder. The Hugging Face cache is never touched.'}
+
+    def delete(self, data):
+        if not isinstance(data, dict) or set(data) != {'approved', 'confirm', 'id'} or data['approved'] is not True:
+            raise IntegrationError('CONFIRMATION_REQUIRED', 'Approve and type the model name to delete it.', 403)
+        plan = self.delete_plan(data['id'])
+        if data['confirm'] != plan['confirm_text']:
+            raise IntegrationError('CONFIRMATION_REQUIRED', 'Type the exact model name to confirm deleting it.', 403)
+        if plan['blocked']:
+            raise IntegrationError('DOWNLOAD_ACTIVE', 'Cancel the download before deleting.', 409)
+        folder, _ = self._folder(data['id'])
+        ordered = sorted((Path(f['path']) for f in plan['files']), key=lambda f: f.name == MANIFEST)  # manifest last
+        freed = 0
+        for path in ordered:
+            try:
+                size = path.stat().st_size
+                path.unlink()
+            except FileNotFoundError:
+                continue
+            except OSError as error:
+                left = sum(1 for f in folder.iterdir() if f.is_file())
+                raise IntegrationError('DELETE_FAILED', f'Could not delete {path.name} ({error.strerror or error}); {left} file(s) remain. '
+                                       'The entry stays listed so you can try again.', 409) from None
+            freed += size
+        folder.rmdir()
+        if folder.parent != self.root.resolve():
+            try:
+                folder.parent.rmdir()  # the repository folder, once its last revision is gone
+            except OSError:
+                pass
+        return {'deleted': True, 'id': data['id'], 'action': plan['action'], 'freed_bytes': freed}
 
     def _cache_roots(self):
         if self.cache_roots is not None:
