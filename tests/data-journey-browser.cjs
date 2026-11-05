@@ -19,7 +19,8 @@ test('data journey in Chromium',{timeout:300000},async t=>{
     const base=external||await new Promise((resolve,reject)=>{let text='';const timer=setTimeout(()=>reject(Error('fixture timeout')),20000);
       child.stdout.on('data',c=>{text+=c;const m=text.match(/BROWSER_FIXTURE=(http:\/\/127\.0\.0\.1:\d+)/);if(m){clearTimeout(timer);resolve(m[1]);}});});
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
-    const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    const page=await browser.newPage();const errors=[],apiFailures=[];page.on('pageerror',e=>errors.push(e.message));
+    page.on('response',r=>{if(r.url().includes('/api/v1/')&&r.status()>=400)apiFailures.push({path:new URL(r.url()).pathname,status:r.status()});});
     await page.setViewport({width:1280,height:900});
     const metrics={clicks:0,pages:new Set(),navigations:0};
     page.on('load',()=>metrics.navigations++);
@@ -29,6 +30,83 @@ test('data journey in Chromium',{timeout:300000},async t=>{
     const view=()=>page.evaluate(()=>document.querySelector('.view.active')?.id);
     const record=async()=>metrics.pages.add(await view());
     await page.goto(base+'/');
+
+    await t.test('Dashboard opens preparation and frozen versions with keyboard controls',async()=>{
+      assert.equal(await page.$$eval('#view-dashboard .workflow-steps li',els=>els.length),3);
+      assert.equal(await page.$('#view-dashboard [data-go="exports"], #view-dashboard [data-go="balancer"], #view-dashboard [data-go="dataset-health"]'),null);
+      await page.focus('#view-dashboard .button.primary[data-go="prepare"]');
+      await page.keyboard.press('Enter');await page.waitForSelector('#view-prepare.active');
+      await page.evaluate(()=>switchView('dashboard'));
+      await click('#view-dashboard .panel-heading [data-go="my-versions"]');await page.waitForSelector('#view-my-versions.active');
+      assert.equal(await page.$('#view-my-versions [data-advanced-view]'),null);
+      await page.evaluate(()=>switchView('dashboard'));
+      await click('#view-dashboard .workflow-card [data-go="review-queue"]');await page.waitForSelector('#view-review-queue.active');
+    });
+
+    await t.test('Advanced Mode is opt-in, persists, and leaves every deep link usable when disabled',async()=>{
+      await page.evaluate(()=>switchView('settings'));
+      assert.equal(await page.$eval('#advanced-mode',e=>e.checked),false);
+      const visible=()=>page.$$eval('[data-advanced-view]',els=>els.filter(e=>e.checkVisibility()).map(e=>e.dataset.advancedView));
+      assert.deepEqual(await visible(),[]);
+      await page.focus('#advanced-mode');await page.keyboard.press('Space');
+      const expected=['dataset','dataset-health','balancer','dataset-versions','eval-sets','exports'];
+      assert.deepEqual(await visible(),expected);
+      await page.reload();await page.waitForSelector('#view-settings.active');
+      assert.equal(await page.$eval('#advanced-mode',e=>e.checked),true);
+      assert.deepEqual(await visible(),expected);
+      for(const view of expected){
+        await click(`[data-advanced-view="${view}"]`);await page.waitForSelector(`#view-${view}.active`);
+        await page.evaluate(()=>switchView('settings'));
+      }
+      await page.focus('#advanced-mode');await page.keyboard.press('Space');
+      await page.reload();await page.waitForSelector('#view-settings.active');
+      assert.equal(await page.$eval('#advanced-mode',e=>e.checked),false);
+      assert.deepEqual(await visible(),[]);
+      for(const [path,view] of [['/datasets/gold','dataset'],['/datasets/health','dataset-health'],['/datasets/balancer','balancer'],['/datasets/versions','dataset-versions'],['/datasets/eval','eval-sets'],['/exports','exports']]){
+        await page.goto(base+path);await page.waitForSelector(`#view-${view}.active`);
+        assert.equal(await page.$eval('#advanced-mode',e=>e.checked),false);
+      }
+      await page.evaluate(()=>switchView('dashboard'));
+    });
+
+    await t.test('changed screens reflow in both languages and themes at 320, 390 and 1440 pixels',async()=>{
+      const fs=require('node:fs');const out=path.resolve('.test-tmp/ux-screens');fs.mkdirSync(out,{recursive:true});
+      for(const language of ['en','ar'])for(const theme of ['light','dark'])for(const width of [320,390,1440]){
+        await page.setViewport({width,height:900});
+        await page.evaluate(({language,theme})=>{NajdiI18n.setLanguage(language);document.querySelector('#theme-select-settings').value=theme;document.querySelector('#theme-select-settings').dispatchEvent(new Event('change'));},{language,theme});
+        for(const view of ['dashboard','settings','my-versions']){
+          await page.evaluate(v=>switchView(v),view);await page.waitForSelector(`#view-${view}.active`);
+          if(view==='settings')await page.$eval('#advanced-mode',e=>{e.checked=true;e.onchange();});
+          await new Promise(r=>setTimeout(r,100));
+          const measured=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,theme:document.documentElement.dataset.theme,
+            width:innerWidth,scroll:document.documentElement.scrollWidth,text:document.querySelector('.view.active').innerText}));
+          assert.equal(measured.lang,language);assert.equal(measured.dir,language==='ar'?'rtl':'ltr');assert.equal(measured.theme,theme);
+          assert.ok(measured.scroll<=measured.width+1,`${language}/${theme}/${width}/${view}: horizontal overflow ${measured.scroll}`);
+          assert.doesNotMatch(measured.text,/\bnull\b|\bundefined\b|NaN/);
+          await page.screenshot({path:path.join(out,`${view}-${language}-${theme}-${width}.png`),fullPage:true});
+        }
+      }
+      await page.setViewport({width:1280,height:900});
+      await page.evaluate(()=>{NajdiI18n.setLanguage('en');document.querySelector('#advanced-mode').checked=false;document.querySelector('#advanced-mode').onchange();});
+      await page.evaluate(()=>switchView('dashboard'));
+    });
+
+    await t.test('blocked storage keeps Advanced Mode usable for the current page',async()=>{
+      const isolated=await browser.createBrowserContext();
+      try{
+        const blocked=await isolated.newPage();
+        await blocked.evaluateOnNewDocument(()=>{
+          Storage.prototype.getItem=function(){throw Error('storage blocked');};
+          Storage.prototype.setItem=function(){throw Error('storage blocked');};
+        });
+        await blocked.goto(base+'/settings');await blocked.waitForSelector('#view-settings.active');
+        assert.equal(await blocked.$eval('#advanced-mode',e=>e.checked),false);
+        await blocked.focus('#advanced-mode');await blocked.keyboard.press('Space');
+        assert.equal(await blocked.$$eval('[data-advanced-view]',els=>els.filter(e=>e.checkVisibility()).length),6);
+        await blocked.reload();await blocked.waitForSelector('#view-settings.active');
+        assert.equal(await blocked.$eval('#advanced-mode',e=>e.checked),false);
+      }finally{await isolated.close();}
+    });
 
     await t.test('the sidebar shows three Data destinations; the old pages stay reachable',async()=>{
       const data=await page.$$eval('.nav-section',s=>s.filter(x=>x.querySelector('#nav-group-data')).flatMap(x=>[...x.querySelectorAll('.nav-item')].map(b=>b.dataset.view)));
@@ -166,10 +244,17 @@ test('data journey in Chromium',{timeout:300000},async t=>{
       await page.waitForFunction(v=>{const d=[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3').textContent===v)?.querySelector('.version-details');return d&&d.children.length>1||d?.querySelector('[role="alert"]');},{},version);
       const details=await card.$eval('.version-details',d=>({text:d.textContent,downloads:d.querySelectorAll('a[download]').length}));
       assert.ok(details.downloads>0,'the export made in step 3 can be downloaded again from My versions: '+details.text);
+      assert.equal(await card.$eval('[data-advanced-only]',e=>e.checkVisibility()),false,'ordinary versions hide specialist diagnostics');
+      const downloads=await card.$$eval('a[download]',els=>els.map(e=>e.href));
+      for(const url of downloads){
+        const response=await page.evaluate(async url=>{const r=await fetch(url);return {status:r.status,text:await r.text()};},url);
+        assert.equal(response.status,200,'saved export can actually be downloaded');
+        assert.ok(response.text.length>0);
+      }
       console.log('JOURNEY_METRICS '+JSON.stringify({pages_in_data_journey:[...metrics.pages],clicks_from_check_to_export:clicksToExport,full_page_loads:metrics.navigations,version}));
     });
 
-    await t.test('no page errors',()=>assert.deepEqual(errors,[]));
+    await t.test('no page errors or failed API requests',()=>{assert.deepEqual(errors,[]);assert.deepEqual(apiFailures,[]);});
   }finally{
     await browser?.close();child?.kill();
   }

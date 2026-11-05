@@ -2223,5 +2223,24 @@
     "This model cannot be loaded here.": "لا يمكن تحميل هذا النموذج هنا."
   });
 
+  // UX consistency: the ordinary data journey and optional specialist navigation.
+  Object.assign(exact, {
+    "Records to check": "سجلات للفحص",
+    "Add data, prepare it, then find the frozen result in My versions.": "أضف البيانات وجهّزها، ثم اعثر على النتيجة المجمدة في إصداراتي.",
+    "Choose records. Filters change what is shown, never your selection.": "اختر السجلات. تغيّر المرشحات المعروض فقط، وتبقى اختياراتك محفوظة.",
+    "Run privacy, eligibility and split checks for the selected records.": "أجرِ فحوص الخصوصية والأهلية وفصل البيانات للسجلات المختارة.",
+    "Create Gold and export": "إنشاء Gold والتصدير",
+    "Confirm the checked selection, create a frozen version, then export it.": "أكّد السجلات التي اجتازت الفحص، وأنشئ إصدارًا مجمدًا، ثم صدّره.",
+    "Human review is a separate workspace for collected responses.": "المراجعة البشرية مساحة مستقلة لمراجعة الردود المجمّعة.",
+    "Open human review": "افتح المراجعة البشرية",
+    "Advanced Mode": "الوضع المتقدم",
+    "Show specialist tools in Settings. Saved only in this browser. This preference controls visibility only.": "اعرض الأدوات التخصصية في الإعدادات. يُحفظ الخيار في هذا المتصفح فقط، ويتحكم في ظهور الأدوات فقط.",
+    "Enable Advanced Mode": "تفعيل الوضع المتقدم",
+    "Specialist diagnostics and export tools. Direct links work in either mode.": "أدوات تخصصية للفحص والتصدير. تعمل الروابط المباشرة في كلا الوضعين.",
+    "Privacy, eligibility and split checks run in Prepare data before creating a version.": "تُجرى فحوص الخصوصية والأهلية وفصل البيانات في تجهيز البيانات قبل إنشاء الإصدار.",
+    "No changes were made to the dataset and you can safely retry.": "لم تُجرَ تغييرات على مجموعة البيانات ويمكنك إعادة المحاولة بأمان.",
+    "The version remains visible and no files were changed.": "يبقى الإصدار ظاهرًا ولم تُعدَّل أي ملفات."
+  });
+
   global.NajdiI18nCatalogs = Object.assign(global.NajdiI18nCatalogs || {}, {ar: {exact, patterns}});
 })(window);

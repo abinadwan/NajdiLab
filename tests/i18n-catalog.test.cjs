@@ -74,7 +74,7 @@ test('every text in index.html has an Arabic translation',()=>{
 });
 
 test('every toast, confirm, status and fixed message in the scripts has an Arabic translation',()=>{
-  const strings=['static/app.js','static/chat.js','static/chat-markdown.js','static/integrations.js','static/theme.js'].flatMap(f=>sinkStrings(fs.readFileSync(f,'utf8')));
+  const strings=['static/app.js','static/chat.js','static/chat-markdown.js','static/integrations.js','static/theme.js','static/prepare-data.js','static/my-versions.js'].flatMap(f=>sinkStrings(fs.readFileSync(f,'utf8')));
   assert.ok(strings.length>60,'expected to find the UI message sinks');
   const missing=untranslated(strings);
   assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));

@@ -372,7 +372,7 @@ const puppeteer=require('puppeteer-core');
     });
     // The Export center is an advanced tool of My versions (V2.2.0: three Data destinations).
     await page.click('.nav-item[data-view="my-versions"]');await page.waitForSelector('#view-my-versions.active');
-    await page.click('#view-my-versions .advanced-tools summary');await page.click('[data-advanced-view="exports"]');
+    await page.click('.nav-item[data-view="settings"]');await page.click('#advanced-mode');await page.click('[data-advanced-view="exports"]');
     await page.waitForSelector('#preview-dedup');
     await page.click('#preview-dedup');
     await page.waitForFunction(()=>document.querySelectorAll('.export-blockers li').length===5);

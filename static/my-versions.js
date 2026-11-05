@@ -1,5 +1,5 @@
 /* Data → My versions: frozen Gold versions, what is in them, how ready they are, and their exports.
-   Read only: a frozen version is never edited here. Advanced pages stay one click away. */
+   Read only: a frozen version is never edited here. Specialist tools are available through Settings in Advanced Mode. */
 (function(global){
   'use strict';
   const el=id=>document.getElementById(id);
@@ -21,7 +21,7 @@
         node('h4',{},'Exports'),
         exports.items.length?node('ul',{},...exports.items.map(x=>node('li',{},PROFILE[x.profile]||x.profile,' · ',ident(x.created_at||''),' · ',ident(String(x.record_count)),' ','records',' · ',
           ...x.files.map(f=>node('a',{href:f,download:f.split('/').pop()},f.split('/').pop()+' '))))):node('p',{class:'muted'},'No export yet. Create one in Prepare data, step 3.'),
-        node('p',{},Object.assign(node('a',{href:`/datasets/health?version=${encodeURIComponent(version)}`},'Open full diagnostics'),{onclick:e=>{e.preventDefault();global.switchView?.('dataset-health',{version});}})));
+        node('p',{'data-advanced-only':''},Object.assign(node('a',{href:`/datasets/health?version=${encodeURIComponent(version)}`},'Open full diagnostics'),{onclick:e=>{e.preventDefault();global.switchView?.('dataset-health',{version});}})));
     }catch(error){host.replaceChildren(node('p',{role:'alert'},error.message));}
     finally{button.disabled=false;}
   }

@@ -298,18 +298,20 @@
       <section id="view-dashboard" class="view active">
         <section class="panel pipeline-card" aria-labelledby="pipeline-heading">
           <div class="panel-heading"><h2 id="pipeline-heading">From conversation to Gold dataset</h2></div>
-          <div id="dashboard-stats" class="stat-grid pipeline" aria-live="polite"><div class="stat-card"><span>Conversations</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Pending review</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Eligible for build</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Gold versions</span><strong class="skeleton-value"></strong></div></div>
+          <div id="dashboard-stats" class="stat-grid pipeline" aria-live="polite"><div class="stat-card"><span>Conversations</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Pending review</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Records to check</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Gold versions</span><strong class="skeleton-value"></strong></div></div>
         </section>
         <div class="dashboard-grid">
-          <section class="panel workflow-card" aria-labelledby="workflow-heading"><div class="panel-heading"><h2 id="workflow-heading">Next steps</h2></div>
+          <section class="panel workflow-card" aria-labelledby="workflow-heading"><div class="panel-heading"><h2 id="workflow-heading">Prepare data</h2></div>
+            <p>Add data, prepare it, then find the frozen result in My versions.</p>
             <ol class="workflow-steps">
-              <li><button type="button" data-go="review-queue"><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Review</strong><span>Approve, correct or exclude collected responses. The original is always preserved.</span></span><svg class="icon step-arrow" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg></button></li>
-              <li><button type="button" data-go="dataset-health"><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Health</strong><span>Check the quality and integrity of a dataset version.</span></span><svg class="icon step-arrow" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg></button></li>
-              <li><button type="button" data-go="balancer"><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Balance</strong><span>Diagnose the balance of a version. Read-only; nothing is changed.</span></span><svg class="icon step-arrow" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg></button></li>
-              <li><button type="button" data-go="exports"><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Build</strong><span>Create a frozen Gold version with a SHA-256 for every file.</span></span><svg class="icon step-arrow" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg></button></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Choose data</strong><span>Choose records. Filters change what is shown, never your selection.</span></span></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Check and prepare</strong><span>Run privacy, eligibility and split checks for the selected records.</span></span></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Create Gold and export</strong><span>Confirm the checked selection, create a frozen version, then export it.</span></span></li>
             </ol>
+            <div class="toolbar"><button type="button" class="button primary" data-go="prepare">Prepare data</button><button type="button" class="button ghost" data-go="add-data">Add data</button></div>
+            <p>Human review is a separate workspace for collected responses.</p><button type="button" class="button ghost" data-go="review-queue">Open human review</button>
           </section>
-          <section class="panel recent-card" aria-labelledby="recent-heading"><div class="panel-heading"><h2 id="recent-heading">Dataset Versions</h2><button class="button ghost" type="button" data-go="exports">View all</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
+          <section class="panel recent-card" aria-labelledby="recent-heading"><div class="panel-heading"><h2 id="recent-heading">My versions</h2><button class="button ghost" type="button" data-go="my-versions">View all</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
         </div>
         <section class="panel readiness-card" aria-labelledby="readiness-heading"><div class="panel-heading"><h2 id="readiness-heading">Dataset workflow status</h2></div><ul id="dashboard-readiness"><li>Local database</li><li>Review uses an overlay and preserves the original</li><li>Gold versions cannot be overwritten</li></ul></section>
       </section>
@@ -499,10 +501,7 @@
       <section id="view-my-versions" class="view">
         <div class="panel chat-intro"><h2>My versions</h2><p>Every Gold version you created. A frozen version never changes: to include different records, create a new version in Prepare data.</p></div>
         <div id="versions-list" class="versions-list"></div>
-        <details class="panel advanced-tools"><summary>Advanced tools</summary>
-          <p>Detailed pages for specialists. The normal path does not need them.</p>
-          <div class="toolbar"><button type="button" class="button ghost" data-advanced-view="dataset">Dataset records</button><button type="button" class="button ghost" data-advanced-view="dataset-health">Dataset health</button><button type="button" class="button ghost" data-advanced-view="balancer">Dataset balancer</button><button type="button" class="button ghost" data-advanced-view="dataset-versions">Version details</button><button type="button" class="button ghost" data-advanced-view="eval-sets">Evaluation sets</button><button type="button" class="button ghost" data-advanced-view="exports">Export center</button></div>
-        </details>
+
       </section>
       <section id="view-dataset" class="view">
         <div id="dataset-stats" class="stat-grid"></div>
@@ -590,6 +589,12 @@
       </section>
 
       <section id="view-settings" class="view">
+        <div class="panel settings-card advanced-setting"><div><h2>Advanced Mode</h2><p id="advanced-mode-help">Show specialist tools in Settings. Saved only in this browser. This preference controls visibility only.</p></div><label class="inline-check"><input id="advanced-mode" type="checkbox" aria-describedby="advanced-mode-help"> Enable Advanced Mode</label></div>
+        <section class="panel advanced-tools" data-advanced-only aria-labelledby="advanced-tools-heading"><h2 id="advanced-tools-heading">Advanced tools</h2>
+          <p>Specialist diagnostics and export tools. Direct links work in either mode.</p>
+          <div class="toolbar"><button type="button" class="button ghost" data-advanced-view="dataset">Dataset records</button><button type="button" class="button ghost" data-advanced-view="dataset-health">Dataset health</button><button type="button" class="button ghost" data-advanced-view="balancer">Dataset balancer</button><button type="button" class="button ghost" data-advanced-view="dataset-versions">Version details</button><button type="button" class="button ghost" data-advanced-view="eval-sets">Evaluation sets</button><button type="button" class="button ghost" data-advanced-view="exports">Export center</button></div>
+        </section>
+
         <section class="integrations" aria-labelledby="integrations-heading">
           <h2 id="integrations-heading">Models &amp; Integrations</h2>
           <p>Chat and review happen inside NajdiLab. Connect existing Ollama or LM Studio model runtimes without changing their configuration. Connection tests use synthetic text only.</p>

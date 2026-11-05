@@ -32,7 +32,7 @@ def test_theme_uses_tokens_and_distinguishes_status_classes():
 def test_dashboard_describes_dataset_scope_without_training_status_probes():
     app = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
     assert "/api/v1/platform/status" not in app
-    assert "Export readiness is checked independently in Export center" in app
+    assert "Privacy, eligibility and split checks run in Prepare data" in app
     assert "build readiness has not been checked here" in app
     assert "Training runs externally in Unsloth" not in app
 

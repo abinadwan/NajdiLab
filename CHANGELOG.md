@@ -1,5 +1,12 @@
 # Changelog
 
+## UX consistency — unversioned development changes (2026-11-05, `update-v2.3.1`)
+
+- Dashboard opens the existing three-step Prepare data workflow, My versions and independent human review. Candidate counts are labelled Records to check and retain the explicit backend-readiness caveat.
+- Settings adds an opt-in Advanced Mode stored locally. The six specialist destinations move from My versions to Settings. Version diagnostics follow this preference. Direct routes, version creation and export remain available.
+- Arabic localization now reaches health explanations and health/balance errors previously marked as user content. New workflow/settings copy uses the existing catalog. Regression coverage includes language restoration, specialist links, keyboard controls and responsive light/dark screens.
+- Application version remains V2.2.0. Verification and rollback are recorded in the [implementation report](docs/development/UX_CONSISTENCY.md).
+
 ## V2.2.0 — development candidate (2026-11-05, `update-project`, Draft PR #23; not a release)
 
 **Version step:** minor (2.1.0 → 2.2.0): new user-facing capabilities without incompatible API or data changes for existing records; migration 010 adds columns and keeps every value, after an automatic database copy.

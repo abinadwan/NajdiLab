@@ -706,3 +706,7 @@ html{scroll-padding-top:calc(var(--topbar-height,96px) + 12px)}
 /* A success notice has no control: it must never swallow a click on what lies under it (it sat on Prepare's Check button).
    An error notice keeps the pointer for its Dismiss button. */
 .toast:not(.error){pointer-events:none}
+
+/* Optional specialist navigation, including asynchronously rendered version diagnostics. */
+html:not(.advanced-mode) [data-advanced-only]{display:none}
+.workflow-steps li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:14px;padding-block:12px}
