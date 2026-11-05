@@ -171,9 +171,11 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
             return self._models
 
     def training(self):
+        # models() takes _models_lock itself: fetch the hub first (the lock is not re-entrant).
+        hub = self.models().hub
         with self._models_lock:
             if self._training is None:
-                self._training = TrainingModels(self.models().hub)
+                self._training = TrainingModels(hub)
             return self._training
 
     def server_close(self):
