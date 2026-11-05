@@ -35,7 +35,14 @@ const puppeteer=require('puppeteer-core');
     assert.equal(await page.$('[data-view="training"]'),null);
     // V2.2.0 Native-first: without the Settings opt-in, the model menu offers NajdiLab Native only.
     const plainContext=await browser.createBrowserContext();const plain=await plainContext.newPage();
-    await plain.goto(base+'/chat');await plain.waitForFunction(()=>window.NajdiChat&&document.querySelector('#chat-model-label').textContent.trim());
+    // Root cause of the old flake: waiting for the label text (already in the static HTML) let the click land before
+    // the chat view had bound its controls whenever the server was slow (other suites running). The view now says
+    // when it is ready (aria-busy), and every API answer is delayed here so the race is exercised on every run.
+    await plain.setRequestInterception(true);
+    plain.on('request',r=>{if(r.url().includes('/api/v1/'))setTimeout(()=>r.continue().catch(()=>{}),600);else r.continue().catch(()=>{});});
+    await plain.goto(base+'/chat');
+    assert.equal(await plain.$eval('#view-chat',v=>v.getAttribute('aria-busy')),'true','the chat view starts busy');
+    await plain.waitForSelector('#view-chat[aria-busy="false"]');
     await plain.evaluate(()=>document.querySelector('#chat-model-button').click());await plain.waitForSelector('#chat-model-menu:not([hidden])');
     const offered=await plain.$eval('#chat-model-menu',m=>({groups:[...m.querySelectorAll('[role="group"]')].map(x=>x.getAttribute('aria-label')),text:m.textContent}));
     assert.ok(offered.groups.every(g=>g==='NajdiLab Native')&&!/LM Studio|Ollama/.test(offered.text),'only NajdiLab Native is offered: '+JSON.stringify(offered.groups));
@@ -363,7 +370,9 @@ const puppeteer=require('puppeteer-core');
         return original(path,...args);
       };
     });
-    await page.click('[data-view="exports"]');
+    // The Export center is an advanced tool of My versions (V2.2.0: three Data destinations).
+    await page.click('.nav-item[data-view="my-versions"]');await page.waitForSelector('#view-my-versions.active');
+    await page.click('#view-my-versions .advanced-tools summary');await page.click('[data-advanced-view="exports"]');
     await page.waitForSelector('#preview-dedup');
     await page.click('#preview-dedup');
     await page.waitForFunction(()=>document.querySelectorAll('.export-blockers li').length===5);

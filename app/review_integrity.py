@@ -167,7 +167,11 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
             events = conn.execute(
                 "SELECT sequence,to_status,source_sha256 FROM review_events WHERE review_id=? ORDER BY sequence", (row["id"],)
             ).fetchall()
-            if not events:
+            if not events and status == "PENDING" and int(row["id"]) > legacy_max_review_id:
+                # A review that was never decided has no transition to audit yet; REVIEW_PENDING already blocks it.
+                # Reporting a missing event as well showed one waiting review as two problems, one of them technical.
+                pass
+            elif not events:
                 if int(row["id"]) <= legacy_max_review_id:
                     findings.append(_finding(
                         "REVIEW_HISTORY_UNVERIFIABLE", sample_id,

@@ -210,41 +210,6 @@ test('Model library and context indicator in Chromium',async t=>{
       assert.ok(!gguf.confirm);assert.match(gguf.review,/cannot be used for customization/);assert.match(gguf.review,/complete customization checkpoint/);
     });
 
-    await t.test('prepare training data: choose records, fix blockers by leaving records out, create a version, export',async()=>{
-      await page.evaluate(async()=>{for(const [q,a] of [['Synthetic prepare question one','Synthetic approved answer one'],['Synthetic prepare question two','Synthetic approved answer two']])
-        await window.api('/api/v1/manual-data/sft',{method:'POST',body:JSON.stringify({messages:[{role:'user',content:q},{role:'assistant',content:a}],origin:'manual',training_eligible:true,language:'en'})});});
-      await page.goto(base+'/datasets/prepare');await page.waitForSelector('#view-prepare.active');
-      await page.waitForFunction(()=>!document.querySelector('#prepare-records').textContent.includes('Loading'));
-      const total=await page.$$eval('#prepare-records input[data-id]',b=>b.length);
-      assert.ok(total>0,'the synthetic records are listed');
-      await page.click('#prepare-none');
-      assert.match(await page.$eval('#prepare-count',e=>e.textContent),/^0 of /);
-      const run=async()=>{await page.click('#prepare-check');await page.waitForFunction(()=>{const t=document.querySelector('#prepare-check-status').textContent;return t&&!t.startsWith('Checking');});
-        return page.$eval('#prepare-check-status',e=>e.textContent);};
-      assert.match(await run(),/problem/,'nothing chosen cannot be built');
-      assert.equal(await page.$eval('#prepare-create',e=>e.disabled),true);
-      await page.click('#prepare-all');
-      let status=await run();
-      for(let i=0;i<6&&!/All checks passed/.test(status);i++){
-        const leave=await page.$('#prepare-problems button');assert.ok(leave,'every blocker offers a way out: '+status);
-        await leave.click();status=await run();
-      }
-      assert.match(status,/All checks passed/);
-      assert.match(await page.$eval('#prepare-split',e=>e.textContent),/training records[\s\S]*Conversations shared between training and evaluation: 0/);
-      // Changing the choice after a check requires checking again.
-      const first=await page.$('#prepare-records input[data-id]:checked');await first.click();
-      assert.equal(await page.$eval('#prepare-create',e=>e.disabled),true);await first.click();
-      assert.match(await run(),/All checks passed/);
-      await page.click('#prepare-create');
-      await page.waitForFunction(()=>/Created and frozen|Error|error/.test(document.querySelector('#prepare-created').textContent));
-      const created=await page.$eval('#prepare-created',e=>e.textContent);
-      assert.match(created,/Created and frozen: gold-v\d+[\s\S]*Structural validity: Valid/);
-      await page.waitForSelector('#prepare-export:not([hidden])');
-      await page.click('#prepare-export-go');
-      await page.waitForFunction(()=>document.querySelector('#prepare-export-result a'));
-      assert.match(await page.$eval('#prepare-export-result',e=>e.textContent),/Download dataset\.jsonl/);
-    });
-
     await t.test('local address: the sidebar shows the host and port actually serving the page, never a fixed one',async()=>{
       const served=new URL(base);
       assert.ok(!['8770','8870'].includes(served.port),'the fixture runs on an ephemeral port, so a hard-coded default cannot pass');

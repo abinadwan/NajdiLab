@@ -10,12 +10,11 @@ EXPECTED = [
     ("Overview", ["dashboard"]),
     ("Chat", ["chat", "models"]),
     ("Review", ["review-queue", "conversations", "reviewed"]),
-    ("Data entry", ["add-data", "manual-data"]),
-    ("Datasets", ["prepare", "dataset", "dataset-health", "balancer", "dataset-versions", "eval-sets"]),
-    ("Export", ["exports"]),
+    # Data management is three destinations (V2.2.0 UX): the specialist pages below stay routable.
+    ("Data", ["add-data", "prepare", "my-versions"]),
     ("Administration", ["analytics", "settings"]),
 ]
-
+ADVANCED = ["manual-data", "dataset", "dataset-health", "balancer", "dataset-versions", "eval-sets", "exports"]
 
 class Nav(html.parser.HTMLParser):
     def __init__(self):
@@ -73,13 +72,13 @@ def test_every_destination_appears_once_in_workflow_order():
     groups = [(nav.ids[g["labelledby"]].strip(), [i["view"] for i in g["items"]]) for g in nav.groups]
     assert groups == EXPECTED
     views = [v for _, vs in groups for v in vs]
-    assert len(views) == 17 == len(set(views))
+    assert len(views) == 11 == len(set(views))
 
 
 def test_every_destination_is_still_routable():
     source = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
     titles = source[source.index("const titles = {"):source.index("};", source.index("const titles = {"))]
-    for _, views in EXPECTED:
+    for _, views in [*EXPECTED, ("Advanced", ADVANCED)]:
         for view in views:
             assert re.search(rf"(^|\s|')({re.escape(view)})'?:\s*\[", titles, re.M), view
 

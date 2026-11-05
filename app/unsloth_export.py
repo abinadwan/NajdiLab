@@ -192,3 +192,25 @@ def read_handoff(handoff_id, name):
         if digest(raw)!=manifest['sha256'].get(name):
             raise ValidationError('Handoff file no longer matches its manifest.')
     return raw
+
+
+def list_handoffs(version=None, *, root=None):
+    """Unsloth exports already created, newest first; optionally only those of one dataset version."""
+    root = Path(root) if root is not None else HANDOFFS
+    items = []
+    if root.is_dir():
+        for folder in root.iterdir():
+            if len(folder.name) != 32 or any(c not in '0123456789abcdef' for c in folder.name) or folder.is_symlink() or not folder.is_dir():
+                continue
+            try:
+                manifest = json.loads((folder / 'manifest.json').read_text(encoding='utf-8'))
+            except (OSError, ValueError):
+                continue
+            if version is not None and manifest.get('source_version') != version:
+                continue
+            items.append({'id': folder.name, 'source_version': manifest.get('source_version'), 'created_at': manifest.get('created_at'),
+                          'profile': manifest.get('profile', 'trl_prompt_completion'), 'format': manifest.get('format'),
+                          'record_count': manifest.get('record_count'),
+                          'files': [f'/api/v1/unsloth-exports/{folder.name}/{name}' for name in ('dataset.jsonl', 'provenance.jsonl', 'manifest.json')]})
+    items.sort(key=lambda item: item.get('created_at') or '', reverse=True)
+    return {'items': items}

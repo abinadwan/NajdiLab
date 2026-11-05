@@ -94,7 +94,7 @@ def test_prepare_lists_previews_and_checks_without_writing(reported, tmp_path):
     assert ids == [f'manual_sft_items:{keep[0]}', f'manual_sft_items:{keep[1]}'], 'ignored and excluded records are not offered'
     assert listed['items'][0]['question'] == 'كيف أبدأ؟' and listed['items'][0]['answer'] == 'ابدأ بخطوة صغيرة.'
     check = prepare_check([ids[1]], db)
-    assert check['readiness']['ok'] and check['preview']['training'] == 1 and check['preview']['shared_conversations'] == 0
+    assert check['readiness']['ok'] and check['summary']['training'] == 1 and check['summary']['shared_conversations'] == 0
     assert prepare_check([], db)['readiness']['blocking_findings'][0]['code'] == 'NO_EXPORTABLE_DATA'
     assert db.read_bytes() == before, 'checking never writes'
     export = create_export(db, tmp_path / 'exports', selection=[ids[1]])

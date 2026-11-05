@@ -4,7 +4,7 @@ const {spawn}=require('node:child_process');
 const {test}=require('node:test');
 const puppeteer=require('puppeteer-core');
 
-const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','dataset',
+const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','prepare','my-versions','dataset',
   'dataset-health','balancer','dataset-versions','eval-sets','exports','analytics','settings'];
 // Product, protocol and format names stay in Latin script in both languages.
 const LATIN_ALLOWED=['NajdiLab','llama.cpp','Ollama','LM Studio','Unsloth Studio','Unsloth','TRL','Hugging Face','SFT','DPO','JSONL','JSON','SHA-256',

@@ -122,7 +122,8 @@ class NajdiLabTests(unittest.TestCase):
 
     def test_04_training_eligibility_and_evaluation_protection(self):
         train = self.ingest("train")
-        holdout = self.ingest("eval")
+        # Its own answer: an evaluation turn identical to a training turn is train/eval leakage and is refused.
+        holdout = self.ingest("eval", assistant="أهلًا وسهلًا")
         save_review(train["review_id"], {"review_status": "APPROVED", "training_eligible": True}, self.db)
         reviewed = save_review(
             holdout["review_id"],

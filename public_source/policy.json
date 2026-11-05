@@ -239,6 +239,7 @@
     "static/localization.js",
     "static/manual-data.css",
     "static/models.js",
+    "static/my-versions.js",
     "static/najdi.css",
     "static/phase1.css",
     "static/phase38-review.html",
@@ -259,6 +260,7 @@
     "tests/chat-ui.test.cjs",
     "tests/chat-v2-ui.test.cjs",
     "tests/chat_browser_fixture.py",
+    "tests/data-journey-browser.cjs",
     "tests/dataset-identity-ui.test.cjs",
     "tests/fake_github.py",
     "tests/fake_hub.py",
@@ -326,6 +328,7 @@
     "tests/test_phase_a_dataset_acceptance.py",
     "tests/test_phase_a_regressions.py",
     "tests/test_platform_state.py",
+    "tests/test_prepare_build_agreement.py",
     "tests/test_qa04_symlink_unavailable.py",
     "tests/test_qa06_hermes_refusals.py",
     "tests/test_qa07_signed_freshness.py",
@@ -394,7 +397,7 @@
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
-      "sha256": "b1ed89842e9818bf752ae4607018d2155c7172d5ae80c761bbae655c1f08ede8"
+      "sha256": "ee8759e3565ce06bad88e8d29d74f60ff1d071b4c9d8dac53620d6956d41a0c9"
     },
     "app/review_lifecycle.py": {
       "destination": "app/review_lifecycle.py",
@@ -402,7 +405,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "60577c5fcd93fab3e23bb2ead4abc61f2cdb5244e0c3b46c1fce16cd56cc5989"
+      "sha256": "38180bf4d00cb605b55bccd1f408553850acb1cfa23b1c36f30d75b5353d298d"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",

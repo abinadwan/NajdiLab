@@ -10,7 +10,7 @@ const {spawn}=require('node:child_process');
 const puppeteer=require('puppeteer-core');
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 
-const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','dataset',
+const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','prepare','my-versions','dataset',
   'dataset-health','balancer','dataset-versions','eval-sets','exports','analytics','settings'];
 const VIEWPORTS={desktop:[1440,900],tablet:[820,1180],'mobile-390':[390,844],'mobile-320':[320,700],'zoom-200':[720,450],'zoom-400':[360,225]};
 

@@ -902,10 +902,16 @@
     if(selection===null)selection=defaultSelection();
     // A refresh replaces stale notices, so a current binding warning is never hidden.
     notice=[];
-    await loadCatalog();
-    applyPendingUse();
-    if(controller.session){await controller.refresh();if(controller.session.status==='OPEN'&&!controller.pending)await check(false).catch(()=>{});}
-    await saved();render();
+    try{
+      await loadCatalog();
+      applyPendingUse();
+      if(controller.session){await controller.refresh();if(controller.session.status==='OPEN'&&!controller.pending)await check(false).catch(()=>{});}
+      await saved();render();
+    }finally{
+      // The view is busy from page load until its controls are bound and the first catalog is shown: assistive
+      // technology waits, and so do tests (a click before this landed on a button with no handler yet).
+      el('view-chat').setAttribute('aria-busy','false');
+    }
   }
 
   function menuKeys(panel){

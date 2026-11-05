@@ -75,6 +75,14 @@ class ValidationError(ValueError):
     pass
 
 
+class RecordValidationError(ValidationError):
+    """A build rule broken by one chosen record: the preview can offer to leave exactly that record out."""
+
+    def __init__(self, message: str, sample_id: str, code: str):
+        super().__init__(message)
+        self.sample_id, self.code = sample_id, code
+
+
 PAGE_DEFAULT_LIMIT = 100
 PAGE_MAX_LIMIT = 500
 
@@ -2052,7 +2060,11 @@ def _split_export_entries(
     minimum_conversations = min(3, len(available_conversations))
     lower, goal, upper = _holdout_bounds(total_records)
     candidates = set(grouped) - selected_conversations
-    if total_records >= EXPORT_MIN_AUTO_SPLIT_RECORDS:
+    # Records the user marked "evaluation only" always go to evaluation. Whole conversations are held out
+    # automatically only while evaluation is still below the lower bound; once the user's own evaluation records
+    # reach it, nothing is forced on top (that pushed a version past 15% and made it impossible to build).
+    automatic_split = total_records >= EXPORT_MIN_AUTO_SPLIT_RECORDS and len(evaluation) < lower
+    if automatic_split:
         while candidates and (
             len(evaluation) < goal or len(selected_conversations) < minimum_conversations
         ):
@@ -2101,6 +2113,7 @@ def _split_export_entries(
         "evaluation_records_omitted_for_conversation_isolation": omitted,
         "available_conversation_count": len(available_conversations),
         "selected_evaluation_conversation_ids": sorted(selected_conversations),
+        "automatic_split": automatic_split,
     }
     return training, evaluation, split_stats
 
@@ -2201,6 +2214,19 @@ def _validate_export_records(
                 f"Export failed: exact duplicate between {target_owners[digest]} and {item.get('id')}"
             )
         target_owners[digest] = str(item.get("id"))
+    # Train/eval leakage by content: an evaluation answer that is also a training answer (or another evaluation
+    # answer) would measure memorisation, not quality. Conversation isolation alone does not catch it, because
+    # manual records have no conversation. Found by the 80-record acceptance run; present since explicit evaluation.
+    for item in evaluation:
+        target = _normalized(_training_target(item))
+        if not target:
+            raise ValidationError(f"Export failed: empty evaluation target in {item.get('id')}")
+        digest = hashlib.sha256(target.encode("utf-8")).hexdigest()
+        if digest in target_owners:
+            raise RecordValidationError(
+                f"Export failed: the same answer is in {target_owners[digest]} and in evaluation record {item.get('id')}",
+                str(item.get("id")), "EVALUATION_DUPLICATES_ANOTHER_RECORD")
+        target_owners[digest] = str(item.get("id"))
 
     training_conversations = {
         conversation_id
@@ -2218,12 +2244,18 @@ def _validate_export_records(
             "Export failed: conversation_id leakage between training and evaluation: "
             + ", ".join(conversation_overlap)
         )
+    # Whenever conversations were held out automatically, evaluation must span at least three conversations and
+    # stay within 10-15% of the version. Manual records have no conversation and are never given one: without three
+    # conversations the version is training-only, and its manifest says so. Records the user marked "evaluation only"
+    # that already reach the lower bound are the evaluation set as chosen; leakage checks apply in every case.
+    automatic = split_stats.get("automatic_split", True)
     if (
-        split_stats["available_conversation_count"] >= 3
+        automatic
+        and split_stats["available_conversation_count"] >= 3
         and len(evaluation_conversations) < 3
     ):
         raise ValidationError("Export failed: evaluation must span at least three conversations")
-    if split_stats["eligible_record_count"] >= EXPORT_MIN_AUTO_SPLIT_RECORDS and not (
+    if automatic and split_stats["eligible_record_count"] >= EXPORT_MIN_AUTO_SPLIT_RECORDS and split_stats["available_conversation_count"] >= 3 and not (
         split_stats["evaluation_target_lower"]
         <= len(evaluation)
         <= split_stats["evaluation_target_upper"]
@@ -2301,6 +2333,68 @@ def _validate_jsonl_files(temp_dir: Path, files: dict[str, list[dict[str, Any]]]
             raise ValidationError(f"{filename}: written record count does not match the expected count")
 
 
+def _plan_fingerprint(training_entries, explicit_evaluation_entries) -> str:
+    """Identity of exactly what a build would read: the chosen records and their current content."""
+    payload = sorted((kind, json_dumps(item)) for kind, item in [*training_entries, *[("eval:" + k, i) for k, i in explicit_evaluation_entries]])
+    return hashlib.sha256(json_dumps(payload).encode("utf-8")).hexdigest()
+
+
+def _plan_version(training_entries, explicit_evaluation_entries, chosen, include_demo):
+    """Everything a version build decides before writing: split, balancing, de-duplication and validation.
+    The preview and the build both call this, so they cannot disagree on the same records (QA P1)."""
+    training_entries = [(kind, item) for kind, item in training_entries if item.get('id') in chosen]
+    explicit_evaluation_entries = [(kind, item) for kind, item in explicit_evaluation_entries if item.get('id') in chosen]
+    training_entries_chosen, explicit_chosen = list(training_entries), list(explicit_evaluation_entries)
+    # Manifest summaries describe the records in this version (training candidates, as before).
+    reviews = [item for kind, item in training_entries if str(item.get('id', '')).startswith('review:')]
+    manual = [item for kind, item in training_entries if str(item.get('id', '')).startswith('manual_sft_items:')]
+    other_manual = [item for kind, item in training_entries if kind in ('direct_language', 'preference_pairs')]
+    training_entries, evaluation, split_stats = _split_export_entries(
+        training_entries, explicit_evaluation_entries
+    )
+    training_sft = [item for kind, item in training_entries if kind == "sft"]
+    multi_turn_before_balancing = [
+        item for item in training_sft if len(item.get("messages", [])) > 2
+    ]
+    balanced_multi_turn, balance_stats = _balance_multi_turn_records(
+        multi_turn_before_balancing
+    )
+    raw_training_files = {
+        "sft.jsonl": [item for item in training_sft if len(item.get("messages", [])) <= 2],
+        "multi_turn.jsonl": balanced_multi_turn,
+        "direct_language.jsonl": [
+            item for kind, item in training_entries if kind == "direct_language"
+        ],
+        "preference_pairs.jsonl": [
+            item for kind, item in training_entries if kind == "preference_pairs"
+        ],
+    }
+    training_files, dedup = _duplicate_analysis(raw_training_files, remove_exact=True)
+    final_multi_counts = Counter(
+        conversation_id
+        for item in training_files["multi_turn.jsonl"]
+        if (conversation_id := _conversation_id(item)) is not None
+    )
+    balance_stats["multi_turn_records_after_export"] = len(training_files["multi_turn.jsonl"])
+    balance_stats["max_multi_turn_records_per_conversation_after_export"] = max(
+        final_multi_counts.values(), default=0
+    )
+    validation = _validate_export_records(
+        training_files, evaluation, include_demo, split_stats, balance_stats
+    )
+    automatic_count = sum(item.get("holdout_reason") == "deterministic_conversation_split" for item in evaluation)
+    split_stats["evaluation_policy"] = (
+        ("explicit_plus_automatic" if automatic_count else "explicit_evaluation_only") if explicit_chosen
+        else "automatic_holdout" if evaluation else "training_only")
+    if not evaluation:
+        split_stats["evaluation_policy_reason"] = (
+            "fewer than 20 records" if split_stats["eligible_record_count"] < EXPORT_MIN_AUTO_SPLIT_RECORDS
+            else "fewer than three independent conversations; manual records are never given a conversation")
+    return {"training_files": training_files, "evaluation": evaluation, "split_stats": split_stats, "balance_stats": balance_stats,
+            "dedup": dedup, "validation": validation, "reviews": reviews, "manual": manual, "other_manual": other_manual,
+            "fingerprint": _plan_fingerprint(training_entries_chosen, explicit_chosen)}
+
+
 def _gather_export_entries(conn, db_path, include_demo):
     """Every eligible record as (kind, record): training candidates and explicit evaluation-only records.
     The single source for building a version and for previewing one."""
@@ -2357,28 +2451,52 @@ def prepare_records(db_path: Path | str = DB_PATH, include_demo: bool = False) -
 
 
 def prepare_check(selection: list[str] | None, db_path: Path | str = DB_PATH, include_demo: bool = False) -> dict[str, Any]:
-    """Run every check a version build runs, for exactly these records, without writing anything."""
+    """Every check and decision of a version build, for exactly these records, without writing anything.
+    Uses the same selection, split, de-duplication and validation as create_export (QA P1)."""
     readiness = export_readiness(db_path, include_demo=include_demo, selection=selection)
-    preview = {"selected": len(readiness.get("selection") or []), "training": 0, "evaluation": 0, "split": None,
-               "duplicates": None, "evaluation_conversations": 0, "shared_conversations": 0}
-    if readiness.get("selection") is not None:
-        chosen = set(readiness["selection"])
+    chosen = readiness.get("selection")
+    plan, build_error = None, None
+    if chosen is not None:
         conn = connect(db_path)
         try:
             training, explicit = _gather_export_entries(conn, db_path, include_demo)
         finally:
             conn.close()
-        training = [(k, i) for k, i in training if i.get("id") in chosen]
-        explicit = [(k, i) for k, i in explicit if i.get("id") in chosen]
-        kept, evaluation, split_stats = _split_export_entries(training, explicit)
-        _, duplicates = _duplicate_analysis({kind: [i for k, i in kept if k == kind] for kind in ("sft", "direct_language", "preference_pairs")})
-        train_conversations = {c for _, i in kept if (c := _conversation_id(i))}
-        eval_conversations = {c for i in evaluation if (c := _conversation_id(i))}
-        preview.update(training=len(kept), evaluation=len(evaluation), split=split_stats, duplicates=duplicates,
-                       evaluation_conversations=len(eval_conversations),
-                       shared_conversations=len(train_conversations & eval_conversations))
-    return {"readiness": readiness, "preview": preview,
-            "note": "Nothing was written. Creating the version runs these checks again on the same records."}
+        try:
+            plan = _plan_version(training, explicit, set(chosen), include_demo)
+        except ValidationError as exc:
+            build_error = exc
+    blocking = list(readiness.get("blocking_findings") or [])
+    if build_error:
+        blocking.append({"code": getattr(build_error, "code", "BUILD_RULE"), "sample_id": getattr(build_error, "sample_id", None),
+                         "reason": str(build_error), "severity": "ERROR", "blocking": True, "confirmed": True})
+    record_problems = {f["sample_id"] for f in blocking if f.get("sample_id") in set(chosen or [])}
+    global_problems = [f for f in blocking if f.get("sample_id") not in set(chosen or [])]
+    status = "ready" if not blocking else "needs_attention" if chosen and not any(
+        f["code"] in {"SELECTION_INVALID", "NO_EXPORTABLE_DATA", "DATABASE_UNAVAILABLE", "EXPORT_SOURCE_DATA_UNAVAILABLE"} for f in blocking) else "rejected"
+    summary = {"selected": len(chosen or []), "rejected_records": len(record_problems), "accepted": len(chosen or []) - len(record_problems),
+               "blocking_outside_records": len(global_problems)}
+    if plan:
+        files = {name: len(items) for name, items in plan["training_files"].items()}
+        entries = [item for items in plan["training_files"].values() for item in items]
+        summary.update(
+            files=files, training=sum(files.values()), evaluation=len(plan["evaluation"]),
+            evaluation_policy=plan["split_stats"]["evaluation_policy"], evaluation_policy_reason=plan["split_stats"].get("evaluation_policy_reason"),
+            evaluation_conversations=len({c for i in plan["evaluation"] if (c := _conversation_id(i))}),
+            shared_conversations=len({c for i in entries if (c := _conversation_id(i))} & {c for i in plan["evaluation"] if (c := _conversation_id(i))}),
+            exact_duplicates_removed=plan["dedup"].get("exact_duplicates_removed", 0), near_duplicates=plan["dedup"].get("near_duplicate_count", 0),
+            languages=dict(Counter(str(i.get("language") or "not recorded") for i in entries)),
+            multi_turn_balance=plan["balance_stats"])
+        # An explicit evaluation set is used as chosen; outside the usual 10-15% the user is told, not blocked.
+        total = summary["training"] + summary["evaluation"]
+        share = summary["evaluation"] / total if total else 0
+        if summary["evaluation_policy"] == "explicit_evaluation_only" and not 0.10 <= share <= 0.15:
+            summary["evaluation_note"] = (
+                "Evaluation is under 10% of this version. It is used as you chose; more evaluation records give a steadier measure."
+                if share < 0.10 else "Evaluation is over 15% of this version. It is used as you chose; it leaves fewer records for training.")
+    return {"status": status, "readiness": {**readiness, "blocking_findings": blocking, "ok": not blocking},
+            "summary": summary, "fingerprint": plan["fingerprint"] if plan and not blocking else None,
+            "note": "Nothing was written. Creating the version repeats these exact steps and refuses if anything changed."}
 
 
 def create_export(
@@ -2387,6 +2505,7 @@ def create_export(
     include_demo: bool = False,
     filters: dict[str, Any] | None = None,
     selection: list[str] | None = None,
+    expected_fingerprint: str | None = None,
 ) -> dict[str, Any]:
     # `selection`: exactly these eligible records (ids as exported, e.g. "review:12", "manual_sft_items:3");
     # None keeps every eligible record. Problems outside the selection are reported but cannot block it.
@@ -2421,45 +2540,12 @@ def create_export(
                 "direct_language_texts": [dict(x) for x in conn.execute("SELECT * FROM direct_language_texts")],
                 "preference_pairs": [dict(x) for x in conn.execute("SELECT * FROM preference_pairs")],
             }
-        training_entries = [(kind, item) for kind, item in training_entries if item.get('id') in chosen]
-        explicit_evaluation_entries = [(kind, item) for kind, item in explicit_evaluation_entries if item.get('id') in chosen]
-        # Manifest summaries describe the records in this version (training candidates, as before).
-        reviews = [item for kind, item in training_entries if str(item.get('id', '')).startswith('review:')]
-        manual = [item for kind, item in training_entries if str(item.get('id', '')).startswith('manual_sft_items:')]
-        other_manual = [item for kind, item in training_entries if kind in ('direct_language', 'preference_pairs')]
-        training_entries, evaluation, split_stats = _split_export_entries(
-            training_entries, explicit_evaluation_entries
-        )
-        training_sft = [item for kind, item in training_entries if kind == "sft"]
-        multi_turn_before_balancing = [
-            item for item in training_sft if len(item.get("messages", [])) > 2
-        ]
-        balanced_multi_turn, balance_stats = _balance_multi_turn_records(
-            multi_turn_before_balancing
-        )
-        raw_training_files = {
-            "sft.jsonl": [item for item in training_sft if len(item.get("messages", [])) <= 2],
-            "multi_turn.jsonl": balanced_multi_turn,
-            "direct_language.jsonl": [
-                item for kind, item in training_entries if kind == "direct_language"
-            ],
-            "preference_pairs.jsonl": [
-                item for kind, item in training_entries if kind == "preference_pairs"
-            ],
-        }
-        training_files, dedup = _duplicate_analysis(raw_training_files, remove_exact=True)
-        final_multi_counts = Counter(
-            conversation_id
-            for item in training_files["multi_turn.jsonl"]
-            if (conversation_id := _conversation_id(item)) is not None
-        )
-        balance_stats["multi_turn_records_after_export"] = len(training_files["multi_turn.jsonl"])
-        balance_stats["max_multi_turn_records_per_conversation_after_export"] = max(
-            final_multi_counts.values(), default=0
-        )
-        validation = _validate_export_records(
-            training_files, evaluation, include_demo, split_stats, balance_stats
-        )
+        plan = _plan_version(training_entries, explicit_evaluation_entries, chosen, include_demo)
+        if expected_fingerprint is not None and plan["fingerprint"] != expected_fingerprint:
+            raise ValidationError("The chosen records or their content changed after the check. Check again before creating the version.")
+        training_files, evaluation, split_stats = plan["training_files"], plan["evaluation"], plan["split_stats"]
+        balance_stats, dedup, validation = plan["balance_stats"], plan["dedup"], plan["validation"]
+        reviews, manual, other_manual = plan["reviews"], plan["manual"], plan["other_manual"]
         temp_dir = Path(tempfile.mkdtemp(prefix=f".{version}-", dir=exports_dir))
         final_dir = exports_dir / version
         try:

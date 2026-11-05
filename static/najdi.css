@@ -680,3 +680,29 @@ dialog{color:var(--ink)}
 .prepare-record p{margin:2px 0}
 .prepare-problem{border-inline-start:3px solid var(--status-blocked-border);padding:6px 12px;margin:8px 0;background:var(--surface-soft)}
 .prepare-problem p{margin:2px 0}
+/* Prepare data: three steps */
+.prepare-stepper{display:flex;gap:8px;list-style:none;padding:0;margin:0 0 12px;flex-wrap:wrap}
+.prepare-stepper-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px;font:inherit;cursor:pointer}
+.prepare-stepper-item[aria-current="step"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--focus-ring);font-weight:700}
+.prepare-stepper-item:disabled{opacity:.55;cursor:not-allowed}
+.prepare-step-number{display:inline-grid;place-items:center;width:1.6em;height:1.6em;border-radius:50%;background:var(--surface-soft)}
+.prepare-step h2{font-size:1.05rem;margin:0 0 6px}
+.prepare-nav{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.prepare-badge{display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700}
+.prepare-badge.ready{background:var(--mint-soft);color:var(--status-ready-text)}
+.prepare-badge.needs_attention{background:var(--status-warning-bg);color:var(--status-warning-text)}
+.prepare-badge.rejected{background:var(--status-blocked-bg);color:var(--status-blocked-text)}
+.prepare-count{margin-inline-start:auto}
+.prepare-selection-list{max-height:14rem;overflow:auto}
+/* The sticky top bar must never cover a control scrolled into view (QA P2) */
+html{scroll-padding-top:calc(var(--topbar-height,96px) + 12px)}
+.prepare-record,.prepare-record input{scroll-margin-top:calc(var(--topbar-height,96px) + 12px)}
+/* My versions */
+.versions-list{display:grid;gap:12px}
+.version-card{padding:16px 20px}
+.version-card h3{margin:0}
+.version-files{display:flex;flex-wrap:wrap;gap:6px 16px;padding-inline-start:18px}
+.advanced-tools{padding:14px 20px;margin-top:14px}
+/* A success notice has no control: it must never swallow a click on what lies under it (it sat on Prepare's Check button).
+   An error notice keeps the pointer for its Dismiss button. */
+.toast:not(.error){pointer-events:none}

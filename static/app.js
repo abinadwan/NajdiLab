@@ -4,7 +4,8 @@ const titles = {
   chat: ['Chat Workspace', 'Raw local model conversations, saved here. Collection for review is a separate choice.'],
   models: ['Model library', 'Discover, check and download GGUF models for NajdiLab Native, safely and only with your approval.'],
   dashboard: ['Dashboard', 'Dataset status and local workflows in one place.'],
-  prepare: ['Prepare training data', 'Choose records, check them, and create a frozen Gold version ready for Unsloth.'],
+  prepare: ['Prepare data', 'Choose records, check them, and create a frozen Gold version ready for Unsloth.'],
+  'my-versions': ['My versions', 'Your frozen Gold versions, their readiness and their exports.'],
   'review-queue': ['Review queue', 'Review responses one at a time while preserving the original text.'],
   conversations: ['Conversations', 'Explore full context and open any earlier response for review.'],
   reviewed: ['Reviewed', 'Search and filter previous decisions and corrections.'],
@@ -96,7 +97,7 @@ function toast(message, error=false) {
   toast.timer=setTimeout(()=>{el.className='toast';},2800);
 }
 
-const viewPaths={prepare:'/datasets/prepare',chat:'/chat',models:'/models',dashboard:'/',conversations:'/conversations','review-queue':'/review','reviewed':'/gold','add-data':'/data/add','manual-data':'/data/manual',dataset:'/datasets/gold','dataset-health':'/datasets/health',balancer:'/datasets/balancer','dataset-versions':'/datasets/versions','eval-sets':'/datasets/eval','phase38-review':'/evaluation/remediation-review','phase39-review':'/evaluation/remediation-review-edits',exports:'/exports',analytics:'/analytics',settings:'/settings'};
+const viewPaths={prepare:'/datasets/prepare','my-versions':'/versions',chat:'/chat',models:'/models',dashboard:'/',conversations:'/conversations','review-queue':'/review','reviewed':'/gold','add-data':'/data/add','manual-data':'/data/manual',dataset:'/datasets/gold','dataset-health':'/datasets/health',balancer:'/datasets/balancer','dataset-versions':'/datasets/versions','eval-sets':'/datasets/eval','phase38-review':'/evaluation/remediation-review','phase39-review':'/evaluation/remediation-review-edits',exports:'/exports',analytics:'/analytics',settings:'/settings'};
 const pathViews=Object.fromEntries(Object.entries(viewPaths).map(([view,path])=>[path,view]));
 function selectedVersion(){return new URLSearchParams(location.search).get('version')||state.selectedDataset||'';}
 function updateLocation(view,version='',replace=false){const path=viewPaths[view]||'/';const query=version?`?version=${encodeURIComponent(version)}`:'';(replace?history.replaceState:history.pushState).call(history,{view,version},'',path+query);}
@@ -131,13 +132,15 @@ function switchView(view,options={}) {
   // returning to the queue would wrongly compare the old DOM before reloading.
   if(view!==state.view&&state.view==='review-queue')state.reviewDraftBaseline=null;
   state.view = view;
-  $$('.nav-item').forEach(b=>{const current=b.dataset.view===view;b.classList.toggle('active',current);if(current)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+  // Advanced pages belong to one of the three Data destinations: the sidebar shows where the user is.
+  const navView={'manual-data':'add-data',dataset:'my-versions','dataset-health':'my-versions',balancer:'my-versions','dataset-versions':'my-versions','eval-sets':'my-versions',exports:'my-versions'}[view]||view;
+  $$('.nav-item').forEach(b=>{const current=b.dataset.view===navView;b.classList.toggle('active',current);if(current)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   $$('.view').forEach(v=>v.classList.toggle('active', v.id===`view-${view}`));
   $('#page-title').textContent = titles[view][0]; $('#page-subtitle').textContent = titles[view][1];
   // Breadcrumb: the workflow group, then the screen. Separate text nodes so each part is translated.
   // English source names (the DOM may already show a translation, which must not become source text).
-  const navGroups={'nav-group-overview':'Overview','nav-group-chat':'Chat','nav-group-review':'Review','nav-group-data':'Data entry','nav-group-datasets':'Datasets','nav-group-export':'Export','nav-group-system':'Administration'};
-  const group=navGroups[document.querySelector(`.nav-item[data-view="${view}"]`)?.closest('.nav-section')?.getAttribute('aria-labelledby')]||'';
+  const navGroups={'nav-group-overview':'Overview','nav-group-chat':'Chat','nav-group-review':'Review','nav-group-data':'Data','nav-group-datasets':'Datasets','nav-group-export':'Export','nav-group-system':'Administration'};
+  const group=navGroups[document.querySelector(`.nav-item[data-view="${navView}"]`)?.closest('.nav-section')?.getAttribute('aria-labelledby')]||'';
   $('#page-breadcrumb').replaceChildren(...[group,titles[view][0]].filter(Boolean).flatMap((part,i)=>{const s=document.createElement('span');s.textContent=part;if(!i)return [s];const sep=document.createElement('span');sep.className='crumb-sep';sep.setAttribute('aria-hidden','true');sep.textContent='/';s.setAttribute('aria-current','page');return [sep,s];}));
   if(view==='dataset-health')$('#page-subtitle').textContent='Check the quality, balance, and integrity of a dataset version';
   setMobileNav(false);
@@ -149,6 +152,7 @@ async function loadView(view) {
   if (view==='chat') return window.NajdiChat?.load();
   if (view==='models') return window.NajdiModels?.load();
   if (view==='prepare') return window.NajdiPrepare?.load();
+  if (view==='my-versions') return window.NajdiVersions?.load();
   if (view==='dashboard') return loadDashboard();
   if (view==='review-queue') return loadQueue();
   if (view==='conversations') return loadConversations();
@@ -790,7 +794,7 @@ function bindEvents(){
 
 // Phone navigation sheet: the button reports its state, Escape and an outside click close it.
 function setMobileNav(open){$('.sidebar').classList.toggle('open',open);$('#mobile-menu').setAttribute('aria-expanded',String(open));document.body.classList.toggle('nav-open',open);}
-async function init(){try{const preset=$('#data-preset');if(preset){preset.value=storedPreference('najdilab.dataPreset');preset.onchange=()=>{savePreference('najdilab.dataPreset',preset.value);$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(()=>{}));};}$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(prefs.get('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').setAttribute('aria-expanded','false');}await loadConfig();bindEvents();$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(error=>toast(`Unable to load language options: ${error.message}`,true)));addSftTurn('user');addSftTurn('assistant');const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
+async function init(){try{$$('[data-advanced-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.advancedView)));$$('[data-add-records]').forEach(b=>b.addEventListener('click',()=>switchView('manual-data')));$$('[data-add-new]').forEach(b=>b.addEventListener('click',()=>switchView('add-data')));const preset=$('#data-preset');if(preset){preset.value=storedPreference('najdilab.dataPreset');preset.onchange=()=>{savePreference('najdilab.dataPreset',preset.value);$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(()=>{}));};}$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(prefs.get('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').setAttribute('aria-expanded','false');}await loadConfig();bindEvents();$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(error=>toast(`Unable to load language options: ${error.message}`,true)));addSftTurn('user');addSftTurn('assistant');const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
 const phase38Criteria={factual_correctness:'Factual correctness',instruction_following:'Instruction following',dialect_quality:'Dialect quality',natural_arabic:'Natural Arabic',concision:'Concision',context_continuity:'Context continuity',tool_correctness:'Tool correctness',hallucination_risk:'Hallucination risk',repetition_risk:'Repetition risk',contamination_concern:'Evaluation contamination concern'};
 const phase38Coverage={instruction_following:'Instruction following',verbosity_focus:'Verbosity control',constraint_following:'Constraint following',tool_behavior:'Tool behavior',capability_understanding:'Capability understanding',fabricated_tool_prevention:'Prevent fabricated tool execution',hallucination_prevention:'Prevent hallucinations',context_understanding:'Context handling',conversational_continuity:'Conversation continuity',najdi_saudi_dialect:'Saudi/Najdi dialect',natural_arabic:'Natural Arabic',repetition_prevention:'Prevent repetition',factual_accuracy:'Factual accuracy'};
 const phase38Types={sft:'Short conversation (SFT)',multi_turn:'Multi-turn conversation',native_tool_use:'Native tool use'};

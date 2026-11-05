@@ -56,7 +56,7 @@ CONTEXT_PRESETS = [
     {"id": "balanced", "context_budget": 8192, "reply_reserve": 2048},
     {"id": "long", "context_budget": 16384, "reply_reserve": 3072},
 ]
-from .unsloth_export import create_handoff, read_handoff
+from .unsloth_export import create_handoff, list_handoffs, read_handoff
 from . import language_taxonomy
 from .training_models import TrainingModels
 from .dataset_platform import (
@@ -378,6 +378,9 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(self.server.training().inspect(repo))
             elif parsed.path == '/api/v1/models/library':
                 self._json(self.server.models().store.library())
+            elif parsed.path == '/api/v1/unsloth-exports':
+                version = query.get('version')
+                self._json(list_handoffs(version if version else None))
             elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
                 raw = read_handoff(*match.groups())
                 self._headers(HTTPStatus.OK, 'application/octet-stream', len(raw))
@@ -580,6 +583,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                             include_demo=include_demo,
                             filters=data.get("filters") or {},
                             selection=selection,
+                            expected_fingerprint=data.get("fingerprint") if isinstance(data.get("fingerprint"), str) else None,
                         ),
                     },
                     HTTPStatus.CREATED,

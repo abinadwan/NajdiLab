@@ -4,7 +4,7 @@ const {spawn}=require('node:child_process');
 const {test}=require('node:test');
 const puppeteer=require('puppeteer-core');
 
-const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','dataset',
+const VIEWS=['dashboard','chat','models','review-queue','conversations','reviewed','add-data','manual-data','prepare','my-versions','dataset',
   'dataset-health','balancer','dataset-versions','eval-sets','exports','analytics','settings'];
 const FOCUSABLE='a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex="-1"])';
 
@@ -86,15 +86,15 @@ test('keyboard and assistive technology acceptance in Chromium',async t=>{
       await page.waitForSelector('#view-reviewed.active');
       assert.equal(await page.$eval('.nav-item[data-view="reviewed"]',e=>e.getAttribute('aria-current')),'page');
       assert.equal(await page.$$eval('.nav-item[aria-current="page"]',els=>els.length),1);
-      await page.focus('.nav-item[data-view="manual-data"]');await page.keyboard.press('Space');
-      await page.waitForSelector('#view-manual-data.active');
+      await page.focus('.nav-item[data-view="my-versions"]');await page.keyboard.press('Space');
+      await page.waitForSelector('#view-my-versions.active');
       assert.equal(await page.$eval('.nav-item[data-view="reviewed"]',e=>e.hasAttribute('aria-current')),false);
     });
 
     await t.test('collapsed sidebar keeps every destination named',async()=>{
       await page.click('#collapse-sidebar');
       const names=await page.$$eval('.nav-item',els=>els.map(e=>{const label=e.querySelector('.nav-label');return [label.textContent.trim(),getComputedStyle(label).display!=='none',label.getBoundingClientRect().width<=1];}));
-      assert.equal(names.length,17);
+      assert.equal(names.length,11);
       for(const [name,rendered,hidden] of names)assert.ok(name&&rendered&&hidden,'label is visually hidden but present: '+name);
       const unnamed=(await unnamedFocusable()).filter(x=>x.includes('nav-item'));
       assert.deepEqual(unnamed,[]);

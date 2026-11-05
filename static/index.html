@@ -45,20 +45,10 @@
           <button class="nav-item" data-view="conversations" title="Conversations"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-messages"/></svg></span><span class="nav-label">Conversations</span></button>
           <button class="nav-item" data-view="reviewed" title="Reviewed"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-reviewed"/></svg></span><span class="nav-label">Reviewed</span></button>
         </div>
-        <div class="nav-section" role="group" aria-labelledby="nav-group-data"><span class="nav-group" id="nav-group-data">Data entry</span>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-data"><span class="nav-group" id="nav-group-data">Data</span>
           <button class="nav-item" data-view="add-data" title="Add data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-add"/></svg></span><span class="nav-label">Add data</span></button>
-          <button class="nav-item" data-view="manual-data" title="Manual data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-table"/></svg></span><span class="nav-label">Manual data</span></button>
-        </div>
-        <div class="nav-section" role="group" aria-labelledby="nav-group-datasets"><span class="nav-group" id="nav-group-datasets">Datasets</span>
-          <button class="nav-item" data-view="prepare" title="Prepare training data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Prepare training data</span></button>
-          <button class="nav-item" data-view="dataset" title="Dataset records"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-database"/></svg></span><span class="nav-label">Dataset records</span></button>
-          <button class="nav-item" data-view="dataset-health" title="Dataset health"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-health"/></svg></span><span class="nav-label">Dataset health</span></button>
-          <button class="nav-item" data-view="balancer" title="Dataset balancer"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-balance"/></svg></span><span class="nav-label">Dataset balancer</span></button>
-          <button class="nav-item" data-view="dataset-versions" title="Dataset versions"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-layers"/></svg></span><span class="nav-label">Dataset versions</span></button>
-          <button class="nav-item" data-view="eval-sets" title="Evaluation sets"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Evaluation sets</span></button>
-        </div>
-        <div class="nav-section" role="group" aria-labelledby="nav-group-export"><span class="nav-group" id="nav-group-export">Export</span>
-          <button class="nav-item" data-view="exports" title="Export center"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-export"/></svg></span><span class="nav-label">Export center</span></button>
+          <button class="nav-item" data-view="prepare" title="Prepare data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Prepare data</span></button>
+          <button class="nav-item" data-view="my-versions" title="My versions"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-layers"/></svg></span><span class="nav-label">My versions</span></button>
         </div>
         <div class="nav-section" role="group" aria-labelledby="nav-group-system"><span class="nav-group" id="nav-group-system">Administration</span>
           <button class="nav-item" data-view="analytics" title="Analytics"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-analytics"/></svg></span><span class="nav-label">Analytics</span></button>
@@ -81,7 +71,7 @@
         <p id="page-subtitle">Dataset status and local workflows in one place.</p>
       </div>
 
-      <section id="view-chat" class="view">
+      <section id="view-chat" class="view" aria-busy="true">
         <div class="chatv2" id="chat-shell" data-sidebar="open">
           <aside class="chatv2-sidebar panel" id="chat-sidebar" aria-label="Conversation list">
             <div class="chatv2-sidebar-head">
@@ -397,6 +387,7 @@
       </section>
 
       <section id="view-manual-data" class="view">
+        <div class="subtabs" role="tablist" aria-label="Add data"><button role="tab" aria-selected="false" type="button" data-add-new>New record</button><button class="active" role="tab" aria-selected="true" type="button">My records</button></div>
         <div id="manual-stats" class="stat-grid"></div>
         <div class="manual-filters panel">
           <input id="manual-search" aria-label="Search data records" type="search" placeholder="Search content, source, or notes…">
@@ -430,7 +421,7 @@
       <section id="view-add-data" class="view">
         <div class="subtabs" role="tablist" aria-label="Data type">
           <button class="active" role="tab" aria-selected="true" aria-controls="form-sft" data-add-tab="sft">Conversation / SFT</button><button role="tab" aria-selected="false" aria-controls="form-direct" data-add-tab="direct">Direct language text</button><button role="tab" aria-selected="false" aria-controls="form-preference" data-add-tab="preference">Preference pair / DPO</button>
-        </div>
+        <button role="tab" aria-selected="false" type="button" data-add-records>My records</button></div>
         <form id="form-sft" class="data-form panel active">
           <div class="form-intro"><h2>Manual conversation</h2><p>Add a short or multi-turn conversation while preserving context order.</p></div>
           <div id="sft-turns" class="turn-builder"></div>
@@ -438,6 +429,7 @@
           <div class="form-grid"><span class="taxonomy-host" data-taxonomy-host></span><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
           <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
+          <label class="inline-check"><input name="evaluation_only" type="checkbox"> Evaluation only: held out from training to measure quality</label>
           <button class="button primary" type="submit">Save conversation</button>
         </form>
         <form id="form-direct" class="data-form panel">
@@ -446,6 +438,7 @@
           <div class="form-grid"><span class="taxonomy-host" data-taxonomy-host></span><label>Source<input name="source"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="imported">Imported</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
           <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
+          <label class="inline-check"><input name="evaluation_only" type="checkbox"> Evaluation only: held out from training to measure quality</label>
           <button class="button primary" type="submit">Save text</button>
         </form>
         <form id="form-preference" class="data-form panel">
@@ -455,34 +448,61 @@
           <div class="form-grid"><span class="taxonomy-host" data-taxonomy-host></span><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="ai_arena">AI Arena</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
           <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
+          <label class="inline-check"><input name="evaluation_only" type="checkbox"> Evaluation only: held out from training to measure quality</label>
           <button class="button primary" type="submit">Save preference pair</button>
         </form>
       </section>
 
       <section id="view-prepare" class="view">
-        <div class="panel chat-intro"><h2>Prepare training data</h2><p>One path from eligible records to a frozen Gold version and an Unsloth export. Dataset Records, Dataset Health, the Balancer, Dataset Versions, Evaluation Sets and the Export Center stay available for detailed work.</p></div>
-        <section class="panel prepare-step" aria-labelledby="prepare-step1"><h3 id="prepare-step1">1. Choose records</h3>
-          <p>Every eligible record is listed. Leave out any record you do not want in this version; open a preview to read it first.</p>
-          <div class="toolbar"><button id="prepare-all" type="button" class="button ghost">Select all</button><button id="prepare-none" type="button" class="button ghost">Select none</button>
+        <ol class="prepare-stepper" aria-label="Steps">
+          <li><button type="button" class="prepare-stepper-item" data-step="1" aria-current="step"><span class="prepare-step-number">1</span> Choose data</button></li>
+          <li><button type="button" class="prepare-stepper-item" data-step="2" disabled><span class="prepare-step-number">2</span> Check and prepare</button></li>
+          <li><button type="button" class="prepare-stepper-item" data-step="3" disabled><span class="prepare-step-number">3</span> Create and export</button></li>
+        </ol>
+        <section id="prepare-panel-1" class="panel prepare-step" aria-labelledby="prepare-step1">
+          <h2 id="prepare-step1">1. Choose data</h2>
+          <p>Every eligible record is listed and chosen to start with. Leave out anything you do not want. Filters only change what is shown; your choice is kept.</p>
+          <div class="toolbar prepare-filters">
             <label for="prepare-type">Type</label><select id="prepare-type"><option value="">All types</option><option value="sft">Single-turn</option><option value="multi_turn">Multi-turn</option><option value="direct_language">Direct language</option><option value="preference_pair">Preference pair</option></select>
-            <span id="prepare-count" role="status" aria-live="polite"></span></div>
-          <div id="prepare-records" class="prepare-records"></div></section>
-        <section class="panel prepare-step" aria-labelledby="prepare-step2"><h3 id="prepare-step2">2. Check quality, duplicates, privacy and compatibility</h3>
-          <p>Runs every check a version build runs, for exactly the chosen records. Nothing is written.</p>
-          <button id="prepare-check" type="button" class="button primary">Check selected records</button>
-          <p id="prepare-check-status" role="status" aria-live="polite"></p><div id="prepare-problems"></div></section>
-        <section class="panel prepare-step" aria-labelledby="prepare-step3"><h3 id="prepare-step3">3. Training and evaluation</h3>
-          <p>Evaluation records are kept apart by conversation, so no conversation is used for both. Records marked evaluation only always go to evaluation; with at least 20 records, part of the rest is held out automatically.</p>
-          <div id="prepare-split" role="status" aria-live="polite"></div></section>
-        <section class="panel prepare-step" aria-labelledby="prepare-step4"><h3 id="prepare-step4">4. Create the version and export</h3>
-          <p>The version is frozen with its files, hashes and diagnostics. Earlier versions are never changed.</p>
-          <button id="prepare-create" type="button" class="button primary" disabled>Create Gold version</button>
+            <label for="prepare-source">Source</label><select id="prepare-source"><option value="">All sources</option><option value="manual">Manual</option><option value="collected">Collected</option></select>
+            <label for="prepare-split-filter">Use</label><select id="prepare-split-filter"><option value="">Training and evaluation</option><option value="training">Training</option><option value="evaluation_only">Evaluation only</option></select>
+            <label for="prepare-language">Language</label><select id="prepare-language"><option value="">All languages</option></select>
+          </div>
+          <div class="toolbar"><button id="prepare-all" type="button" class="button ghost">Choose all shown</button><button id="prepare-none" type="button" class="button ghost">Leave out all shown</button>
+            <span id="prepare-count" class="prepare-count" role="status" aria-live="polite"></span></div>
+          <div id="prepare-records" class="prepare-records"></div>
+          <details id="prepare-selection-review"><summary>Review the chosen records</summary><ul id="prepare-selection-list" class="prepare-selection-list"></ul></details>
+          <div class="prepare-nav"><button id="prepare-check" type="button" class="button primary">Check the chosen records</button></div>
+        </section>
+        <section id="prepare-panel-2" class="panel prepare-step" aria-labelledby="prepare-step2" hidden>
+          <h2 id="prepare-step2">2. Check and prepare</h2>
+          <p>NajdiLab checks quality, duplicates, privacy, eligibility, context, the training and evaluation split, and export compatibility, exactly as the version will be built. Nothing is changed or written.</p>
+          <p id="prepare-status" class="prepare-status" role="status" aria-live="polite"></p>
+          <div id="prepare-summary"></div>
+          <div id="prepare-problems"></div>
+          <details id="prepare-advanced"><summary>Advanced details</summary><div id="prepare-advanced-body"></div></details>
+          <div class="prepare-nav"><button id="prepare-back-1" type="button" class="button ghost">Back to choosing</button><button id="prepare-next-3" type="button" class="button primary" disabled>Continue</button></div>
+        </section>
+        <section id="prepare-panel-3" class="panel prepare-step" aria-labelledby="prepare-step3" hidden>
+          <h2 id="prepare-step3">3. Create and export</h2>
+          <div id="prepare-final"></div>
+          <label class="inline-check"><input id="prepare-confirm" type="checkbox"> Create a frozen Gold version with exactly these records. It cannot be changed afterwards.</label>
+          <div class="prepare-nav"><button id="prepare-back-2" type="button" class="button ghost">Back</button><button id="prepare-create" type="button" class="button primary" disabled>Create Gold version</button></div>
           <div id="prepare-created" role="status" aria-live="polite"></div>
           <div id="prepare-export" hidden><fieldset class="unsloth-profiles"><legend>Training tool</legend>
-            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_chat" checked> <span><strong>Unsloth Studio — SFT (chat)</strong></span></label>
-            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_alpaca"> <span><strong>Unsloth Studio — SFT (Alpaca)</strong></span></label>
-            <label class="inline-check"><input type="radio" name="prepare-profile" value="trl_prompt_completion"> <span><strong>Unsloth / TRL in Python</strong></span></label></fieldset>
-            <button id="prepare-export-go" type="button" class="button primary">Create Unsloth handoff</button><div id="prepare-export-result" role="status" aria-live="polite"></div></div></section>
+            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_chat" checked> <span><strong>Unsloth Studio — SFT (chat)</strong><small>Recommended for Studio. Earlier turns become context, never targets.</small></span></label>
+            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_alpaca"> <span><strong>Unsloth Studio — SFT (Alpaca)</strong><small>Instruction, input and output.</small></span></label>
+            <label class="inline-check"><input type="radio" name="prepare-profile" value="trl_prompt_completion"> <span><strong>Unsloth / TRL in Python</strong><small>Needs completion_only_loss=True. Not for Unsloth Studio.</small></span></label></fieldset>
+            <button id="prepare-export-go" type="button" class="button primary">Create Unsloth export</button><div id="prepare-export-result" role="status" aria-live="polite"></div></div>
+        </section>
+      </section>
+      <section id="view-my-versions" class="view">
+        <div class="panel chat-intro"><h2>My versions</h2><p>Every Gold version you created. A frozen version never changes: to include different records, create a new version in Prepare data.</p></div>
+        <div id="versions-list" class="versions-list"></div>
+        <details class="panel advanced-tools"><summary>Advanced tools</summary>
+          <p>Detailed pages for specialists. The normal path does not need them.</p>
+          <div class="toolbar"><button type="button" class="button ghost" data-advanced-view="dataset">Dataset records</button><button type="button" class="button ghost" data-advanced-view="dataset-health">Dataset health</button><button type="button" class="button ghost" data-advanced-view="balancer">Dataset balancer</button><button type="button" class="button ghost" data-advanced-view="dataset-versions">Version details</button><button type="button" class="button ghost" data-advanced-view="eval-sets">Evaluation sets</button><button type="button" class="button ghost" data-advanced-view="exports">Export center</button></div>
+        </details>
       </section>
       <section id="view-dataset" class="view">
         <div id="dataset-stats" class="stat-grid"></div>
@@ -613,6 +633,7 @@
   <script src="/models.js" defer></script>
   <script src="/training-models.js" defer></script>
   <script src="/prepare-data.js" defer></script>
+  <script src="/my-versions.js" defer></script>
 </body>
 </html>
 
