@@ -51,7 +51,7 @@ Source/registry hashes were reviewed and repinned for the two changed protected 
 
 ## Safe persistent Windows upgrade
 
-Target: `C:\Users\Admin\NajdiLab-PR19-20-Local`, URL `http://127.0.0.1:8870`. The installation contains real user data. Tests use separate temporary roots only.
+Target: `%USERPROFILE%\NajdiLab-PR19-20-Local`, URL `http://127.0.0.1:8870`. The installation contains real user data. Tests use separate temporary roots only.
 
 Before changing source: require clean tracked source at the expected old SHA; compare all seven migration sources/registry; verify exact listener PID plus creation time and command line; verify no active Chat request; stop only this owned instance. A private backup must include a SQLite online-backup snapshot with full `integrity_check`, data, exports, datasets, existing backups, config, .env and launcher files, plus a git bundle for the old source. Verify SHA-256 of every copied file and logical database digest. Do not upload backup manifests, data or settings to GitHub.
 

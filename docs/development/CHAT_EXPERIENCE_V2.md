@@ -138,7 +138,7 @@ PR #21 reconciliation, security review, permanent-deletion audit and UX/UI phase
 
 ## Local installation update
 
-**Blocked — not performed.** The permanent installation (`C:\Users\Admin\NajdiLab-PR19-20-Local`, port 8870) is on the owner's Windows computer. According to PR #21's description it now runs PR #21 (`95e7604`, seven migrations); moving it to PR #22 applies migration 008 and needs the checklist below and [WINDOWS_ACCEPTANCE.md](WINDOWS_ACCEPTANCE.md) first. No computer was attached to this cloud session (`list_computer_folders` returned none), so its source, services, database and backups could not be inspected, backed up or updated. Nothing on that machine was touched. Owner steps when ready are in [Rollback](#rollback) and the update checklist below.
+**Blocked — not performed.** The permanent installation (`%USERPROFILE%\NajdiLab-PR19-20-Local`, port 8870) is on the owner's Windows computer. According to PR #21's description it now runs PR #21 (`95e7604`, seven migrations); moving it to PR #22 applies migration 008 and needs the checklist below and [WINDOWS_ACCEPTANCE.md](WINDOWS_ACCEPTANCE.md) first. No computer was attached to this cloud session (`list_computer_folders` returned none), so its source, services, database and backups could not be inspected, backed up or updated. Nothing on that machine was touched. Owner steps when ready are in [Rollback](#rollback) and the update checklist below.
 
 Update checklist for the owner (do not skip any step):
 1. Stop NajdiLab on port 8870. Do not stop Ollama or LM Studio.

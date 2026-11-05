@@ -274,7 +274,7 @@ def _apply_migration(conn: sqlite3.Connection, name: str, sql: str) -> None:
 
 
 def backup_before_migration(conn: sqlite3.Connection, db_path: Path, first_pending: str) -> Path:
-    """A consistent copy of an existing database, written before its schema changes (V2.2.0).
+    """A consistent copy of an existing database, written before its schema changes.
 
     Schema changes are not automatically reversible; to undo an upgrade, stop NajdiLab and replace the
     database with this file (see docs/development/LANGUAGE_METADATA.md). Fresh databases have nothing

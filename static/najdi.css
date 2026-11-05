@@ -668,3 +668,5 @@ dialog{color:var(--ink)}
 /* Language metadata fields sit directly in the surrounding form grid */
 .taxonomy-host{display:contents}
 .taxonomy-host input{margin-top:6px}
+.export-guide ol{margin:6px 0;padding-inline-start:20px}
+.unsloth-readiness p{margin:2px 0}

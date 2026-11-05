@@ -1,5 +1,7 @@
 # Najdi Lab V2.1.0 — development candidate
 
+> Superseded by [V2.2.0](RELEASE_NOTES_V2.2.0.md). Kept as the record of V2.1.0.
+
 **Status:** development candidate on `update-project`, Draft PR #23. V2.1.0 is the owner-approved product version identifier; it is **not** a public release, a production approval or a merge to `main`.
 
 **Why V2.1.0 (SemVer minor):** a new user-facing capability — the unified chat composer with one runtime-preparation path — with no incompatible API or data change. Existing conversations, reviews, datasets, migrations, downloaded models and the managed runtime keep working unchanged. Everything in [V2.0.0](RELEASE_NOTES_V2.0.0.md) is included.

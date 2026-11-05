@@ -1,4 +1,4 @@
-"""Language metadata for data records: four independent dimensions (V2.2.0).
+"""Language metadata for data records: four independent dimensions.
 
 The former single "language layer" mixed a language (Arabic), varieties (Najdi, Saudi neutral, MSA), a
 register (formal) and a domain (technical). Records now describe:

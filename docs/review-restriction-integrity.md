@@ -196,11 +196,11 @@ prove mobile/small-window usability, or establish the precise rendering cause
 of the default-viewport click failure. Separate responsive acceptance is still
 needed; it is outside this narrow follow-up.
 
-Run from `C:\Users\Admin\Documents\NajdiLab-PR14` with the existing environment:
+Run from `%USERPROFILE%\Documents\NajdiLab-PR14` with the existing environment:
 
 ```powershell
-$env:NODE_PATH='C:\Users\Admin\Documents\NajdiLab-PR14-BrowserTools\node_modules'
-$env:PYTHON='C:\Users\Admin\Documents\NajdiLab-Test\.venv\Scripts\python.exe'
+$env:NODE_PATH='%USERPROFILE%\Documents\NajdiLab-PR14-BrowserTools\node_modules'
+$env:PYTHON='%USERPROFILE%\Documents\NajdiLab-Test\.venv\Scripts\python.exe'
 $env:PYTHONDONTWRITEBYTECODE='1'
 $env:NAJDILAB_BROWSER_EXECUTABLE='C:\Program Files\Google\Chrome\Application\chrome.exe'
 $env:NAJDILAB_DISPOSABLE_OLLAMA='0'

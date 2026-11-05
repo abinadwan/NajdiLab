@@ -1634,7 +1634,7 @@ def _insert_training_item(table: str, data: dict[str, Any], db_path: Path | str)
     exclude = _bool(data.get("exclude_from_training"))
     eligible = 0 if evaluation_only or exclude else _bool(data.get("training_eligible"))
     now = utc_now()
-    # Language metadata (V2.2.0): four dimensions; a legacy-only client gets the certain mapping of its layer.
+    # Language metadata: four dimensions; a legacy-only client gets the certain mapping of its layer.
     described = {field: data.get(field) for field in language_taxonomy.FIELDS if data.get(field) not in (None, "")}
     if not any(described.get(field) for field in ("language", "dialect", "style")):
         described = {**language_taxonomy.from_legacy(data.get("language_layer")), **described}
@@ -2469,7 +2469,7 @@ def create_export(
             }
             # Diagnostics belong to the version from its first moment: generate them in the staging folder,
             # bound to this version name and the training files' fingerprint, before it is published as
-            # Frozen (V2.2.0; earlier versions needed a derived Draft just to obtain them).
+            # Frozen (earlier versions needed a derived Draft just to obtain them).
             from .dataset_platform import _generate_training_diagnostics
             _generate_training_diagnostics(temp_dir, manifest)
             # Diagnostics are part of the version's content: hash them like every other file.

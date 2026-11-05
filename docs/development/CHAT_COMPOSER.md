@@ -65,7 +65,7 @@ Before anything is approved the Native path already runs the existing start gate
 
 Fixed during testing: the switch dialog never received `close` in the desktop app's browser (now settled by its buttons); an approved Ollama preparation re-asked instead of sending (the approved result now carries into creating the chat); a refused over-long message's bubble stayed until the lists refreshed; the model menu could extend past a 225 px-high screen; the collapsed-sidebar copyright kept its padding; in Chat information a long unbreakable value (SHA-256 identity) took the whole row and overlapped its label (value column now capped with `fit-content(65%)`; `chat-browser` checks it and fails on the old rule); on the installed copy the model menu opened only ~0.7–0.9 s after a click because every listing re-parsed each GGUF header (Gemma 4 E4B 487 ms, Qwen 186 ms) — `NativeRuntime` now keeps parsed headers per file identity (size, mtime, file id), so a later listing takes about 1 ms and a replaced file is read again (`tests/test_native_runtime.py`). In Arabic, Chat information showed token counts as "32768 tokens" because the whole value was an untranslated identifier; the number stays an identifier and the unit is now translated ("32768 رمزًا"), checked by `i18n-browser`.
 
-### Installed test copy (`C:\Users\Admin\NajdiLab-Update-Test`, http://127.0.0.1:8870, 2026-11-04)
+### Installed test copy (`%USERPROFILE%\NajdiLab-Update-Test`, http://127.0.0.1:8870, 2026-11-04)
 
 Updated in place by fast-forward (no reinstall); only the NajdiLab launcher/server processes were restarted. Real models on the RTX 5070, NajdiLab Native llama.cpp `b12059-1b6935b22`:
 

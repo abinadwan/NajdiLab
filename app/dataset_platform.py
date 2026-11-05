@@ -666,7 +666,7 @@ def dataset_health(version: str) -> dict[str, Any]:
     eval_rows = [row for name in EVAL_FILES for row in rows_by_file.get(name, [])]
     eval_sources = {_conversation(row) or f"record:{row.get('id', '')}" for row in eval_rows}
     source_count = balance.get("conversation_count")
-    # Three separate questions (V2.2.0): one READY label cannot answer them all.
+    # Three separate questions: one READY label cannot answer them all.
     separated = {
         "structural": {"status": "VALID" if not training_errors else "INVALID", "errors": training_errors,
                        "diagnostics_source": diagnostics_source,

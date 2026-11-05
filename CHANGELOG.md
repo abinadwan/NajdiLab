@@ -1,5 +1,19 @@
 # Changelog
 
+## V2.2.0 — development candidate (2026-11-05, `update-project`, Draft PR #23; not a release)
+
+**Version step:** minor (2.1.0 → 2.2.0): new user-facing capabilities without incompatible API or data changes for existing records; migration 010 adds columns and keeps every value, after an automatic database copy.
+
+- **Unsloth Studio export (training correctness):** export profiles `studio_chat` (default), `studio_alpaca` and `trl_prompt_completion`; in the Studio profiles each record's only training target is its approved answer. `scripts/verify_unsloth_studio.py` checks every record with Unsloth Studio's own formatting and masking. On the real `gold-v001`, the original export trained earlier answers in 8 of 10 records (1,096 extra tokens); both Studio profiles train exactly the 554 approved-answer tokens.
+- **Diagnostics and readiness:** diagnostics are stored (and hashed) when a version is created; older frozen versions are diagnosed read-only; readiness is reported as structural validity, training compatibility and evaluation readiness; zero evaluation samples is never evaluation-ready.
+- **Dataset quality:** source-diversity statistics and a guidance-only stage; cross-split shared-context (blocker) and near-duplicate (warning) detection.
+- **Language metadata:** language, dialect / variety, style and domain; custom values; Arabic dialects only for Arabic; migration 010 (lossless, ids and counters kept); pre-migration database copy in `data/backups/`.
+- **Chat:** NajdiLab Native first in the model menu (opt-in for LM Studio / Ollama; old conversations stay readable); memory is checked before a running model is stopped.
+- **Models:** runtime downloads resume after a dropped connection; Model library → Training models (Safetensors checkpoints, approval and license acknowledgement, per-file verification, read-only Hugging Face cache listing).
+- **Usability:** Export Center guide and readiness summary; optional data-entry presets; Arabic for every new text.
+- **Public readiness:** security review; personal paths removed from documentation; README corrected without changing its design.
+- **Also fixed:** the public Core candidate rejected the new diagnostic files (fixed in this batch); a dialect list that updated the wrong form; a model menu that waited 0.8 s on GGUF header parsing (V2.1.0 follow-up).
+
 ## V2.1.0 — development candidate (2026-11-04, `update-project`, Draft PR #23; not a release)
 
 **Version step:** minor (2.0.0 → 2.1.0): a new user-facing capability without incompatible API or data changes. From this batch on, each owner-approved batch of features or fixes gets one SemVer step recorded here with its reason; commits within a batch do not bump the version.

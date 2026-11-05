@@ -1,6 +1,6 @@
 # Real GPU and model acceptance (V2.0.0)
 
-**Date:** 2026-11-04. **Machine:** Windows 11, NVIDIA GeForce RTX 5070 12 GB (compute capability 12.0, driver 621.01, CUDA 13.5), 31.7 GB RAM. **Application:** disposable test installation `C:\Users\Admin\NajdiLab-Update-Test` at http://127.0.0.1:8870, `update-project` commit `4fd2091`, product version V2.0.0. **Approvals:** the owner approved this run (CUDA runtime with the NVIDIA CUDA Toolkit EULA, and the Qwen test model). Every step went through the application's own approval controls.
+**Date:** 2026-11-04. **Machine:** Windows 11, NVIDIA GeForce RTX 5070 12 GB (compute capability 12.0, driver 621.01, CUDA 13.5), 31.7 GB RAM. **Application:** disposable test installation `%USERPROFILE%\NajdiLab-Update-Test` at http://127.0.0.1:8870, `update-project` commit `4fd2091`, product version V2.0.0. **Approvals:** the owner approved this run (CUDA runtime with the NVIDIA CUDA Toolkit EULA, and the Qwen test model). Every step went through the application's own approval controls.
 
 ## 1. What was done, in order
 

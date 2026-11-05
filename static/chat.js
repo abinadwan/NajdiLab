@@ -198,7 +198,7 @@
   const el=id=>document.getElementById(id);
   const tr=text=>global.NajdiI18n?global.NajdiI18n.t(text):text;
   const SELECTION_KEY='najdilab.chat.selection';
-  // Native-first (V2.2.0): new chats use NajdiLab Native. LM Studio and Ollama stay readable in existing
+  // Native-first: new chats use NajdiLab Native. LM Studio and Ollama stay readable in existing
   // conversations and can be offered again from Settings → Models & Integrations.
   const LEGACY_PROVIDERS_KEY='najdilab.chat.legacyProviders';
   function legacyProviders(){try{return global.localStorage.getItem(LEGACY_PROVIDERS_KEY)==='1';}catch{return false;}}
@@ -1028,6 +1028,25 @@
     }
     const legacy=el('chat-legacy-providers');
     if(legacy){legacy.checked=legacyProviders();legacy.onchange=()=>{try{global.localStorage.setItem(LEGACY_PROVIDERS_KEY,legacy.checked?'1':'0');}catch{}};}
+    // What the chosen version is ready for, before anything is exported.
+    const READY_TEXT={VALID:'Valid',INVALID:'Invalid',STRUCTURE_CHECKED:'Structure checked',BLOCKED:'Blocked',NO_EVALUATION_DATA:'No evaluation data',
+      LEAKAGE_DETECTED:'Leakage detected',INDEPENDENT_SAMPLES_AVAILABLE:'Independent samples',technical_smoke_test:'Technical smoke test',
+      small_exploratory:'Small exploratory',measurable_evaluation:'Measurable evaluation'};
+    async function showReadiness(){
+      const version=el('unsloth-version').value,host=el('unsloth-readiness');host.replaceChildren();
+      if(!version)return;
+      try{
+        const health=await api(`/api/v1/dataset-versions/${encodeURIComponent(version)}/health`),r=health.readiness,s=health.statistics;
+        const line=(label,value)=>{const p=document.createElement('p');p.append(label,' ');const b=document.createElement('strong');b.textContent=READY_TEXT[value]||value;p.append(b);return p;};
+        host.append(line('Structural validity:',r.structural.status),line('Training compatibility:',r.training_compatibility.status),
+          line('Evaluation readiness:',r.evaluation.status),line('Dataset stage:',s.stage));
+        const facts=document.createElement('p');
+        compose(facts,[{id:String(s.training_records)},' ','training records',' · ',{id:String(s.independent_source_conversations)},' ','independent source conversations']);
+        host.append(facts);
+        if(r.evaluation.status==='NO_EVALUATION_DATA'){const warn=document.createElement('p');warn.className='warning';warn.textContent='No independent evaluation samples: training on this version can run, but it cannot show a quality change.';host.append(warn);}
+      }catch(error){host.textContent=error.message;}
+    }
+    el('unsloth-version').addEventListener('change',showReadiness);
     el('unsloth-create').onclick=async()=>{
       const button=el('unsloth-create'),host=el('unsloth-result');button.disabled=true;host.replaceChildren();
       try{

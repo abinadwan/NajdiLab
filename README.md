@@ -108,7 +108,7 @@ The web platform is independent of external training. SQLite records and filesys
 
 ## Current status
 
-**NOT READY FOR RELEASE.** The repository is private and requires authorized access. The owner approved **V2.1.0** as the product version identifier of the current development candidate (`update-project`, Draft PR #23); it is not a release or production approval ([release notes](docs/development/RELEASE_NOTES_V2.1.0.md); [V2.0.0](docs/development/RELEASE_NOTES_V2.0.0.md)). No active source license has been approved. Do not redistribute source or research artifacts.
+**NOT READY FOR RELEASE.** The repository is private and requires authorized access. The current development candidate is **V2.2.0** (`update-project`, Draft PR #23); it is not a release or production approval ([release notes](docs/development/RELEASE_NOTES_V2.2.0.md); [V2.1.0](docs/development/RELEASE_NOTES_V2.1.0.md); [V2.0.0](docs/development/RELEASE_NOTES_V2.0.0.md)). No active source license has been approved. Do not redistribute source or research artifacts.
 
 `main` holds the dataset-only platform (PR #11 cleanup and Phase A). Phase B (UX, bilingual operations — Draft PR #19) and Phase C (AI engine acceptance — Draft PR #20) are combined on `integration/pr19-pr20-local-20261102`. **Chat Experience V2 and NajdiLab Native are developed on `feature/chat-experience-v2`, stacked on that integration branch, in a separate Draft PR.** Nothing here is merged to `main` or accepted by the owner yet. [PROJECT_STATUS.md](PROJECT_STATUS.md) is the authoritative status reference; the [release decision](docs/public-release-decision.md) records publication gates.
 
@@ -116,8 +116,8 @@ The web platform is independent of external training. SQLite records and filesys
 
 | Area | ✅ Available on `main` | 🛠️ In development (draft branches, not merged) | 📋 Planned / not started |
 |---|---|---|---|
-| Review and datasets | Review queue, correction overlays, eligibility, privacy/exclusion, dedup, balance, holdout/leakage, immutable versions, Unsloth handoff | Phase B/C acceptance items (Draft PRs #19/#20) | Reviewer identity and multi-user roles |
-| Chat | Raw chat with exact context admission (LM Studio, Ollama) | **V2:** sidebar history, titles, search, pin, archive/restore, streaming, Stop, thinking panel, safe Markdown, Enter to send, phase timings, context usage indicator with 70/85/95 % notices; **V2.1.0:** model and context chosen in the message box, New chat without a dialog, one approved runtime-preparation path, read-only Chat information ([composer](docs/development/CHAT_COMPOSER.md)) | Editing or regenerating earlier turns |
+| Review and datasets | Review queue, correction overlays, eligibility, privacy/exclusion, dedup, balance, holdout/leakage, immutable versions, Unsloth handoff | Phase B/C acceptance items (Draft PRs #19/#20); **V2.2.0:** Unsloth Studio SFT export (chat or Alpaca) that trains only the approved answer, a token-level check with the trainer's own code, diagnostics stored when a version is created, separate structure / training / evaluation readiness, source-diversity statistics, language · dialect · style · domain metadata, training-model manager ([training correctness](docs/development/TRAINING_CORRECTNESS.md), [language metadata](docs/development/LANGUAGE_METADATA.md)) | Reviewer identity and multi-user roles |
+| Chat | Raw chat with exact context admission (LM Studio, Ollama) | **V2:** sidebar history, titles, search, pin, archive/restore, streaming, Stop, thinking panel, safe Markdown, Enter to send, phase timings, context usage indicator with 70/85/95 % notices; **V2.1.0:** model and context chosen in the message box, New chat without a dialog, one approved runtime-preparation path, read-only Chat information ([composer](docs/development/CHAT_COMPOSER.md)); **V2.2.0:** NajdiLab Native first (LM Studio and Ollama conversations stay readable; an opt-in offers them again), memory checked before a running model is stopped | Editing or regenerating earlier turns |
 | Local runtimes | LM Studio (pinned SDK 1.5.0), Ollama 0.40.13 | **NajdiLab Native** (llama.cpp `llama-server`, GGUF discovery, streaming); **Managed llama.cpp runtime** (pinned official build b12059, SHA-256-verified install on approval, GPU probe, rollback; CUDA 13.4 build verified on an RTX 5070; real-model chat accepted with Qwen2.5-0.5B and Gemma 4 E4B on that GPU); **Hugging Face Direct** (GGUF discovery, *Recommended for your device* ranked by the Smart Model Advisor, *Trending* in Hugging Face's own order with provenance labels and a 12B total-parameter limit, storage-safe verified downloads, model library) | Split (multi-file) GGUF, gated repositories, real models above about 8B (Qwen2.5-0.5B and Gemma 4 E4B accepted) |
 | Data retention | Logical delete, exclusion, archive | **Permanent chat deletion** with a declared scope and content-free tombstones | Erasure across frozen exports and backups |
 | Dataset collection | Consented single pairs, PENDING review only | **Segments:** single-turn and linked multi-turn records with context metadata; incomplete-context segments are review-only (PR #21 rule) | Automatic 60/40 multi/single balancing (experimental idea only) |
@@ -250,7 +250,7 @@ flowchart TB
   R --> V[Eligibility, privacy, quality, dedup, holdout]
   V -->|Pass| G[New dataset version - hashes and manifest]
   V -->|Fail| X[Blocked - review again or derive a new candidate]
-  G --> H[Unsloth prompt/completion handoff + provenance]
+  G --> H[Unsloth handoff - Studio chat or Alpaca, or TRL prompt/completion - with provenance]
   H -.->|outside NajdiLab| T[External training and evaluation]
 ```
 
@@ -288,7 +288,7 @@ SQLite connections enable WAL, foreign keys and a busy timeout. Composite writes
 
 ## Optional training infrastructure
 
-Training is **outside** NajdiLab. The internal trainer, WSL worker and model acquisition/merge/GGUF/deployment code were removed in PR #11; existing private evidence and applied migrations were preserved. NajdiLab produces an Unsloth/TRL handoff (prompt/completion JSONL, provenance, manifest); the external operator must use `completion_only_loss=True`, `packing=False`, check the tokenizer/template and reject over-length records. Model weights, data rights and evaluation are the external operator's responsibility. [Dataset export contract](docs/dataset-export.md).
+Training is **outside** NajdiLab. The internal trainer, WSL worker and model acquisition/merge/GGUF/deployment code were removed in PR #11; existing private evidence and applied migrations were preserved. NajdiLab produces an Unsloth handoff (JSONL, provenance, manifest) for the tool you train with: **Unsloth Studio** (chat or Alpaca layout, each record's only training target is its approved answer; keep "Train on completions" on and packing off) or **Unsloth/TRL in Python** (prompt/completion with `completion_only_loss=True`). `scripts/verify_unsloth_studio.py` checks with your Unsloth Studio install which tokens it will train. Inference and training use different files: a **GGUF** model runs in NajdiLab Native (llama.cpp); training needs the matching **Safetensors** checkpoint (config, tokenizer and weights), which Model library → Training models can check and download with your approval. Reject over-length records rather than truncating them. Model weights, data rights and evaluation are the external operator's responsibility. [Dataset export contract](docs/dataset-export.md).
 
 ## Project structure
 

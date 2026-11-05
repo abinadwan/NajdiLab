@@ -343,6 +343,14 @@ const puppeteer=require('puppeteer-core');
     await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Record saved'));
     const savedText=await page.evaluate(async()=>(await window.api('/api/v1/manual-data?type=direct&search=synthetic%20English%20paragraph')).items[0]);
     assert.deepEqual([savedText.language,savedText.dialect,savedText.domain,savedText.language_layer],['en',null,'Tourism',null]);
+    // V2.2.0 optional presets prefill new records only; "None" (the default) prefills nothing.
+    const presetValues=()=>page.$eval('#form-direct',f=>['language','dialect','style','domain'].map(n=>f.querySelector(`select[data-taxonomy="${n}"]`).value));
+    await page.select('#data-preset','najdi');
+    await page.waitForFunction(()=>document.querySelector('#form-direct select[data-taxonomy="dialect"]').value==='najdi_riyadh');
+    assert.deepEqual(await presetValues(),['ar','najdi_riyadh','conversational','general']);
+    await page.select('#data-preset','');
+    await page.waitForFunction(()=>document.querySelector('#form-direct select[data-taxonomy="language"]').value==='');
+    assert.deepEqual(await presetValues(),['','','','']);
     await page.click('[data-add-tab="sft"]');await page.waitForSelector('#form-sft.active');
     // UX-06: show every blocker and escape untrusted reasons in the persistent panel.
     await page.evaluate(()=>{

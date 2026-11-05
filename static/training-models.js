@@ -1,4 +1,4 @@
-/* Model library → Training models (V2.2.0): Safetensors checkpoints for external fine-tuning.
+/* Model library → Training models: Safetensors checkpoints for external fine-tuning.
    Inference models (GGUF, NajdiLab Native) and training models (config + tokenizer + Safetensors, used by
    Unsloth/TRL outside NajdiLab) are different files. Nothing downloads without approval and a license check. */
 (function(global){

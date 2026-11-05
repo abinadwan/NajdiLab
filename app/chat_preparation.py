@@ -137,7 +137,7 @@ class ChatPreparation:
         if not self._lock.acquire(blocking=False):
             raise IntegrationError('RUNTIME_PREPARING', 'NajdiLab Native is already being prepared. Wait a moment.', 409)
         try:
-            # Check memory before stopping anything (V2.2.0): a choice that cannot load must not end a healthy
+            # Check memory before stopping anything: a choice that cannot load must not end a healthy
             # session. The running model's memory is counted as free, since a restart releases it first.
             status = self.native.status()
             host = host_profile(self.snapshot(), status)

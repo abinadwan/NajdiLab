@@ -87,9 +87,11 @@
     "docs/development/NAJDI_LAB_REDESIGN.md",
     "docs/development/PERMANENT_DELETION_AUDIT.md",
     "docs/development/PR21_PR22_RECONCILIATION.md",
+    "docs/development/PUBLIC_READINESS.md",
     "docs/development/REAL_MODEL_ACCEPTANCE.md",
     "docs/development/RELEASE_NOTES_V2.0.0.md",
     "docs/development/RELEASE_NOTES_V2.1.0.md",
+    "docs/development/RELEASE_NOTES_V2.2.0.md",
     "docs/development/TRAINING_CORRECTNESS.md",
     "docs/development/WINDOWS_ACCEPTANCE.md",
     "docs/documentation-index.md",
@@ -369,7 +371,7 @@
     },
     "app/dataset_platform.py": {
       "destination": "app/dataset_platform.py",
-      "sha256": "269f9de7e03600fccc5deb51cda99d67cba3ed24766fa14071b0fe018d9ac786"
+      "sha256": "9ca926fee6ae926d10a6b247d3be5c55c1b2bba2daa2e2e08e7064725353c2ce"
     },
     "app/dataset_quality.py": {
       "destination": "app/dataset_quality.py",
@@ -377,7 +379,7 @@
     },
     "app/db.py": {
       "destination": "app/db.py",
-      "sha256": "f684c7c09f0638cc1288f9e27d69cfafff527c5add87365f5f8db21862eba924"
+      "sha256": "a3cbd2d34627f3da6c0d9d9d44664c052e2c98849a05b65f721c3558b0c47aed"
     },
     "app/http_security.py": {
       "destination": "app/http_security.py",
@@ -385,7 +387,7 @@
     },
     "app/language_taxonomy.py": {
       "destination": "app/language_taxonomy.py",
-      "sha256": "4c0d1541a318d77a6bd375eabe499e6ece2a5e210ee4d8d58d7818faf82a0b14"
+      "sha256": "1e4a900beb73ad6cef92ae8f02db705028b09fa527097e406bef55650ed47258"
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
@@ -397,7 +399,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "65e4aea952af230771a485f9679122efe67fda839332088719cfaf18a835de8e"
+      "sha256": "154be93bdef4bff979b212dd2bb9e86808acea0f37a5c2948298de96c7c41986"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",

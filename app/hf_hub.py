@@ -34,7 +34,7 @@ AUTHOR = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,95}\Z')
 COMMIT = re.compile(r'[0-9a-f]{40}\Z')
 SHA256 = re.compile(r'[0-9a-f]{64}\Z')
 GGUF_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,250}\.gguf\Z')
-# Training checkpoints (V2.2.0): top-level config, tokenizer and Safetensors files only, never code or pickles.
+# Training checkpoints: top-level config, tokenizer and Safetensors files only, never code or pickles.
 TRAINING_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,250}\.(?:json|safetensors|model|txt|jinja|tiktoken)\Z')
 SPLIT = re.compile(r'-\d{5}-of-\d{5}\.gguf\Z', re.IGNORECASE)
 QUANT = re.compile(r'(?<![A-Za-z0-9])((?:I?Q[1-8](?:_[0-9A-Z]{1,4}){0,3})|F16|BF16|F32|MXFP4(?:_MOE)?|TQ[12]_0)(?![A-Za-z0-9])',

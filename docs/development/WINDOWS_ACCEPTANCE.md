@@ -6,7 +6,7 @@ Tool: `scripts/acceptance_chat_v2.py` (validated on Linux for its non-GPU steps:
 
 ## Ground rules
 
-1. Use a **separate development checkout** (for example `C:\Users\Admin\NajdiLab-acceptance`), never `C:\Users\Admin\NajdiLab-PR19-20-Local`. The tool refuses to run inside the folder that holds `--database`.
+1. Use a **separate development checkout** (for example `%USERPROFILE%\NajdiLab-acceptance`), never `%USERPROFILE%\NajdiLab-PR19-20-Local`. The tool refuses to run inside the folder that holds `--database`.
 2. The permanent database is only **read** (SQLite online backup into a temporary folder). Migrations run on the copy. Nothing in the permanent installation is written, migrated or deleted.
 3. Do not stop the permanent NajdiLab, Ollama or LM Studio for this. Do not run memory stress tests on production processes. Each context is tried once; an out-of-memory start is reported as FAIL, not retried.
 4. Permanent deletion is tested only on synthetic data (the test suite); never on real conversations.
@@ -15,8 +15,8 @@ Tool: `scripts/acceptance_chat_v2.py` (validated on Linux for its non-GPU steps:
 ## Setup (isolated checkout)
 
 ```powershell
-git clone https://github.com/abinadwan/NajdiLab.git C:\Users\Admin\NajdiLab-acceptance
-cd C:\Users\Admin\NajdiLab-acceptance
+git clone https://github.com/abinadwan/NajdiLab.git %USERPROFILE%\NajdiLab-acceptance
+cd %USERPROFILE%\NajdiLab-acceptance
 git checkout feature/chat-experience-v2
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-chat.txt
@@ -29,7 +29,7 @@ $env:NODE_PATH = "$PWD\..\chat-browser-tools\node_modules"
 ```powershell
 .\.venv\Scripts\python.exe scripts\acceptance_chat_v2.py `
   --browser "C:\Program Files\Google\Chrome\Application\chrome.exe" `
-  --database "C:\Users\Admin\NajdiLab-PR19-20-Local\source\data\najdilab.db" `
+  --database "%USERPROFILE%\NajdiLab-PR19-20-Local\source\data\najdilab.db" `
   --llama-server "C:\tools\llama.cpp\llama-server.exe" --gguf "D:\models\gguf\<model>.gguf" --gpu-layers all `
   --ollama-model "gemma4-local:e4b" --approve-model-load `
   --contexts 4096,8192,16384 --report acceptance-report

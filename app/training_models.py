@@ -1,4 +1,4 @@
-"""Training models: Safetensors checkpoints for external fine-tuning (V2.2.0).
+"""Training models: Safetensors checkpoints for external fine-tuning.
 
 An inference model (GGUF, run by llama.cpp in NajdiLab Native) and a training model (a Hugging Face
 checkpoint: config, tokenizer and Safetensors weights, used by Unsloth/TRL outside NajdiLab) are different
