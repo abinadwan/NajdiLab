@@ -19,7 +19,7 @@ from uuid import uuid4
 
 from .db import DB_PATH, ROOT, connect, json_dumps, json_loads, redact_secrets, transaction, utc_now
 from . import language_taxonomy
-from .review_integrity import ExportReadinessError, export_readiness, export_privacy
+from .review_integrity import ExportReadinessError, export_readiness, export_privacy, resolve_selection
 from .review_lifecycle import append_event, validate_transition, LifecycleError
 from .collection_context import collection_context, INCOMPLETE_CONTEXT_WARNING
 
@@ -2306,8 +2306,11 @@ def create_export(
     exports_dir: Path | str | None = None,
     include_demo: bool = False,
     filters: dict[str, Any] | None = None,
+    selection: list[str] | None = None,
 ) -> dict[str, Any]:
-    readiness = export_readiness(db_path, include_demo=include_demo)
+    # `selection`: exactly these eligible records (ids as exported, e.g. "review:12", "manual_sft_items:3");
+    # None keeps every eligible record. Problems outside the selection are reported but cannot block it.
+    readiness = export_readiness(db_path, include_demo=include_demo, selection=selection)
     if not readiness["ok"]:
         raise ExportReadinessError(readiness)
     exports_dir = Path(exports_dir or ROOT / "exports")
@@ -2315,7 +2318,13 @@ def create_export(
     conn = connect(db_path)
     try:
         with transaction(conn):
-            privacy = export_privacy(conn,include_demo=include_demo)
+            try:
+                chosen = set(resolve_selection(conn, selection, include_demo=include_demo))
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from None
+            if chosen != set(readiness["selection"]):
+                raise ValidationError("The eligible records changed while the version was being prepared. Check again.")
+            privacy = export_privacy(conn, include_demo=include_demo, selection=sorted(chosen))
             if not privacy['ok']:
                 raise ExportReadinessError(privacy)
             number = conn.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM dataset_versions").fetchone()[0]
@@ -2356,6 +2365,8 @@ def create_export(
                 "direct_language_texts": [dict(x) for x in conn.execute("SELECT * FROM direct_language_texts")],
                 "preference_pairs": [dict(x) for x in conn.execute("SELECT * FROM preference_pairs")],
             }
+        training_entries = [(kind, item) for kind, item in training_entries if item.get('id') in chosen]
+        explicit_evaluation_entries = [(kind, item) for kind, item in explicit_evaluation_entries if item.get('id') in chosen]
         training_entries, evaluation, split_stats = _split_export_entries(
             training_entries, explicit_evaluation_entries
         )
@@ -2465,6 +2476,7 @@ def create_export(
                 "ignored_count": lifecycle_counts["ignored_count"],
                 "deleted_count": lifecycle_counts["deleted_count"],
                 "filters_used": {**(filters or {}), "include_demo": include_demo},
+                "selection": {"mode": "all_eligible" if selection is None else "explicit", "records": sorted(chosen)},
                 "validation": validation,
             }
             # Diagnostics belong to the version from its first moment: generate them in the staging folder,

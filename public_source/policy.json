@@ -302,6 +302,7 @@
     "tests/test_dataset_validation_extraction.py",
     "tests/test_docs_integrity.py",
     "tests/test_english_localization.py",
+    "tests/test_gold_selection.py",
     "tests/test_hf_direct.py",
     "tests/test_http_security.py",
     "tests/test_ingest_cli.py",
@@ -392,7 +393,7 @@
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
-      "sha256": "80a535e2871584fb3adde58f8377ab2bd8b6267fe79b54d25df9c8217fd9e8f2"
+      "sha256": "b1ed89842e9818bf752ae4607018d2155c7172d5ae80c761bbae655c1f08ede8"
     },
     "app/review_lifecycle.py": {
       "destination": "app/review_lifecycle.py",
@@ -400,7 +401,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "154be93bdef4bff979b212dd2bb9e86808acea0f37a5c2948298de96c7c41986"
+      "sha256": "931aaefea7d76c339176c83d78b4afbce7b381244f0ae52c46619cf09eeb48ba"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",
