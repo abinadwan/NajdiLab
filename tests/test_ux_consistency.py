@@ -13,36 +13,81 @@ def test_dashboard_uses_prepare_journey_and_independent_review():
     assert 'data-go="prepare"' in dashboard
     assert 'data-go="my-versions"' in dashboard
     assert 'data-go="review-queue"' in dashboard
-    assert all(label in dashboard for label in ('Choose data', 'Check and prepare', 'Create Gold and export'))
+    steps = dashboard.split('<ol class="workflow-steps">', 1)[1].split('</ol>', 1)[0]
+    assert re.findall(r'<strong>(.*?)</strong>', steps) == ['Choose data', 'Check and prepare', 'Approve Gold', 'Export']
     assert not re.search(r'data-go="(?:dataset-health|balancer|exports)"', dashboard)
 
 
-def test_specialist_tools_live_in_settings_only():
+def test_specialist_tools_have_an_independent_workspace_and_a_visible_mode_toggle():
     html = (ROOT / 'static/index.html').read_text(encoding='utf-8')
     versions = html.split('id="view-my-versions"', 1)[1].split('id="view-dataset"', 1)[0]
     settings = html.split('id="view-settings"', 1)[1]
+    workspace = html.split('id="advanced-workspace"', 1)[1].split('id="guided-wizard"', 1)[0]
+    wizard = html.split('id="guided-wizard"', 1)[1].split('id="view-my-versions"', 1)[0]
+    topbar = html.split('class="top-actions"', 1)[1].split('</header>', 1)[0]
     assert 'data-advanced-view' not in versions
+    assert 'data-advanced-view' not in wizard
+    assert 'id="workspace-mode"' in topbar
     assert 'id="advanced-mode"' in settings and 'data-advanced-only' in settings
-    for view in ('dataset', 'dataset-health', 'balancer', 'dataset-versions', 'eval-sets', 'exports'):
-        assert f'data-advanced-view="{view}"' in settings
+    assert 'data-go="prepare"' in settings
+    for view in ('manual-data', 'dataset-health', 'balancer', 'dataset-versions', 'eval-sets', 'exports'):
+        assert f'data-advanced-view="{view}"' in workspace
+    assert re.findall(r'id="prepare-panel-(\d)"', wizard) == ['1', '2', '3', '4']
+    css = (ROOT / 'static/workspace.css').read_text(encoding='utf-8')
+    assert '#advanced-workspace{display:none}' in css
+    assert 'html.advanced-mode #advanced-workspace{display:block}' in css
+    assert 'html.advanced-mode #guided-wizard{display:none}' in css
 
 
 def test_advanced_mode_defaults_off_and_survives_storage_failure():
     run_browser_script(r"""
 context.document.documentElement = {classList:{toggle(name, enabled){context.enabled=enabled;}}};
-context.localStorage = {getItem(){return null;}, setItem(){throw Error('blocked');}};
+context.document.getElementById = id => element('#'+id);
+context.navigations = [];
+vm.runInContext('switchView = view => navigations.push(view)', context);
+let savedDrafts = 0;
+context.window.NajdiPrepare = {save(){savedDrafts++;}};
+const writes = [];
+context.localStorage = {getItem(){return null;}, setItem(key,value){writes.push([key,value]);throw Error('blocked');}};
 vm.runInContext('initAdvancedMode()', context);
 assert.equal(element('#advanced-mode').checked, false);
+assert.equal(element('#workspace-mode').checked, false);
 assert.equal(context.enabled, false);
-element('#advanced-mode').checked = true;
-element('#advanced-mode').onchange();
+assert.deepEqual(context.navigations, []);
+element('#workspace-mode').checked = true;
+element('#workspace-mode').onchange();
 assert.equal(context.enabled, true);
-context.localStorage.getItem = () => '1';
+assert.equal(element('#advanced-mode').checked, true);
+assert.deepEqual(writes, [['najdilab.advancedMode','1']]);
+assert.deepEqual(context.navigations, ['prepare']);
+assert.equal(savedDrafts, 1);
+element('#advanced-mode').checked = false;
+element('#advanced-mode').onchange();
+assert.equal(context.enabled, false);
+assert.equal(element('#workspace-mode').checked, false);
+assert.deepEqual(writes[1], ['najdilab.advancedMode','0']);
+assert.deepEqual(context.navigations, ['prepare','prepare']);
+assert.equal(savedDrafts, 2);
+
+const storage = new Map([['najdilab.advancedMode','1']]);
+context.localStorage = {getItem:key=>storage.get(key), setItem:(key,value)=>storage.set(key,value)};
 vm.runInContext('initAdvancedMode()', context);
 assert.equal(element('#advanced-mode').checked, true);
+assert.equal(element('#workspace-mode').checked, true);
+element('#advanced-mode').checked = false;
+element('#advanced-mode').onchange();
+assert.equal(storage.get('najdilab.advancedMode'), '0');
+vm.runInContext('initAdvancedMode()', context);
+assert.equal(context.enabled, false);
+assert.equal(element('#workspace-mode').checked, false);
 context.localStorage.getItem = () => 'false';
 vm.runInContext('initAdvancedMode()', context);
 assert.equal(context.enabled, false);
+context.localStorage.getItem = () => {throw Error('blocked');};
+vm.runInContext('initAdvancedMode()', context);
+assert.equal(context.enabled, false);
+assert.equal(element('#advanced-mode').checked, false);
+assert.equal(element('#workspace-mode').checked, false);
 """)
 
 

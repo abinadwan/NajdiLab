@@ -1053,7 +1053,7 @@
     },
     "app/unsloth_export.py": {
       "classification": "PROTECT",
-      "sha256": "5451caf753408c201af5bcfa56f690c07b5ee8bfc72f5f12c2f8dc0c364bc4e2",
+      "sha256": "e1faecdb91547745dd45c4dad0460683d713db54113ee1d85f26aa1915633618",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .dataset_platform import _version_dir, KNOWN_FILES, NATIVE_TRAIN_FILE",
@@ -4581,6 +4581,9 @@
     },
     "migrations/010_language_metadata.sql": {
       "sha256": "92928c9dabfbef3b3b4ad9347c1da1dc3388c382647cc8514dcc840bd0db6abc"
+    },
+    "migrations/011_gold_version_deletions.sql": {
+      "sha256": "21f9d255782a7fd6e26af3852da6d741cb55d0451561c4e971bd98e137e470a4"
     }
   },
   "removed_routes": [

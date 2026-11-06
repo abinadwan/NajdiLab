@@ -1,5 +1,7 @@
 """Hosted browser fixture. Disposable own DB/engine, never installed services."""
 import inspect
+import argparse
+from contextlib import contextmanager
 import os
 import sys
 from functools import partial
@@ -17,7 +19,7 @@ from app.integrations import IntegrationManager,CONNECTORS
 from test_integrations import RuntimeFixture
 from test_chat_workspace import Engine
 from fixture_safety import refuse_default_database
-from synthetic_datasets import bind_synthetic_catalog
+from synthetic_datasets import bind_synthetic_catalog, attach_synthetic_catalog, SOURCE, DRAFT
 from app import dataset_platform
 from app import chat_workspace,hardware
 from app.hf_hub import HubClient
@@ -77,10 +79,50 @@ MARKDOWN_EXACT='# Heading\n\n**bold** and `code`\n\n- one\n- two\n\n```html\n<im
 
 
 
-def main():
-    with tempfile.TemporaryDirectory(prefix='najdilab-browser-') as temp:
-        root=Path(temp);db=root/'fixture.db';apply_migrations(db)
-        bind_synthetic_catalog(dataset_platform,root)
+STATE_MARKER='.najdilab-browser-fixture'
+STATE_MARKER_CONTENT='NajdiLab synthetic browser fixture v1\n'
+
+
+def fixture_port(value):
+    port=int(value)
+    if not 0<=port<=65535 or port in {8770,8870,8871}:
+        raise argparse.ArgumentTypeError('Use an ephemeral test port, never a normal application port.')
+    return port
+
+
+@contextmanager
+def fixture_root(state_root=None):
+    """Persistent state is opt-in and restricted to explicitly marked test folders."""
+    if state_root is None:
+        with tempfile.TemporaryDirectory(prefix='najdilab-browser-') as temp:
+            yield Path(temp),False
+        return
+    root=Path(state_root).resolve()
+    allowed=(ROOT/'.test-tmp').resolve()
+    if not root.is_relative_to(allowed) or root==allowed:
+        raise ValueError('--state-root must be a child of this checkout\'s .test-tmp folder')
+    marker=root/STATE_MARKER
+    if root.exists() and any(root.iterdir()):
+        if not marker.is_file() or marker.read_text(encoding='utf-8')!=STATE_MARKER_CONTENT:
+            raise ValueError('Refusing an unmarked or unrelated existing state folder')
+        if not all((root/'exports'/version/'manifest.json').is_file() for version in (SOURCE,DRAFT)):
+            raise ValueError('Marked fixture catalog is incomplete')
+        yield root,True
+        return
+    root.mkdir(parents=True,exist_ok=True)
+    marker.write_text(STATE_MARKER_CONTENT,encoding='utf-8')
+    yield root,False
+
+
+def main(argv=None):
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--state-root',type=Path)
+    parser.add_argument('--port',type=fixture_port,default=0)
+    args=parser.parse_args(argv)
+    with fixture_root(args.state_root) as (root,reused):
+        db=root/'fixture.db';apply_migrations(db)
+        if reused:attach_synthetic_catalog(dataset_platform,root)
+        else:bind_synthetic_catalog(dataset_platform,root)
         server.DB_PATH=db
         # Bind every service function the server imported, so no route can fall back to the default database.
         for name,fn in list(vars(server).items()):
@@ -101,7 +143,7 @@ def main():
         service.connect=refuse_default_database(service.connect)
         chat_workspace.hardware_snapshot=synthetic_hardware
         runtime=RuntimeFixture();runtime.models=['fixture']
-        http=server.NajdiLabHTTPServer(('127.0.0.1',0),server.NajdiLabHandler)
+        http=server.NajdiLabHTTPServer(('127.0.0.1',args.port),server.NajdiLabHandler)
         specs={k:replace(v,port=runtime.port) if v.port else v for k,v in CONNECTORS.items()}
         http.integrations=IntegrationManager(connectors=specs,home=root)
         for key in ('lmstudio','ollama'):
@@ -116,7 +158,7 @@ def main():
             store=ModelStore(db,root/'models'/'huggingface',hub,reserve_bytes=64*1024**2,system_reserve_bytes=64*1024**2,in_use=http.native.serving),
             snapshot=lambda:{'ram_total_bytes':16*1024**3,'ram_available_bytes':8*1024**3,'gpus':[],'warnings':['GPU_BACKEND_UNAVAILABLE']})
         from app.training_models import TrainingModels
-        http._training=TrainingModels(hub,Path(temp)/'training-models',cache_roots=[])  # never the owner's real cache
+        http._training=TrainingModels(hub,root/'training-models',cache_roots=[])  # never the owner's real cache
         # Managed llama.cpp runtime: a synthetic release, a synthetic Blackwell-class GPU and a recorded
         # verification. Nothing runs and nothing is downloaded; the real build is never used here.
         os.environ.pop('NAJDILAB_NATIVE_SERVER',None)

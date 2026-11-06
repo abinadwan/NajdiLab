@@ -13,11 +13,13 @@ import tempfile
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
+from functools import wraps
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from .db import DB_PATH, ROOT, connect, json_dumps, json_loads, redact_secrets, transaction, utc_now
+from .gold_lifecycle import storage_lock, deleted_identity_reserved
 from . import language_taxonomy
 from .review_integrity import ExportReadinessError, export_readiness, export_privacy, resolve_selection
 from .review_lifecycle import append_event, validate_transition, LifecycleError
@@ -2499,6 +2501,21 @@ def prepare_check(selection: list[str] | None, db_path: Path | str = DB_PATH, in
             "note": "Nothing was written. Creating the version repeats these exact steps and refuses if anything changed."}
 
 
+def _serialize_export(function):
+    @wraps(function)
+    def locked(db_path=DB_PATH, exports_dir=None, include_demo=False, filters=None,
+               selection=None, expected_fingerprint=None):
+        # Refused exports must not create storage, including a coordination file.
+        # The implementation repeats readiness after acquiring the mutation lock.
+        readiness = export_readiness(db_path, include_demo=include_demo, selection=selection)
+        if not readiness["ok"]:
+            raise ExportReadinessError(readiness)
+        with storage_lock(Path(exports_dir or ROOT / 'exports')):
+            return function(db_path, exports_dir, include_demo, filters, selection, expected_fingerprint)
+    return locked
+
+
+@_serialize_export
 def create_export(
     db_path: Path | str = DB_PATH,
     exports_dir: Path | str | None = None,
@@ -2528,7 +2545,7 @@ def create_export(
                 raise ExportReadinessError(privacy)
             number = conn.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM dataset_versions").fetchone()[0]
             version = f"gold-v{number:03d}"
-            if (exports_dir / version).exists():
+            if (exports_dir / version).exists() or deleted_identity_reserved(exports_dir, version):
                 raise ValidationError("The version directory already exists")
             training_entries, explicit_evaluation_entries = _gather_export_entries(conn, db_path, include_demo)
             archive = {
@@ -2593,6 +2610,7 @@ def create_export(
             manifest = {
                 "version": version,
                 "state": "Frozen",
+                "ownership": {"managed_reference_policy": 1},
                 "privacy_policy": "no_flagged_or_excluded_context_v1",
                 "created_at": utc_now(),
                 "record_count": sum(len(items) for items in files.values()),
@@ -2676,7 +2694,10 @@ def create_export(
 def list_exports(db_path: Path | str = DB_PATH) -> list[dict[str, Any]]:
     conn = connect(db_path)
     try:
-        return [dict(row) for row in conn.execute("SELECT * FROM dataset_versions ORDER BY id DESC")]
+        return [dict(row) for row in conn.execute(
+            "SELECT d.* FROM dataset_versions d LEFT JOIN gold_version_deletions g ON g.dataset_version_id=d.id "
+            "WHERE g.status IS NULL OR g.status<>'deleted' ORDER BY d.id DESC"
+        )]
     finally:
         conn.close()
 

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .db import ROOT
+from .gold_lifecycle import primary_exports_mutation, deleted_identity_reserved
 from scripts.select_v007_windows import build_report as build_window_selection
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -369,6 +370,7 @@ def dataset_statistics(directory: Path, quality: dict[str, Any] | None = None) -
     }
 
 
+@primary_exports_mutation
 def regenerate_training_diagnostics(version: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":
@@ -384,6 +386,7 @@ def regenerate_training_diagnostics(version: str) -> dict[str, Any]:
     return dataset_health(version)
 
 
+@primary_exports_mutation
 def create_derived_version(source_version: str, target_version: str) -> dict[str, Any]:
     if not SAFE_VERSION.fullmatch(target_version):
         raise DatasetPlatformError("INVALID_VERSION_NAME", "Invalid new version name", dataset=target_version)
@@ -394,7 +397,7 @@ def create_derived_version(source_version: str, target_version: str) -> dict[str
     root = _exports_root(); target = (root / target_version).resolve()
     if target.parent != root:
         raise DatasetPlatformError("INVALID_VERSION_NAME", "Invalid new version name", dataset=target_version)
-    if target.exists():
+    if target.exists() or deleted_identity_reserved(root, target_version):
         raise DatasetPlatformError("VERSION_ALREADY_EXISTS", "Version name is already in use", dataset=target_version, path=target)
     source_fingerprint = _dataset_fingerprint(source)
     temp = Path(tempfile.mkdtemp(prefix=f".{target_version}-", dir=root))
@@ -486,6 +489,7 @@ def eval_leakage_on_path(directory: Path) -> dict[str, Any]:
     return {"conversation_overlap_count": sum(_conversation(row) in train_ids for row in eval_rows)}
 
 
+@primary_exports_mutation
 def apply_overlap_plan(version: str, plan_token: str, dataset_fingerprint: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":
@@ -537,6 +541,7 @@ def apply_overlap_plan(version: str, plan_token: str, dataset_fingerprint: str) 
     return {"ok": True, "applied": True, "version": version, "plan": current, "detail": dataset_version_detail(version)}
 
 
+@primary_exports_mutation
 def freeze_dataset_version(version: str) -> dict[str, Any]:
     directory = _version_dir(version); manifest = _json(directory / "manifest.json", {}, dataset=version, required=True)
     if _state(manifest, version) != "Draft":

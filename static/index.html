@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="/i18n.css">
   <link rel="stylesheet" href="/ux-refinements.css">
   <link rel="stylesheet" href="/najdi.css">
+  <link rel="stylesheet" href="/workspace.css">
 </head>
 <body>
   <svg class="icon-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><symbol id="i-overview" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4.5" rx="1.5"/><rect x="13.5" y="11" width="7" height="9.5" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></symbol><symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-4.5 4v-4H6a2 2 0 0 1-2-2z"/></symbol><symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 13.5l2.6-8a1.5 1.5 0 0 1 1.4-1h9a1.5 1.5 0 0 1 1.4 1l2.6 8v5a1.5 1.5 0 0 1-1.5 1.5h-13a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 13.5h5l1.5 2.5h4l1.5-2.5h5"/></symbol><symbol id="i-messages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3a2 2 0 0 1-2-2z"/><path d="M16.5 8.5h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2v3l-3.5-3h-4a2 2 0 0 1-2-2v-1"/></symbol><symbol id="i-reviewed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></symbol><symbol id="i-add" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M12 8v8M8 12h8"/></symbol><symbol id="i-table" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></symbol><symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="2.75"/><path d="M4.5 6v12c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75V6M4.5 12c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75"/></symbol><symbol id="i-health" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5h4l2-5 4 10 2-5h6"/></symbol><symbol id="i-balance" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 20h8M4.5 7.5h15M7 7.5l-3 6h6zM17 7.5l-3 6h6z"/></symbol><symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l8.5 4.5-8.5 4.5-8.5-4.5z"/><path d="M3.5 12l8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5"/></symbol><symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5M10.5 3.5v5.5l-5.3 8.6a2 2 0 0 0 1.7 3h10.2a2 2 0 0 0 1.7-3l-5.3-8.6V3.5M7.5 15h9"/></symbol><symbol id="i-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5"/><path d="M4 15.5v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol><symbol id="i-analytics" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5h16M6.5 16.5v-5M11.5 16.5v-10M16.5 16.5v-7"/></symbol><symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol><symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></symbol><symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5z"/></symbol><symbol id="i-contrast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></symbol><symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l2 2"/></symbol><symbol id="i-more" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></symbol><symbol id="i-cube" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7.5 4.25v8.5L12 20.5l-7.5-4.25v-8.5z"/><path d="M4.5 7.75L12 12l7.5-4.25M12 12v8.5"/></symbol><symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol><symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></symbol><symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="7" y="7" width="10" height="10" rx="2"/></symbol><symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 7.8v.2"/></symbol></svg>
@@ -46,8 +47,8 @@
           <button class="nav-item" data-view="reviewed" title="Reviewed"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-reviewed"/></svg></span><span class="nav-label">Reviewed</span></button>
         </div>
         <div class="nav-section" role="group" aria-labelledby="nav-group-data"><span class="nav-group" id="nav-group-data">Data</span>
-          <button class="nav-item" data-view="add-data" title="Add data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-add"/></svg></span><span class="nav-label">Add data</span></button>
-          <button class="nav-item" data-view="prepare" title="Prepare data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Prepare data</span></button>
+          <button class="nav-item" data-view="add-data" data-advanced-only title="Add data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-add"/></svg></span><span class="nav-label">Add data</span></button>
+          <button class="nav-item" data-view="prepare" title="Data workspace"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Data workspace</span></button>
           <button class="nav-item" data-view="my-versions" title="My versions"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-layers"/></svg></span><span class="nav-label">My versions</span></button>
         </div>
         <div class="nav-section" role="group" aria-labelledby="nav-group-system"><span class="nav-group" id="nav-group-system">Administration</span>
@@ -63,7 +64,7 @@
       <header class="topbar">
         <button id="mobile-menu" class="icon-button" type="button" aria-label="Open menu" aria-controls="main-nav" aria-expanded="false"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
         <span id="page-breadcrumb" class="breadcrumb">Najdi Lab / Overview</span>
-        <div class="top-actions"><div class="language-control"><label for="language-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-globe"/></svg><span class="control-label">Language</span></label><select id="language-select" data-language-select aria-label="Interface language"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="theme-control"><label for="theme-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-contrast"/></svg><span class="control-label">Appearance</span></label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip"><i aria-hidden="true"></i>Local storage</span><button id="refresh-view" class="button ghost" type="button"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span>Refresh</span></button></div>
+        <div class="top-actions"><label class="workspace-mode-control inline-check"><input id="workspace-mode" type="checkbox"> <span>Advanced Mode</span></label><div class="language-control"><label for="language-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-globe"/></svg><span class="control-label">Language</span></label><select id="language-select" data-language-select aria-label="Interface language"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="theme-control"><label for="theme-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-contrast"/></svg><span class="control-label">Appearance</span></label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip"><i aria-hidden="true"></i>Local storage</span><button id="refresh-view" class="button ghost" type="button"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span>Refresh</span></button></div>
       </header>
       <div class="sheet">
       <div class="page-head">
@@ -306,7 +307,8 @@
             <ol class="workflow-steps">
               <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Choose data</strong><span>Choose records. Filters change what is shown, never your selection.</span></span></li>
               <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Check and prepare</strong><span>Run privacy, eligibility and split checks for the selected records.</span></span></li>
-              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Create Gold and export</strong><span>Confirm the checked selection, create a frozen version, then export it.</span></span></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Approve Gold</strong><span>Review the selected records and confirm a frozen version.</span></span></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Export</strong><span>Download compatible files for each data type.</span></span></li>
             </ol>
             <div class="toolbar"><button type="button" class="button primary" data-go="prepare">Prepare data</button><button type="button" class="button ghost" data-go="add-data">Add data</button></div>
             <p>Human review is a separate workspace for collected responses.</p><button type="button" class="button ghost" data-go="review-queue">Open human review</button>
@@ -421,6 +423,7 @@
       </section>
 
       <section id="view-add-data" class="view">
+        <div id="data-entry-content">
         <div class="subtabs" role="tablist" aria-label="Data type">
           <button class="active" role="tab" aria-selected="true" aria-controls="form-sft" data-add-tab="sft">Conversation / SFT</button><button role="tab" aria-selected="false" aria-controls="form-direct" data-add-tab="direct">Direct language text</button><button role="tab" aria-selected="false" aria-controls="form-preference" data-add-tab="preference">Preference pair / DPO</button>
         <button role="tab" aria-selected="false" type="button" data-add-records>My records</button></div>
@@ -453,50 +456,69 @@
           <label class="inline-check"><input name="evaluation_only" type="checkbox"> Evaluation only: held out from training to measure quality</label>
           <button class="button primary" type="submit">Save preference pair</button>
         </form>
+        </div>
       </section>
 
       <section id="view-prepare" class="view">
-        <ol class="prepare-stepper" aria-label="Steps">
-          <li><button type="button" class="prepare-stepper-item" data-step="1" aria-current="step"><span class="prepare-step-number">1</span> Choose data</button></li>
-          <li><button type="button" class="prepare-stepper-item" data-step="2" disabled><span class="prepare-step-number">2</span> Check and prepare</button></li>
-          <li><button type="button" class="prepare-stepper-item" data-step="3" disabled><span class="prepare-step-number">3</span> Create and export</button></li>
-        </ol>
-        <section id="prepare-panel-1" class="panel prepare-step" aria-labelledby="prepare-step1">
-          <h2 id="prepare-step1">1. Choose data</h2>
-          <p>Every eligible record is listed and chosen to start with. Leave out anything you do not want. Filters only change what is shown; your choice is kept.</p>
-          <div class="toolbar prepare-filters">
-            <label for="prepare-type">Type</label><select id="prepare-type"><option value="">All types</option><option value="sft">Single-turn</option><option value="multi_turn">Multi-turn</option><option value="direct_language">Direct language</option><option value="preference_pair">Preference pair</option></select>
-            <label for="prepare-source">Source</label><select id="prepare-source"><option value="">All sources</option><option value="manual">Manual</option><option value="collected">Collected</option></select>
-            <label for="prepare-split-filter">Use</label><select id="prepare-split-filter"><option value="">Training and evaluation</option><option value="training">Training</option><option value="evaluation_only">Evaluation only</option></select>
-            <label for="prepare-language">Language</label><select id="prepare-language"><option value="">All languages</option></select>
+        <section id="advanced-workspace" class="panel" aria-labelledby="advanced-workspace-heading">
+          <div class="panel-heading"><div><h2 id="advanced-workspace-heading">Advanced workspace</h2><p>Open a specialist tool directly. Return to guided mode to continue your saved journey.</p></div></div>
+          <div class="workspace-tools">
+            <button class="button ghost" type="button" data-advanced-view="manual-data">Dataset records</button>
+            <button class="button ghost" type="button" data-advanced-view="dataset-health">Dataset health</button>
+            <button class="button ghost" type="button" data-advanced-view="balancer">Dataset balancer</button>
+            <button class="button ghost" type="button" data-advanced-view="eval-sets">Evaluation sets</button>
+            <button class="button ghost" type="button" data-advanced-view="dataset-versions">Gold versions</button>
+            <button class="button ghost" type="button" data-advanced-view="exports">Export center</button>
+            <button class="button ghost" type="button" data-advanced-view="add-data">Add data</button>
           </div>
-          <div class="toolbar"><button id="prepare-all" type="button" class="button ghost">Choose all shown</button><button id="prepare-none" type="button" class="button ghost">Leave out all shown</button>
-            <span id="prepare-count" class="prepare-count" role="status" aria-live="polite"></span></div>
-          <div id="prepare-records" class="prepare-records"></div>
-          <details id="prepare-selection-review"><summary>Review the chosen records</summary><ul id="prepare-selection-list" class="prepare-selection-list"></ul></details>
-          <div class="prepare-nav"><button id="prepare-check" type="button" class="button primary">Check the chosen records</button></div>
         </section>
-        <section id="prepare-panel-2" class="panel prepare-step" aria-labelledby="prepare-step2" hidden>
-          <h2 id="prepare-step2">2. Check and prepare</h2>
-          <p>NajdiLab checks quality, duplicates, privacy, eligibility, context, the training and evaluation split, and export compatibility, exactly as the version will be built. Nothing is changed or written.</p>
-          <p id="prepare-status" class="prepare-status" role="status" aria-live="polite"></p>
-          <div id="prepare-summary"></div>
-          <div id="prepare-problems"></div>
-          <details id="prepare-advanced"><summary>Advanced details</summary><div id="prepare-advanced-body"></div></details>
-          <div class="prepare-nav"><button id="prepare-back-1" type="button" class="button ghost">Back to choosing</button><button id="prepare-next-3" type="button" class="button primary" disabled>Continue</button></div>
-        </section>
-        <section id="prepare-panel-3" class="panel prepare-step" aria-labelledby="prepare-step3" hidden>
-          <h2 id="prepare-step3">3. Create and export</h2>
-          <div id="prepare-final"></div>
-          <label class="inline-check"><input id="prepare-confirm" type="checkbox"> Create a frozen Gold version with exactly these records. It cannot be changed afterwards.</label>
-          <div class="prepare-nav"><button id="prepare-back-2" type="button" class="button ghost">Back</button><button id="prepare-create" type="button" class="button primary" disabled>Create Gold version</button></div>
-          <div id="prepare-created" role="status" aria-live="polite"></div>
-          <div id="prepare-export" hidden><fieldset class="unsloth-profiles"><legend>Training tool</legend>
-            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_chat" checked> <span><strong>Unsloth Studio — SFT (chat)</strong><small>Recommended for Studio. Earlier turns become context, never targets.</small></span></label>
-            <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_alpaca"> <span><strong>Unsloth Studio — SFT (Alpaca)</strong><small>Instruction, input and output.</small></span></label>
-            <label class="inline-check"><input type="radio" name="prepare-profile" value="trl_prompt_completion"> <span><strong>Unsloth / TRL in Python</strong><small>Needs completion_only_loss=True. Not for Unsloth Studio.</small></span></label></fieldset>
-            <button id="prepare-export-go" type="button" class="button primary">Create Unsloth export</button><div id="prepare-export-result" role="status" aria-live="polite"></div></div>
-        </section>
+        <div id="guided-wizard">
+          <div class="workspace-intro"><div><h2>From records to a frozen dataset</h2><p>One workspace. Your selection and drafts stay here as you move between stages.</p></div><span id="workflow-save-status" role="status" aria-live="polite">Draft saved in this browser</span></div>
+          <ol class="prepare-stepper" aria-label="Steps">
+            <li><button type="button" class="prepare-stepper-item" data-step="1" aria-current="step"><span class="prepare-step-number">1</span> Data</button></li>
+            <li><button type="button" class="prepare-stepper-item" data-step="2" disabled><span class="prepare-step-number">2</span> Check and correct</button></li>
+            <li><button type="button" class="prepare-stepper-item" data-step="3" disabled><span class="prepare-step-number">3</span> Approve Gold</button></li>
+            <li><button type="button" class="prepare-stepper-item" data-step="4" disabled><span class="prepare-step-number">4</span> Export</button></li>
+          </ol>
+          <section id="prepare-panel-1" class="panel prepare-step" aria-labelledby="prepare-step1">
+            <div class="panel-heading"><div><h2 id="prepare-step1" tabindex="-1">1. Data</h2><p>Add, correct and choose the examples for this version.</p></div><button id="wizard-add-record" type="button" class="button ghost">Add a record</button></div>
+            <details id="wizard-entry"><summary>Add data manually</summary><div id="wizard-editor"></div></details>
+            <div class="toolbar prepare-filters">
+              <label for="prepare-type">Type</label><select id="prepare-type"><option value="">All types</option><option value="sft">Single-turn</option><option value="multi_turn">Multi-turn</option><option value="direct_language">Direct language</option><option value="preference_pair">Preference pair</option></select>
+              <label for="prepare-source">Source</label><select id="prepare-source"><option value="">All sources</option><option value="manual">Manual</option><option value="collected">Collected</option></select>
+              <label for="prepare-split-filter">Use</label><select id="prepare-split-filter"><option value="">Training and evaluation</option><option value="training">Training</option><option value="evaluation_only">Evaluation only</option></select>
+              <label for="prepare-language">Language</label><select id="prepare-language"><option value="">All languages</option></select>
+            </div>
+            <div class="toolbar"><button id="prepare-all" type="button" class="button ghost">Choose all shown</button><button id="prepare-none" type="button" class="button ghost">Leave out all shown</button><span id="prepare-count" class="prepare-count" role="status" aria-live="polite"></span></div>
+            <div id="prepare-records" class="prepare-records"></div>
+            <details id="prepare-selection-review"><summary>Review the chosen records</summary><ul id="prepare-selection-list" class="prepare-selection-list"></ul></details>
+            <div class="prepare-nav"><button id="prepare-check" type="button" class="button primary">Next: check data</button></div>
+          </section>
+          <section id="prepare-panel-2" class="panel prepare-step" aria-labelledby="prepare-step2" hidden>
+            <h2 id="prepare-step2" tabindex="-1">2. Check and correct</h2><p>The same backend checks and selection fingerprint protect this preview and the final build.</p>
+            <p id="prepare-status" class="prepare-status" role="status" aria-live="polite"></p><div id="prepare-summary"></div><div id="prepare-problems"></div>
+            <details id="prepare-advanced"><summary>Check evidence</summary><div id="prepare-advanced-body"></div></details>
+            <div class="prepare-nav"><button id="prepare-back-1" type="button" class="button ghost">Previous</button><button id="prepare-recheck" type="button" class="button ghost">Run checks again</button><button id="prepare-next-3" type="button" class="button primary" disabled>Next: approve Gold</button></div>
+          </section>
+          <section id="prepare-panel-3" class="panel prepare-step" aria-labelledby="prepare-step3" hidden>
+            <h2 id="prepare-step3" tabindex="-1">3. Approve Gold</h2><p>Structural validity checks format and safety. It does not establish linguistic quality or improvement from training.</p>
+            <div id="prepare-final"></div>
+            <label class="inline-check"><input id="prepare-confirm" type="checkbox"> Create a frozen Gold version with exactly these records. It cannot be changed afterwards.</label>
+            <p id="prepare-create-status" role="status" aria-live="polite"></p>
+            <div class="prepare-nav"><button id="prepare-back-2" type="button" class="button ghost">Previous</button><button id="prepare-create" type="button" class="button primary" disabled>Create Gold version</button></div>
+          </section>
+          <section id="prepare-panel-4" class="panel prepare-step" aria-labelledby="prepare-step4" hidden>
+            <h2 id="prepare-step4" tabindex="-1">4. Export</h2><p>Gold freezes your chosen data. Export creates files for a specific training tool. Each record type keeps its own format.</p>
+            <div id="prepare-created" role="status" aria-live="polite"></div><div id="prepare-raw-exports"></div>
+            <div id="prepare-export"><fieldset class="unsloth-profiles"><legend>Training tool</legend>
+              <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_chat" checked> <span><strong>Unsloth Studio — SFT (chat)</strong><small>Recommended for Studio. Earlier turns become context, never targets.</small></span></label>
+              <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_alpaca"> <span><strong>Unsloth Studio — SFT (Alpaca)</strong><small>Instruction, input and output.</small></span></label>
+              <label class="inline-check"><input type="radio" name="prepare-profile" value="trl_prompt_completion"> <span><strong>Unsloth / TRL in Python</strong><small>Needs completion_only_loss=True. Not for Unsloth Studio.</small></span></label></fieldset>
+              <p id="prepare-export-compatibility" role="status"></p><button id="prepare-export-go" type="button" class="button primary">Create Unsloth export</button><div id="prepare-export-result" role="status" aria-live="polite"></div>
+            </div>
+            <div class="prepare-nav"><button id="prepare-back-3" type="button" class="button ghost">Previous</button><button id="prepare-new-version" type="button" class="button ghost">Prepare another version</button></div>
+          </section>
+        </div>
       </section>
       <section id="view-my-versions" class="view">
         <div class="panel chat-intro"><h2>My versions</h2><p>Every Gold version you created. A frozen version never changes: to include different records, create a new version in Prepare data.</p></div>
@@ -589,11 +611,8 @@
       </section>
 
       <section id="view-settings" class="view">
-        <div class="panel settings-card advanced-setting"><div><h2>Advanced Mode</h2><p id="advanced-mode-help">Show specialist tools in Settings. Saved only in this browser. This preference controls visibility only.</p></div><label class="inline-check"><input id="advanced-mode" type="checkbox" aria-describedby="advanced-mode-help"> Enable Advanced Mode</label></div>
-        <section class="panel advanced-tools" data-advanced-only aria-labelledby="advanced-tools-heading"><h2 id="advanced-tools-heading">Advanced tools</h2>
-          <p>Specialist diagnostics and export tools. Direct links work in either mode.</p>
-          <div class="toolbar"><button type="button" class="button ghost" data-advanced-view="dataset">Dataset records</button><button type="button" class="button ghost" data-advanced-view="dataset-health">Dataset health</button><button type="button" class="button ghost" data-advanced-view="balancer">Dataset balancer</button><button type="button" class="button ghost" data-advanced-view="dataset-versions">Version details</button><button type="button" class="button ghost" data-advanced-view="eval-sets">Evaluation sets</button><button type="button" class="button ghost" data-advanced-view="exports">Export center</button></div>
-        </section>
+        <div class="panel settings-card advanced-setting"><div><h2>Advanced Mode</h2><p id="advanced-mode-help">Switch the data workspace between guided stages and independent tools. Saved in this browser.</p></div><label class="inline-check"><input id="advanced-mode" type="checkbox" aria-describedby="advanced-mode-help"> Enable Advanced Mode</label></div>
+        <section class="panel advanced-tools" data-advanced-only><h2>Advanced workspace</h2><p>Specialist tools share the same backend safety checks.</p><button class="button ghost" type="button" data-go="prepare">Open advanced workspace</button></section>
 
         <section class="integrations" aria-labelledby="integrations-heading">
           <h2 id="integrations-heading">Models &amp; Integrations</h2>

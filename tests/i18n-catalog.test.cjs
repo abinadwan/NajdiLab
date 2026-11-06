@@ -80,6 +80,40 @@ test('every toast, confirm, status and fixed message in the scripts has an Arabi
   assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
 });
 
+test('guided workspace and version dialogs translate labels created through DOM helpers',()=>{
+  const strings=['static/prepare-data.js','static/my-versions.js'].flatMap(file=>{
+    const source=fs.readFileSync(file,'utf8');
+    return [...source.matchAll(/'((?:[^'\\\n]|\\.)*)'/g)]
+      .map(match=>match[1].replace(/\\'/g,"'"))
+      .filter(text=>/^[A-Z][A-Za-z0-9]* /.test(text)&&!/[{}<>]/.test(text));
+  });
+  assert.ok(strings.length>40,'expected fixed DOM labels and compatibility explanations');
+  const missing=untranslated(strings);
+  assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
+});
+
+test('Gold ownership, deletion and export compatibility explanations have Arabic translations',()=>{
+  const source=fs.readFileSync('app/gold_management.py','utf8');
+  const errors=[...source.matchAll(/(?:_error\('[A-Z_]+',\s*|OSError\()'((?:[^'\\]|\\.)*)'/g)]
+    .map(match=>match[1].replace(/\\'/g,"'"));
+  const reasons=[...source.matchAll(/\breturn '((?:[^'\\]|\\.)*)'/g)]
+    .map(match=>match[1].replace(/\\'/g,"'"));
+  assert.ok(errors.length>30&&reasons.length>8,'expected deletion refusals and profile compatibility reasons');
+  const missing=untranslated([...errors,...reasons]);
+  assert.deepEqual(missing,[],'missing Arabic:\n'+missing.join('\n'));
+  for(const message of [
+    'multi_turn.jsonl: incomplete collected context: manual_sft_items:17',
+    'multi_turn.jsonl: record has no messages: manual_sft_items:17',
+    'multi_turn.jsonl: record has no user message: manual_sft_items:17',
+    'multi_turn.jsonl: invalid message in manual_sft_items:17 at 3',
+    'multi_turn.jsonl: the training target is not uniquely identified: manual_sft_items:17'
+  ]){
+    const translated=I18N.translate(message,'ar');
+    assert.ok(arabic.test(translated));
+    assert.ok(translated.includes('multi_turn.jsonl')&&translated.includes('manual_sft_items:17'),'technical identities stay literal');
+  }
+});
+
 test('view titles, review statuses and error tags are translated',()=>{
   const src=fs.readFileSync('static/app.js','utf8');
   const block=name=>src.slice(src.indexOf(name),src.indexOf('};',src.indexOf(name)));

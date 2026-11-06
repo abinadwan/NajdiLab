@@ -1,5 +1,5 @@
-/* The data journey through the three Data destinations, driven with real mouse clicks (V2.2.0 UX + QA P2).
- *   Add data → Prepare data (choose, check, create, export) → My versions, on the synthetic fixture.
+/* The four-stage data workspace and legacy deep links, driven with real mouse clicks (V2.2.0 UX + QA P2).
+ *   Data → Check and correct → Approve Gold → Export → My versions, on the synthetic fixture.
  * Measures pages, clicks and page changes; proves that filters never change the choice (QA P2) and that the sticky
  * top bar never covers a checkbox scrolled into view (QA P2), in English, Arabic and on a narrow screen.
  * Usage: NAJDILAB_BROWSER_EXECUTABLE=<chromium> NODE_PATH=<dir with puppeteer-core> node --test tests/data-journey-browser.cjs */
@@ -32,7 +32,7 @@ test('data journey in Chromium',{timeout:300000},async t=>{
     await page.goto(base+'/');
 
     await t.test('Dashboard opens preparation and frozen versions with keyboard controls',async()=>{
-      assert.equal(await page.$$eval('#view-dashboard .workflow-steps li',els=>els.length),3);
+      assert.equal(await page.$$eval('#view-dashboard .workflow-steps li',els=>els.length),4);
       assert.equal(await page.$('#view-dashboard [data-go="exports"], #view-dashboard [data-go="balancer"], #view-dashboard [data-go="dataset-health"]'),null);
       await page.focus('#view-dashboard .button.primary[data-go="prepare"]');
       await page.keyboard.press('Enter');await page.waitForSelector('#view-prepare.active');
@@ -49,17 +49,20 @@ test('data journey in Chromium',{timeout:300000},async t=>{
       const visible=()=>page.$$eval('[data-advanced-view]',els=>els.filter(e=>e.checkVisibility()).map(e=>e.dataset.advancedView));
       assert.deepEqual(await visible(),[]);
       await page.focus('#advanced-mode');await page.keyboard.press('Space');
-      const expected=['dataset','dataset-health','balancer','dataset-versions','eval-sets','exports'];
+      await page.waitForSelector('#view-prepare.active');
+      const expected=['manual-data','dataset-health','balancer','eval-sets','dataset-versions','exports','add-data'];
       assert.deepEqual(await visible(),expected);
-      await page.reload();await page.waitForSelector('#view-settings.active');
+      assert.equal(await page.$eval('#guided-wizard',e=>e.checkVisibility()),false);
+      assert.equal(await page.$eval('#workspace-mode',e=>e.checked),true);
+      await page.reload();await page.waitForSelector('#view-prepare.active');
       assert.equal(await page.$eval('#advanced-mode',e=>e.checked),true);
       assert.deepEqual(await visible(),expected);
       for(const view of expected){
-        await click(`[data-advanced-view="${view}"]`);await page.waitForSelector(`#view-${view}.active`);
-        await page.evaluate(()=>switchView('settings'));
+        await click(`#advanced-workspace [data-advanced-view="${view}"]`);await page.waitForSelector(`#view-${view}.active`);
+        await page.evaluate(()=>switchView('prepare'));
       }
-      await page.focus('#advanced-mode');await page.keyboard.press('Space');
-      await page.reload();await page.waitForSelector('#view-settings.active');
+      await page.focus('#workspace-mode');await page.keyboard.press('Space');
+      await page.reload();await page.waitForSelector('#view-prepare.active');
       assert.equal(await page.$eval('#advanced-mode',e=>e.checked),false);
       assert.deepEqual(await visible(),[]);
       for(const [path,view] of [['/datasets/gold','dataset'],['/datasets/health','dataset-health'],['/datasets/balancer','balancer'],['/datasets/versions','dataset-versions'],['/datasets/eval','eval-sets'],['/exports','exports']]){
@@ -76,7 +79,6 @@ test('data journey in Chromium',{timeout:300000},async t=>{
         await page.evaluate(({language,theme})=>{NajdiI18n.setLanguage(language);document.querySelector('#theme-select-settings').value=theme;document.querySelector('#theme-select-settings').dispatchEvent(new Event('change'));},{language,theme});
         for(const view of ['dashboard','settings','my-versions']){
           await page.evaluate(v=>switchView(v),view);await page.waitForSelector(`#view-${view}.active`);
-          if(view==='settings')await page.$eval('#advanced-mode',e=>{e.checked=true;e.onchange();});
           await new Promise(r=>setTimeout(r,100));
           const measured=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,theme:document.documentElement.dataset.theme,
             width:innerWidth,scroll:document.documentElement.scrollWidth,text:document.querySelector('.view.active').innerText}));
@@ -102,15 +104,18 @@ test('data journey in Chromium',{timeout:300000},async t=>{
         await blocked.goto(base+'/settings');await blocked.waitForSelector('#view-settings.active');
         assert.equal(await blocked.$eval('#advanced-mode',e=>e.checked),false);
         await blocked.focus('#advanced-mode');await blocked.keyboard.press('Space');
-        assert.equal(await blocked.$$eval('[data-advanced-view]',els=>els.filter(e=>e.checkVisibility()).length),6);
-        await blocked.reload();await blocked.waitForSelector('#view-settings.active');
+        await blocked.waitForSelector('#view-prepare.active');
+        assert.equal(await blocked.$$eval('#advanced-workspace [data-advanced-view]',els=>els.filter(e=>e.checkVisibility()).length),7);
+        await blocked.reload();await blocked.waitForSelector('#view-prepare.active');
         assert.equal(await blocked.$eval('#advanced-mode',e=>e.checked),false);
       }finally{await isolated.close();}
     });
 
-    await t.test('the sidebar shows three Data destinations; the old pages stay reachable',async()=>{
+    await t.test('the guided sidebar shows workspace and versions; legacy pages stay reachable',async()=>{
       const data=await page.$$eval('.nav-section',s=>s.filter(x=>x.querySelector('#nav-group-data')).flatMap(x=>[...x.querySelectorAll('.nav-item')].map(b=>b.dataset.view)));
       assert.deepEqual(data,['add-data','prepare','my-versions']);
+      const visible=await page.$$eval('.nav-section',s=>s.filter(x=>x.querySelector('#nav-group-data')).flatMap(x=>[...x.querySelectorAll('.nav-item')].filter(b=>b.checkVisibility()).map(b=>b.dataset.view)));
+      assert.deepEqual(visible,['prepare','my-versions']);
       for(const old of ['dataset-health','balancer','eval-sets','exports','dataset-versions','dataset','manual-data']){
         await page.evaluate(v=>switchView(v),old);await page.waitForSelector(`#view-${old}.active`);
         const active=await page.$eval('.nav-item[aria-current="page"]',b=>b.dataset.view);
@@ -121,7 +126,7 @@ test('data journey in Chromium',{timeout:300000},async t=>{
 
     await t.test('Add data: create single-turn, multi-turn and evaluation-only records through the forms',async()=>{
       metrics.clicks=0;metrics.pages.clear();
-      await click('.nav-item[data-view="add-data"]');await page.waitForSelector('#view-add-data.active');await record();
+      await page.evaluate(()=>switchView('add-data'));await page.waitForSelector('#view-add-data.active');await record();
       const add=async(turns,{evaluation=false}={})=>{
         await page.waitForSelector('#form-sft.active');
         await page.evaluate(()=>{document.querySelector('#sft-turns').replaceChildren();});
@@ -129,7 +134,9 @@ test('data journey in Chromium',{timeout:300000},async t=>{
           await row.$eval('select',(s,r)=>{s.value=r;s.dispatchEvent(new Event('change'));},role);await row.$eval('textarea',(a,v)=>{a.value=v;},text);}
         const eligible=await page.$('#form-sft input[name="training_eligible"]');if(!evaluation&&!(await eligible.evaluate(e=>e.checked)))await click('#form-sft input[name="training_eligible"]');
         if(evaluation)await click('#form-sft input[name="evaluation_only"]');
+        const saved=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/v1/manual-data/sft'&&r.request().method()==='POST');
         await click('#form-sft button[type="submit"]');
+        assert.equal((await saved).status(),201);
         await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Record saved'));
       };
       await add([['user','How do I report a phishing email at work?'],['assistant','Forward it to the security team and delete it.']]);
@@ -146,10 +153,17 @@ test('data journey in Chromium',{timeout:300000},async t=>{
 
     await t.test('Prepare data: a filter never changes the choice (QA P2)',async()=>{
       await click('.nav-item[data-view="prepare"]');await page.waitForSelector('#view-prepare.active');await record();
+      await page.evaluate(()=>NajdiPrepare.load());
       await page.waitForFunction(()=>document.querySelectorAll('#prepare-records input[data-id]').length>0);
       const total=await page.$$eval('#prepare-records input[data-id]',b=>b.length);
       const chosenIds=()=>page.evaluate(()=>[...window.NajdiPrepare.state.chosen].sort());
-      const all=await chosenIds();assert.equal(all.length,total,'every eligible record starts chosen');
+      const eligible=await page.evaluate(()=>NajdiPrepare.state.records.filter(r=>r.eligible).map(r=>r.id).sort());
+      const retained=await chosenIds();
+      // The API-created example may be discovered by an in-flight form refresh.
+      // Establish the full choice explicitly before testing filter preservation.
+      assert.ok(retained.every(id=>eligible.includes(id)),'retained choices are eligible records');
+      await click('#prepare-all');
+      const all=await chosenIds();assert.equal(all.length,total,'explicitly choose every record, including the privacy-blocked example');
       await page.select('#prepare-type','sft');
       const shown=await page.$$eval('#prepare-records input[data-id]',b=>b.map(x=>x.dataset.id));
       assert.ok(shown.length<total,'the filter hides some records');
@@ -169,6 +183,7 @@ test('data journey in Chromium',{timeout:300000},async t=>{
       await click('#prepare-check');
       assert.deepEqual(await sent,all,'the check covers every chosen record, including hidden ones');
       await page.waitForSelector('#prepare-status .prepare-badge, #prepare-status [role="alert"]');
+      await click('.prepare-stepper-item[data-step="1"]');
       await page.select('#prepare-type','');
     });
 
@@ -190,8 +205,11 @@ test('data journey in Chromium',{timeout:300000},async t=>{
           const before=await handle.evaluate(e=>e.checked);await page.mouse.click(x,y);
           assert.equal(await handle.evaluate(e=>e.checked),!before,`${label}: a real click toggles ${id}`);
           await page.mouse.click(x,y);
+          assert.equal(await handle.evaluate(e=>e.checked),before,`${label}: a second real click restores ${id}`);
           // Keyboard works too.
-          await handle.focus();await page.keyboard.press('Space');assert.equal(await handle.evaluate(e=>e.checked),!before);await page.keyboard.press('Space');
+          await handle.focus();await page.keyboard.press('Space');assert.equal(await handle.evaluate(e=>e.checked),!before,`${label}: Space toggles ${id}`);
+          assert.equal(await handle.evaluate(e=>document.activeElement===e),true,`${label}: the checkbox keeps keyboard focus`);
+          await page.keyboard.press('Space');assert.equal(await handle.evaluate(e=>e.checked),before,`${label}: Space restores ${id}`);
         }
       };
       // A short window, so the page itself must scroll a record up to where the top bar sits.
@@ -213,9 +231,9 @@ test('data journey in Chromium',{timeout:300000},async t=>{
       assert.doesNotMatch(await shownText(),/null|undefined|NaN/,'a check that is not ready shows no empty values');
       const ready=()=>page.$eval('#prepare-status .prepare-badge',b=>b.classList.contains('ready'));
       for(let i=0;i<8&&!(await ready());i++){
-        const leave=await page.$('#prepare-problems button');assert.ok(leave,'every problem on a chosen record offers a way out: '+text);
+        const leave=await page.$('#prepare-problems .record-actions button:last-child');assert.ok(leave,'every problem on a chosen record offers a way out: '+text);
         await leave.evaluate(b=>b.scrollIntoView());const box=await leave.boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);metrics.clicks++;
-        await click('#prepare-check');text=await status();
+        await click('#prepare-recheck');text=await status();
       }
       assert.ok(await ready(),text);
       assert.doesNotMatch(await shownText(),/null|undefined|NaN/);
@@ -240,10 +258,10 @@ test('data journey in Chromium',{timeout:300000},async t=>{
       await click('#prepare-created a');await page.waitForSelector('#view-my-versions.active');await record();
       await page.waitForFunction(v=>document.querySelector('#versions-list').textContent.includes(v),{},version);
       const card=await page.evaluateHandle(v=>[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3').textContent===v),version);
-      const button=await card.$('button');await button.evaluate(b=>b.scrollIntoView());const bb=await button.boundingBox();await page.mouse.click(bb.x+bb.width/2,bb.y+bb.height/2);
-      await page.waitForFunction(v=>{const d=[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3').textContent===v)?.querySelector('.version-details');return d&&d.children.length>1||d?.querySelector('[role="alert"]');},{},version);
-      const details=await card.$eval('.version-details',d=>({text:d.textContent,downloads:d.querySelectorAll('a[download]').length}));
-      assert.ok(details.downloads>0,'the export made in step 3 can be downloaded again from My versions: '+details.text);
+      const button=await card.$('.workflow-actions button:nth-child(2)');await button.evaluate(b=>b.scrollIntoView());const bb=await button.boundingBox();await page.mouse.click(bb.x+bb.width/2,bb.y+bb.height/2);
+      await page.waitForFunction(v=>{const d=[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3').textContent===v)?.querySelector('.version-details:last-child');return d&&d.children.length>1||d?.querySelector('[role="alert"]');},{},version);
+      const details=await card.$eval('.version-details:last-child',d=>({text:d.textContent,downloads:d.querySelectorAll('a[download]').length}));
+      assert.ok(details.downloads>0,'the export made in step 4 can be downloaded again from My versions: '+details.text);
       assert.equal(await card.$eval('[data-advanced-only]',e=>e.checkVisibility()),false,'ordinary versions hide specialist diagnostics');
       const downloads=await card.$$eval('a[download]',els=>els.map(e=>e.href));
       for(const url of downloads){

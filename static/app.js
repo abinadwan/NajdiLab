@@ -4,7 +4,7 @@ const titles = {
   chat: ['Chat Workspace', 'Raw local model conversations, saved here. Collection for review is a separate choice.'],
   models: ['Model library', 'Discover, check and download GGUF models for NajdiLab Native, safely and only with your approval.'],
   dashboard: ['Dashboard', 'Dataset status and local workflows in one place.'],
-  prepare: ['Prepare data', 'Choose records, check them, and create a frozen Gold version ready for Unsloth.'],
+  prepare: ['Data workspace', 'Add and check data, approve Gold, and export compatible files.'],
   'my-versions': ['My versions', 'Your frozen Gold versions, their readiness and their exports.'],
   'review-queue': ['Review queue', 'Review responses one at a time while preserving the original text.'],
   conversations: ['Conversations', 'Explore full context and open any earlier response for review.'],
@@ -39,12 +39,17 @@ const fmtDate = (value) => value ? `<time datetime="${esc(value)}">${esc(window.
 // Browser storage can be blocked (private mode, site policy); it must never stop the interface.
 const prefs = {get(key){try{return localStorage.getItem(key);}catch{return null;}}, set(key,value){try{localStorage.setItem(key,value);}catch{}}};
 // Display preference only. Routes and backend checks remain available in either mode.
+function setAdvancedMode(enabled,navigate=true){
+  window.NajdiPrepare?.save();
+  prefs.set('najdilab.advancedMode',enabled?'1':'0');
+  document.documentElement.classList.toggle('advanced-mode',enabled);
+  for(const id of ['advanced-mode','workspace-mode']){const input=document.getElementById(id);if(input)input.checked=enabled;}
+  if(navigate)switchView('prepare');
+}
 function initAdvancedMode(){
-  const input=$('#advanced-mode');
-  input.checked=prefs.get('najdilab.advancedMode')==='1';
-  const apply=()=>document.documentElement.classList.toggle('advanced-mode',input.checked);
-  apply();
-  input.onchange=()=>{prefs.set('najdilab.advancedMode',input.checked?'1':'0');apply();};
+  const enabled=prefs.get('najdilab.advancedMode')==='1';
+  document.documentElement.classList.toggle('advanced-mode',enabled);
+  for(const id of ['advanced-mode','workspace-mode']){const input=document.getElementById(id);if(input){input.checked=enabled;input.onchange=()=>setAdvancedMode(input.checked);}}
 }
 const tr = (text) => window.NajdiI18n ? window.NajdiI18n.t(text) : text;
 const uiStatus = (value) => window.NajdiI18n?.status(value) || String(value || 'Unknown');
@@ -139,6 +144,7 @@ function switchView(view,options={}) {
   // An accepted navigation discards this in-memory review snapshot; otherwise
   // returning to the queue would wrongly compare the old DOM before reloading.
   if(view!==state.view&&state.view==='review-queue')state.reviewDraftBaseline=null;
+  window.NajdiPrepare?.save();
   state.view = view;
   // Advanced pages belong to one of the three Data destinations: the sidebar shows where the user is.
   const navView={'manual-data':'add-data',dataset:'my-versions','dataset-health':'my-versions',balancer:'my-versions','dataset-versions':'my-versions','eval-sets':'my-versions',exports:'my-versions'}[view]||view;
@@ -160,6 +166,7 @@ async function loadView(view) {
   if (view==='chat') return window.NajdiChat?.load();
   if (view==='models') return window.NajdiModels?.load();
   if (view==='prepare') return window.NajdiPrepare?.load();
+  if (view==='add-data') window.NajdiPrepare?.mountEditor('add-data');
   if (view==='my-versions') return window.NajdiVersions?.load();
   if (view==='dashboard') return loadDashboard();
   if (view==='review-queue') return loadQueue();
@@ -532,7 +539,7 @@ function addSftTurn(role='user',content=''){
 }
 
 function formPayload(form){const raw=Object.fromEntries(new FormData(form));$$('input[type=checkbox]',form).forEach(input=>raw[input.name]=input.checked);for(const [field] of TAXONOMY_FIELDS){if(raw[field]==='__custom')raw[field]=(raw[`${field}_custom`]||'').trim();delete raw[`${field}_custom`];}return raw;}
-async function submitDataForm(form,endpoint,extra={}){const button=form.querySelector('button[type=submit]');button.disabled=true;try{const payload={...formPayload(form),...extra};await api(endpoint,{method:'POST',body:JSON.stringify(payload)});toast('Record saved with source information.');savePreference('najdilab.dataLast',JSON.stringify(Object.fromEntries(TAXONOMY_FIELDS.map(([f])=>[f,payload[f]||'']).filter(([,v])=>v))));form.reset();const host=form.querySelector('[data-taxonomy-host]');if(host)mountTaxonomy(host,dataDefaults()).catch(()=>{});}catch(error){toast(error.message,true);}finally{button.disabled=false;}}
+async function submitDataForm(form,endpoint,extra={}){const button=form.querySelector('button[type=submit]');button.disabled=true;try{const payload={...formPayload(form),...extra};await api(endpoint,{method:'POST',body:JSON.stringify(payload)});toast('Record saved with source information.');savePreference('najdilab.dataLast',JSON.stringify(Object.fromEntries(TAXONOMY_FIELDS.map(([f])=>[f,payload[f]||'']).filter(([,v])=>v))));form.reset();const host=form.querySelector('[data-taxonomy-host]');if(host)await mountTaxonomy(host,dataDefaults());window.dispatchEvent(new CustomEvent('najdilab:recordschange'));}catch(error){toast(error.message,true);}finally{button.disabled=false;}}
 
 const originLabels={real_conversation:'Real conversation',manual:'Manual',human_corrected:'Human corrected',synthetic_reviewed:'Reviewed synthetic',ai_arena:'AI Arena',imported:'Imported'};
 const manualTypeLabels={sft:'Conversation / SFT',direct:'Direct language text',dpo:'Preference pair / DPO'};
@@ -629,7 +636,8 @@ function renderManualEdit(item){
   if(item.item_type==='sft')$('#manual-add-turn').addEventListener('click',()=>$('#manual-edit-turns').insertAdjacentHTML('beforeend',manualTurnRow('user','')));
   $('#manual-edit-form').addEventListener('click',e=>{if(e.target.matches('.remove-manual-turn'))e.target.closest('.turn-row').remove();});
   $('#manual-edit-form').addEventListener('submit',saveManualEdit);
-  mountTaxonomy($('#manual-edit-form [data-taxonomy-host]'),item).catch(error=>toast(`Unable to load language options: ${error.message}`,true));
+  $('#manual-edit-form').dataset.itemType=item.item_type;$('#manual-edit-form').dataset.itemId=item.id;
+  return mountTaxonomy($('#manual-edit-form [data-taxonomy-host]'),item).then(()=>window.NajdiPrepare?.restoreManualDraft(item.item_type,item.id)).catch(error=>toast(`Unable to load language options: ${error.message}`,true));
 }
 
 function manualTurnRow(role,content){return `<div class="turn-row"><select class="turn-role" aria-label="Turn role">${option('user','User',role)}${option('assistant','Assistant',role)}${option('system','System',role)}</select><textarea dir="auto" aria-label="Turn content" class="turn-content">${esc(content)}</textarea><button class="remove-manual-turn" type="button" aria-label="Delete turn">×</button></div>`;}
@@ -639,7 +647,7 @@ async function showManualItem(type,id,edit=false){
   $('#manual-dialog-kind').textContent=manualTypeLabels[type];$('#manual-dialog-title').innerHTML=`<bdi dir="ltr">${esc(type)}:${id} · v${item.version_number}</bdi>`;$('#manual-dialog-status').innerHTML=manualStatusHtml(item);
   renderManualDetails(item);$('#manual-tab-versions').innerHTML='<div class="empty-inline">Open this tab to load version history.</div>';
   $$('.dialog-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.manualTab==='details'));$$('.manual-tab').forEach(x=>x.classList.toggle('active',x.id==='manual-tab-details'));
-  if(edit)renderManualEdit(item);if(!$('#manual-dialog').open)$('#manual-dialog').showModal();
+  if(edit){await renderManualEdit(item);window.NajdiPrepare?.restoreManualDraft(type,id);}if(!$('#manual-dialog').open)$('#manual-dialog').showModal();
 }
 
 async function saveManualEdit(event){
@@ -655,6 +663,7 @@ async function saveManualEdit(event){
     renderManualDetails(result.item);
     $('#manual-dialog-title').innerHTML=`<bdi dir="ltr">${esc(item.item_type)}:${item.id} · v${result.item.version_number}</bdi>`;
     $('#manual-dialog-status').innerHTML=manualStatusHtml(result.item);
+    window.dispatchEvent(new CustomEvent('najdilab:recordschange'));
     toast('New version saved in change history.');
     try{await loadManualData();}catch(error){toast('Saved successfully, but the list could not refresh: '+error.message,true);}
   }catch(error){
@@ -672,9 +681,9 @@ async function loadManualVersions(){
 }
 
 async function manualAction(action,type,id){
-  const item=state.manualItems.find(x=>x.item_type===type&&Number(x.id)===Number(id))||state.manualCurrent;
+  const item=state.manualItems.find(x=>x.item_type===type&&Number(x.id)===Number(id))||await api(`/api/v1/manual-data/${type}/${id}`);
   if(action==='view'||action==='edit')return showManualItem(type,id,action==='edit');
-  if(action==='clone'){await api(`/api/v1/manual-data/${type}/${id}/clone`,{method:'POST',body:'{}'});toast('Created an independent item with parent_item_id.');return loadManualData();}
+  if(action==='clone'){await api(`/api/v1/manual-data/${type}/${id}/clone`,{method:'POST',body:'{}'});toast('Created an independent item with parent_item_id.');window.dispatchEvent(new CustomEvent('najdilab:recordschange'));return loadManualData();}
   if(action==='archive'){await api(`/api/v1/manual-data/${type}/${id}/archive`,{method:'POST',body:JSON.stringify({archived:!item.archived})});toast(item.archived?'Unarchived.':'Archived.');}
   if(action==='exclude'){await api(`/api/v1/manual-data/${type}/${id}/exclude`,{method:'POST',body:JSON.stringify({excluded:!item.exclude_from_training})});toast(item.exclude_from_training?'Exclusion removed.':'Excluded from dataset selection.');}
   if(action==='eligibility'){await api(`/api/v1/manual-data/${type}/${id}`,{method:'PATCH',body:JSON.stringify({training_eligible:!item.training_eligible,change_notes:'Change dataset eligibility'})});toast('Dataset eligibility updated.');}
@@ -686,6 +695,7 @@ async function manualAction(action,type,id){
     if(!confirm(tr('Delete this record? It will be excluded from dataset selection, preserved in the archive, and can be restored later.')))return;
     await api(`/api/v1/manual-data/${type}/${id}`,{method:'DELETE',body:JSON.stringify({confirm_exported:item.exported_before})});toast('Record moved to deleted items; versions of Gold remain unchanged.');$('#manual-dialog').close();
   }
+  window.dispatchEvent(new CustomEvent('najdilab:recordschange'));
   await loadManualData();if($('#manual-dialog').open&&action!=='delete')await showManualItem(type,id);
 }
 
@@ -762,7 +772,7 @@ function bindEvents(){
   restrictionControls.forEach(selector=>$(selector).addEventListener('change',e=>{if(e.target.checked)$('#training-eligible').checked=false;}));
   $('#training-eligible').addEventListener('change',e=>{if(e.target.checked&&restrictionControls.some(selector=>$(selector).checked)){e.target.checked=false;toast('Resolve dataset restrictions explicitly before marking this record eligible.',true);}});
   $('#conversation-list').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)showConversation(b.dataset.id).catch(x=>toast(x.message,true));});$('#search-conversations').addEventListener('click',()=>loadConversations({fresh:true}).catch(e=>toast(e.message,true)));$('#conversation-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadConversations({fresh:true}).catch(x=>toast(x.message,true));});$('#apply-reviewed-filters').addEventListener('click',()=>loadReviewed({fresh:true}).catch(e=>toast(e.message,true)));$('#reviewed-list').addEventListener('change',e=>{if(!e.target.matches('.reviewed-row-check'))return;const id=Number(e.target.dataset.reviewId);e.target.checked?state.reviewedSelected.add(id):state.reviewedSelected.delete(id);updateReviewedBulk();});$('#reviewed-list').addEventListener('click',e=>{const restore=e.target.closest('[data-restore-review]'),exclude=e.target.closest('[data-exclude-review]');if(restore)bulkReviewed('restore',[Number(restore.dataset.restoreReview)]).catch(x=>toast(x.message,true));if(exclude)bulkReviewed('exclude',[Number(exclude.dataset.excludeReview)]).catch(x=>toast(x.message,true));});$('#bulk-exclude-reviews').addEventListener('click',()=>bulkReviewed('exclude').catch(e=>toast(e.message,true)));$('#bulk-restore-reviews').addEventListener('click',()=>bulkReviewed('restore').catch(e=>toast(e.message,true)));
-  document.querySelectorAll('#view-add-data .subtabs [data-add-tab]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('#view-add-data .subtabs [data-add-tab]').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-selected',String(b===button));});document.querySelectorAll('#view-add-data .data-form').forEach(form=>form.classList.toggle('active',form.id===`form-${button.dataset.addTab}`));}));$('#add-sft-turn').addEventListener('click',()=>addSftTurn($('#sft-turns .turn-row:last-child .turn-role')?.value==='user'?'assistant':'user'));
+  document.querySelectorAll('#data-entry-content .subtabs [data-add-tab]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('#data-entry-content .subtabs [data-add-tab]').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-selected',String(b===button));});document.querySelectorAll('#data-entry-content .data-form').forEach(form=>form.classList.toggle('active',form.id===`form-${button.dataset.addTab}`));}));$('#add-sft-turn').addEventListener('click',()=>addSftTurn($('#sft-turns .turn-row:last-child .turn-role')?.value==='user'?'assistant':'user'));
   $('#form-sft').addEventListener('submit',async e=>{
     e.preventDefault();
     const rows=Array.from(document.querySelectorAll('#sft-turns .turn-row'));
@@ -780,7 +790,7 @@ function bindEvents(){
   $('#apply-manual-bulk').addEventListener('click',()=>applyManualBulk().catch(e=>toast(e.message,true)));
   $('#close-manual-dialog').addEventListener('click',()=>$('#manual-dialog').close());$('#manual-dialog').addEventListener('click',e=>{if(e.target===$('#manual-dialog'))$('#manual-dialog').close();});
   $('.dialog-tabs').addEventListener('click',e=>{const button=e.target.closest('[data-manual-tab]');if(!button)return;$$('.dialog-tabs button').forEach(b=>b.classList.toggle('active',b===button));$$('.manual-tab').forEach(tab=>tab.classList.toggle('active',tab.id===`manual-tab-${button.dataset.manualTab}`));if(button.dataset.manualTab==='versions')loadManualVersions().catch(x=>toast(x.message,true));});
-  $('#manual-tab-details').addEventListener('click',e=>{const button=e.target.closest('[data-detail-action]');if(!button)return;const item=state.manualCurrent,action=button.dataset.detailAction;if(action==='cancel-edit')return renderManualDetails(item);if(action==='edit')return renderManualEdit(item);manualAction(action,item.item_type,item.id).catch(x=>toast(x.message,true));});
+  $('#manual-tab-details').addEventListener('click',e=>{const button=e.target.closest('[data-detail-action]');if(!button)return;const item=state.manualCurrent,action=button.dataset.detailAction;if(action==='cancel-edit'){renderManualDetails(item);window.NajdiPrepare?.discardEditDraft();return;}if(action==='edit')return renderManualEdit(item);manualAction(action,item.item_type,item.id).catch(x=>toast(x.message,true));});
   $('#dataset-demo').addEventListener('change',()=>loadDataset().catch(e=>toast(e.message,true)));$('#preview-dedup').addEventListener('click',()=>previewDedup().catch(e=>toast(e.message,true)));$('#create-export').addEventListener('click',createExport);
   $('#health-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('dataset-health',state.selectedDataset,true);loadHealth(false);});$('#refresh-health').addEventListener('click',()=>loadHealth(true));$('#health-summary').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-checks').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-warnings').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-detail-panel').addEventListener('click',e=>{if(e.target.closest('[data-close-health-detail]'))$('#health-detail-panel').classList.add('hidden');});$('#health-version-details').addEventListener('click',()=>switchView('dataset-versions',{version:state.selectedDataset}));
   $('#balance-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('balancer',state.selectedDataset,true);loadBalancer();});$('#run-balance').addEventListener('click',()=>loadBalancer(true));$('#refresh-eval').addEventListener('click',()=>loadEvalSets().catch(e=>toast(e.message,true)));$('#version-list').addEventListener('click',e=>{const button=e.target.closest('[data-version-name]');if(button)showVersionDetail(button.dataset.versionName).catch(x=>toast(x.message,true));});$('#version-detail').addEventListener('click',e=>{const health=e.target.closest('[data-health-version]'),derive=e.target.closest('[data-derive-version]'),analysis=e.target.closest('[data-overlap-analysis]'),plan=e.target.closest('[data-overlap-plan]'),apply=e.target.closest('[data-apply-plan]'),freeze=e.target.closest('[data-freeze-version]');if(health){state.selectedDataset=health.dataset.healthVersion;switchView('dataset-health',{version:state.selectedDataset});}else if(derive)deriveVersion(derive.dataset.deriveVersion);else if(analysis)analyzeOverlaps(analysis.dataset.overlapAnalysis);else if(plan)dryRunOverlaps(plan.dataset.overlapPlan);else if(apply)applyOverlapPlan(apply.dataset.applyPlan);else if(freeze)freezeVersion(freeze.dataset.freezeVersion);});
@@ -803,7 +813,7 @@ function bindEvents(){
 
 // Phone navigation sheet: the button reports its state, Escape and an outside click close it.
 function setMobileNav(open){$('.sidebar').classList.toggle('open',open);$('#mobile-menu').setAttribute('aria-expanded',String(open));document.body.classList.toggle('nav-open',open);}
-async function init(){try{initAdvancedMode();$$('[data-advanced-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.advancedView)));$$('[data-add-records]').forEach(b=>b.addEventListener('click',()=>switchView('manual-data')));$$('[data-add-new]').forEach(b=>b.addEventListener('click',()=>switchView('add-data')));const preset=$('#data-preset');if(preset){preset.value=storedPreference('najdilab.dataPreset');preset.onchange=()=>{savePreference('najdilab.dataPreset',preset.value);$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(()=>{}));};}$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(prefs.get('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').setAttribute('aria-expanded','false');}await loadConfig();bindEvents();$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(error=>toast(`Unable to load language options: ${error.message}`,true)));addSftTurn('user');addSftTurn('assistant');const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
+async function init(){try{initAdvancedMode();$$('[data-advanced-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.advancedView)));$$('[data-add-records]').forEach(b=>b.addEventListener('click',()=>switchView('manual-data')));$$('[data-add-new]').forEach(b=>b.addEventListener('click',()=>switchView('add-data')));const preset=$('#data-preset');if(preset){preset.value=storedPreference('najdilab.dataPreset');preset.onchange=()=>{savePreference('najdilab.dataPreset',preset.value);$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(()=>{}));};}$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(prefs.get('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').setAttribute('aria-expanded','false');}await loadConfig();bindEvents();await Promise.all($$('form.data-form [data-taxonomy-host]').map(host=>mountTaxonomy(host,dataDefaults()).catch(error=>toast(`Unable to load language options: ${error.message}`,true))));addSftTurn('user');addSftTurn('assistant');await window.NajdiPrepare?.initialize();window.addEventListener('najdilab:versionschange',()=>{state.datasetVersions=[];if(state.view==='dashboard')loadDashboard().catch(error=>toast(error.message,true));});const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
 const phase38Criteria={factual_correctness:'Factual correctness',instruction_following:'Instruction following',dialect_quality:'Dialect quality',natural_arabic:'Natural Arabic',concision:'Concision',context_continuity:'Context continuity',tool_correctness:'Tool correctness',hallucination_risk:'Hallucination risk',repetition_risk:'Repetition risk',contamination_concern:'Evaluation contamination concern'};
 const phase38Coverage={instruction_following:'Instruction following',verbosity_focus:'Verbosity control',constraint_following:'Constraint following',tool_behavior:'Tool behavior',capability_understanding:'Capability understanding',fabricated_tool_prevention:'Prevent fabricated tool execution',hallucination_prevention:'Prevent hallucinations',context_understanding:'Context handling',conversational_continuity:'Conversation continuity',najdi_saudi_dialect:'Saudi/Najdi dialect',natural_arabic:'Natural Arabic',repetition_prevention:'Prevent repetition',factual_accuracy:'Factual accuracy'};
 const phase38Types={sft:'Short conversation (SFT)',multi_turn:'Multi-turn conversation',native_tool_use:'Native tool use'};

@@ -1,5 +1,12 @@
 # Changelog
 
+## Guided workspace — unversioned development changes (2026-11-06, `update-v2.3.1`)
+
+- Default Data workspace combines entry and history-aware editing, backend checks and correction, explicit Gold approval, and compatible exports in four stages. The visible Advanced Mode switch replaces the Wizard with independent tools and restores browser-saved context on return, reload and application restart.
+- My versions adds file/Manifest inspection, readiness, direct export entry and verified permanent deletion. Migration 011 records durable deletion plans and audit events. Ownership, hashes, links, dependencies and a fresh confirmation token are checked under cross-process locks. Interrupted deletion remains recoverable and deleted version names remain reserved.
+- New Gold manifests record managed reference ownership. Legacy versions without this proof remain readable/exportable and permanent deletion is refused. Handoff publication reserves its dependency durably, including custom output roots. A failed publication can leave a conservative reservation.
+- Actual synthetic Chromium journeys cover Arabic/English, correction/history, privacy and split blockers, frozen integrity, downloads, mode restoration, restart, cancellation and isolated deletion. Application version remains V2.2.0. [Implementation and acceptance](docs/development/GUIDED_WORKSPACE.md).
+
 ## P1 Gold health — unversioned development fix (2026-11-06, `update-v2.3.1`)
 
 - Health, Balance and Version Details handle Direct Language-only and evaluation-only Gold versions whose conversation concentration diagnostics are unavailable. Missing measurements retain `None`, measured zero and existing warning thresholds retain their meaning, and malformed concentration statistics return HTTP 422.

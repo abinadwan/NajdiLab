@@ -15,7 +15,7 @@ EXPECTED = {'najdi_riyadh': ('ar', 'najdi_riyadh', None), 'saudi_neutral': ('ar'
 @pytest.fixture
 def legacy_db(tmp_path, monkeypatch):
     path = tmp_path / 'v210.db'
-    sources = db._approved_migration_sources()
+    sources = {name: sql for name, sql in db._approved_migration_sources().items() if name <= "010_language_metadata.sql"}
     assert list(sources)[-1] == '010_language_metadata.sql'
     before = {name: sql for name, sql in sources.items() if name != '010_language_metadata.sql'}
     monkeypatch.setattr(db, '_approved_migration_sources', lambda: before)

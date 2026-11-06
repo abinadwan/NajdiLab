@@ -40,6 +40,10 @@
     {
       "name": "010_language_metadata.sql",
       "sha256": "92928c9dabfbef3b3b4ad9347c1da1dc3388c382647cc8514dcc840bd0db6abc"
+    },
+    {
+      "name": "011_gold_version_deletions.sql",
+      "sha256": "21f9d255782a7fd6e26af3852da6d741cb55d0451561c4e971bd98e137e470a4"
     }
   ]
 }

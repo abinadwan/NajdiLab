@@ -21,6 +21,7 @@ import tempfile
 from uuid import uuid4
 
 from .db import ROOT, utc_now
+from .gold_lifecycle import primary_exports_mutation
 from .dataset_platform import _version_dir, KNOWN_FILES, NATIVE_TRAIN_FILE
 from .dataset_quality import analyze_directory
 from .service import ValidationError, _validate_sft_record, TRAINING_REVIEW_STATUSES
@@ -59,6 +60,7 @@ def digest(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+@primary_exports_mutation
 def create_handoff(version, *, profile='trl_prompt_completion', output_root=None):
     if profile not in PROFILES:
         raise ValidationError('Choose an export profile: Unsloth Studio (chat or Alpaca) or Unsloth/TRL programmatic.')
@@ -172,6 +174,8 @@ def create_handoff(version, *, profile='trl_prompt_completion', output_root=None
             any((directory/n).read_bytes()!=b for n,b in source_bytes.items()) or
             any((directory/n).exists() for n in quality_names if n not in source_bytes)):
             raise ValidationError('Source version changed while creating the handoff; retry after review.')
+        from .gold_lifecycle import record_handoff_reference
+        record_handoff_reference(version, handoff_id, output_root)
         os.rename(temp,final)
         return {**result,'directory':str(final),'download_url':f'/api/v1/unsloth-exports/{handoff_id}/dataset.jsonl'}
     except Exception:

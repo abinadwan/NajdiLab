@@ -42,7 +42,8 @@ test('Direct language Gold health acceptance in Arabic and English',{timeout:180
         await page.goto(base+'/');await page.waitForSelector('#dashboard-stats button');
         await page.select('#language-select',language);
         assert.equal(await page.$eval('html',e=>e.dir),language==='ar'?'rtl':'ltr');
-        await click('.nav-item[data-view="add-data"]');await click('[data-add-tab="direct"]');
+        await click('.nav-item[data-view="prepare"]');await page.waitForSelector('#prepare-panel-1:not([hidden])');
+        await click('#wizard-add-record');await click('[data-add-tab="direct"]');
         await page.type('#form-direct textarea[name="text"]',language==='ar'?'اااا بببب تتتت':'ثثثث جججج حححح');
         await page.waitForSelector('#form-direct select[name="language"]');await page.select('#form-direct select[name="language"]','ar');
         await click('#form-direct input[name="training_eligible"]');
@@ -51,7 +52,11 @@ test('Direct language Gold health acceptance in Arabic and English',{timeout:180
         const recordId='direct_language_texts:'+(await savedResponse.json()).item.id;
         const created=[];
         for(let attempt=0;attempt<2;attempt++){
-          await click('.nav-item[data-view="prepare"]');await page.waitForSelector(`#prepare-records input[data-id="${recordId}"]`);
+          if(attempt){
+            await click('.nav-item[data-view="prepare"]');await page.waitForNetworkIdle({idleTime:100});
+            await click('#prepare-new-version');await page.waitForNetworkIdle({idleTime:100});
+          }
+          await page.waitForSelector('#prepare-panel-1:not([hidden])');await page.waitForSelector(`#prepare-records input[data-id="${recordId}"]`);
           await click('#prepare-none');await click(`#prepare-records input[data-id="${recordId}"]`);
           const checked=responseFor('/api/v1/prepare/check','POST');await click('#prepare-check');
           const checkResponse=await checked;assert.equal(checkResponse.status(),200);assert.equal((await checkResponse.json()).status,'ready');
@@ -77,12 +82,13 @@ test('Direct language Gold health acceptance in Arabic and English',{timeout:180
           await click('#prepare-created a');await page.waitForSelector('#view-my-versions.active');
           await page.waitForFunction(v=>[...document.querySelectorAll('.version-card')].some(c=>c.querySelector('h3')?.textContent===v),{},version);
           const card=await page.evaluateHandle(v=>[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3')?.textContent===v),version);
-          const button=await card.$('button');await button.scrollIntoView();await button.click();
-          await page.waitForFunction(v=>[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3')?.textContent===v)?.querySelector('.version-details h4'),{},version);
+          const button=await card.$('.workflow-actions button:nth-child(2)');await button.scrollIntoView();await button.click();
+          await page.waitForFunction(v=>[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3')?.textContent===v)?.querySelector('.version-details:last-child h4'),{},version);
           await assertCleanText();
           await click('.nav-item[data-view="settings"]');
           if(!(await page.$eval('#advanced-mode',e=>e.checked)))await click('#advanced-mode');
-          await click('[data-advanced-view="dataset-health"]');
+          await page.waitForSelector('#advanced-workspace',{visible:true});
+          await click('#advanced-workspace [data-advanced-view="dataset-health"]');
           await page.waitForSelector(`#health-version option[value="${version}"]`);
           const healthSelected=responseFor(`/dataset-versions/${version}/health`);await page.select('#health-version',version);assert.equal((await healthSelected).status(),200);
           await page.waitForSelector('#health-results:not(.hidden)');await assertCleanText();
@@ -90,10 +96,10 @@ test('Direct language Gold health acceptance in Arabic and English',{timeout:180
             const card=els.at(-1);return {status:card.querySelector('.health-card-status').textContent,value:card.querySelector('strong').textContent};
           });
           assert.deepEqual(concentration,{status:language==='ar'?'غير متاح':'Unavailable',value:'—'});
-          await click('.nav-item[data-view="settings"]');
-          const balanced=responseFor(`/dataset-versions/${version}/balance`);await click('[data-advanced-view="balancer"]');assert.equal((await balanced).status(),200);
+          await click('.nav-item[data-view="prepare"]');
+          const balanced=responseFor(`/dataset-versions/${version}/balance`);await click('#advanced-workspace [data-advanced-view="balancer"]');assert.equal((await balanced).status(),200);
           await page.waitForSelector('#balance-results:not(.hidden)');await assertCleanText();
-          await click('.nav-item[data-view="settings"]');await click('[data-advanced-view="dataset-versions"]');
+          await click('.nav-item[data-view="prepare"]');await click('#advanced-workspace [data-advanced-view="dataset-versions"]');
           const detailed=responseFor(`/dataset-versions/${version}`);await click(`#version-list [data-version-name="${version}"]`);assert.equal((await detailed).status(),200);
           await page.waitForFunction(v=>document.querySelector('#version-detail .version-hero h2')?.textContent===v,{},version);await assertCleanText();
           await click('.nav-item[data-view="settings"]');await click('#advanced-mode');await click('.nav-item[data-view="my-versions"]');

@@ -323,7 +323,7 @@ const puppeteer=require('puppeteer-core');
     assert.equal(await page.evaluate(()=>document.activeElement.id),'chat-model-button','focus returns to the model button');
     await page.setViewport({width:1280,height:1000});
     // UX-14: dialog tabs must never change Add Data tabs when they are outside the dialog.
-    await page.click('[data-view="add-data"]');
+    await page.goto(base+'/data/add');
     await page.waitForSelector('#form-sft.active');
     await page.evaluate(()=>document.querySelector('.dialog-tabs [data-manual-tab="details"]').click());
     assert.equal(await page.$eval('#form-sft',e=>e.classList.contains('active')),true);

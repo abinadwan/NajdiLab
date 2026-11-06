@@ -57,6 +57,8 @@ CONTEXT_PRESETS = [
     {"id": "long", "context_budget": 16384, "reply_reserve": 3072},
 ]
 from .unsloth_export import create_handoff, list_handoffs, read_handoff
+from . import gold_management
+import shutil
 from . import language_taxonomy
 from .training_models import TrainingModels
 from .dataset_platform import (
@@ -221,7 +223,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         # path, method and status (review F7).
         sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), re.sub(r"\?[^\s\"]*", "?[query omitted]", fmt % args)))
 
-    def _headers(self, status: int, content_type: str, length: int | None = None) -> None:
+    def _headers(self, status: int, content_type: str, length: int | None = None, download: str | None = None) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", "no-store" if content_type.startswith("application/json") else "no-cache")
@@ -229,6 +231,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'")
+        if download is not None:
+            self.send_header("Content-Disposition", f'attachment; filename="{download}"')
         if length is not None:
             self.send_header("Content-Length", str(length))
         if self.close_connection:
@@ -297,7 +301,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         write({"type": "done", "result": result})
 
     def _dataset_error(self, error: DatasetPlatformError) -> None:
-        status = HTTPStatus.NOT_FOUND if error.code in {"PROJECT_ROOT_NOT_FOUND", "EXPORTS_ROOT_NOT_FOUND", "DATASET_NOT_FOUND", "MANIFEST_NOT_FOUND"} else HTTPStatus.CONFLICT if error.code in {"VERSION_ALREADY_EXISTS", "SOURCE_NOT_FROZEN", "TARGET_NOT_DRAFT", "OVERLAP_PLAN_STALE"} else HTTPStatus.FORBIDDEN if error.code == "ACCESS_DENIED" else HTTPStatus.UNPROCESSABLE_ENTITY if error.code in {"INVALID_MANIFEST", "INVALID_DATASET", "INVALID_DIAGNOSTICS", "UNSUPPORTED_DATASET_FORMAT", "INVALID_VERSION_NAME"} else HTTPStatus.INTERNAL_SERVER_ERROR
+        status = HTTPStatus.NOT_FOUND if error.code in {"PROJECT_ROOT_NOT_FOUND", "EXPORTS_ROOT_NOT_FOUND", "DATASET_NOT_FOUND", "MANIFEST_NOT_FOUND"} else HTTPStatus.CONFLICT if error.code in {"VERSION_ALREADY_EXISTS", "SOURCE_NOT_FROZEN", "TARGET_NOT_DRAFT", "OVERLAP_PLAN_STALE", "GOLD_OWNERSHIP_UNPROVEN", "GOLD_DELETE_BLOCKED", "GOLD_ALREADY_DELETED", "STALE_DELETE_PREVIEW", "GOLD_DELETE_IO_ERROR", "GOLD_HASH_MISMATCH", "GOLD_NOT_FROZEN", "GOLD_LIFECYCLE_LOCK_FAILED", "GOLD_REFERENCE_LEDGER_FAILED"} else HTTPStatus.FORBIDDEN if error.code == "ACCESS_DENIED" else HTTPStatus.UNPROCESSABLE_ENTITY if error.code in {"INVALID_MANIFEST", "INVALID_DATASET", "INVALID_DIAGNOSTICS", "UNSUPPORTED_DATASET_FORMAT", "INVALID_VERSION_NAME", "DELETE_CONFIRMATION_REQUIRED", "GOLD_FILE_NOT_ALLOWED"} else HTTPStatus.INTERNAL_SERVER_ERROR
         self._json(error.as_dict(), status)
 
 
@@ -412,7 +416,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/v1/exports":
                 self._json({"items": list_exports()})
             elif parsed.path == "/api/v1/dataset-versions":
-                self._json({"items": list_dataset_versions()})
+                with gold_management.lifecycle_lock:
+                    self._json({"items": gold_management.version_catalog(db_path=DB_PATH)})
             elif parsed.path == "/api/v1/phase38/v009/human-review":
                 self._json(get_phase38_review())
             elif parsed.path == "/api/v1/phase38/v009/freeze-gate":
@@ -421,24 +426,39 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(get_post_edit_verification())
             elif parsed.path == "/api/v1/phase39/readiness":
                 self._json(json.loads((PHASE39 / "phase39-freeze-readiness.json").read_text(encoding="utf-8")))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/export-options", parsed.path):
+                self._json(gold_management.export_options(match.group(1), db_path=DB_PATH))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/delete-preview", parsed.path):
+                self._json(gold_management.deletion_preview(match.group(1), db_path=DB_PATH))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/files/([A-Za-z0-9._-]+)", parsed.path):
+                with gold_management.lifecycle_lock:
+                    path = gold_management.resolve_download(match.group(1), match.group(2), db_path=DB_PATH)
+                    with path.open("rb") as handle:
+                        self._headers(HTTPStatus.OK, "application/octet-stream", path.stat().st_size, download=path.name)
+                        shutil.copyfileobj(handle, self.wfile, 1024 * 1024)
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/health", parsed.path):
-                self._json(dataset_health(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(dataset_health(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/quality-findings", parsed.path):
-                self._json(dataset_quality(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(dataset_quality(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/release-validation", parsed.path):
                 version = match.group(1)
                 directory = _version_dir(version)
                 self._json(validate_candidate_release(directory, source_version=version))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/balance", parsed.path):
-                self._json(analyze_dataset_balance(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(analyze_dataset_balance(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/balance-candidate", parsed.path):
                 self._json(balance_candidate(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/eval-sets", parsed.path):
-                self._json(eval_leakage(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(eval_leakage(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/conversation-overlaps", parsed.path):
                 self._json(conversation_overlap_analysis(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)", parsed.path):
-                self._json(dataset_version_detail(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(dataset_version_detail(match.group(1)))
             elif parsed.path == "/api/v1/exports/dedup-report":
                 self._json(dedup_report(include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/analytics":
@@ -481,7 +501,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         except Exception:
             traceback.print_exc()
             self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
-
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         # Fail closed before reading or parsing any potentially overbroad event.
@@ -494,10 +513,11 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         try:
             data = self._body()
             if parsed.path == '/api/v1/unsloth-exports':
-                fields(data, {'version', 'profile'})
-                if not isinstance(data['version'],str) or not isinstance(data['profile'],str):
-                    raise ValidationError('Choose a dataset version and an export profile.')
-                self._json(create_handoff(data['version'], profile=data['profile']), HTTPStatus.CREATED)
+                with gold_management.lifecycle_lock:
+                    fields(data, {'version', 'profile'})
+                    if not isinstance(data['version'],str) or not isinstance(data['profile'],str):
+                        raise ValidationError('Choose a dataset version and an export profile.')
+                    self._json(create_handoff(data['version'], profile=data['profile']), HTTPStatus.CREATED)
             elif parsed.path == '/api/v1/chat/hardware':
                 if data.get('approved') is not True:
                     raise IntegrationError('APPROVAL_REQUIRED', 'Approve the read-only hardware snapshot first.', 403)
@@ -570,24 +590,28 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 if selection is not None and not (isinstance(selection, list) and all(isinstance(x, str) for x in selection)):
                     raise ValidationError("selection must be a list of record ids")
                 self._json(prepare_check(selection, db_path=DB_PATH, include_demo=bool(data.get("include_demo"))))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/delete", parsed.path):
+                fields(data, {"token", "confirm_version"})
+                self._json(gold_management.delete_version(match.group(1), data, db_path=DB_PATH))
             elif parsed.path == "/api/v1/exports":
-                include_demo = bool(data.get("include_demo"))
-                selection = data.get("selection")
-                if selection is not None and not (isinstance(selection, list) and all(isinstance(x, str) for x in selection)):
-                    raise ValidationError("selection must be a list of record ids")
-                self._json(
-                    {
-                        "ok": True,
-                        "export": create_export(
-                            db_path=DB_PATH,
-                            include_demo=include_demo,
-                            filters=data.get("filters") or {},
-                            selection=selection,
-                            expected_fingerprint=data.get("fingerprint") if isinstance(data.get("fingerprint"), str) else None,
-                        ),
-                    },
-                    HTTPStatus.CREATED,
-                )
+                with gold_management.lifecycle_lock:
+                    include_demo = bool(data.get("include_demo"))
+                    selection = data.get("selection")
+                    if selection is not None and not (isinstance(selection, list) and all(isinstance(x, str) for x in selection)):
+                        raise ValidationError("selection must be a list of record ids")
+                    self._json(
+                        {
+                            "ok": True,
+                            "export": create_export(
+                                db_path=DB_PATH,
+                                include_demo=include_demo,
+                                filters=data.get("filters") or {},
+                                selection=selection,
+                                expected_fingerprint=data.get("fingerprint") if isinstance(data.get("fingerprint"), str) else None,
+                            ),
+                        },
+                        HTTPStatus.CREATED,
+                    )
             elif match := re.fullmatch(r"/api/v1/phase38/v009/human-review/([^/]+)", parsed.path):
                 self._json({"ok":True,"review":save_phase38_review(unquote(match.group(1)),data)})
             elif parsed.path == "/api/v1/phase39/apply-edits":
@@ -598,13 +622,16 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 except ValueError as exc:
                     self._json({"ok": False, "error": "POST_EDIT_VERIFICATION_RECORD_NOT_FOUND", "message": str(exc)}, HTTPStatus.NOT_FOUND)
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/derive", parsed.path):
-                self._json({"ok": True, "version": create_derived_version(match.group(1), str(data.get("target_version") or ""))}, HTTPStatus.CREATED)
+                with gold_management.lifecycle_lock:
+                    self._json({"ok": True, "version": create_derived_version(match.group(1), str(data.get("target_version") or ""))}, HTTPStatus.CREATED)
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/overlap-plan", parsed.path):
                 self._json({"ok": True, "plan": create_overlap_plan(match.group(1))})
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/apply-overlap-plan", parsed.path):
-                self._json(apply_overlap_plan(match.group(1), str(data.get("plan_token") or ""), str(data.get("dataset_fingerprint") or "")))
+                with gold_management.lifecycle_lock:
+                    self._json(apply_overlap_plan(match.group(1), str(data.get("plan_token") or ""), str(data.get("dataset_fingerprint") or "")))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/freeze", parsed.path):
-                self._json({"ok": True, "version": freeze_dataset_version(match.group(1))})
+                with gold_management.lifecycle_lock:
+                    self._json({"ok": True, "version": freeze_dataset_version(match.group(1))})
             elif parsed.path == "/api/v1/manual-data/bulk":
                 self._json({"ok": True, **bulk_update_manual_data(data)})
             elif match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)/clone", parsed.path):
@@ -644,7 +671,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         except Exception:
             traceback.print_exc()
             self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
-
     def do_PATCH(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         try:
