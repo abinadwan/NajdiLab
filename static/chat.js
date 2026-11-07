@@ -1018,22 +1018,7 @@
       if(global.navigator.clipboard)global.navigator.clipboard.writeText(text).then(done,()=>{});
     });
   }
-  global.NajdiChat={load,useModel};
-  document.addEventListener('DOMContentLoaded',()=>{
-    const form=el('context-warnings-form'),ids={info:'context-warn-info',warn:'context-warn-warn',critical:'context-warn-critical'};
-    if(form){
-      const saved=thresholds();for(const [key,id] of Object.entries(ids))el(id).value=saved[key];
-      form.onsubmit=event=>{
-        event.preventDefault();
-        const value=Object.fromEntries(Object.entries(ids).map(([key,id])=>[key,Number(el(id).value)]));
-        const status=el('context-warnings-status');
-        if(!validThresholds(value)){status.textContent='Use whole numbers from 1 to 99 that increase from Information to Critical.';return;}
-        try{global.localStorage.setItem('najdilab.contextWarnings',JSON.stringify(value));status.textContent='Context warnings saved.';}
-        catch{status.textContent='This browser blocks local storage, so the default warnings (70, 85, 95) stay in use.';}
-      };
-    }
-    const legacy=el('chat-legacy-providers');
-    if(legacy){legacy.checked=legacyProviders();legacy.onchange=()=>{try{global.localStorage.setItem(LEGACY_PROVIDERS_KEY,legacy.checked?'1':'0');}catch{}};}
+  function bindLegacyExports(){
     // What the chosen version is ready for, before anything is exported.
     const READY_TEXT={VALID:'Valid',INVALID:'Invalid',STRUCTURE_CHECKED:'Structure checked',BLOCKED:'Blocked',NO_EVALUATION_DATA:'No evaluation data',
       LEAKAGE_DETECTED:'Leakage detected',INDEPENDENT_SAMPLES_AVAILABLE:'Independent samples',technical_smoke_test:'Technical smoke test',
@@ -1074,5 +1059,22 @@
         }
       }catch(error){host.textContent=error.message;}finally{button.disabled=false;}
     };
+  }
+  global.NajdiChat={load,useModel,bindLegacyExports};
+  document.addEventListener('DOMContentLoaded',()=>{
+    const form=el('context-warnings-form'),ids={info:'context-warn-info',warn:'context-warn-warn',critical:'context-warn-critical'};
+    if(form){
+      const saved=thresholds();for(const [key,id] of Object.entries(ids))el(id).value=saved[key];
+      form.onsubmit=event=>{
+        event.preventDefault();
+        const value=Object.fromEntries(Object.entries(ids).map(([key,id])=>[key,Number(el(id).value)]));
+        const status=el('context-warnings-status');
+        if(!validThresholds(value)){status.textContent='Use whole numbers from 1 to 99 that increase from Information to Critical.';return;}
+        try{global.localStorage.setItem('najdilab.contextWarnings',JSON.stringify(value));status.textContent='Context warnings saved.';}
+        catch{status.textContent='This browser blocks local storage, so the default warnings (70, 85, 95) stay in use.';}
+      };
+    }
+    const legacy=el('chat-legacy-providers');
+    if(legacy){legacy.checked=legacyProviders();legacy.onchange=()=>{try{global.localStorage.setItem(LEGACY_PROVIDERS_KEY,legacy.checked?'1':'0');}catch{}};}
   });
 })(typeof window!=='undefined'?window:globalThis);

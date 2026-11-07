@@ -1,5 +1,12 @@
 # Changelog
 
+## V2.3.0 — development candidate (2026-11-07, `update-project`, Draft PR #23)
+
+- Minor version step for adoption of the four-stage Guided Wizard as the official data workspace. Manual records, shared safety APIs, Gold lifecycle and compatible external exports retain their contracts.
+- Advanced Mode controls are removed from the official shell. Historical preferences are ignored while drafts and selections remain intact. The preserved launcher/controller/panels/styles load separately, with a tested synthetic restoration procedure.
+- Current documentation, permanent synthetic screenshots, link/anchor checks and executable examples are audited for V2.3.0. Historical release numbers and evidence remain labeled as historical.
+- This is a development candidate for review. Final evidence is in [finalization](docs/development/V230_FINALIZATION.md) and [the documentation audit](docs/development/V230_DOCUMENTATION_AUDIT.md).
+
 ## Guided workspace — unversioned development changes (2026-11-06, `update-v2.3.1`)
 
 - Default Data workspace combines entry and history-aware editing, backend checks and correction, explicit Gold approval, and compatible exports in four stages. The visible Advanced Mode switch replaces the Wizard with independent tools and restores browser-saved context on return, reload and application restart.

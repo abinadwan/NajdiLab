@@ -85,11 +85,9 @@ test('Direct language Gold health acceptance in Arabic and English',{timeout:180
           const button=await card.$('.workflow-actions button:nth-child(2)');await button.scrollIntoView();await button.click();
           await page.waitForFunction(v=>[...document.querySelectorAll('.version-card')].find(c=>c.querySelector('h3')?.textContent===v)?.querySelector('.version-details:last-child h4'),{},version);
           await assertCleanText();
-          await click('.nav-item[data-view="settings"]');
-          if(!(await page.$eval('#advanced-mode',e=>e.checked)))await click('#advanced-mode');
-          await page.waitForSelector('#advanced-workspace',{visible:true});
-          await click('#advanced-workspace [data-advanced-view="dataset-health"]');
-          await page.waitForSelector(`#health-version option[value="${version}"]`);
+          await page.evaluate(()=>switchView('dataset-health'));
+          try{await page.waitForSelector(`#health-version option[value="${version}"]`);}
+          catch(error){console.error('HEALTH_NAVIGATION_DIAGNOSTIC',JSON.stringify({errors,statuses:statuses.slice(-10),view:await page.$eval('.view.active',e=>e.id),toast:await page.$eval('#toast',e=>e.textContent)}));throw error;}
           const healthSelected=responseFor(`/dataset-versions/${version}/health`);await page.select('#health-version',version);assert.equal((await healthSelected).status(),200);
           await page.waitForSelector('#health-results:not(.hidden)');await assertCleanText();
           const concentration=await page.$$eval('#health-checks [data-health-detail="balance"]',els=>{
@@ -97,12 +95,12 @@ test('Direct language Gold health acceptance in Arabic and English',{timeout:180
           });
           assert.deepEqual(concentration,{status:language==='ar'?'غير متاح':'Unavailable',value:'—'});
           await click('.nav-item[data-view="prepare"]');
-          const balanced=responseFor(`/dataset-versions/${version}/balance`);await click('#advanced-workspace [data-advanced-view="balancer"]');assert.equal((await balanced).status(),200);
+          const balanced=responseFor(`/dataset-versions/${version}/balance`);await page.evaluate(()=>switchView('balancer'));assert.equal((await balanced).status(),200);
           await page.waitForSelector('#balance-results:not(.hidden)');await assertCleanText();
-          await click('.nav-item[data-view="prepare"]');await click('#advanced-workspace [data-advanced-view="dataset-versions"]');
+          await click('.nav-item[data-view="prepare"]');await page.evaluate(()=>switchView('dataset-versions'));
           const detailed=responseFor(`/dataset-versions/${version}`);await click(`#version-list [data-version-name="${version}"]`);assert.equal((await detailed).status(),200);
           await page.waitForFunction(v=>document.querySelector('#version-detail .version-hero h2')?.textContent===v,{},version);await assertCleanText();
-          await click('.nav-item[data-view="settings"]');await click('#advanced-mode');await click('.nav-item[data-view="my-versions"]');
+          await click('.nav-item[data-view="my-versions"]');
           await page.waitForSelector('#view-my-versions.active');assert.equal(await page.$eval('html',e=>e.classList.contains('advanced-mode')),false);
           for(const [name,files] of allSnapshots)assert.deepEqual((await read(`/api/v1/dataset-versions/${name}`)).files,files,`${name} stays byte-identical after navigation and another build`);
         }

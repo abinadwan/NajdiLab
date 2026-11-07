@@ -1,5 +1,7 @@
 # Chat review workflow — implementation, evidence and safe update
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 Date: 2026-11-02 (owner time zone Asia/Riyadh). Base: PR20 `634e7a5414aa7e620f674f420adeda2d97f02c43`, reached through the independent `integration/pr19-pr20-local-20261102` branch. Fix branch: `fix/chat-review-workflow-20261102`. PR19 and PR20 remain Draft and unmerged; main is untouched. This owner-authorized local preview update is separate from release acceptance.
 
 ## Behavior and findings

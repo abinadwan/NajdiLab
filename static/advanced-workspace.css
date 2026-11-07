@@ -1,0 +1,8 @@
+/* Preserved legacy workspace presentation. */
+#advanced-workspace{display:none}
+html.advanced-mode #advanced-workspace{display:block}
+html.advanced-mode #guided-wizard{display:none}
+.workspace-mode-control{white-space:nowrap;font-size:.8125rem;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface)}
+.workspace-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}
+.workspace-tools .button{justify-content:start;padding:20px;text-align:start}
+@media(max-width:700px){.workspace-tools{grid-template-columns:1fr}.workspace-mode-control{font-size:.7rem;padding:5px}}

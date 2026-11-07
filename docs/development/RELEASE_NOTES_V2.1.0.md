@@ -1,5 +1,7 @@
 # Najdi Lab V2.1.0 — development candidate
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 > Superseded by [V2.2.0](RELEASE_NOTES_V2.2.0.md). Kept as the record of V2.1.0.
 
 **Status:** development candidate on `update-project`, Draft PR #23. V2.1.0 is the owner-approved product version identifier; it is **not** a public release, a production approval or a merge to `main`.

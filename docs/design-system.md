@@ -155,3 +155,7 @@ it. Nothing performs an entrance on load.
   (`inset-inline-*`, `margin-inline-*`, `border-inline-*`) are used throughout the new layer.
 - Breadcrumbs and other text the interface builds are composed from English source strings, so
   the catalog can translate them both ways.
+
+## Current interface evidence
+
+V2.3.0 retains the local typography, neutral sheet shell, focus treatment and bilingual direction. Its official data presentation is the four-stage Guided Wizard. Current screenshots are in [the visual guide](screenshots.md). Images linked from the dated redesign record illustrate that earlier revision. The preserved Advanced Workspace has a [separate historical archive](legacy/advanced-workspace/README.md).

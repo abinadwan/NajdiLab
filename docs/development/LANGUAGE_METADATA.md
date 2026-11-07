@@ -1,5 +1,7 @@
 # Language metadata (V2.2.0)
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 | | |
 |---|---|
 | Branch | `update-project` (Draft PR #23). Development candidate, not a release. |

@@ -1,5 +1,7 @@
 # Chat review workflow implementation plan
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../../user-guide.md) for present operation.
+
 **Goal:** Implement the owner-authorized 2026-11-02 Chat fixes on an isolated branch based on integration/pr19-pr20-local-20261102 at 634e7a5414aa7e620f674f420adeda2d97f02c43, then safely update the persistent Windows installation.
 
 **Architecture:** Extend existing Chat controller, response validation, consent metadata and SFT export. Reuse existing messages/masks and seven migrations; no new schema or migration execution is planned. Keep raw model content unchanged and reasoning discarded. Display formatting belongs exclusively in the UI.

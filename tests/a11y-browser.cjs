@@ -94,7 +94,7 @@ test('keyboard and assistive technology acceptance in Chromium',async t=>{
     await t.test('collapsed sidebar keeps every destination named',async()=>{
       await page.click('#collapse-sidebar');
       const names=await page.$$eval('.nav-item',els=>els.map(e=>{const label=e.querySelector('.nav-label');return [label.textContent.trim(),getComputedStyle(label).display!=='none',label.getBoundingClientRect().width<=1];}));
-      assert.equal(names.length,11);
+      assert.equal(names.length,10);
       for(const [name,rendered,hidden] of names)assert.ok(name&&rendered&&hidden,'label is visually hidden but present: '+name);
       const unnamed=(await unnamedFocusable()).filter(x=>x.includes('nav-item'));
       assert.deepEqual(unnamed,[]);

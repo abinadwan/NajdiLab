@@ -1,5 +1,7 @@
 # Dataset-only cleanup results — 2026-11-01
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 **PASS: repository cleanup and available synthetic Windows checks.** This verdict is not installed-model acceptance, fresh Linux-host qualification, publication or deployment approval. No push/PR/merge/deployment or installed-copy update was performed.
 
 ## Audit and source isolation

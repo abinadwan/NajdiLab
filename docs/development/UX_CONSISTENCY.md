@@ -1,5 +1,7 @@
 # UX consistency implementation and verification
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 Date 2026-11-05. Source branch `update-project`, source SHA `1abf2d71db284a2becf2d89703feaaaffbace124`. Development continues locally on `update-v2.3.1`. Application version remains V2.2.0.
 
 ## Behavior and ownership

@@ -1,5 +1,7 @@
 # Phase C implementation record — real AI engine acceptance
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 Status: **PREPARATORY IN_PROGRESS / DRAFT**. Owner authorized beginning Phase C in a **separate pull request** on 2026-11-02 while Phase B PR #19 remains Draft. This is an explicit **sequencing exception for source-only development**, not approval to merge or deploy Phase C early. The Phase C PR targets the Phase B feature branch so its diff does not include Phase B work. After Phase B passes acceptance and merges, retarget Phase C to `main`, inspect the diff and rerun tests. **Do not merge Phase C before Phase B.**
 
 ## Six original findings (no added finding IDs)

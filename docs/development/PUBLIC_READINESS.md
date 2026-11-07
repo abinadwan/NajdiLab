@@ -1,5 +1,7 @@
 # Public GitHub readiness review (V2.2.0)
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 | | |
 |---|---|
 | Scope | `update-project` at the V2.2.0 commit, all 183+ commits of history, the installed Windows test copy. |

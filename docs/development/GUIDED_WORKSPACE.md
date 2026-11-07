@@ -1,5 +1,7 @@
 # Guided workspace implementation and acceptance
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 Branch `update-v2.3.1`, base `1e677dd767c40f14085dd35e577f99e1cd9e3105`. Application version V2.2.0.
 
 ## Design and ownership
@@ -46,13 +48,13 @@ The actual Chromium journey runs separately in English and Arabic against tempor
 
 The restart suite stops the synthetic Python process and starts a different PID on the same temporary origin and state root. It verifies Arabic RTL, Advanced Mode, stage 2, chosen IDs and exact multiline drafts, with all ten seed-file digests unchanged. Browser, console and server error counters are zero in the full journeys.
 
-- [Stage-linked screenshot gallery](../../.test-tmp/guided-acceptance/visual-report.html)
-- [Screenshot index](../../.test-tmp/guided-acceptance/screenshots.json)
-- [Actual restart proof](../../.test-tmp/workflow-restart-acceptance/proof.json)
-- [English HTTP evidence](../../.test-tmp/guided-acceptance/http-en.json)
-- [Arabic HTTP evidence](../../.test-tmp/guided-acceptance/http-ar.json)
-- [Downloaded training JSONL](../../.test-tmp/guided-acceptance/downloads/en/dataset.jsonl)
-- [Inspector measurements](../../.test-tmp/guided-inspector/report.json)
+- Stage-linked screenshot gallery (`../../.test-tmp/guided-acceptance/visual-report.html`, local historical evidence)
+- Screenshot index (`../../.test-tmp/guided-acceptance/screenshots.json`, local historical evidence)
+- Actual restart proof (`../../.test-tmp/workflow-restart-acceptance/proof.json`, local historical evidence)
+- English HTTP evidence (`../../.test-tmp/guided-acceptance/http-en.json`, local historical evidence)
+- Arabic HTTP evidence (`../../.test-tmp/guided-acceptance/http-ar.json`, local historical evidence)
+- Downloaded training JSONL (`../../.test-tmp/guided-acceptance/downloads/en/dataset.jsonl`, local historical evidence)
+- Inspector measurements (`../../.test-tmp/guided-inspector/report.json`, local historical evidence)
 
 These local evidence files are ignored test artifacts. They are retained in this checkout and excluded from the source commit.
 

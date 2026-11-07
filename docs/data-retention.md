@@ -1,5 +1,11 @@
 # Data retention and deletion
 
+## V2.3.0 Gold-file deletion
+
+My versions supports permanent deletion of one registered Gold version after a verified preview and exact typed version confirmation. Complete ownership, manifest/hash equality, safe files and absent dependencies are required. Unknown or legacy ownership proof blocks deletion. Original records, edit history and backups remain governed separately. Interrupted operations retain an audited recovery plan, including an empty-file completion case. Identity reservations prevent name reuse. [Export and deletion contract](dataset-export.md#v230-guided-preparation-and-gold-lifecycle).
+
+The Phase B record-level retention decisions below are historical scope decisions. V2.3.0 Gold-file deletion has the separate explicit confirmation and proof described above.
+
 **Only chat conversations can be permanently deleted (Chat Experience V2, in development).** Everything else is logical. Excluding, ignoring, deleting and archiving remove a record from training selection and from new training files. The record itself stays in the local database, its audit history, earlier exports, the full archive of every new export, and backups. These rules are checked by `tests/test_qa08_retention.py`; chat archiving by `tests/test_chat_workspace.py`.
 
 | Action | Training selection and new training files | Local database | Review audit history | Earlier exports | Full archive in new exports | Backups |
@@ -20,7 +26,7 @@ Rules that make this so:
 
 ## Permanent chat deletion (Chat Experience V2)
 
-The owner approved developing permanent deletion of chat conversations in this phase. It applies only to NajdiLab chat conversations; reviews, manual data and dataset versions keep the logical rules above.
+The owner approved developing permanent deletion of chat conversations in this phase. It applies only to NajdiLab chat conversations; reviews and manual data keep their logical record rules, while Gold-file deletion follows its separate current contract.
 
 **Declared scope — what is removed** (one SQLite transaction, all or nothing; code in `app/chat_deletion.py`):
 
@@ -46,7 +52,7 @@ The owner approved developing permanent deletion of chat conversations in this p
 The owner approved **logical deletion, exclusion and archiving only for Phase B**, preserving the current audit trail and historical exports. Physical erasure is **explicitly deferred as a separate future feature**, not promised by today's Delete controls. This decision resolves the *scope/policy choice* for QA-08; it does **not** turn skipped or unexecuted acceptance checks into a PASS.
 
 Operational safeguards:
-- UI/documentation must not describe current deletion as irreversible or permanent.
+- For the original Phase B record controls, UI/documentation must describe logical deletion accurately. The separately confirmed Gold and Chat permanent-deletion operations have their own declared scopes.
 - Excluded/deleted content must not enter new training-selection files, but **the local database, audit history, full archives of new exports, past exports and backups can still contain its text**.
 - Treat full archives, backups, and exports as potentially sensitive; do not distribute them on the assumption that deleted records were purged.
 - Requests for actual erasure need a separately designed, authorized workflow covering database content, immutable audit evidence, frozen versions, generated full archives, backups, and downstream copies, with a verifiable outcome. No destructive migration or purge is approved in Phase B.

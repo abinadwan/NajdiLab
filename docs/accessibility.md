@@ -14,7 +14,7 @@ The interface aims at keyboard-only use, screen-reader names for every control, 
 
 - Every focusable control has an accessible name in both languages; filter and sort menus are named for what they filter, not only by their first option.
 - Every focusable control shows a visible focus indicator.
-- Navigation is grouped (Overview, Chat, Review, Data entry, Datasets, Export, Administration) as labelled groups; icons are hidden from screen readers; collapsed navigation keeps every name.
+- Navigation is grouped (Overview, Chat, Review, Data, Administration) as labelled groups; icons are hidden from screen readers; collapsed navigation keeps every name.
 - The sidebar and the main navigation are distinct landmarks; the main region is named by the page title.
 - Errors use `role="alert"` and stay until dismissed; status messages use `role="status"`.
 
@@ -24,7 +24,7 @@ No page-level horizontal scrolling at 640 CSS px (200% zoom of a 1280 px window)
 
 ## Checks
 
-`tests/a11y-browser.cjs` (Chromium, runs in Source checks) verifies, from Chromium's accessibility tree: no unnamed focusable control in any of the 15 views in English and Arabic; a visible focus indicator on every focusable control; skip link; keyboard navigation and `aria-current`; collapsed navigation names; modal dialog focus, Escape and focus return; shortcut safety; and reflow at 640 and 320 px in both languages. `tests/test_ux10_navigation.py` checks the navigation structure. Contrast checks for dark mode are in `tests/chat-browser.cjs` (UX-25).
+`tests/a11y-browser.cjs` (Chromium, runs in Source checks) verifies, from Chromium's accessibility tree: no unnamed focusable control in all 18 tested views, including specialist views mounted on demand in English and Arabic; a visible focus indicator on every focusable control; skip link; keyboard navigation and `aria-current`; collapsed navigation names; modal dialog focus, Escape and focus return; shortcut safety; and reflow at 640 and 320 px in both languages. `tests/test_ux10_navigation.py` checks the navigation structure. Contrast checks for dark mode are in `tests/chat-browser.cjs` (UX-25).
 
 ## Not verified
 

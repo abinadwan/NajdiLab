@@ -1,5 +1,7 @@
 # Hugging Face Direct, Smart Model Advisor and context safety
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 | | |
 |---|---|
 | Branch | `update-project` (Draft PR #23). Started from `fcaac6f`. |

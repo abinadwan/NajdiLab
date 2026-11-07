@@ -46,3 +46,7 @@ Keep Arabic out of the other source files: `tests/test_english_localization.py` 
 - Server messages are translated where they are listed in the catalog; internal pipeline errors (tokenizer, migration, dataset build) are shown as labelled original text.
 - The browser checks prove what Chromium renders. Screen-reader announcements and other browsers have not been tested manually.
 - Translations were written for this release and have not been reviewed by a second Arabic speaker.
+
+## V2.3.0 workspace terminology
+
+The official stages are Data / البيانات, Check and correct / الفحص والتصحيح, Approve Gold / اعتماد Gold, and Export / التصدير. Gold identifies the immutable dataset version. Unsloth export identifies a compatible external-tool handoff. Evaluation identifies held-out data. SFT, multi-turn, Direct Language and DPO keep distinct semantics. Advanced Workspace is documented as an archived developer presentation.

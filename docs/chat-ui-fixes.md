@@ -1,5 +1,7 @@
 # Chat controls, keyboard sending and reply presentation
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 ## What caused the reported UI behavior
 
 The composer had a form submit handler but no textarea keyboard handler. A textarea therefore inserted a newline on Enter. Sending also needed a common guard for blank drafts, pending/busy requests, closed sessions and the saved conversation's original model.

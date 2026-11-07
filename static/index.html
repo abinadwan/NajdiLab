@@ -47,7 +47,7 @@
           <button class="nav-item" data-view="reviewed" title="Reviewed"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-reviewed"/></svg></span><span class="nav-label">Reviewed</span></button>
         </div>
         <div class="nav-section" role="group" aria-labelledby="nav-group-data"><span class="nav-group" id="nav-group-data">Data</span>
-          <button class="nav-item" data-view="add-data" data-advanced-only title="Add data"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-add"/></svg></span><span class="nav-label">Add data</span></button>
+
           <button class="nav-item" data-view="prepare" title="Data workspace"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Data workspace</span></button>
           <button class="nav-item" data-view="my-versions" title="My versions"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-layers"/></svg></span><span class="nav-label">My versions</span></button>
         </div>
@@ -64,7 +64,7 @@
       <header class="topbar">
         <button id="mobile-menu" class="icon-button" type="button" aria-label="Open menu" aria-controls="main-nav" aria-expanded="false"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
         <span id="page-breadcrumb" class="breadcrumb">Najdi Lab / Overview</span>
-        <div class="top-actions"><label class="workspace-mode-control inline-check"><input id="workspace-mode" type="checkbox"> <span>Advanced Mode</span></label><div class="language-control"><label for="language-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-globe"/></svg><span class="control-label">Language</span></label><select id="language-select" data-language-select aria-label="Interface language"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="theme-control"><label for="theme-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-contrast"/></svg><span class="control-label">Appearance</span></label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip"><i aria-hidden="true"></i>Local storage</span><button id="refresh-view" class="button ghost" type="button"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span>Refresh</span></button></div>
+        <div class="top-actions"><div class="language-control"><label for="language-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-globe"/></svg><span class="control-label">Language</span></label><select id="language-select" data-language-select aria-label="Interface language"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="theme-control"><label for="theme-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-contrast"/></svg><span class="control-label">Appearance</span></label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip"><i aria-hidden="true"></i>Local storage</span><button id="refresh-view" class="button ghost" type="button"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span>Refresh</span></button></div>
       </header>
       <div class="sheet">
       <div class="page-head">
@@ -310,7 +310,7 @@
               <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Approve Gold</strong><span>Review the selected records and confirm a frozen version.</span></span></li>
               <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Export</strong><span>Download compatible files for each data type.</span></span></li>
             </ol>
-            <div class="toolbar"><button type="button" class="button primary" data-go="prepare">Prepare data</button><button type="button" class="button ghost" data-go="add-data">Add data</button></div>
+            <div class="toolbar"><button type="button" class="button primary" data-go="prepare">Prepare data</button></div>
             <p>Human review is a separate workspace for collected responses.</p><button type="button" class="button ghost" data-go="review-queue">Open human review</button>
           </section>
           <section class="panel recent-card" aria-labelledby="recent-heading"><div class="panel-heading"><h2 id="recent-heading">My versions</h2><button class="button ghost" type="button" data-go="my-versions">View all</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
@@ -390,37 +390,7 @@
         <nav id="reviewed-pager" class="pager" aria-label="Reviewed record pages"></nav>
       </section>
 
-      <section id="view-manual-data" class="view">
-        <div class="subtabs" role="tablist" aria-label="Add data"><button role="tab" aria-selected="false" type="button" data-add-new>New record</button><button class="active" role="tab" aria-selected="true" type="button">My records</button></div>
-        <div id="manual-stats" class="stat-grid"></div>
-        <div class="manual-filters panel">
-          <input id="manual-search" aria-label="Search data records" type="search" placeholder="Search content, source, or notes…">
-          <select id="manual-type" aria-label="Filter by record type"><option value="">All types</option><option value="sft">Conversation / SFT</option><option value="direct">Direct language text</option><option value="dpo">Preference pair / DPO</option></select>
-          <select id="manual-status" aria-label="Filter by status"><option value="">All active statuses</option><option value="eligible">Dataset eligible</option><option value="ineligible">Ineligible</option><option value="archived">Archived</option><option value="excluded">Excluded from dataset selection</option></select>
-          <select id="manual-language" aria-label="Filter by language"><option value="">All languages</option><option value="ar">Arabic</option><option value="en">English</option><option value="multilingual">Multilingual</option></select>
-          <input id="manual-source" aria-label="Filter by source" list="manual-source-options" placeholder="Source"><datalist id="manual-source-options"></datalist>
-          <input id="manual-origin" aria-label="Filter by origin" list="manual-origin-options" placeholder="Origin"><datalist id="manual-origin-options"></datalist>
-          <input id="manual-domain" aria-label="Filter by domain" list="manual-domain-options" placeholder="Domain"><datalist id="manual-domain-options"></datalist>
-          <label class="date-label">From <input id="manual-date-from" type="date"></label>
-          <label class="date-label">To <input id="manual-date-to" type="date"></label>
-          <select id="manual-sort" aria-label="Sort records"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="updated">Last modified</option><option value="type">Type</option><option value="domain">Domain</option><option value="language_layer">Language layer</option><option value="eligible">Dataset eligible</option></select>
-          <label class="inline-check"><input id="manual-show-archived" type="checkbox"> Show archived</label>
-          <button id="apply-manual-filters" class="button primary">Apply</button>
-          <button id="reset-manual-filters" class="button ghost">Reset</button>
-        </div>
-        <div id="manual-bulk" class="bulk-bar panel hidden">
-          <strong><span id="manual-selected-count">0</span> selected</strong>
-          <select id="manual-bulk-action"><option value="">Choose a bulk action</option><option value="eligible">Make dataset eligible</option><option value="ineligible">Make ineligible</option><option value="archive">Archive</option><option value="unarchive">Unarchive</option><option value="exclude">Exclude from dataset selection</option><option value="include">Remove exclusion</option></select>
-          <button id="apply-manual-bulk" class="button primary">Execute</button>
-        </div>
-        <div class="manual-table-wrap panel">
-          <table class="manual-table">
-            <thead><tr><th><input id="manual-select-all" type="checkbox" aria-label="Select all records on this page"></th><th>ID</th><th>Type and content</th><th>Language / domain</th><th>Source / origin</th><th>Created / modified</th><th>Status</th><th>Version</th><th>Actions</th></tr></thead>
-            <tbody id="manual-list"></tbody>
-          </table>
-        </div>
-        <nav id="manual-pager" class="pager" aria-label="Data record pages"></nav>
-      </section>
+
 
       <section id="view-add-data" class="view">
         <div id="data-entry-content">
@@ -460,18 +430,7 @@
       </section>
 
       <section id="view-prepare" class="view">
-        <section id="advanced-workspace" class="panel" aria-labelledby="advanced-workspace-heading">
-          <div class="panel-heading"><div><h2 id="advanced-workspace-heading">Advanced workspace</h2><p>Open a specialist tool directly. Return to guided mode to continue your saved journey.</p></div></div>
-          <div class="workspace-tools">
-            <button class="button ghost" type="button" data-advanced-view="manual-data">Dataset records</button>
-            <button class="button ghost" type="button" data-advanced-view="dataset-health">Dataset health</button>
-            <button class="button ghost" type="button" data-advanced-view="balancer">Dataset balancer</button>
-            <button class="button ghost" type="button" data-advanced-view="eval-sets">Evaluation sets</button>
-            <button class="button ghost" type="button" data-advanced-view="dataset-versions">Gold versions</button>
-            <button class="button ghost" type="button" data-advanced-view="exports">Export center</button>
-            <button class="button ghost" type="button" data-advanced-view="add-data">Add data</button>
-          </div>
-        </section>
+
         <div id="guided-wizard">
           <div class="workspace-intro"><div><h2>From records to a frozen dataset</h2><p>One workspace. Your selection and drafts stay here as you move between stages.</p></div><span id="workflow-save-status" role="status" aria-live="polite">Draft saved in this browser</span></div>
           <ol class="prepare-stepper" aria-label="Steps">
@@ -525,45 +484,16 @@
         <div id="versions-list" class="versions-list"></div>
 
       </section>
-      <section id="view-dataset" class="view">
-        <div id="dataset-stats" class="stat-grid"></div>
-        <div class="panel"><div class="panel-heading"><div><span class="eyebrow">Approved only</span><h2>Gold dataset records</h2></div><label class="inline-check"><input id="dataset-demo" type="checkbox"> Include demo</label></div><div id="dataset-list" class="dataset-list"></div></div>
-      </section>
-
-      <section id="view-dataset-health" class="view">
-        <div class="phase-toolbar panel"><div class="dataset-picker"><label for="health-version">Version</label><select id="health-version" class="technical-select" dir="ltr" aria-label="Version"><option>Loading versions...</option></select></div><div id="health-last-result" class="last-result">Last saved result</div><button id="refresh-health" class="button primary" disabled>Check health</button></div>
-        <div id="health-state" class="panel health-state">Loading versions...</div>
-        <div id="health-results" class="hidden">
-          <div class="health-identity"><div><span>Dataset</span><strong id="health-dataset" dir="ltr">—</strong></div><div><span>Health timestamp</span><strong id="health-timestamp" dir="ltr">—</strong></div><button id="health-version-details" class="button ghost">View version details</button></div>
-          <div id="health-summary" class="health-card-grid"></div>
-          <div id="health-checks" class="health-card-grid secondary"></div>
-          <section class="panel phase-panel"><div class="panel-heading"><div><h2>Warnings</h2></div><span id="health-warning-count" class="count-chip">0</span></div><div id="health-warnings"></div></section>
-          <section id="health-detail-panel" class="panel phase-panel health-detail hidden"></section>
-        </div>
-      </section>
-
-      <section id="view-balancer" class="view">
-        <div class="phase-toolbar panel"><div><span class="eyebrow">Read-only diagnosis</span><h2>Dataset Balancer</h2></div><div class="dataset-picker"><label for="balance-version">Version</label><select id="balance-version" class="technical-select" dir="ltr" aria-label="Dataset version"><option>Loading versions...</option></select></div><button id="run-balance" class="button primary" disabled>Analyze balance</button></div>
-        <div class="safety-banner">Analysis and diagnosis only. Does not modify Gold or Raw Data, change the split, or run a model.</div>
-        <div id="balance-state" class="panel health-state">Loading versions...</div>
-        <div id="balance-results" class="hidden">
-          <div class="health-identity"><div><span>Dataset</span><strong id="balance-dataset" dir="ltr">—</strong></div><div><span>State</span><strong id="balance-dataset-state" dir="ltr">—</strong></div><div><span>Last analyzed</span><strong id="balance-timestamp" dir="ltr">—</strong></div></div>
-          <div id="balance-overview" class="health-card-grid balance-overview"></div>
-          <div id="balance-panels" class="balance-grid"></div>
-          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Balance Warnings</span><h2>Detected warnings</h2></div><span id="balance-warning-count" class="count-chip">0</span></div><div id="balance-warnings" class="balance-notices"></div></section>
-          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Recommendations</span><h2>Recommendations for human decision</h2></div></div><div id="balance-recommendations" class="balance-notices"></div></section>
-        </div>
-      </section>
-
-      <section id="view-dataset-versions" class="view">
-        <div class="versions-layout"><section class="panel version-list-panel"><div class="panel-heading"><div><span class="eyebrow">Gold Library</span><h2>Dataset Versions</h2></div></div><div id="version-list" class="version-list"></div></section><section id="version-detail" class="panel phase-panel"><div class="empty-inline">Choose a version to view manifest, status, and files.</div></section></div>
-      </section>
 
 
-      <section id="view-eval-sets" class="view">
-        <div class="phase-toolbar panel"><div><span class="eyebrow">Locked Holdout</span><h2>Isolate evaluation from eligible records</h2></div><select id="eval-version" aria-label="Dataset version"></select><button id="refresh-eval" class="button primary">Check leakage</button></div>
-        <p id="eval-version-identity" role="status" aria-live="polite">Choose a dataset version to check evaluation integrity.</p><div id="eval-status-card" class="panel phase-panel"></div><div id="eval-files" class="eval-file-grid"></div><div id="leakage-detail" class="panel phase-panel"></div>
-      </section>
+
+
+
+
+
+
+
+
 
 
       <section id="view-phase38-review" class="view">
@@ -595,15 +525,7 @@
         <section class="panel phase38-status"><h3>Review edited records</h3><p id="phase39-status">Loading verification status…</p><div id="phase39-records"></div></section>
       </section>
 
-      <section id="view-exports" class="view">
-        <div class="panel chat-intro export-guide"><h2>Prepare a training package</h2><ol><li>Approve records in Review, or add them in Add Data, and mark them dataset eligible.</li><li>Check duplicates, then create a new version below. It is frozen with its diagnostics.</li><li>Open Dataset Health for that version: structure, training compatibility and evaluation readiness are shown separately.</li><li>Choose the version and your training tool in the Unsloth handoff, then verify the token mask with your trainer.</li></ol><p>Dataset Records, Dataset Health, the Balancer, Dataset Versions and Evaluation Sets stay available for detailed work.</p></div>
-        <div class="panel chat-intro"><h2>External Unsloth handoff</h2><p>Choose a frozen version and the tool you will train with. Every record keeps exactly one training target: its approved final answer. Direct text, DPO, tools and holdout stay in their own exports.</p><label for="unsloth-version">Frozen dataset version</label><select id="unsloth-version" aria-label="Choose a frozen dataset version"><option value="">Loading frozen versions…</option></select><div id="unsloth-readiness" class="unsloth-readiness" role="status" aria-live="polite"></div><fieldset class="unsloth-profiles"><legend>Training tool</legend><label class="inline-check"><input type="radio" name="unsloth-profile" value="studio_chat" checked> <span><strong>Unsloth Studio — SFT (chat)</strong><small>Recommended for Studio. Uses the model's own chat template; earlier turns become context, never targets.</small></span></label><label class="inline-check"><input type="radio" name="unsloth-profile" value="studio_alpaca"> <span><strong>Unsloth Studio — SFT (Alpaca)</strong><small>Instruction, input and output. Trains only the output, but uses the Alpaca prompt instead of the model's chat template.</small></span></label><label class="inline-check"><input type="radio" name="unsloth-profile" value="trl_prompt_completion"> <span><strong>Unsloth / TRL in Python</strong><small>Conversational prompt and completion. Needs completion_only_loss=True. Do not load this file in Unsloth Studio.</small></span></label></fieldset><button id="unsloth-create" class="button primary" type="button" disabled>Create Unsloth handoff</button><p>In Unsloth Studio keep “Train on completions” on and packing off, and reject records longer than your maximum sequence length. Frozen exports reflect their original review state; after exclusions, build a fresh dataset version.</p><div id="unsloth-result" role="status"></div></div>
-        <div class="export-layout">
-          <div class="panel export-card"><span class="eyebrow">Version cannot be overwritten</span><h2>Create Gold Dataset</h2><p>Separates record types, prevents evaluation leakage, and computes SHA-256 for each file.</p><label class="inline-check warning"><input id="export-demo" type="checkbox"> Include data from Demo in this version</label><button id="preview-dedup" class="button ghost">Check duplicates first</button><button id="create-export" class="button primary">Create new version</button><div id="dedup-result" class="dedup-result"></div></div>
-          <div class="panel"><div class="panel-heading"><div><span class="eyebrow">History</span><h2>Previous versions</h2></div></div><div id="exports-list" class="exports-list"></div></div>
-        </div>
-        <div class="panel export-types"><h2>Files in each version</h2><div class="type-grid"><span>SFT JSONL</span><span>Multi-turn SFT</span><span>Direct Language</span><span>Preference / DPO</span><span>Evaluation Holdout</span><span>Full Archive</span></div></div>
-      </section>
+
 
       <section id="view-analytics" class="view">
         <div id="analytics-stats" class="stat-grid"></div>
@@ -611,8 +533,8 @@
       </section>
 
       <section id="view-settings" class="view">
-        <div class="panel settings-card advanced-setting"><div><h2>Advanced Mode</h2><p id="advanced-mode-help">Switch the data workspace between guided stages and independent tools. Saved in this browser.</p></div><label class="inline-check"><input id="advanced-mode" type="checkbox" aria-describedby="advanced-mode-help"> Enable Advanced Mode</label></div>
-        <section class="panel advanced-tools" data-advanced-only><h2>Advanced workspace</h2><p>Specialist tools share the same backend safety checks.</p><button class="button ghost" type="button" data-go="prepare">Open advanced workspace</button></section>
+
+
 
         <section class="integrations" aria-labelledby="integrations-heading">
           <h2 id="integrations-heading">Models &amp; Integrations</h2>

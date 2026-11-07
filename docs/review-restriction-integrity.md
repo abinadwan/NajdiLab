@@ -1,5 +1,7 @@
 # Review restriction integrity remediation
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 Approved source: `b074bd3f5711dff4ab7e1bb245a615cf72f924e8` on
 `refactor/remove-legacy-training` (Draft PR #13). Work is isolated on
 `fix/review-restriction-integrity`; no push, PR, merge or installed update is authorized.

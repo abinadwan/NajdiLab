@@ -429,7 +429,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "04537377771c62fd407ac6d5dd154fbe38ec6e8996266469e9a7ec29bb1242af"
+      "sha256": "8a59fdc801876468c211beed84cfc816c3302ec8188c0548638e85db1a6fa2f3"
     },
     "public_source/artifacts.py": {
       "destination": "app/core_artifacts.py",

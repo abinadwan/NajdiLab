@@ -1,5 +1,7 @@
 # Managed llama.cpp runtime (V2.0.0, Phase 3)
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 **Status: development on `update-project` (PR #23, Draft). Not a release.** Application version stays **V2.0.0**.
 
 NajdiLab can now provision, verify, run and remove its own llama.cpp `llama-server` for NajdiLab Native, instead of requiring the owner to find one. Nothing is downloaded, installed, started or removed without an explicit approval for that action.

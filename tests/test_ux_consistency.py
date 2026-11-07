@@ -18,76 +18,33 @@ def test_dashboard_uses_prepare_journey_and_independent_review():
     assert not re.search(r'data-go="(?:dataset-health|balancer|exports)"', dashboard)
 
 
-def test_specialist_tools_have_an_independent_workspace_and_a_visible_mode_toggle():
+def test_official_workspace_is_guided_and_legacy_interface_is_not_loaded():
     html = (ROOT / 'static/index.html').read_text(encoding='utf-8')
-    versions = html.split('id="view-my-versions"', 1)[1].split('id="view-dataset"', 1)[0]
-    settings = html.split('id="view-settings"', 1)[1]
-    workspace = html.split('id="advanced-workspace"', 1)[1].split('id="guided-wizard"', 1)[0]
-    wizard = html.split('id="guided-wizard"', 1)[1].split('id="view-my-versions"', 1)[0]
-    topbar = html.split('class="top-actions"', 1)[1].split('</header>', 1)[0]
-    assert 'data-advanced-view' not in versions
-    assert 'data-advanced-view' not in wizard
-    assert 'id="workspace-mode"' in topbar
-    assert 'id="advanced-mode"' in settings and 'data-advanced-only' in settings
-    assert 'data-go="prepare"' in settings
-    for view in ('manual-data', 'dataset-health', 'balancer', 'dataset-versions', 'eval-sets', 'exports'):
-        assert f'data-advanced-view="{view}"' in workspace
-    assert re.findall(r'id="prepare-panel-(\d)"', wizard) == ['1', '2', '3', '4']
-    css = (ROOT / 'static/workspace.css').read_text(encoding='utf-8')
-    assert '#advanced-workspace{display:none}' in css
-    assert 'html.advanced-mode #advanced-workspace{display:block}' in css
-    assert 'html.advanced-mode #guided-wizard{display:none}' in css
+    source = (ROOT / 'static/app.js').read_text(encoding='utf-8')
+    assert 'id="guided-wizard"' in html
+    assert 'id="workspace-mode"' not in html
+    assert 'id="advanced-mode"' not in html
+    assert 'id="advanced-workspace"' not in html
+    assert 'data-advanced-view=' not in html
+    assert 'src="/advanced-workspace.js"' not in html
+    assert 'href="/advanced-workspace.css"' not in html
+    for view in ('dataset', 'dataset-health', 'balancer', 'dataset-versions', 'eval-sets', 'exports', 'manual-data'):
+        assert f'id="view-{view}"' not in html
+    assert 'function bindLegacyEvents()' in source
+    assert "import('/advanced-workspace.js')" in source
 
 
-def test_advanced_mode_defaults_off_and_survives_storage_failure():
+def test_historical_mode_preference_is_ignored_without_writing_workflow_storage():
     run_browser_script(r"""
-context.document.documentElement = {classList:{toggle(name, enabled){context.enabled=enabled;}}};
-context.document.getElementById = id => element('#'+id);
-context.navigations = [];
-vm.runInContext('switchView = view => navigations.push(view)', context);
-let savedDrafts = 0;
-context.window.NajdiPrepare = {save(){savedDrafts++;}};
-const writes = [];
-context.localStorage = {getItem(){return null;}, setItem(key,value){writes.push([key,value]);throw Error('blocked');}};
-vm.runInContext('initAdvancedMode()', context);
-assert.equal(element('#advanced-mode').checked, false);
-assert.equal(element('#workspace-mode').checked, false);
-assert.equal(context.enabled, false);
-assert.deepEqual(context.navigations, []);
-element('#workspace-mode').checked = true;
-element('#workspace-mode').onchange();
-assert.equal(context.enabled, true);
-assert.equal(element('#advanced-mode').checked, true);
-assert.deepEqual(writes, [['najdilab.advancedMode','1']]);
-assert.deepEqual(context.navigations, ['prepare']);
-assert.equal(savedDrafts, 1);
-element('#advanced-mode').checked = false;
-element('#advanced-mode').onchange();
-assert.equal(context.enabled, false);
-assert.equal(element('#workspace-mode').checked, false);
-assert.deepEqual(writes[1], ['najdilab.advancedMode','0']);
-assert.deepEqual(context.navigations, ['prepare','prepare']);
-assert.equal(savedDrafts, 2);
-
-const storage = new Map([['najdilab.advancedMode','1']]);
-context.localStorage = {getItem:key=>storage.get(key), setItem:(key,value)=>storage.set(key,value)};
-vm.runInContext('initAdvancedMode()', context);
-assert.equal(element('#advanced-mode').checked, true);
-assert.equal(element('#workspace-mode').checked, true);
-element('#advanced-mode').checked = false;
-element('#advanced-mode').onchange();
-assert.equal(storage.get('najdilab.advancedMode'), '0');
-vm.runInContext('initAdvancedMode()', context);
-assert.equal(context.enabled, false);
-assert.equal(element('#workspace-mode').checked, false);
-context.localStorage.getItem = () => 'false';
-vm.runInContext('initAdvancedMode()', context);
-assert.equal(context.enabled, false);
-context.localStorage.getItem = () => {throw Error('blocked');};
-vm.runInContext('initAdvancedMode()', context);
-assert.equal(context.enabled, false);
-assert.equal(element('#advanced-mode').checked, false);
-assert.equal(element('#workspace-mode').checked, false);
+context.document.documentElement = {classList:{remove(name){context.removed=name;}}};
+const values = new Map([['najdilab.advancedMode','1'],['najdilab.workflow.v1','synthetic-existing-draft']]);
+context.localStorage = {getItem:key=>values.get(key), setItem(){throw Error('unexpected storage mutation');}, removeItem(){throw Error('unexpected storage deletion');}};
+vm.runInContext('initGuidedWorkspace()', context);
+assert.equal(context.removed, 'advanced-mode');
+assert.equal(values.get('najdilab.workflow.v1'), 'synthetic-existing-draft');
+assert.equal(values.get('najdilab.advancedMode'), '1');
+context.localStorage.getItem = () => {throw Error('storage blocked');};
+vm.runInContext('initGuidedWorkspace()', context);
 """)
 
 

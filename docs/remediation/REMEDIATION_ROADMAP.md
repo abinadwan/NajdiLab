@@ -1,5 +1,7 @@
 # NajdiLab Remediation Roadmap
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 > **Program type:** Long-term phased remediation — one phase active at a time.
 > **Repository:** `abinadwan/NajdiLab`
 > **Roadmap location:** `docs/remediation/REMEDIATION_ROADMAP.md`

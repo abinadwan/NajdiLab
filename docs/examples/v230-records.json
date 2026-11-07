@@ -1,0 +1,10 @@
+{
+  "description": "Synthetic V2.3.0 documentation examples. Each answer is distinct.",
+  "records": [
+    {"type": "sft", "payload": {"messages": [{"role": "user", "content": "Explain the fictional archive policy."}, {"role": "assistant", "content": "Synthetic archive records are retained for thirty days."}], "origin": "manual", "language": "en", "training_eligible": true}},
+    {"type": "sft", "payload": {"messages": [{"role": "user", "content": "Where is the fictional desk?"}, {"role": "assistant", "content": "The demonstration desk is beside the blue door."}, {"role": "user", "content": "When is it open?"}, {"role": "assistant", "content": "The demonstration desk opens at nine each weekday."}], "origin": "manual", "language": "en", "training_eligible": true}},
+    {"type": "direct", "payload": {"text": "نص اصطناعي مستقل لاختبار دليل الاستخدام.", "source_type": "human_written", "origin": "manual", "language": "ar", "training_eligible": true}},
+    {"type": "preference", "payload": {"prompt_context": "Explain a fictional sorting rule.", "rejected_response": "The sample rule is undefined.", "preferred_response": "Sort the synthetic cards by their printed number.", "origin": "manual", "language": "en", "training_eligible": true}},
+    {"type": "sft", "payload": {"messages": [{"role": "user", "content": "What colour is the fictional evaluation card?"}, {"role": "assistant", "content": "The held-out synthetic evaluation card is turquoise."}], "origin": "manual", "language": "en", "evaluation_only": true, "training_eligible": false}}
+  ]
+}

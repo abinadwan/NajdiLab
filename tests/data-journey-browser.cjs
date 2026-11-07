@@ -43,31 +43,14 @@ test('data journey in Chromium',{timeout:300000},async t=>{
       await click('#view-dashboard .workflow-card [data-go="review-queue"]');await page.waitForSelector('#view-review-queue.active');
     });
 
-    await t.test('Advanced Mode is opt-in, persists, and leaves every deep link usable when disabled',async()=>{
-      await page.evaluate(()=>switchView('settings'));
-      assert.equal(await page.$eval('#advanced-mode',e=>e.checked),false);
-      const visible=()=>page.$$eval('[data-advanced-view]',els=>els.filter(e=>e.checkVisibility()).map(e=>e.dataset.advancedView));
-      assert.deepEqual(await visible(),[]);
-      await page.focus('#advanced-mode');await page.keyboard.press('Space');
-      await page.waitForSelector('#view-prepare.active');
-      const expected=['manual-data','dataset-health','balancer','eval-sets','dataset-versions','exports','add-data'];
-      assert.deepEqual(await visible(),expected);
-      assert.equal(await page.$eval('#guided-wizard',e=>e.checkVisibility()),false);
-      assert.equal(await page.$eval('#workspace-mode',e=>e.checked),true);
-      await page.reload();await page.waitForSelector('#view-prepare.active');
-      assert.equal(await page.$eval('#advanced-mode',e=>e.checked),true);
-      assert.deepEqual(await visible(),expected);
-      for(const view of expected){
-        await click(`#advanced-workspace [data-advanced-view="${view}"]`);await page.waitForSelector(`#view-${view}.active`);
-        await page.evaluate(()=>switchView('prepare'));
-      }
-      await page.focus('#workspace-mode');await page.keyboard.press('Space');
-      await page.reload();await page.waitForSelector('#view-prepare.active');
-      assert.equal(await page.$eval('#advanced-mode',e=>e.checked),false);
-      assert.deepEqual(await visible(),[]);
+    await t.test('historical Advanced preference cannot replace the Wizard; deep diagnostic routes mount on demand',async()=>{
+      await page.evaluate(()=>localStorage.setItem('najdilab.advancedMode','1'));
+      await page.goto(base+'/datasets/prepare');await page.waitForSelector('#guided-wizard',{visible:true});
+      assert.equal(await page.$('#workspace-mode,#advanced-mode,#advanced-workspace'),null);
+      assert.equal(await page.$('#view-dataset-health'),null);
       for(const [path,view] of [['/datasets/gold','dataset'],['/datasets/health','dataset-health'],['/datasets/balancer','balancer'],['/datasets/versions','dataset-versions'],['/datasets/eval','eval-sets'],['/exports','exports']]){
         await page.goto(base+path);await page.waitForSelector(`#view-${view}.active`);
-        assert.equal(await page.$eval('#advanced-mode',e=>e.checked),false);
+        assert.equal(await page.$('#workspace-mode,#advanced-mode,#advanced-workspace'),null);
       }
       await page.evaluate(()=>switchView('dashboard'));
     });
@@ -89,37 +72,30 @@ test('data journey in Chromium',{timeout:300000},async t=>{
         }
       }
       await page.setViewport({width:1280,height:900});
-      await page.evaluate(()=>{NajdiI18n.setLanguage('en');document.querySelector('#advanced-mode').checked=false;document.querySelector('#advanced-mode').onchange();});
+      await page.evaluate(()=>{NajdiI18n.setLanguage('en');});
       await page.evaluate(()=>switchView('dashboard'));
     });
 
-    await t.test('blocked storage keeps Advanced Mode usable for the current page',async()=>{
+    await t.test('blocked storage keeps the official Wizard usable',async()=>{
       const isolated=await browser.createBrowserContext();
       try{
         const blocked=await isolated.newPage();
-        await blocked.evaluateOnNewDocument(()=>{
-          Storage.prototype.getItem=function(){throw Error('storage blocked');};
-          Storage.prototype.setItem=function(){throw Error('storage blocked');};
-        });
-        await blocked.goto(base+'/settings');await blocked.waitForSelector('#view-settings.active');
-        assert.equal(await blocked.$eval('#advanced-mode',e=>e.checked),false);
-        await blocked.focus('#advanced-mode');await blocked.keyboard.press('Space');
-        await blocked.waitForSelector('#view-prepare.active');
-        assert.equal(await blocked.$$eval('#advanced-workspace [data-advanced-view]',els=>els.filter(e=>e.checkVisibility()).length),7);
-        await blocked.reload();await blocked.waitForSelector('#view-prepare.active');
-        assert.equal(await blocked.$eval('#advanced-mode',e=>e.checked),false);
+        await blocked.evaluateOnNewDocument(()=>{Storage.prototype.getItem=function(){throw Error('storage blocked');};Storage.prototype.setItem=function(){throw Error('storage blocked');};});
+        await blocked.goto(base+'/datasets/prepare');await blocked.waitForSelector('#guided-wizard',{visible:true});
+        assert.equal(await blocked.$('#workspace-mode,#advanced-mode,#advanced-workspace'),null);
+        await blocked.reload();await blocked.waitForSelector('#guided-wizard',{visible:true});
       }finally{await isolated.close();}
     });
 
     await t.test('the guided sidebar shows workspace and versions; legacy pages stay reachable',async()=>{
       const data=await page.$$eval('.nav-section',s=>s.filter(x=>x.querySelector('#nav-group-data')).flatMap(x=>[...x.querySelectorAll('.nav-item')].map(b=>b.dataset.view)));
-      assert.deepEqual(data,['add-data','prepare','my-versions']);
+      assert.deepEqual(data,['prepare','my-versions']);
       const visible=await page.$$eval('.nav-section',s=>s.filter(x=>x.querySelector('#nav-group-data')).flatMap(x=>[...x.querySelectorAll('.nav-item')].filter(b=>b.checkVisibility()).map(b=>b.dataset.view)));
       assert.deepEqual(visible,['prepare','my-versions']);
       for(const old of ['dataset-health','balancer','eval-sets','exports','dataset-versions','dataset','manual-data']){
         await page.evaluate(v=>switchView(v),old);await page.waitForSelector(`#view-${old}.active`);
         const active=await page.$eval('.nav-item[aria-current="page"]',b=>b.dataset.view);
-        assert.equal(active,old==='manual-data'?'add-data':'my-versions',`${old} is shown under its destination`);
+        assert.equal(active,old==='manual-data'?'prepare':'my-versions',`${old} is shown under its destination`);
       }
       await page.evaluate(()=>switchView('dashboard'));
     });
@@ -147,7 +123,7 @@ test('data journey in Chromium',{timeout:300000},async t=>{
         messages:[{role:'user',content:'My phone number is in this message; can you store it?'},{role:'assistant',content:'I would rather not keep personal numbers.'}]})}));
       // My records is a tab of the same destination.
       await click('#view-add-data [data-add-records]');await page.waitForSelector('#view-manual-data.active');
-      assert.equal(await page.$eval('.nav-item[aria-current="page"]',b=>b.dataset.view),'add-data');
+      assert.equal(await page.$eval('.nav-item[aria-current="page"]',b=>b.dataset.view),'prepare');
       await page.waitForFunction(()=>document.querySelector('#view-manual-data').textContent.includes('phishing'));
     });
 

@@ -1,5 +1,7 @@
 # Verification evidence and unresolved limits
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 These are dated observations, preserved to avoid converting old failures, skips or approvals into current claims. Earlier sections retain their original dates and scopes; the PR #13 section separately records verified hosted cleanup results for its exact head. The [initial cleanup record](cleanup-results.md) retains the local pre-push evidence. No installed update, private-data verification, real-model/GPU/owner acceptance, merge or publication approval is claimed here. A later commit requires its own CI results.
 
 ## Security and installation evidence — 2026-10-26/27

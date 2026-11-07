@@ -64,6 +64,8 @@ jobs:
         timeout-minutes: 10
       - run: node --test tests/workflow-restart-browser.cjs
         timeout-minutes: 10
+      - run: node --test tests/legacy-workspace-browser.cjs
+        timeout-minutes: 10
       - run: node --test tests/guided-workspace-browser.cjs
         timeout-minutes: 10
       - run: node --test tests/gold-health-browser.cjs

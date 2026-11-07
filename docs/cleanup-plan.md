@@ -1,5 +1,7 @@
 # Dataset-only repository cleanup: audit and implementation record
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 ## Authority and verified base
 
 The owner's 2026-11-01 scope is Chat Workspace → Review/correction → Dataset Quality → Dataset Versioning → External Unsloth Export. This is the existing project, not a rewrite. GitHub was read before editing: PR11 Draft/open/unmerged at aa328ffa24350097b50619b331cf1b2eff97fb8d; PR12 Draft/open/unmerged at a04e2ea8e1db7fbc094a6ba5ffc30a99d16110f9. Source/candidate runs 41242700517/41242700524 and 41276046497/41276046509 respectively completed successfully. PR12 Windows/Linux source jobs were individually checked.

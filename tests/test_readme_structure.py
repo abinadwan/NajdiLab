@@ -108,7 +108,7 @@ def test_diagrams_install_commands_and_structure_are_present():
 
 def test_status_separates_done_in_development_and_planned():
     status = section("Feature status")
-    for label in ("Available on `main`", "In development", "Planned"):
+    for label in ("Available in `V2.3.0`", "In development", "Planned"):
         assert label in status
 
 

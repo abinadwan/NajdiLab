@@ -37,3 +37,7 @@ Each SFT, direct-language or preference edit increments `version_number` and sto
 ## Context reconstruction
 
 Export reads the conversation in order through the reviewed response's `turn_index`. Only the export copy substitutes the final assistant content with its correction, if present. The original database text stays unchanged.
+
+## Gold deletion metadata in migration 011
+
+`gold_version_deletions` retains one immutable version identity with a durable owned-file plan, original/quarantine paths, a deleting/deleted state and timestamps. `gold_deletion_audit` records started, failed and completed events without copying training text. The original `dataset_versions` row and `manual_data_export_history` remain. Source records are outside Gold-file deletion. The catalog merges interrupted deletion rows so a reload can reopen a freshly confirmed recovery plan.

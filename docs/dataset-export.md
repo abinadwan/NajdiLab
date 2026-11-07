@@ -45,3 +45,11 @@ File hashes and quality PASS establish neither consent nor redistribution rights
 ## Collected Chat context
 
 [The consent/context audit](chat-dataset-context-audit.md) documents complete multi-turn prefixes, single-turn rows, final-only masks and incomplete-prefix quarantine. Enabling collection never imports older roles or approves training. A 60% multi-turn / 40% single-turn mixture is only an experimental idea for later evaluation, never an ingestion quota. Existing frozen files are not rewritten. No schema change is required.
+
+## V2.3.0 guided preparation and Gold lifecycle
+
+Data workspace combines entry, selection, checks/correction, explicit approval and export in four stages. Check and create share backend planning and a content/selection fingerprint. Source edits leave earlier Frozen bytes intact. Existing Gold opens directly at Export from My versions.
+
+`GET /api/v1/dataset-versions/{version}/export-options` reports actual raw files and compatible Unsloth profiles with reasons. Raw downloads use `/files/{filename}` with a manifest-verified allowlist that excludes `full_archive.json`. SFT and multi-turn targets can enter supported text profiles. Direct Language, DPO and evaluation retain separate raw files.
+
+Permanent deletion uses `/delete-preview` followed by `/delete` with `token` and `confirm_version`, under the normal CSRF boundary. It requires complete registered ownership, valid hashes and safe paths/links, with no dependencies. New manifests record `ownership.managed_reference_policy=1`. Legacy versions without that proof are refused for deletion. Started/failed/completed audit and retained tombstones support recovery and prevent identity reuse. A durable handoff reservation can conservatively block deletion after a failed publication. [Retention](data-retention.md).

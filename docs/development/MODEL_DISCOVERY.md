@@ -1,5 +1,7 @@
 # Trending models and Recommended for Your Device
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 | | |
 |---|---|
 | Branch | `update-project` (Draft PR #23), on top of [Hugging Face Direct](HUGGING_FACE_DIRECT.md) and the [managed llama.cpp runtime](MANAGED_RUNTIME.md). Product version stays **V2.0.0**. |

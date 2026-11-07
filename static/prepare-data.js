@@ -284,5 +284,5 @@
     global.addEventListener('najdilab:recordschange',()=>{editDraft=null;invalidate();refreshRecords({selectNew:true}).catch(error=>global.toast(error.message,true));});
     global.addEventListener('najdilab:versionschange',e=>{if(e.detail?.deleted&&e.detail.version===state.created){state.created=null;state.options=null;step(1);}});
   }
-  global.NajdiPrepare={state,load,save,async initialize(){bind();await restoreDrafts();},restoreManualDraft(type,id){if(editDraft?.type===type&&Number(editDraft.id)===Number(id))restoreFields(el('manual-edit-form'),editDraft.snapshot);},discardEditDraft(){editDraft=null;save();},mountEditor,async openVersion(version){bind();state.created=version;state.stage=4;save();global.setAdvancedMode(false,false);global.switchView('prepare');}};
+  global.NajdiPrepare={state,load,save,async initialize(){bind();await restoreDrafts();},restoreManualDraft(type,id){if(editDraft?.type===type&&Number(editDraft.id)===Number(id))restoreFields(el('manual-edit-form'),editDraft.snapshot);},discardEditDraft(){editDraft=null;save();},mountEditor,async openVersion(version){bind();state.created=version;state.stage=4;save();global.setAdvancedMode?.(false,false);global.switchView('prepare');}};
 })(typeof window!=='undefined'?window:globalThis);

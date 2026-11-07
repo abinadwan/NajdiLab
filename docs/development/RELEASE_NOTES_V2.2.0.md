@@ -1,5 +1,7 @@
 # Najdi Lab V2.2.0 — development candidate
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 **Status:** development candidate on `update-project`, Draft PR #23. V2.2.0 is the product version identifier of this batch; it is **not** a public release, a production approval or a merge to `main`.
 
 **Why V2.2.0 (SemVer minor):** new user-facing capabilities (Unsloth Studio export profiles, Prepare training data, customization-model manager, language metadata, Native-first chat) with no incompatible API or data change for existing records. Migration 010 adds columns and keeps every existing value; the database is copied automatically before it runs. Everything in [V2.1.0](RELEASE_NOTES_V2.1.0.md) is included.

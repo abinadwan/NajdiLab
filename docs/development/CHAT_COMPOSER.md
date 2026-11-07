@@ -1,5 +1,7 @@
 # Unified chat composer (V2.1.0)
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 | | |
 |---|---|
 | Branch | `update-project` (Draft PR #23). Product version **V2.1.0**, a development candidate, not a release. |

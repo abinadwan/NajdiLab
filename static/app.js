@@ -38,18 +38,21 @@ const compact = (value='', max=130) => String(value ?? '').length > max ? `${Str
 const fmtDate = (value) => value ? `<time datetime="${esc(value)}">${esc(window.NajdiI18n?window.NajdiI18n.date(value):value)}</time>` : '—';
 // Browser storage can be blocked (private mode, site policy); it must never stop the interface.
 const prefs = {get(key){try{return localStorage.getItem(key);}catch{return null;}}, set(key,value){try{localStorage.setItem(key,value);}catch{}}};
-// Display preference only. Routes and backend checks remain available in either mode.
-function setAdvancedMode(enabled,navigate=true){
-  window.NajdiPrepare?.save();
-  prefs.set('najdilab.advancedMode',enabled?'1':'0');
-  document.documentElement.classList.toggle('advanced-mode',enabled);
-  for(const id of ['advanced-mode','workspace-mode']){const input=document.getElementById(id);if(input)input.checked=enabled;}
-  if(navigate)switchView('prepare');
+// The official workspace ignores the historical mode preference without mutating drafts.
+function initGuidedWorkspace(){
+  document.documentElement.classList.remove('advanced-mode');
 }
-function initAdvancedMode(){
-  const enabled=prefs.get('najdilab.advancedMode')==='1';
-  document.documentElement.classList.toggle('advanced-mode',enabled);
-  for(const id of ['advanced-mode','workspace-mode']){const input=document.getElementById(id);if(input){input.checked=enabled;input.onchange=()=>setAdvancedMode(input.checked);}}
+const legacyViews = new Set(['manual-data','dataset','dataset-health','balancer','dataset-versions','eval-sets','exports']);
+let legacyWorkspaceLoad = null;
+let navigationRevision = 0;
+function ensureLegacyViews(){
+  if(!legacyWorkspaceLoad){
+    legacyWorkspaceLoad=import('/advanced-workspace.js').then(module=>module.mountViews()).catch(error=>{
+      legacyWorkspaceLoad=null;
+      throw error;
+    });
+  }
+  return legacyWorkspaceLoad;
 }
 const tr = (text) => window.NajdiI18n ? window.NajdiI18n.t(text) : text;
 const uiStatus = (value) => window.NajdiI18n?.status(value) || String(value || 'Unknown');
@@ -134,7 +137,13 @@ function hasUnsavedReviewDraft(){
 function confirmDiscardReviewDraft(){
   return !hasUnsavedReviewDraft() || confirm(tr('You have unsaved review changes. Leave and discard this draft?'));
 }
-function switchView(view,options={}) {
+async function switchView(view,options={}) {
+  const revision=++navigationRevision;
+  if(legacyViews.has(view)){
+    try{await ensureLegacyViews();}
+    catch(error){toast(error.message,true);return;}
+    if(revision!==navigationRevision)return;
+  }
   if(!titles[view])view='dashboard';
   if(view!==state.view&&!confirmDiscardReviewDraft()){
     if(options.fromHistory)updateLocation(state.view,state.selectedDataset||'',true);
@@ -147,7 +156,7 @@ function switchView(view,options={}) {
   window.NajdiPrepare?.save();
   state.view = view;
   // Advanced pages belong to one of the three Data destinations: the sidebar shows where the user is.
-  const navView={'manual-data':'add-data',dataset:'my-versions','dataset-health':'my-versions',balancer:'my-versions','dataset-versions':'my-versions','eval-sets':'my-versions',exports:'my-versions'}[view]||view;
+  const navView={'manual-data':'prepare','add-data':'prepare',dataset:'my-versions','dataset-health':'my-versions',balancer:'my-versions','dataset-versions':'my-versions','eval-sets':'my-versions',exports:'my-versions'}[view]||view;
   $$('.nav-item').forEach(b=>{const current=b.dataset.view===navView;b.classList.toggle('active',current);if(current)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   $$('.view').forEach(v=>v.classList.toggle('active', v.id===`view-${view}`));
   $('#page-title').textContent = titles[view][0]; $('#page-subtitle').textContent = titles[view][1];
@@ -163,6 +172,7 @@ function switchView(view,options={}) {
 }
 
 async function loadView(view) {
+  if(legacyViews.has(view))await ensureLegacyViews();
   if (view==='chat') return window.NajdiChat?.load();
   if (view==='models') return window.NajdiModels?.load();
   if (view==='prepare') return window.NajdiPrepare?.load();
@@ -577,6 +587,7 @@ function manualParams(){
 }
 
 async function loadManualData(options={}){
+  if(!$('#manual-list'))return;
   if(options.fresh)listPage('manual').offset=0;
   const data=await api(`/api/v1/manual-data?${manualParams()}&${pageQuery('manual')}`);
   if(correctedPage('manual',data.page))return loadManualData();
@@ -762,6 +773,18 @@ function renderBars(selector,items){const max=Math.max(1,...items.map(x=>x.count
 // The CSP forbids style attributes, so bar widths are set through the DOM after rendering.
 function applyShares(selector){$$(`${selector} [data-share]`).forEach(bar=>{bar.style.width=`${Number(bar.dataset.share)||0}%`;});}
 
+function bindLegacyEvents(){
+  $('#apply-manual-filters').addEventListener('click',()=>loadManualData({fresh:true}).catch(e=>toast(e.message,true)));$('#manual-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadManualData({fresh:true}).catch(x=>toast(x.message,true));});
+  $('#reset-manual-filters').addEventListener('click',()=>{$$('#view-manual-data input').forEach(input=>{if(input.type==='checkbox')input.checked=false;else input.value='';});$$('#view-manual-data select').forEach(select=>select.selectedIndex=0);loadManualData({fresh:true}).catch(e=>toast(e.message,true));});
+  $('#manual-list').addEventListener('click',e=>{const button=e.target.closest('[data-action]');if(button)manualAction(button.dataset.action,button.dataset.type,Number(button.dataset.id)).catch(x=>toast(x.message,true));});
+  $('#manual-list').addEventListener('change',e=>{if(!e.target.matches('.manual-row-check'))return;e.target.checked?state.manualSelected.add(e.target.dataset.key):state.manualSelected.delete(e.target.dataset.key);updateManualBulk();});
+  $('#manual-select-all').addEventListener('change',e=>{$$('.manual-row-check').forEach(box=>{box.checked=e.target.checked;e.target.checked?state.manualSelected.add(box.dataset.key):state.manualSelected.delete(box.dataset.key);});updateManualBulk();});
+  $('#apply-manual-bulk').addEventListener('click',()=>applyManualBulk().catch(e=>toast(e.message,true)));
+  $('#dataset-demo').addEventListener('change',()=>loadDataset().catch(e=>toast(e.message,true)));$('#preview-dedup').addEventListener('click',()=>previewDedup().catch(e=>toast(e.message,true)));$('#create-export').addEventListener('click',createExport);
+  $('#health-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('dataset-health',state.selectedDataset,true);loadHealth(false);});$('#refresh-health').addEventListener('click',()=>loadHealth(true));$('#health-summary').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-checks').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-warnings').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-detail-panel').addEventListener('click',e=>{if(e.target.closest('[data-close-health-detail]'))$('#health-detail-panel').classList.add('hidden');});$('#health-version-details').addEventListener('click',()=>switchView('dataset-versions',{version:state.selectedDataset}));
+  $('#balance-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('balancer',state.selectedDataset,true);loadBalancer();});$('#run-balance').addEventListener('click',()=>loadBalancer(true));$('#refresh-eval').addEventListener('click',()=>loadEvalSets().catch(e=>toast(e.message,true)));$('#version-list').addEventListener('click',e=>{const button=e.target.closest('[data-version-name]');if(button)showVersionDetail(button.dataset.versionName).catch(x=>toast(x.message,true));});$('#version-detail').addEventListener('click',e=>{const health=e.target.closest('[data-health-version]'),derive=e.target.closest('[data-derive-version]'),analysis=e.target.closest('[data-overlap-analysis]'),plan=e.target.closest('[data-overlap-plan]'),apply=e.target.closest('[data-apply-plan]'),freeze=e.target.closest('[data-freeze-version]');if(health){state.selectedDataset=health.dataset.healthVersion;switchView('dataset-health',{version:state.selectedDataset});}else if(derive)deriveVersion(derive.dataset.deriveVersion);else if(analysis)analyzeOverlaps(analysis.dataset.overlapAnalysis);else if(plan)dryRunOverlaps(plan.dataset.overlapPlan);else if(apply)applyOverlapPlan(apply.dataset.applyPlan);else if(freeze)freezeVersion(freeze.dataset.freezeVersion);});
+}
+
 function bindEvents(){
   window.addEventListener('beforeunload',e=>{if(hasUnsavedReviewDraft()){e.preventDefault();e.returnValue='';}});
   $('#main-nav').addEventListener('click',e=>{const button=e.target.closest('[data-view]');if(button)switchView(button.dataset.view);});$('#mobile-menu').addEventListener('click',()=>setMobileNav(!$('.sidebar').classList.contains('open')));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('.sidebar').classList.contains('open')){setMobileNav(false);$('#mobile-menu').focus();}});document.addEventListener('click',e=>{if($('.sidebar').classList.contains('open')&&!e.target.closest('.sidebar,#mobile-menu'))setMobileNav(false);});$('#refresh-view').addEventListener('click',()=>loadView(state.view).then(()=>toast('Data refreshed.')).catch(e=>toast(e.message,true)));
@@ -782,18 +805,9 @@ function bindEvents(){
     if(messages.some(m=>!m.content.trim())){toast('Every conversation turn needs text before saving.',true);return;}
     await submitDataForm(e.target,'/api/v1/manual-data/sft',{messages});
   });$('#form-direct').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/direct');});$('#form-preference').addEventListener('submit',e=>{e.preventDefault();submitDataForm(e.target,'/api/v1/manual-data/preference');});
-  $('#apply-manual-filters').addEventListener('click',()=>loadManualData({fresh:true}).catch(e=>toast(e.message,true)));$('#manual-search').addEventListener('keydown',e=>{if(e.key==='Enter')loadManualData({fresh:true}).catch(x=>toast(x.message,true));});
-  $('#reset-manual-filters').addEventListener('click',()=>{$$('#view-manual-data input').forEach(input=>{if(input.type==='checkbox')input.checked=false;else input.value='';});$$('#view-manual-data select').forEach(select=>select.selectedIndex=0);loadManualData({fresh:true}).catch(e=>toast(e.message,true));});
-  $('#manual-list').addEventListener('click',e=>{const button=e.target.closest('[data-action]');if(button)manualAction(button.dataset.action,button.dataset.type,Number(button.dataset.id)).catch(x=>toast(x.message,true));});
-  $('#manual-list').addEventListener('change',e=>{if(!e.target.matches('.manual-row-check'))return;e.target.checked?state.manualSelected.add(e.target.dataset.key):state.manualSelected.delete(e.target.dataset.key);updateManualBulk();});
-  $('#manual-select-all').addEventListener('change',e=>{$$('.manual-row-check').forEach(box=>{box.checked=e.target.checked;e.target.checked?state.manualSelected.add(box.dataset.key):state.manualSelected.delete(box.dataset.key);});updateManualBulk();});
-  $('#apply-manual-bulk').addEventListener('click',()=>applyManualBulk().catch(e=>toast(e.message,true)));
   $('#close-manual-dialog').addEventListener('click',()=>$('#manual-dialog').close());$('#manual-dialog').addEventListener('click',e=>{if(e.target===$('#manual-dialog'))$('#manual-dialog').close();});
   $('.dialog-tabs').addEventListener('click',e=>{const button=e.target.closest('[data-manual-tab]');if(!button)return;$$('.dialog-tabs button').forEach(b=>b.classList.toggle('active',b===button));$$('.manual-tab').forEach(tab=>tab.classList.toggle('active',tab.id===`manual-tab-${button.dataset.manualTab}`));if(button.dataset.manualTab==='versions')loadManualVersions().catch(x=>toast(x.message,true));});
   $('#manual-tab-details').addEventListener('click',e=>{const button=e.target.closest('[data-detail-action]');if(!button)return;const item=state.manualCurrent,action=button.dataset.detailAction;if(action==='cancel-edit'){renderManualDetails(item);window.NajdiPrepare?.discardEditDraft();return;}if(action==='edit')return renderManualEdit(item);manualAction(action,item.item_type,item.id).catch(x=>toast(x.message,true));});
-  $('#dataset-demo').addEventListener('change',()=>loadDataset().catch(e=>toast(e.message,true)));$('#preview-dedup').addEventListener('click',()=>previewDedup().catch(e=>toast(e.message,true)));$('#create-export').addEventListener('click',createExport);
-  $('#health-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('dataset-health',state.selectedDataset,true);loadHealth(false);});$('#refresh-health').addEventListener('click',()=>loadHealth(true));$('#health-summary').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-checks').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-warnings').addEventListener('click',e=>{const b=e.target.closest('[data-health-detail]');if(b)showHealthDetail(b.dataset.healthDetail);});$('#health-detail-panel').addEventListener('click',e=>{if(e.target.closest('[data-close-health-detail]'))$('#health-detail-panel').classList.add('hidden');});$('#health-version-details').addEventListener('click',()=>switchView('dataset-versions',{version:state.selectedDataset}));
-  $('#balance-version').addEventListener('change',e=>{state.selectedDataset=e.target.value;updateLocation('balancer',state.selectedDataset,true);loadBalancer();});$('#run-balance').addEventListener('click',()=>loadBalancer(true));$('#refresh-eval').addEventListener('click',()=>loadEvalSets().catch(e=>toast(e.message,true)));$('#version-list').addEventListener('click',e=>{const button=e.target.closest('[data-version-name]');if(button)showVersionDetail(button.dataset.versionName).catch(x=>toast(x.message,true));});$('#version-detail').addEventListener('click',e=>{const health=e.target.closest('[data-health-version]'),derive=e.target.closest('[data-derive-version]'),analysis=e.target.closest('[data-overlap-analysis]'),plan=e.target.closest('[data-overlap-plan]'),apply=e.target.closest('[data-apply-plan]'),freeze=e.target.closest('[data-freeze-version]');if(health){state.selectedDataset=health.dataset.healthVersion;switchView('dataset-health',{version:state.selectedDataset});}else if(derive)deriveVersion(derive.dataset.deriveVersion);else if(analysis)analyzeOverlaps(analysis.dataset.overlapAnalysis);else if(plan)dryRunOverlaps(plan.dataset.overlapPlan);else if(apply)applyOverlapPlan(apply.dataset.applyPlan);else if(freeze)freezeVersion(freeze.dataset.freezeVersion);});
   // UX-22: shortcuts never act behind an open dialog; single-key shortcuts (WCAG 2.1.4) are opt-in
   // because "4" approves immediately and a stray key press must not decide a review.
   const shortcutsEnabled=()=>prefs.get('najdilab.reviewShortcuts')==='on';
@@ -813,7 +827,7 @@ function bindEvents(){
 
 // Phone navigation sheet: the button reports its state, Escape and an outside click close it.
 function setMobileNav(open){$('.sidebar').classList.toggle('open',open);$('#mobile-menu').setAttribute('aria-expanded',String(open));document.body.classList.toggle('nav-open',open);}
-async function init(){try{initAdvancedMode();$$('[data-advanced-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.advancedView)));$$('[data-add-records]').forEach(b=>b.addEventListener('click',()=>switchView('manual-data')));$$('[data-add-new]').forEach(b=>b.addEventListener('click',()=>switchView('add-data')));const preset=$('#data-preset');if(preset){preset.value=storedPreference('najdilab.dataPreset');preset.onchange=()=>{savePreference('najdilab.dataPreset',preset.value);$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(()=>{}));};}$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(prefs.get('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').setAttribute('aria-expanded','false');}await loadConfig();bindEvents();await Promise.all($$('form.data-form [data-taxonomy-host]').map(host=>mountTaxonomy(host,dataDefaults()).catch(error=>toast(`Unable to load language options: ${error.message}`,true))));addSftTurn('user');addSftTurn('assistant');await window.NajdiPrepare?.initialize();window.addEventListener('najdilab:versionschange',()=>{state.datasetVersions=[];if(state.view==='dashboard')loadDashboard().catch(error=>toast(error.message,true));});const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
+async function init(){try{initGuidedWorkspace();$$('[data-add-records]').forEach(b=>b.addEventListener('click',()=>switchView('manual-data')));$$('[data-add-new]').forEach(b=>b.addEventListener('click',()=>switchView('add-data')));const preset=$('#data-preset');if(preset){preset.value=storedPreference('najdilab.dataPreset');preset.onchange=()=>{savePreference('najdilab.dataPreset',preset.value);$$('form.data-form [data-taxonomy-host]').forEach(host=>mountTaxonomy(host,dataDefaults()).catch(()=>{}));};}$('#copyright-year').textContent=new Date().getFullYear();$('#local-address').textContent=location.host;if(prefs.get('najdilab.sidebar')==='collapsed'){$('.shell').classList.add('sidebar-collapsed');$('#collapse-sidebar').setAttribute('aria-expanded','false');}await loadConfig();bindEvents();await Promise.all($$('form.data-form [data-taxonomy-host]').map(host=>mountTaxonomy(host,dataDefaults()).catch(error=>toast(`Unable to load language options: ${error.message}`,true))));addSftTurn('user');addSftTurn('assistant');await window.NajdiPrepare?.initialize();window.addEventListener('najdilab:versionschange',()=>{state.datasetVersions=[];if(state.view==='dashboard')loadDashboard().catch(error=>toast(error.message,true));});const initial=pathViews[location.pathname]||'dashboard';if(initial!=='review-queue')await loadQueue();switchView(initial,{fromHistory:true,replace:true,version:selectedVersion()});window.addEventListener('popstate',()=>switchView(pathViews[location.pathname]||'dashboard',{fromHistory:true,version:selectedVersion()}));}catch(error){toast(`Unable to start interface: ${error.message}`,true);}}
 const phase38Criteria={factual_correctness:'Factual correctness',instruction_following:'Instruction following',dialect_quality:'Dialect quality',natural_arabic:'Natural Arabic',concision:'Concision',context_continuity:'Context continuity',tool_correctness:'Tool correctness',hallucination_risk:'Hallucination risk',repetition_risk:'Repetition risk',contamination_concern:'Evaluation contamination concern'};
 const phase38Coverage={instruction_following:'Instruction following',verbosity_focus:'Verbosity control',constraint_following:'Constraint following',tool_behavior:'Tool behavior',capability_understanding:'Capability understanding',fabricated_tool_prevention:'Prevent fabricated tool execution',hallucination_prevention:'Prevent hallucinations',context_understanding:'Context handling',conversational_continuity:'Conversation continuity',najdi_saudi_dialect:'Saudi/Najdi dialect',natural_arabic:'Natural Arabic',repetition_prevention:'Prevent repetition',factual_accuracy:'Factual accuracy'};
 const phase38Types={sft:'Short conversation (SFT)',multi_turn:'Multi-turn conversation',native_tool_use:'Native tool use'};

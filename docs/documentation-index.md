@@ -1,5 +1,9 @@
 # Documentation
 
+Current Documentation — V2.3.0 development candidate
+
+Start with the [current user guide](user-guide.md), [V2.3.0 candidate notes](development/RELEASE_NOTES_V2.3.0.md), [permanent current screenshots](screenshots.md) and [complete file-by-file documentation audit](development/V230_DOCUMENTATION_AUDIT.md). The [Advanced Workspace archive](legacy/advanced-workspace/README.md) is a developer reuse reference. Dated implementation/release records in the table below retain their historical version numbers.
+
 | Purpose | Entry points |
 |---|---|
 | Start and use | [README](../README.md), [installation](installation.md), [user guide](user-guide.md), [interface language](localization.md), [accessibility](accessibility.md), [screenshots](screenshots.md), [design system and brand](design-system.md), [redesign record](development/NAJDI_LAB_REDESIGN.md), [Hugging Face Direct](development/HUGGING_FACE_DIRECT.md), [trending and recommended models](development/MODEL_DISCOVERY.md), [V2.2.0 release notes](development/RELEASE_NOTES_V2.2.0.md), [public readiness review](development/PUBLIC_READINESS.md), [V2.1.0 release notes](development/RELEASE_NOTES_V2.1.0.md), [V2.0.0 release notes](development/RELEASE_NOTES_V2.0.0.md), [chat composer](development/CHAT_COMPOSER.md) |

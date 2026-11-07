@@ -1,5 +1,7 @@
 # PR #21 ↔ PR #22 reconciliation
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 | | |
 |---|---|
 | Date | 2026-11-03 |

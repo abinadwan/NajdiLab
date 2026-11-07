@@ -1,5 +1,7 @@
 # Installation and operation
 
+Current Documentation — V2.3.0 development candidate
+
 Install only a reviewed source revision for local Chat/review/datasets. Follow the [dataset roadmap](roadmap.md) and [Chat/export contract](chat-workspace.md). This cleanup does not update the installed application or alter existing private data.
 
 Read [requirements](system-requirements.md) and [actual verification](verification-evidence.md). Core app uses Python 3.11+ and SQLite standard library, independently of Hermes, Ollama, GPU/CUDA and models. GitHub access remains private; source-license approval is pending.
@@ -7,11 +9,11 @@ Read [requirements](system-requirements.md) and [actual verification](verificati
 ## Clone source
 
 ```bash
-git clone https://github.com/abinadwan/NajdiLab.git
+git clone --branch update-project https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
 ```
 
-The default `main` branch already contains the private preparation changes through [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5). The deleted `dev/*` branches are not installation targets. A clone downloads code; it does not install dependencies or restore data. These commands operate the main local application, **not** the separately built [reduced Core candidate](public-core-user-guide.md). The repository remains private, and public release is not authorized.
+V2.3.0 is a development candidate on `update-project`, with Draft PR #23. Review the selected revision before installation. The separate [Core candidate](public-core-user-guide.md) has its own scope and version. A clone downloads source and leaves operational data restoration to the [restore procedure](backup-and-restore.md).
 
 ## Windows PowerShell
 

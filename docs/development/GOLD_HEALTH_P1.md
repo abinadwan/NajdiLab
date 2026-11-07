@@ -1,5 +1,7 @@
 # P1 Gold health crash and browser acceptance
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 Date 2026-11-06. Branch `update-v2.3.1`, based on local commit `e7cfe9319df2d8aca8e57b22b956ec4c6a83f296`. Application version V2.2.0.
 
 ## Proven cause

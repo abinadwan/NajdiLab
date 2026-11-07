@@ -19,3 +19,9 @@
 | tests/, docs/ | Synthetic verification and explicit evidence/limitations |
 
 Private operational directories are not source artifacts. Local model services are externally managed; no trainer/runtime deployment path is supplied. [Architecture](architecture.md), [migrations](database-and-migrations.md), [review](review-and-quality.md).
+
+## V2.3.0 data interface
+
+`static/prepare-data.js`, `my-versions.js` and `workspace.css` own the official Wizard and version management. `static/advanced-workspace.html`, `.js` and `.css` preserve the old presentation and mount specialist panels on demand. `scripts/restore_advanced_workspace.py` enables that presentation only in a new marked temporary static tree. `tests/legacy-workspace-browser.cjs` proves restoration against the shared synthetic backend.
+
+`app/gold_management.py` owns attested file download and confirmed deletion/recovery. `app/gold_lifecycle.py` owns cross-process locking, dependency reservations and deleted identities. Migration 011 stores plans and audit metadata. [Archive and restoration](legacy/advanced-workspace/README.md).

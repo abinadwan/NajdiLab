@@ -228,18 +228,18 @@ test('Model library and context indicator in Chromium',async t=>{
 
     await t.test('version label: one value from the server, in both languages, themes and layouts',async()=>{
       const served=await page.evaluate(async()=>(await window.api('/api/v1/config')).app_version_display);
-      assert.equal(served,'V2.2.0');
+      assert.equal(served,'V2.3.0');
       const label=()=>page.$eval('#app-version',e=>{const r=e.getBoundingClientRect();return {text:e.textContent,visible:r.width>0&&r.height>0,
         inside:r.right<=e.closest('.sidebar').getBoundingClientRect().right+0.5&&r.left>=e.closest('.sidebar').getBoundingClientRect().left-0.5,
         below:r.top>=document.querySelector('.brand-mark').getBoundingClientRect().top};});
       for(const lang of ['en','ar'])for(const theme of ['light','dark']){
         await page.evaluate((l,th)=>{document.documentElement.setAttribute('data-theme',th);window.NajdiI18n.setLanguage(l);},lang,theme);
         const v=await label();
-        assert.deepEqual(v,{text:'V2.2.0',visible:true,inside:true,below:true},`${lang} ${theme}`);
+        assert.deepEqual(v,{text:'V2.3.0',visible:true,inside:true,below:true},`${lang} ${theme}`);
       }
-      assert.equal(await page.$eval('#settings-version',e=>e.textContent),'V2.2.0','Settings shows the same version');
+      assert.equal(await page.$eval('#settings-version',e=>e.textContent),'V2.3.0','Settings shows the same version');
       await page.click('#collapse-sidebar');
-      assert.deepEqual(await label(),{text:'V2.2.0',visible:true,inside:true,below:true},'collapsed sidebar');
+      assert.deepEqual(await label(),{text:'V2.3.0',visible:true,inside:true,below:true},'collapsed sidebar');
       await page.click('#collapse-sidebar');
       await page.setViewport({width:390,height:844});
       // Crossing the phone breakpoint slides the sidebar off-screen (0.2 s); click once it is out of the way.

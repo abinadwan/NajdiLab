@@ -1,0 +1,18 @@
+[
+  {
+    "file": "english-desktop-light.png",
+    "sha256": "6f0260e6927947106997959611cba0e11e53dc6c2b1e3ca6c85bb37eba2c3e70",
+    "source": "synthetic Chromium acceptance from 2026-11-06",
+    "application_version": "V2.2.0",
+    "reference_commit": "8753463f27009f8574614294e8e45425142d5706",
+    "privacy_review": "Synthetic tool launcher, loopback address only, no records or credentials"
+  },
+  {
+    "file": "arabic-mobile-dark.png",
+    "sha256": "c92df12f9a05e67eed3048080a8f11c795d86fdff6f6f7d67905fdc3adfa967e",
+    "source": "synthetic Chromium acceptance from 2026-11-06",
+    "application_version": "V2.2.0",
+    "reference_commit": "8753463f27009f8574614294e8e45425142d5706",
+    "privacy_review": "Synthetic tool launcher, loopback address only, no records or credentials"
+  }
+]

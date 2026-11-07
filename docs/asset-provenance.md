@@ -47,3 +47,7 @@ The `ux-review/` before/after images are captured by `tests/ux-audit.cjs` from t
 The previous favicon (`d4335ecf…bf22`, unresolved authorship) is **replaced** by an original Najdi Lab mark drawn for this redesign: the Arabic letter ن as a geometric bowl with a triangular Najdi wall opening as its dot. Files: `static/favicon.svg`, `static/brand/*.svg`, and the inline sidebar logo in `static/index.html`. The wordmarks are outlines of the bundled OFL fonts (see [attribution](THIRD_PARTY_ATTRIBUTION.md#najdi-lab-interface-redesign-2026-11-03-update-project)). Rationale: [design system](design-system.md#brand).
 
 Before/after captures in `docs/images/redesign/` and the regenerated README screenshots are Chromium/Puppeteer captures of the disposable synthetic fixture (`tests/chat_browser_fixture.py`); no personal conversation, credential or real model appears.
+
+## Current V2.3.0 interface captures
+
+Current screenshots live in `docs/assets/screenshots/v2.3.0/`. The source is actual synthetic Chromium acceptance, with the application version read from the running UI and file digests recorded in `provenance.json`. The [visual guide](screenshots.md) is the current presentation entry point. Older captures below are historical interface evidence. The two selected Advanced Workspace screenshots are separately labeled in [the developer archive](legacy/advanced-workspace/README.md), with original PNG bytes retained.

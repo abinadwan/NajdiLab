@@ -145,8 +145,7 @@ test('Arabic and English interface in Chromium',async t=>{
       await scanInto(report,'my-versions: readiness and exports');
       assert.equal(await page.$eval('#versions-list [data-advanced-only]',e=>e.checkVisibility()),false);
       await open('settings');
-      await page.click('#advanced-mode');await settle();await scanInto(report,'settings: advanced tools');
-      await page.click('#workspace-mode');
+      assert.equal(await page.$('#advanced-mode,#workspace-mode'),null);await scanInto(report,'settings: guided-only');
       await open('dataset-versions');
       await page.waitForSelector('#version-list [data-version-name]');
       await page.click('#version-list [data-version-name]');await settle();

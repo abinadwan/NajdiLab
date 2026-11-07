@@ -1,5 +1,7 @@
 # Phase B implementation record — NajdiLab-first UI and operations
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 Status: IN_PROGRESS. Owner authorized starting Phase B on 2026-11-02 after Phase A PR #18 merged as `5de14f9` and main CI `41390294489` passed on Windows and Ubuntu.
 
 ## Product decision and boundaries

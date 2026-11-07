@@ -1,5 +1,7 @@
 # Windows 11 + RTX 5070 acceptance — checklist for an authorized run
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](../user-guide.md) for present operation.
+
 **Status on 2026-11-03: BLOCKED.** No computer was connected to the development session, so nothing below has been run on Windows or on a GPU. Every item is **NOT TESTED** until the owner (or an authorized session connected to the owner's computer) runs it and records the report.
 
 Tool: `scripts/acceptance_chat_v2.py` (validated on Linux for its non-GPU steps: migration-on-a-copy PASS, Native CPU start/stop/unload PASS with a synthetic model).

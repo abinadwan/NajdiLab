@@ -1,8 +1,8 @@
 # NajdiLab Native — local GGUF models through llama.cpp's llama-server
 
-**Status: in development on `feature/chat-experience-v2`, not merged, not owner-accepted.** Tested only on Linux, CPU only, with a tiny random-weight synthetic GGUF. No real model, no GPU and no Windows run has been tested. RTX 5070 support and compatibility with arbitrary GGUF files are **not claimed**.
+Current Documentation — V2.3.0 development candidate.
 
-> **V2.0.0 (Phase 3):** NajdiLab can now install and verify its own pinned llama.cpp build: **Model library → llama.cpp runtime**, or `python scripts/install.py --runtime`. See [Managed llama.cpp runtime](development/MANAGED_RUNTIME.md). The managed build was verified on Windows with an RTX 5070 (CUDA 13.4 package); the owner-supplied path below still works and takes precedence.
+NajdiLab Native supports an owner-supplied `llama-server` or the separately approved managed runtime. Current source includes device/package checks, SHA256 verification and explicit model-start approval. Earlier environment-specific results are recorded in the [managed runtime record](development/MANAGED_RUNTIME.md) and [real-model acceptance record](development/REAL_MODEL_ACCEPTANCE.md). Those dated results do not certify every GPU, model or installed environment. The V2.3.0 finalization tests use synthetic engines.
 
 NajdiLab Native lets Chat use a local GGUF model without Ollama or LM Studio. NajdiLab starts and stops **one** llama.cpp `llama-server` process — the managed runtime or one the owner supplies — and talks to it over its HTTP API. Code: `app/native_runtime.py` (lifecycle and engine), `app/gguf.py` (header reader). License review: [THIRD_PARTY_ATTRIBUTION.md](THIRD_PARTY_ATTRIBUTION.md).
 

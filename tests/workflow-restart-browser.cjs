@@ -80,7 +80,7 @@ test('fixture defaults remain ephemeral and unsafe persistent options are refuse
   fs.rmSync(unmarked,{recursive:true});
 });
 
-test('Wizard draft, selected record, check stage, Advanced mode and Arabic survive application restart',{timeout:180000},async()=>{
+test('Wizard draft, selected record, check stage, Arabic survive application restart with the legacy mode preference ignored',{timeout:180000},async()=>{
   fs.mkdirSync(evidence,{recursive:true});
   const stateRoot=fs.mkdtempSync(path.join(scratch,'workflow-restart-state-'));
   const browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
@@ -105,7 +105,7 @@ test('Wizard draft, selected record, check stage, Advanced mode and Arabic survi
     const check=async()=>{const pending=response('/api/v1/prepare/check','POST');await click('#prepare-check');assert.equal((await pending).status(),200);await stage(2);await page.waitForSelector('#prepare-status .prepare-badge');};
     await page.goto(origin+'/');await page.waitForSelector('#dashboard-stats button');
     await click('#view-dashboard .button.primary[data-go="prepare"]');await stage(1);
-    assert.equal(await page.$eval('#workspace-mode',element=>element.checked),false);
+    assert.equal(await page.$('#workspace-mode,#advanced-mode'),null);
     await click('#wizard-add-record');await click('[data-add-tab="sft"]');
     await type('#sft-turns .turn-row:nth-child(1) textarea','Synthetic saved restart question.');
     await type('#sft-turns .turn-row:nth-child(2) textarea','Synthetic saved restart answer.');
@@ -121,7 +121,7 @@ test('Wizard draft, selected record, check stage, Advanced mode and Arabic survi
     await type('#sft-turns .turn-row:nth-child(1) textarea',question);
     await type('#sft-turns .turn-row:nth-child(2) textarea',answer);
     await check();
-    await click('#workspace-mode');await page.waitForSelector('#advanced-workspace',{visible:true});
+    await page.evaluate(()=>localStorage.setItem('najdilab.advancedMode','1'));
     await page.select('#language-select','ar');
     const before=await stored();
     assert.equal(before.advanced,'1');assert.equal(before.language,'ar');
@@ -137,16 +137,16 @@ test('Wizard draft, selected record, check stage, Advanced mode and Arabic survi
     service=fixture(['--state-root',stateRoot,'--port',String(port)]);
     assert.equal(await service.ready,origin,'restart retains the browser storage origin');
     assert.notEqual(service.child.pid,firstPid,'restart launches a new Python process');
-    await page.goto(workspaceUrl);await page.waitForSelector('#advanced-workspace',{visible:true});
-    assert.equal(await page.$eval('#workspace-mode',element=>element.checked),true);
+    await page.goto(workspaceUrl);await page.waitForSelector('#guided-wizard',{visible:true});
+    assert.equal(await page.$('#workspace-mode,#advanced-mode,#advanced-workspace'),null);
     assert.equal(await page.$eval('#language-select',element=>element.value),'ar');
     assert.deepEqual(await page.$eval('html',element=>({language:element.lang,direction:element.dir})),{language:'ar',direction:'rtl'});
-    await click('#workspace-mode');await stage(2);await page.waitForSelector('#prepare-status .prepare-badge');
+    await stage(2);await page.waitForSelector('#prepare-status .prepare-badge');
     assert.equal(await page.$eval('#guided-wizard',element=>element.checkVisibility()),true);
     assert.deepEqual(await page.evaluate(()=>[...NajdiPrepare.state.chosen]),[selectedId]);
     assert.equal(await page.$eval('#sft-turns .turn-row:nth-child(1) textarea',element=>element.value),question);
     assert.equal(await page.$eval('#sft-turns .turn-row:nth-child(2) textarea',element=>element.value),answer);
-    const after=await stored();assert.equal(after.advanced,'0');assert.equal(after.language,'ar');
+    const after=await stored();assert.equal(after.advanced,'1');assert.equal(after.language,'ar');
     assert.equal(after.workflow.stage,2);assert.deepEqual(after.workflow.chosen,[selectedId]);
     assert.deepEqual(after.workflow.drafts['form-sft'],before.workflow.drafts['form-sft']);
     assert.deepEqual(seedDigests(stateRoot),seeds,'restart preserves every existing synthetic seed byte');
@@ -155,7 +155,7 @@ test('Wizard draft, selected record, check stage, Advanced mode and Arabic survi
     assert.equal(await page.$eval(`#prepare-records input[data-id="${selectedId}"]`,element=>element.checked),true);
     assert.equal(await page.$eval('#sft-turns .turn-row:nth-child(2) textarea',element=>element.value),answer);
     assert.deepEqual(errors,[]);assert.deepEqual(serverErrors,[]);
-    const proof={origin,firstPid,restartedPid:service.child.pid,stateRoot,selectedIds:[selectedId],restoredStage:2,language:'ar',direction:'rtl',advancedOnAfterRestart:true,draftExact:true,seedFilesUnchanged:Object.keys(seeds).length,pageErrors:errors.length,serverErrors:serverErrors.length};
+    const proof={origin,firstPid,restartedPid:service.child.pid,stateRoot,selectedIds:[selectedId],restoredStage:2,language:'ar',direction:'rtl',legacyPreferenceIgnored:true,draftExact:true,seedFilesUnchanged:Object.keys(seeds).length,pageErrors:errors.length,serverErrors:serverErrors.length};
     fs.writeFileSync(path.join(evidence,'proof.json'),JSON.stringify(proof,null,2));
     console.log('WORKFLOW_RESTART_ACCEPTANCE '+JSON.stringify(proof));
   }catch(error){if(page)await page.screenshot({path:path.join(evidence,'failure.png'),fullPage:true}).catch(()=>{});throw error;}

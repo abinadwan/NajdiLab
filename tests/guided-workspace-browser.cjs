@@ -36,10 +36,11 @@ test('complete guided workflow and isolated version management',{timeout:360000}
       const service=fixture(),context=await browser.createBrowserContext();let page;
       try{
         const base=await service.ready;assert.ok(![8770,8870,8871].includes(Number(new URL(base).port)));
-        page=await context.newPage();await page.setViewport({width:1440,height:1000});
+        page=await context.newPage();await page.evaluateOnNewDocument(()=>localStorage.setItem('najdilab.advancedMode','1'));await page.setViewport({width:1440,height:1000});
         const downloads=path.join(evidence,'downloads',language);fs.mkdirSync(downloads,{recursive:true});
         const cdp=await page.createCDPSession();await cdp.send('Page.setDownloadBehavior',{behavior:'allow',downloadPath:downloads});
-        const errors=[],consoleErrors=[],serverErrors=[],requests=[];
+        const errors=[],consoleErrors=[],serverErrors=[],requests=[],legacyRequests=[];
+        page.on('request',request=>{if(/advanced-workspace\.(js|css|html)/.test(request.url()))legacyRequests.push(request.url());});
         page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text());});
         page.on('response',r=>{if(r.url().includes('/api/v1/')){requests.push({method:r.request().method(),path:new URL(r.url()).pathname,status:r.status()});if(r.status()>=500)serverErrors.push(r.url());}});
         const click=async selector=>{const handle=await page.waitForSelector(selector,{visible:true});await handle.scrollIntoView();await handle.click();};
@@ -65,8 +66,10 @@ test('complete guided workflow and isolated version management',{timeout:360000}
             const layout=await page.evaluate(()=>({scrollX,offset:visualViewport.offsetLeft,rects:['body','.shell','.main','.view.active'].map(selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {selector,x:r.x,width:r.width,right:r.right};})}));
             fs.writeFileSync(path.join(evidence,`${language}-${label}-${theme}-${width}-layout.json`),JSON.stringify(layout,null,2));
             const name=`${language}-${label}-${theme}-${width}.png`;
+            const displayVersion=await page.$eval('#app-version',element=>element.textContent);
+            assert.equal(displayVersion,'V2.3.0','current screenshot source version');
             await page.screenshot({path:path.join(evidence,name),fullPage:!await page.$('dialog[open]'),captureBeyondViewport:false});
-            shots.push({language,label,theme,width,name});
+            shots.push({language,label,theme,width,name,displayVersion,capturedAt:new Date().toISOString()});
           }
           await page.setViewport({width:1440,height:1000});await page.select('#theme-select','light');
         };
@@ -92,8 +95,25 @@ test('complete guided workflow and isolated version management',{timeout:360000}
         const versionFiles=async v=>(await read(`/api/v1/dataset-versions/${v}`)).files;
         await page.goto(base+'/');await page.waitForSelector('#dashboard-stats button');await page.select('#language-select',language);await capture('start');
         await click('#view-dashboard .button.primary[data-go="prepare"]');await stage(1);await page.waitForFunction(()=>document.querySelector('#prepare-records .workspace-empty'));
-        assert.equal(await page.$$eval('.prepare-stepper-item',els=>els.length),4);assert.equal(await page.$eval('#workspace-mode',e=>e.checked),false);
+        assert.equal(await page.$$eval('.prepare-stepper-item',els=>els.length),4);assert.equal(await page.$('#workspace-mode'),null);assert.equal(await page.$('#advanced-mode'),null);
         await capture('data-empty',true);
+        await page.setViewport({width:390,height:1000});
+        await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+        await page.focus('#mobile-menu');await page.keyboard.press('Enter');
+        await page.waitForFunction(()=>{
+          const label=document.getElementById('app-version').getBoundingClientRect();
+          return document.querySelector('.sidebar.open')&&label.left>=0&&label.right<=innerWidth;
+        });
+        await page.evaluate(async()=>{
+          await Promise.all(document.getAnimations().map(animation=>animation.finished.catch(()=>{})));
+          await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        });
+        const mobileVersion=await page.$eval('#app-version',element=>({text:element.textContent,visible:element.checkVisibility()}));
+        assert.deepEqual(mobileVersion,{text:'V2.3.0',visible:true});
+        const mobileName=`${language}-mobile-version-light-390.png`;
+        await page.screenshot({path:path.join(evidence,mobileName),fullPage:false});
+        shots.push({language,label:'mobile-version',theme:'light',width:390,name:mobileName,displayVersion:mobileVersion.text,capturedAt:new Date().toISOString()});
+        await page.keyboard.press('Escape');await page.setViewport({width:1440,height:1000});
         const first=await add('Explain a synthetic refund rule.','Incorrect draft answer.');
         await edit(first,'Refunds are available within fourteen days with a receipt.');
         assert.ok((await read(`/api/v1/manual-data/sft/${first}/versions`)).items.length>=2);
@@ -105,7 +125,7 @@ test('complete guided workflow and isolated version management',{timeout:360000}
         const evaluation=await add('An independent held-out question.','Refunds are available within fourteen days with a receipt.',{evaluation:true});
         await click('#prepare-none');await click(`#prepare-records input[data-id="manual_sft_items:${first}"]`);await click(`#prepare-records input[data-id="manual_sft_items:${evaluation}"]`);
         // An unsaved entry survives both modes and a full reload, independently of the chosen source records.
-        await type('#sft-turns .turn-row:nth-child(1) textarea','Unsaved question kept through mode switching.');
+        await type('#sft-turns .turn-row:nth-child(1) textarea','Unsaved question kept through guided navigation.');
         await type('#sft-turns .turn-row:nth-child(2) textarea','Unsaved answer kept through reload.');
         await capture('data-selected',true);
         const bad=await doCheck();assert.notEqual(bad.status,'ready');assert.equal(await page.$eval('#prepare-next-3',e=>e.disabled),true);await capture('check-problem',true);
@@ -115,9 +135,9 @@ test('complete guided workflow and isolated version management',{timeout:360000}
         await page.waitForSelector('#manual-dialog .detail-actions');await click('#close-manual-dialog');
         const good=await doCheck('#prepare-recheck');assert.equal(good.status,'ready');await capture('check-ready',true);
         const selection=await page.evaluate(()=>[...NajdiPrepare.state.chosen].sort());
-        await click('#workspace-mode');await page.waitForSelector('#advanced-workspace',{visible:true});assert.equal(await page.$eval('#guided-wizard',e=>e.checkVisibility()),false);await capture('advanced',true);
-        await page.reload();await page.waitForSelector('#advanced-workspace',{visible:true});assert.equal(await page.$eval('#workspace-mode',e=>e.checked),true);
-        await click('#workspace-mode');await stage(2);await page.waitForSelector('#prepare-status .prepare-badge.ready');
+        await page.reload();await stage(2);await page.waitForSelector('#prepare-status .prepare-badge.ready');
+        assert.equal(await page.$('#advanced-workspace'),null);
+        assert.equal(await page.$eval('#guided-wizard',e=>e.checkVisibility()),true);
         assert.deepEqual(await page.evaluate(()=>[...NajdiPrepare.state.chosen].sort()),selection);
         await page.reload();await stage(2);await page.waitForSelector('#prepare-status .prepare-badge.ready');
         assert.deepEqual(await page.evaluate(()=>[...NajdiPrepare.state.chosen].sort()),selection);
@@ -134,13 +154,13 @@ test('complete guided workflow and isolated version management',{timeout:360000}
         assert.deepEqual(await versionFiles(firstGold),before,'source editing preserves Frozen Gold');
         assert.equal((await doCheck()).status,'ready');const secondGold=await approve();assert.notEqual(secondGold,firstGold);
         await click('#prepare-created a');await page.waitForSelector('#view-my-versions.active');await page.waitForSelector(`.version-delete[data-version="${secondGold}"]`);await capture('versions');
-        await click(`.version-delete[data-version="${secondGold}"]`);await page.waitForSelector('#gold-delete-dialog[open]');await page.waitForSelector('#gold-delete-files li');await capture('delete-confirm');
+        await click(`.version-delete[data-version="${secondGold}"]`);await page.waitForSelector('#gold-delete-dialog[open]');await page.waitForSelector('#gold-delete-files li');await page.$eval('#gold-delete-dialog',dialog=>dialog.scrollTop=0);await capture('delete-confirm');
         assert.equal(await page.$eval('#gold-delete-submit',e=>e.disabled),true);await click('#gold-delete-cancel');assert.ok((await read('/api/v1/dataset-versions')).items.some(v=>v.version===secondGold));
         await click(`.version-delete[data-version="${secondGold}"]`);await page.waitForSelector('#gold-delete-files li');await type('#gold-delete-confirm',secondGold);
         const deleted=response(`/dataset-versions/${secondGold}/delete`,'POST');await click('#gold-delete-submit');assert.equal((await deleted).status(),200);
         await page.waitForFunction(v=>!document.querySelector(`.version-delete[data-version="${v}"]`),{},secondGold);
         assert.deepEqual(await versionFiles(firstGold),before,'deleting one version preserves the other');assert.ok((await read(`/api/v1/manual-data/sft/${first}`)).id===first);
-        await click(`.version-export[data-version="${firstGold}"]`);await stage(4);await page.waitForSelector('#prepare-raw-exports a');assert.equal(await page.$eval('#workspace-mode',e=>e.checked),false);await capture('existing-version-export');
+        await click(`.version-export[data-version="${firstGold}"]`);await stage(4);await page.waitForSelector('#prepare-raw-exports a');assert.equal(await page.$('#workspace-mode'),null);assert.equal(await page.$('#advanced-mode'),null);await capture('existing-version-export');
         // Empty selection is blocked and standalone formats retain their own downloadable files.
         await click('#prepare-new-version');await stage(1);await click('#prepare-none');assert.equal(await page.$eval('#prepare-check',e=>e.disabled),true);
         await click('#wizard-add-record');await click('[data-add-tab="direct"]');await type('#form-direct textarea[name="text"]','اااا بببب نص مستقل اصطناعي');
@@ -149,7 +169,7 @@ test('complete guided workflow and isolated version management',{timeout:360000}
         assert.equal((await doCheck()).status,'ready');const directGold=await approve();await page.waitForFunction(()=>document.querySelector('#prepare-export-go').disabled);
         assert.ok(await page.$('#prepare-raw-exports a[download="direct_language.jsonl"]'));assert.equal(await page.$('#prepare-raw-exports a[download="sft.jsonl"]'),null);await capture('standalone-export');
         assert.equal((await read(`/api/v1/dataset-versions/${directGold}`)).manifest.files['direct_language.jsonl'],1);
-        assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);assert.deepEqual(serverErrors,[]);
+        assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);assert.deepEqual(serverErrors,[]);assert.deepEqual(legacyRequests,[],'the official journey never requests the legacy bundle');
         fs.writeFileSync(path.join(evidence,`http-${language}.json`),JSON.stringify(requests,null,2));
         console.log('GUIDED_ACCEPTANCE '+JSON.stringify({language,versions:[firstGold,secondGold,directGold],deleted:secondGold,errors:errors.length,consoleErrors:consoleErrors.length,serverErrors:serverErrors.length}));
       }catch(error){if(page)await page.screenshot({path:path.join(evidence,`failure-${language}.png`),fullPage:true}).catch(()=>{});throw error;}

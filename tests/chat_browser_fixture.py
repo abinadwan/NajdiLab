@@ -117,8 +117,15 @@ def fixture_root(state_root=None):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--state-root',type=Path)
+    parser.add_argument('--static-root',type=Path)
     parser.add_argument('--port',type=fixture_port,default=0)
     args=parser.parse_args(argv)
+    if args.static_root:
+        static_root=args.static_root.resolve()
+        allowed=(ROOT/'.test-tmp').resolve()
+        if not static_root.is_relative_to(allowed) or not (static_root/'NAJDILAB_LEGACY_RESTORE_TEST').is_file():
+            parser.error('--static-root requires a marked synthetic restoration inside .test-tmp')
+        server.STATIC_DIR=static_root
     with fixture_root(args.state_root) as (root,reused):
         db=root/'fixture.db';apply_migrations(db)
         if reused:attach_synthetic_catalog(dataset_platform,root)
