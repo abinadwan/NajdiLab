@@ -64,7 +64,7 @@ Optional real engines, LM Studio SDK, Unsloth Python, private historical artifac
 - Twelve unmodified V2.3.0 PNGs and provenance live in `docs/assets/screenshots/v2.3.0/`. Four appear in the README and the complete set appears in `docs/screenshots.md`.
 - Two selected unmodified V2.2.0 synthetic screenshots and the required four guides live in `docs/legacy/advanced-workspace/`.
 - All fourteen selected PNGs received visual review. Historical version labels remain explicit.
-- All 57 unique external URLs returned HTTP 200. Authenticated GitHub API checks cover private repository targets.
+- All 58 unique external URLs returned HTTP 200, including the post-push Actions run. Authenticated GitHub API checks cover private repository targets.
 - Actual GitHub Markdown API HTML rendered in Chromium with 23 second-level headings, 19 images and zero broken images. `v230-render-verification.json` records the result. The available browser session is signed out, so direct authenticated private repository-page inspection remains unavailable. Post-push verification uses authenticated branch-specific GitHub HTML and image bytes.
 - Five synthetic record examples execute through a fresh database, Manifest/SHA256 verification and a two-target conversational handoff. DPO and evaluation content stay outside that handoff.
 
@@ -72,7 +72,13 @@ Gold inclusion alone does not establish SFT training eligibility. Legacy Gold de
 
 ## Delivery verification
 
-The final task response records the committed SHA, remote target SHA, authenticated remote README/image verification, Draft PR state and completed Actions result. These facts become available after the local commit and authorized push. This report does not substitute pre-push intent for observed delivery evidence.
+The initial candidate was committed as `5fdd6837cf288ed80c3fe752f5efce182604e942` on `update-v2.3.1`. Its working tree was clean before `git fetch origin`. The fetched `origin/update-project` was `1abf2d71db284a2becf2d89703feaaaffbace124`, an ancestor of the candidate. An ordinary fast-forward push delivered all four pending commits to `update-project`, and both `git ls-remote` and GitHub API confirmed the exact candidate SHA.
+
+Authenticated post-push verification matched all 471 committed file blobs. Nineteen README, brand/architecture, screenshot and provenance assets matched the committed bytes, including all fourteen selected PNGs. The branch-specific GitHub-rendered README contained V2.3.0, 23 second-level headings and 19 image elements. PR #23 remained open, Draft, with base `main` and head `update-project`. [Delivery evidence](v230-delivery-verification.json).
+
+Manual Source checks run `42322521062` completed with failure before either Ubuntu or Windows started any test step. Both check annotations report failed recent account payments or the need to increase the spending limit. There are no runner test logs because the jobs never started. The automatic Draft PR runs for Source checks and Source-only candidate were skipped under their existing policy. [Observed Actions run](https://github.com/abinadwan/NajdiLab/actions/runs/42322521062).
+
+**BLOCKED** applies to hosted verification. The implementation push, local test gates and authenticated remote-file checks succeeded. The account owner must resolve the Billing & plans condition before a hosted verification can execute. The final task response records the SHA of the documentation-only follow-up containing this observed evidence. No passing CI result is inferred from the local runs.
 
 ## Complete changed-file list
 
@@ -141,6 +147,7 @@ docs/development/UX_CONSISTENCY.md
 docs/development/V230_DOCUMENTATION_AUDIT.md
 docs/development/V230_FINALIZATION.md
 docs/development/WINDOWS_ACCEPTANCE.md
+docs/development/v230-delivery-verification.json
 docs/development/v230-external-links.json
 docs/development/v230-render-verification.json
 docs/documentation-index.md
