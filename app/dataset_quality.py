@@ -59,7 +59,8 @@ def analyze_directory(directory: Path, *, version: str | None = None) -> dict[st
     findings = list(parse_findings)
     exact: dict[str, list[str]] = defaultdict(list)
     prompt_targets: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
-    prompt_rows: list[tuple[str, set[str], str]] = []
+    prompt_rows: list[tuple[str, set[str], str, str]] = []
+    prompts_by_split: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     conversations: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     targets_by_split: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
 
@@ -70,7 +71,8 @@ def analyze_directory(directory: Path, *, version: str | None = None) -> dict[st
         exact[hashlib.sha256(canonical.encode()).hexdigest()].append(sample)
         if prompt:
             prompt_targets[prompt][target].append(sample)
-            prompt_rows.append((prompt, _tokens(prompt), sample))
+            prompt_rows.append((prompt, _tokens(prompt), sample, split))
+            prompts_by_split[prompt][split].append(sample)
         if target:
             targets_by_split[target][split].append(sample)
         cid = str(row.get("conversation_id") or "").strip()
@@ -124,15 +126,21 @@ def analyze_directory(directory: Path, *, version: str | None = None) -> dict[st
         if splits["training"] and splits["evaluation"]:
             findings.append(_finding("TRAIN_EVAL_TARGET_LEAKAGE", "confirmed_blocker", splits["training"] + splits["evaluation"], hashlib.sha256(target.encode()).hexdigest()[:12]))
 
+    # The same context in training and evaluation: the evaluated question has been trained on.
+    for prompt, splits in prompts_by_split.items():
+        if splits["training"] and splits["evaluation"]:
+            findings.append(_finding("TRAIN_EVAL_CONTEXT_LEAKAGE", "confirmed_blocker", splits["training"] + splits["evaluation"], hashlib.sha256(prompt.encode()).hexdigest()[:12]))
+
     # Deterministic, conservative near-duplicate candidates; never delete automatically.
-    for i, (left, left_tokens, left_id) in enumerate(prompt_rows):
+    for i, (left, left_tokens, left_id, left_split) in enumerate(prompt_rows):
         if len(left_tokens) < 5:
             continue
-        for right, right_tokens, right_id in prompt_rows[i + 1:]:
+        for right, right_tokens, right_id, right_split in prompt_rows[i + 1:]:
             union = left_tokens | right_tokens
             score = len(left_tokens & right_tokens) / len(union) if union else 0.0
             if 0.85 <= score < 1.0:
-                findings.append(_finding("NEAR_DUPLICATE_PROMPT", "warning", [left_id, right_id], f"jaccard={score:.4f}"))
+                code = "TRAIN_EVAL_NEAR_DUPLICATE" if left_split != right_split else "NEAR_DUPLICATE_PROMPT"
+                findings.append(_finding(code, "warning", [left_id, right_id], f"jaccard={score:.4f}"))
 
     findings.sort(key=lambda x: (x["severity"], x["code"], x["finding_id"]))
     counts = {severity: sum(x["severity"] == severity for x in findings) for severity in ("confirmed_blocker", "warning", "informational")}

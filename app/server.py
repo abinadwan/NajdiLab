@@ -13,11 +13,54 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from .db import DB_PATH, ROOT, apply_migrations
+from .db import DB_PATH, ROOT, apply_migrations, utc_now
+
+
+class HookRefusals:
+    """QA-06: local evidence about the external legacy sender, without reading its requests.
+
+    Counts refused POSTs to the blocked Hermes hook since this process started. Nothing from
+    the request (headers, body, address) is stored.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.since = utc_now()
+        self.count = 0
+        self.last = None
+
+    def record(self) -> None:
+        with self._lock:
+            self.count += 1
+            self.last = utc_now()
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            return {"refused": self.count, "last_refused_at": self.last, "since": self.since, "receiver": "BLOCKED"}
+
+
+HERMES_REFUSALS = HookRefusals()
+from .chat_history import saved_sessions_page
 from .http_security import CSRF_TOKEN, INGEST_PATHS, RequestSecurityError, validate_ingest, validate_request
 from .integrations import HERMES_BLOCK, IntegrationError, IntegrationManager
 from .chat_workspace import ChatWorkspace, fields
-from .unsloth_export import create_handoff, read_handoff
+from .chat_preparation import ChatPreparation
+from .managed_runtime import ManagedRuntime
+from .native_runtime import NativeRuntime
+from .model_service import ModelLibrary
+from .version import APP_VERSION, DISPLAY_VERSION, RELEASE_STATUS
+
+# Starting points, not performance guarantees. Custom values stay available.
+CONTEXT_PRESETS = [
+    {"id": "light", "context_budget": 4096, "reply_reserve": 1024},
+    {"id": "balanced", "context_budget": 8192, "reply_reserve": 2048},
+    {"id": "long", "context_budget": 16384, "reply_reserve": 3072},
+]
+from .unsloth_export import create_handoff, list_handoffs, read_handoff
+from . import gold_management
+import shutil
+from . import language_taxonomy
+from .training_models import TrainingModels
 from .dataset_platform import (
     DatasetPlatformError,
     apply_overlap_plan,
@@ -48,6 +91,8 @@ from .service import (
     approve_review,
     bulk_review_actions,
     create_conversation,
+    prepare_check,
+    prepare_records,
     create_export,
     dedup_report,
     bulk_update_manual_data,
@@ -68,6 +113,10 @@ from .service import (
     list_manual_versions,
     list_review_queue,
     list_reviewed,
+    page_info,
+    page_request,
+    reviewed_page,
+    conversations_page,
     save_review,
     restore_review,
     seed_demo_data,
@@ -78,7 +127,10 @@ from .service import (
 )
 
 STATIC_DIR = ROOT / "static"
+# The bundled interface fonts; the platform registry may not know this type (Windows often does not).
+mimetypes.add_type("font/woff2", ".woff2")
 MAX_BODY_BYTES = 2 * 1024 * 1024
+STREAM_WRITE_TIMEOUT = 30
 
 
 class NajdiLabHTTPServer(ThreadingHTTPServer):
@@ -88,8 +140,18 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
     def __init__(self, *args, **kwargs):
         self.integrations = IntegrationManager()
+        self.native = NativeRuntime()
         self.chat = None
         self._workspace_lock = threading.Lock()
+        self._models = None
+        self._models_lock = threading.Lock()
+        self._training = None
+        # Native uses the managed llama.cpp build unless the owner set NAJDILAB_NATIVE_SERVER.
+        self.runtime = ManagedRuntime(self.native)
+        self.runtime.attach()
+        self.native.start_gate = self._native_gate
+        # The composer's one path from a model/context choice to a ready runtime.
+        self.preparation = ChatPreparation(self.native, lambda: self.integrations, lambda: self.models().store)
         super().__init__(*args, **kwargs)
 
     def workspace(self):
@@ -97,11 +159,36 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
         # the model's response or an integration snapshot.
         with self._workspace_lock:
             if self.chat is None:
-                self.chat = ChatWorkspace(self.integrations, DB_PATH)
+                self.chat = ChatWorkspace(self.integrations, DB_PATH, native=self.native,
+                                          engine_factory=self.native.engine_factory())
             return self.chat
+
+    def _native_gate(self, path):
+        # The managed build must be exactly as installed, and a Hugging Face Direct file verified READY.
+        self.runtime.gate()
+        self.models().store.native_gate(path)
+
+    def models(self):
+        with self._models_lock:
+            if self._models is None:
+                self._models = ModelLibrary(DB_PATH, self.native)
+            return self._models
+
+    def training(self):
+        # models() takes _models_lock itself: fetch the hub first (the lock is not re-entrant).
+        hub = self.models().hub
+        with self._models_lock:
+            if self._training is None:
+                self._training = TrainingModels(hub)
+            return self._training
 
     def server_close(self):
         super().server_close()
+        if self._models is not None:
+            self._models.store.shutdown()
+        self.runtime.shutdown()
+        # Only NajdiLab's own llama-server child is stopped; nothing else.
+        self.native.shutdown()
         if self.chat is not None:
             try:
                 self.chat.close()
@@ -117,7 +204,7 @@ class NajdiLabHTTPServer(ThreadingHTTPServer):
 
 
 class NajdiLabHandler(BaseHTTPRequestHandler):
-    server_version = "NajdiLab/1.1"
+    server_version = f"NajdiLab/{APP_VERSION}"
 
 
     def parse_request(self) -> bool:
@@ -132,9 +219,11 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         return True
 
     def log_message(self, fmt: str, *args: object) -> None:
-        sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), fmt % args))
+        # Query strings can carry user text (chat search); the log keeps only the
+        # path, method and status (review F7).
+        sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), re.sub(r"\?[^\s\"]*", "?[query omitted]", fmt % args)))
 
-    def _headers(self, status: int, content_type: str, length: int | None = None) -> None:
+    def _headers(self, status: int, content_type: str, length: int | None = None, download: str | None = None) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", "no-store" if content_type.startswith("application/json") else "no-cache")
@@ -142,6 +231,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'")
+        if download is not None:
+            self.send_header("Content-Disposition", f'attachment; filename="{download}"')
         if length is not None:
             self.send_header("Content-Length", str(length))
         if self.close_connection:
@@ -153,14 +244,64 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         self._headers(status, "application/json; charset=utf-8", len(data))
         self.wfile.write(data)
 
-    def _error(self, message: str, status: int = HTTPStatus.BAD_REQUEST, *, code: str | None = None) -> None:
+    def _error(self, message: str, status: int = HTTPStatus.BAD_REQUEST, *, code: str | None = None,
+               check: str | None = None, hint: str | None = None) -> None:
         payload = {"ok": False, "error": message}
         if code:
             payload["code"] = code
+        if check:
+            payload["check"] = check
+        if hint:
+            payload["hint"] = hint
         self._json(payload, status)
 
+    def _send_stream(self, sid: str, data: dict) -> None:
+        """NDJSON turn stream. Validation errors before the turn is accepted are
+        ordinary JSON errors; afterwards errors arrive as a final `error` event.
+        Streamed text is display-only: the saved result is the `done` event's
+        session, committed only after every completion check passed."""
+        workspace = self.server.workspace()
+        state = {"open": False, "gone": False}
+        # A client that stops reading must not hold the runtime lease forever: a
+        # stalled write times out, which stops the turn like a disconnect (F6).
+        self.connection.settimeout(STREAM_WRITE_TIMEOUT)
+
+        def write(event: dict) -> None:
+            if state["gone"]:
+                return
+            if not state["open"]:
+                self.close_connection = True
+                self._headers(HTTPStatus.OK, "application/x-ndjson; charset=utf-8")
+                state["open"] = True
+            try:
+                self.wfile.write(json.dumps(event, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n")
+                self.wfile.flush()
+            except OSError:
+                # The browser went away: stop generation; nothing partial is saved.
+                state["gone"] = True
+                try:
+                    workspace.stop(sid)
+                except IntegrationError:
+                    pass
+
+        try:
+            result = workspace.send(sid, data, on_event=write)
+        except IntegrationError as exc:
+            if not state["open"]:
+                raise
+            write({"type": "error", "code": exc.code, "error": str(exc), "check": getattr(exc, "check", None),
+                   "hint": getattr(exc, "hint", None)})
+            return
+        except Exception:
+            if not state["open"]:
+                raise
+            traceback.print_exc()
+            write({"type": "error", "code": "INTERNAL_ERROR", "error": "An internal error occurred; inspect the local server log for details"})
+            return
+        write({"type": "done", "result": result})
+
     def _dataset_error(self, error: DatasetPlatformError) -> None:
-        status = HTTPStatus.NOT_FOUND if error.code in {"PROJECT_ROOT_NOT_FOUND", "EXPORTS_ROOT_NOT_FOUND", "DATASET_NOT_FOUND", "MANIFEST_NOT_FOUND"} else HTTPStatus.CONFLICT if error.code in {"VERSION_ALREADY_EXISTS", "SOURCE_NOT_FROZEN", "TARGET_NOT_DRAFT", "OVERLAP_PLAN_STALE"} else HTTPStatus.FORBIDDEN if error.code == "ACCESS_DENIED" else HTTPStatus.UNPROCESSABLE_ENTITY if error.code in {"INVALID_MANIFEST", "INVALID_DATASET", "UNSUPPORTED_DATASET_FORMAT", "INVALID_VERSION_NAME"} else HTTPStatus.INTERNAL_SERVER_ERROR
+        status = HTTPStatus.NOT_FOUND if error.code in {"PROJECT_ROOT_NOT_FOUND", "EXPORTS_ROOT_NOT_FOUND", "DATASET_NOT_FOUND", "MANIFEST_NOT_FOUND"} else HTTPStatus.CONFLICT if error.code in {"VERSION_ALREADY_EXISTS", "SOURCE_NOT_FROZEN", "TARGET_NOT_DRAFT", "OVERLAP_PLAN_STALE", "GOLD_OWNERSHIP_UNPROVEN", "GOLD_DELETE_BLOCKED", "GOLD_ALREADY_DELETED", "STALE_DELETE_PREVIEW", "GOLD_DELETE_IO_ERROR", "GOLD_HASH_MISMATCH", "GOLD_NOT_FROZEN", "GOLD_LIFECYCLE_LOCK_FAILED", "GOLD_REFERENCE_LEDGER_FAILED"} else HTTPStatus.FORBIDDEN if error.code == "ACCESS_DENIED" else HTTPStatus.UNPROCESSABLE_ENTITY if error.code in {"INVALID_MANIFEST", "INVALID_DATASET", "INVALID_DIAGNOSTICS", "UNSUPPORTED_DATASET_FORMAT", "INVALID_VERSION_NAME", "DELETE_CONFIRMATION_REQUIRED", "GOLD_FILE_NOT_ALLOWED"} else HTTPStatus.INTERNAL_SERVER_ERROR
         self._json(error.as_dict(), status)
 
 
@@ -212,43 +353,71 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/v1/session":
                 self._json({"ok": True, "csrf_token": CSRF_TOKEN})
             elif parsed.path == '/api/v1/chat/sessions':
-                self._json({'items':self.server.workspace().list()})
+                limit, offset = page_request(query)
+                if query.get('archived', '0') not in {'0', '1'}:
+                    raise ValidationError('archived must be 0 or 1')
+                items, total = saved_sessions_page(self.server.workspace().db_path, limit, offset,
+                                                   query=query.get('q', ''), archived=query.get('archived') == '1')
+                self._json({'items': items, 'page': page_info(total, limit, offset, len(items))})
+            elif parsed.path == '/api/v1/chat/presets':
+                self._json({'items': CONTEXT_PRESETS, 'reply_reserve_max': 8192})
             elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})', parsed.path):
                 self._json(self.server.workspace().get(match.group(1)))
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/delete-preview', parsed.path):
+                self._json(self.server.workspace().delete_preview(match.group(1)))
+            elif parsed.path == '/api/v1/native/status':
+                self._json(self.server.native.status())
+            elif parsed.path == '/api/v1/native/models':
+                self._json(self.server.native.models())
+            elif parsed.path == '/api/v1/chat/models':
+                self._json(self.server.preparation.models())
+            elif parsed.path == '/api/v1/runtime':
+                self._json(self.server.runtime.status())
+            elif parsed.path == '/api/v1/checkpoints':
+                self._json(self.server.training().library())
+            elif parsed.path == '/api/v1/checkpoints/delete-plan':
+                self._json(self.server.training().delete_plan(parse_qs(parsed.query).get('id', [''])[0]))
+            elif parsed.path == '/api/v1/checkpoints/inspect':
+                repo = parse_qs(parsed.query).get('repo', [''])[0]
+                self._json(self.server.training().inspect(repo))
+            elif parsed.path == '/api/v1/models/library':
+                self._json(self.server.models().store.library())
+            elif parsed.path == '/api/v1/unsloth-exports':
+                version = query.get('version')
+                self._json(list_handoffs(version if version else None))
             elif match := re.fullmatch(r'/api/v1/unsloth-exports/([a-f0-9]{32})/(dataset\.jsonl|provenance\.jsonl|manifest\.json)', parsed.path):
                 raw = read_handoff(*match.groups())
                 self._headers(HTTPStatus.OK, 'application/octet-stream', len(raw))
                 self.wfile.write(raw)
             elif parsed.path == "/api/v1/integrations":
                 self._json(self.server.integrations.snapshot())
+            elif parsed.path == "/api/v1/hermes-hook/refusals":
+                self._json(HERMES_REFUSALS.snapshot())
             elif parsed.path == "/api/v1/health":
-                self._json({"ok": True, "service": "NajdiLab", "version": "1.1", "database": str(DB_PATH)})
+                self._json({"ok": True, "service": "NajdiLab", "version": APP_VERSION, "database": str(DB_PATH)})
             elif parsed.path == "/api/v1/dataset-catalog":
                 self._json(dataset_catalog())
             elif parsed.path == "/api/v1/review-integrity":
                 self._json(export_readiness(DB_PATH, include_demo=query.get("include_demo") == "1"))
+            elif parsed.path == "/api/v1/prepare/records":
+                self._json(prepare_records(db_path=DB_PATH, include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/exports/readiness":
                 self._json(export_readiness(DB_PATH, include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/conversations":
-                self._json(
-                    {
-                        "items": list_conversations(
-                            search=query.get("search", ""), model=query.get("model", ""), channel=query.get("channel", "")
-                        )
-                    }
-                )
+                self._json(conversations_page(query))
             elif match := re.fullmatch(r"/api/v1/conversations/(\d+)", parsed.path):
                 self._json(get_conversation(int(match.group(1))))
             elif parsed.path == "/api/v1/review-queue":
                 self._json({"items": list_review_queue(include_demo=query.get("include_demo", "1") != "0")})
             elif parsed.path == "/api/v1/reviewed":
-                self._json({"items": list_reviewed(query)})
+                self._json(reviewed_page(query))
             elif parsed.path == "/api/v1/dataset-records":
                 self._json(training_dataset(include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/exports":
                 self._json({"items": list_exports()})
             elif parsed.path == "/api/v1/dataset-versions":
-                self._json({"items": list_dataset_versions()})
+                with gold_management.lifecycle_lock:
+                    self._json({"items": gold_management.version_catalog(db_path=DB_PATH)})
             elif parsed.path == "/api/v1/phase38/v009/human-review":
                 self._json(get_phase38_review())
             elif parsed.path == "/api/v1/phase38/v009/freeze-gate":
@@ -257,24 +426,39 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json(get_post_edit_verification())
             elif parsed.path == "/api/v1/phase39/readiness":
                 self._json(json.loads((PHASE39 / "phase39-freeze-readiness.json").read_text(encoding="utf-8")))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/export-options", parsed.path):
+                self._json(gold_management.export_options(match.group(1), db_path=DB_PATH))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/delete-preview", parsed.path):
+                self._json(gold_management.deletion_preview(match.group(1), db_path=DB_PATH))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/files/([A-Za-z0-9._-]+)", parsed.path):
+                with gold_management.lifecycle_lock:
+                    path = gold_management.resolve_download(match.group(1), match.group(2), db_path=DB_PATH)
+                    with path.open("rb") as handle:
+                        self._headers(HTTPStatus.OK, "application/octet-stream", path.stat().st_size, download=path.name)
+                        shutil.copyfileobj(handle, self.wfile, 1024 * 1024)
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/health", parsed.path):
-                self._json(dataset_health(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(dataset_health(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/quality-findings", parsed.path):
-                self._json(dataset_quality(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(dataset_quality(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/release-validation", parsed.path):
                 version = match.group(1)
                 directory = _version_dir(version)
                 self._json(validate_candidate_release(directory, source_version=version))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/balance", parsed.path):
-                self._json(analyze_dataset_balance(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(analyze_dataset_balance(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/balance-candidate", parsed.path):
                 self._json(balance_candidate(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/eval-sets", parsed.path):
-                self._json(eval_leakage(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(eval_leakage(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/conversation-overlaps", parsed.path):
                 self._json(conversation_overlap_analysis(match.group(1)))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)", parsed.path):
-                self._json(dataset_version_detail(match.group(1)))
+                with gold_management.lifecycle_lock:
+                    self._json(dataset_version_detail(match.group(1)))
             elif parsed.path == "/api/v1/exports/dedup-report":
                 self._json(dedup_report(include_demo=query.get("include_demo") == "1"))
             elif parsed.path == "/api/v1/analytics":
@@ -285,6 +469,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json({"items": list_manual_versions(match.group(1), int(match.group(2)))})
             elif match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)", parsed.path):
                 self._json(get_manual_data(match.group(1), int(match.group(2))))
+            elif parsed.path == "/api/v1/language-taxonomy":
+                self._json(language_taxonomy.catalog())
             elif parsed.path == "/api/v1/config":
                 self._json(
                     {
@@ -296,12 +482,16 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                             "format_failure", "factual_error", "other"
                         ],
                         "local_only": True,
+                        "app_version": APP_VERSION,
+                        "app_version_display": DISPLAY_VERSION,
+                        "release_status": RELEASE_STATUS,
                     }
                 )
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
         except IntegrationError as exc:
-            self._error(str(exc), exc.status, code=exc.code)
+            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None),
+                        hint=getattr(exc, "hint", None))
         except DatasetPlatformError as exc:
             self._dataset_error(exc)
         except ExportReadinessError as exc:
@@ -311,29 +501,48 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         except Exception:
             traceback.print_exc()
             self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
-
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         # Fail closed before reading or parsing any potentially overbroad event.
         # Closing prevents unread body bytes becoming another request.
         if parsed.path == "/api/v1/hermes-hook":
             self.close_connection = True
+            HERMES_REFUSALS.record()
             self._error(HERMES_BLOCK, HTTPStatus.CONFLICT, code="HERMES_UNSAFE_SOURCE")
             return
         try:
             data = self._body()
             if parsed.path == '/api/v1/unsloth-exports':
-                fields(data, {'version'})
-                if not isinstance(data['version'],str):
-                    raise ValidationError('Choose a dataset version.')
-                self._json(create_handoff(data['version']), HTTPStatus.CREATED)
+                with gold_management.lifecycle_lock:
+                    fields(data, {'version', 'profile'})
+                    if not isinstance(data['version'],str) or not isinstance(data['profile'],str):
+                        raise ValidationError('Choose a dataset version and an export profile.')
+                    self._json(create_handoff(data['version'], profile=data['profile']), HTTPStatus.CREATED)
             elif parsed.path == '/api/v1/chat/hardware':
                 if data.get('approved') is not True:
                     raise IntegrationError('APPROVAL_REQUIRED', 'Approve the read-only hardware snapshot first.', 403)
                 self._json(self.server.workspace().hardware(data))
             elif parsed.path == '/api/v1/chat/sessions':
                 self._json(self.server.workspace().create(data), HTTPStatus.CREATED)
-            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/(send|collect|stop|archive)', parsed.path):
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/send-stream', parsed.path):
+                self._send_stream(match.group(1), data)
+            elif parsed.path == '/api/v1/checkpoints/downloads':
+                self._json(self.server.training().start(data), HTTPStatus.ACCEPTED)
+            elif parsed.path == '/api/v1/checkpoints/delete':
+                self._json(self.server.training().delete(data))
+            elif parsed.path == '/api/v1/checkpoints/downloads/cancel':
+                fields(data, set())
+                self._json(self.server.training().cancel())
+            elif parsed.path.startswith('/api/v1/models/'):
+                self._json(self.server.models().handle(parsed.path[len('/api/v1/models/'):], data))
+            elif parsed.path == '/api/v1/chat/prepare':
+                self._json(self.server.preparation.prepare(data))
+            elif match := re.fullmatch(r'/api/v1/runtime/([a-z]+)', parsed.path):
+                self._json(self.server.runtime.handle(match.group(1), data))
+            elif parsed.path in {'/api/v1/native/start', '/api/v1/native/stop'}:
+                native = self.server.native
+                self._json(native.start(data) if parsed.path.endswith('start') else native.stop(data))
+            elif match := re.fullmatch(r'/api/v1/chat/sessions/([a-f0-9-]{36})/(send|collect|stop|archive|restore|rename|pin|delete)', parsed.path):
                 sid, action = match.groups()
                 workspace = self.server.workspace()
                 if action == 'stop':
@@ -376,19 +585,33 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "item": add_direct_text(data)}, HTTPStatus.CREATED)
             elif parsed.path == "/api/v1/manual-data/preference":
                 self._json({"ok": True, "item": add_preference_pair(data)}, HTTPStatus.CREATED)
+            elif parsed.path == "/api/v1/prepare/check":
+                selection = data.get("selection")
+                if selection is not None and not (isinstance(selection, list) and all(isinstance(x, str) for x in selection)):
+                    raise ValidationError("selection must be a list of record ids")
+                self._json(prepare_check(selection, db_path=DB_PATH, include_demo=bool(data.get("include_demo"))))
+            elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/delete", parsed.path):
+                fields(data, {"token", "confirm_version"})
+                self._json(gold_management.delete_version(match.group(1), data, db_path=DB_PATH))
             elif parsed.path == "/api/v1/exports":
-                include_demo = bool(data.get("include_demo"))
-                self._json(
-                    {
-                        "ok": True,
-                        "export": create_export(
-                            DB_PATH,
-                            include_demo=include_demo,
-                            filters=data.get("filters") or {},
-                        ),
-                    },
-                    HTTPStatus.CREATED,
-                )
+                with gold_management.lifecycle_lock:
+                    include_demo = bool(data.get("include_demo"))
+                    selection = data.get("selection")
+                    if selection is not None and not (isinstance(selection, list) and all(isinstance(x, str) for x in selection)):
+                        raise ValidationError("selection must be a list of record ids")
+                    self._json(
+                        {
+                            "ok": True,
+                            "export": create_export(
+                                db_path=DB_PATH,
+                                include_demo=include_demo,
+                                filters=data.get("filters") or {},
+                                selection=selection,
+                                expected_fingerprint=data.get("fingerprint") if isinstance(data.get("fingerprint"), str) else None,
+                            ),
+                        },
+                        HTTPStatus.CREATED,
+                    )
             elif match := re.fullmatch(r"/api/v1/phase38/v009/human-review/([^/]+)", parsed.path):
                 self._json({"ok":True,"review":save_phase38_review(unquote(match.group(1)),data)})
             elif parsed.path == "/api/v1/phase39/apply-edits":
@@ -399,13 +622,16 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
                 except ValueError as exc:
                     self._json({"ok": False, "error": "POST_EDIT_VERIFICATION_RECORD_NOT_FOUND", "message": str(exc)}, HTTPStatus.NOT_FOUND)
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/derive", parsed.path):
-                self._json({"ok": True, "version": create_derived_version(match.group(1), str(data.get("target_version") or ""))}, HTTPStatus.CREATED)
+                with gold_management.lifecycle_lock:
+                    self._json({"ok": True, "version": create_derived_version(match.group(1), str(data.get("target_version") or ""))}, HTTPStatus.CREATED)
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/overlap-plan", parsed.path):
                 self._json({"ok": True, "plan": create_overlap_plan(match.group(1))})
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/apply-overlap-plan", parsed.path):
-                self._json(apply_overlap_plan(match.group(1), str(data.get("plan_token") or ""), str(data.get("dataset_fingerprint") or "")))
+                with gold_management.lifecycle_lock:
+                    self._json(apply_overlap_plan(match.group(1), str(data.get("plan_token") or ""), str(data.get("dataset_fingerprint") or "")))
             elif match := re.fullmatch(r"/api/v1/dataset-versions/([A-Za-z0-9._-]+)/freeze", parsed.path):
-                self._json({"ok": True, "version": freeze_dataset_version(match.group(1))})
+                with gold_management.lifecycle_lock:
+                    self._json({"ok": True, "version": freeze_dataset_version(match.group(1))})
             elif parsed.path == "/api/v1/manual-data/bulk":
                 self._json({"ok": True, **bulk_update_manual_data(data)})
             elif match := re.fullmatch(r"/api/v1/manual-data/(sft|direct|dpo)/(\d+)/clone", parsed.path):
@@ -432,7 +658,8 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
             else:
                 self._error("Route not found", HTTPStatus.NOT_FOUND)
         except IntegrationError as exc:
-            self._error(str(exc), exc.status, code=exc.code)
+            self._error(str(exc), exc.status, code=exc.code, check=getattr(exc, "check", None),
+                        hint=getattr(exc, "hint", None))
         except RequestSecurityError as exc:
             self._error(str(exc), exc.status, code=exc.code)
         except DatasetPlatformError as exc:
@@ -444,7 +671,6 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
         except Exception:
             traceback.print_exc()
             self._error("An internal error occurred; inspect the local server log for details", HTTPStatus.INTERNAL_SERVER_ERROR)
-
     def do_PATCH(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         try:
@@ -478,7 +704,7 @@ class NajdiLabHandler(BaseHTTPRequestHandler):
 
 def run(host: str = "127.0.0.1", port: int = 8770, seed_demo: bool = True) -> None:
     if host != "127.0.0.1":
-        raise SystemExit("NajdiLab v1.1 refuses non-local bind addresses; use 127.0.0.1")
+        raise SystemExit(f"NajdiLab {DISPLAY_VERSION} refuses non-local bind addresses; use 127.0.0.1")
     if os.environ.get("NAJDILAB_ALLOW_LEGACY_INGEST") == "1":
         print("WARNING: legacy unauthenticated ingestion is enabled; remove NAJDILAB_ALLOW_LEGACY_INGEST after migration.", file=sys.stderr)
     apply_migrations()
@@ -491,7 +717,7 @@ def run(host: str = "127.0.0.1", port: int = 8770, seed_demo: bool = True) -> No
         raise SystemExit(
             f"Could not start NajdiLab on http://{host}:{port}; another instance may already be running."
         ) from exc
-    print(f"NajdiLab v1.1: http://{host}:{port}")
+    print(f"NajdiLab {DISPLAY_VERSION}: http://{host}:{port}")
     print(f"Database: {DB_PATH}")
     if seeded:
         print(f"Demo conversations created: {seeded}")

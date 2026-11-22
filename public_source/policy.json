@@ -6,39 +6,71 @@
     ".github/pull_request_template.md",
     ".github/workflows/checks.yml",
     ".github/workflows/public-source-candidate.yml",
-    "CHANGELOG.md",
-    "CODE_OF_CONDUCT.md",
-    "CONTRIBUTING.md",
-    "PROJECT_STATUS.md",
-    "README.md",
-    "SECURITY.md",
-    "app/chat_engine.py",
+    "app/chat_deletion.py",
     "app/chat_engine_worker.py",
+    "app/chat_engine.py",
+    "app/chat_history.py",
+    "app/chat_preparation.py",
     "app/chat_workspace.py",
     "app/dataset_masks.py",
     "app/dataset_registry.py",
     "app/dataset_tools.py",
     "app/dataset_validation.py",
+    "app/gguf.py",
+    "app/gold_lifecycle.py",
+    "app/gold_management.py",
     "app/hardware.py",
+    "app/hf_hub.py",
     "app/integrations.py",
+    "app/managed_runtime.py",
+    "app/model_advisor.py",
+    "app/model_discovery.py",
+    "app/model_service.py",
+    "app/model_store.py",
+    "app/native_runtime.py",
     "app/native_tool_data.py",
     "app/phase310_freeze.py",
     "app/phase38_dataset.py",
     "app/phase39_edits.py",
     "app/phase39a_resolution.py",
     "app/platform_state.py",
+    "app/runtime_catalog.py",
     "app/server.py",
+    "app/synthetic_gguf.py",
+    "app/training_models.py",
     "app/unsloth_export.py",
+    "app/version.py",
+    "assets/najdilab-readme-banner.webp",
+    "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
     "config/tool-capabilities.v1.1.json",
     "config/tool-capabilities.v1.json",
+    "CONTRIBUTING.md",
+    "docs/accessibility.md",
     "docs/api-reference.md",
     "docs/api-routes.md",
     "docs/arabic-localization-exceptions.md",
     "docs/architecture-diagrams.md",
     "docs/architecture.md",
     "docs/asset-provenance.md",
+    "docs/assets/screenshots/v2.3.0/dark-export.png",
+    "docs/assets/screenshots/v2.3.0/dashboard.png",
+    "docs/assets/screenshots/v2.3.0/gold-delete-confirm.png",
+    "docs/assets/screenshots/v2.3.0/gold-versions.png",
+    "docs/assets/screenshots/v2.3.0/manual-edit.png",
+    "docs/assets/screenshots/v2.3.0/mobile-data.png",
+    "docs/assets/screenshots/v2.3.0/mobile-version.png",
+    "docs/assets/screenshots/v2.3.0/provenance.json",
+    "docs/assets/screenshots/v2.3.0/wizard-approve.png",
+    "docs/assets/screenshots/v2.3.0/wizard-check-problem.png",
+    "docs/assets/screenshots/v2.3.0/wizard-check-ready.png",
+    "docs/assets/screenshots/v2.3.0/wizard-data.png",
+    "docs/assets/screenshots/v2.3.0/wizard-export.png",
     "docs/backup-and-restore.md",
     "docs/chat-completion-results.md",
+    "docs/chat-dataset-context-audit.md",
+    "docs/chat-review-workflow-results.md",
+    "docs/chat-ui-fixes.md",
     "docs/chat-windows-acceptance.md",
     "docs/chat-workspace.md",
     "docs/cleanup-inventory.json",
@@ -46,35 +78,104 @@
     "docs/cleanup-results.md",
     "docs/codebase-navigation.md",
     "docs/configuration.md",
+    "docs/data-retention.md",
     "docs/database-and-migrations.md",
     "docs/database-schema.md",
     "docs/dataset-export.md",
     "docs/dataset-model-distribution-policy.md",
     "docs/dependencies-and-attribution.md",
     "docs/dependency-licensing-matrix.md",
+    "docs/design-system.md",
     "docs/developer-setup.md",
+    "docs/development/CHAT_COMPOSER.md",
+    "docs/development/CHAT_EXPERIENCE_V2.md",
+    "docs/development/CHAT_V2_SECURITY_REVIEW.md",
+    "docs/development/GOLD_HEALTH_P1.md",
+    "docs/development/GUIDED_WORKSPACE.md",
+    "docs/development/HUGGING_FACE_DIRECT.md",
+    "docs/development/LANGUAGE_METADATA.md",
+    "docs/development/MANAGED_RUNTIME.md",
+    "docs/development/MODEL_DISCOVERY.md",
+    "docs/development/NAJDI_LAB_REDESIGN.md",
+    "docs/development/PERMANENT_DELETION_AUDIT.md",
+    "docs/development/PR21_PR22_RECONCILIATION.md",
+    "docs/development/PUBLIC_READINESS.md",
+    "docs/development/REAL_MODEL_ACCEPTANCE.md",
+    "docs/development/RELEASE_NOTES_V2.0.0.md",
+    "docs/development/RELEASE_NOTES_V2.1.0.md",
+    "docs/development/RELEASE_NOTES_V2.2.0.md",
+    "docs/development/RELEASE_NOTES_V2.3.0.md",
+    "docs/development/TRAINING_CORRECTNESS.md",
+    "docs/development/UX_CONSISTENCY.md",
+    "docs/development/V230_DOCUMENTATION_AUDIT.md",
+    "docs/development/V230_FINALIZATION.md",
+    "docs/development/v230-delivery-verification.json",
+    "docs/development/v230-external-links.json",
+    "docs/development/v230-render-verification.json",
+    "docs/development/WINDOWS_ACCEPTANCE.md",
     "docs/documentation-index.md",
+    "docs/examples/v230-records.json",
     "docs/github-presentation.md",
     "docs/hermes-integration.md",
     "docs/images/architecture/generate_architecture.py",
     "docs/images/architecture/najdilab-system-architecture.svg",
     "docs/images/english-ui-arabic-record.jpg",
+    "docs/images/redesign/after-desktop-dark-ar-review-queue.jpg",
+    "docs/images/redesign/after-desktop-light-ar-chat.jpg",
+    "docs/images/redesign/after-desktop-light-en-dashboard.jpg",
+    "docs/images/redesign/after-desktop-light-en-settings.jpg",
+    "docs/images/redesign/after-mobile-390-dark-ar-dashboard.jpg",
+    "docs/images/redesign/after-tablet-light-en-chat.jpg",
+    "docs/images/redesign/after-zoom-200-dark-ar-dashboard.jpg",
+    "docs/images/redesign/after-zoom-400-light-en-chat-setup-dialog.jpg",
+    "docs/images/redesign/before-desktop-dark-ar-review-queue.jpg",
+    "docs/images/redesign/before-desktop-light-ar-chat.jpg",
+    "docs/images/redesign/before-desktop-light-en-dashboard.jpg",
+    "docs/images/redesign/before-desktop-light-en-settings.jpg",
+    "docs/images/redesign/before-mobile-390-dark-ar-dashboard.jpg",
+    "docs/images/redesign/before-tablet-light-en-chat.jpg",
+    "docs/images/redesign/before-zoom-200-dark-ar-dashboard.jpg",
+    "docs/images/redesign/before-zoom-400-light-en-chat-setup-dialog.jpg",
+    "docs/images/redesign/brand-assets.png",
+    "docs/images/screenshots/chat-v2-arabic.png",
+    "docs/images/screenshots/chat-v2-desktop.png",
+    "docs/images/screenshots/chat-v2-mobile.png",
     "docs/images/screenshots/chat-workspace-synthetic.png",
+    "docs/images/screenshots/dashboard.png",
+    "docs/images/ux-review/after-desktop-dark-en-dashboard.png",
+    "docs/images/ux-review/after-mobile-390-dark-ar-add-data.png",
+    "docs/images/ux-review/after-tablet-light-en-chat.png",
+    "docs/images/ux-review/after-zoom-400-light-en-chat-setup-dialog.png",
+    "docs/images/ux-review/before-desktop-dark-en-dashboard.png",
+    "docs/images/ux-review/before-mobile-390-dark-ar-add-data.png",
+    "docs/images/ux-review/before-tablet-light-en-chat.png",
+    "docs/images/ux-review/before-zoom-400-light-en-chat-setup-dialog.png",
     "docs/installation.md",
     "docs/integrations-validation.md",
     "docs/integrations-windows-update.md",
     "docs/integrations.md",
+    "docs/legacy/advanced-workspace/ARCHITECTURE.md",
+    "docs/legacy/advanced-workspace/FEATURES.md",
+    "docs/legacy/advanced-workspace/README.md",
+    "docs/legacy/advanced-workspace/RESTORE_GUIDE.md",
+    "docs/legacy/advanced-workspace/screenshots/arabic-mobile-dark.png",
+    "docs/legacy/advanced-workspace/screenshots/english-desktop-light.png",
+    "docs/legacy/advanced-workspace/screenshots/provenance.json",
     "docs/license-options.md",
+    "docs/localization.md",
     "docs/maintainer-handover.md",
+    "docs/native-runtime.md",
     "docs/open-source-readiness.md",
     "docs/privacy-history-review.md",
     "docs/proposals/LICENSE-Apache-2.0.txt",
-    "docs/proposals/NOTICE.txt",
     "docs/proposals/licensing-approval.md",
+    "docs/proposals/NOTICE.txt",
     "docs/public-core-release-scope.md",
     "docs/public-core-user-guide.md",
     "docs/public-private-boundary.md",
     "docs/public-release-decision.md",
+    "docs/remediation/PHASE_B_IMPLEMENTATION.md",
+    "docs/remediation/PHASE_C_IMPLEMENTATION.md",
     "docs/remediation/REMEDIATION_ROADMAP.md",
     "docs/review-and-quality.md",
     "docs/review-restriction-integrity.md",
@@ -83,28 +184,37 @@
     "docs/screenshots.md",
     "docs/shell-commands.md",
     "docs/source-provenance.md",
+    "docs/superpowers/plans/2026-11-02-chat-review-workflow.md",
     "docs/system-requirements.md",
+    "docs/THIRD_PARTY_ATTRIBUTION.md",
     "docs/third-party-attributions.md",
     "docs/troubleshooting.md",
     "docs/user-guide.md",
+    "docs/UX_UI_DESIGN_REVIEW.md",
     "docs/verification-evidence.md",
     "migrations/005_chat_workspace.sql",
     "migrations/006_chat_session_binding.sql",
     "migrations/007_review_events.sql",
+    "migrations/008_chat_experience_v2.sql",
+    "migrations/009_managed_models.sql",
+    "migrations/010_language_metadata.sql",
+    "migrations/011_gold_version_deletions.sql",
     "migrations/registry.json",
     "plans/phase13/005_dataset_registry.sql",
     "plans/phase2/006_review_events.sql",
-    "public_source/.policy-generation-note.txt",
+    "PROJECT_STATUS.md",
     "public_source/__init__.py",
+    "public_source/.policy-generation-note.txt",
     "public_source/build.py",
     "public_source/tests/test_builder.py",
+    "README.md",
     "requirements-chat.txt",
     "run.cmd",
-    "scripts/NajdiLab_Autostart.ps1",
+    "scripts/acceptance_chat_v2.py",
     "scripts/acceptance_v11.py",
-    "scripts/audit_v006_metrics.py",
     "scripts/audit_v006_metrics_v2.py",
     "scripts/audit_v006_metrics_v3.py",
+    "scripts/audit_v006_metrics.py",
     "scripts/backup.ps1",
     "scripts/backup.py",
     "scripts/backup.sh",
@@ -116,84 +226,177 @@
     "scripts/create_gold_v006_clean.py",
     "scripts/dataset_influence_audit.py",
     "scripts/generate_api_reference.py",
-    "scripts/gold_v007_balancing.py",
     "scripts/gold_v007_balancing_new.py",
+    "scripts/gold_v007_balancing.py",
     "scripts/ingest_test.py",
     "scripts/inspect_multi_turn_stats.py",
     "scripts/inspect_v006_schema.py",
     "scripts/measure_v006_overlap.py",
+    "scripts/NajdiLab_Autostart.ps1",
     "scripts/phase13_registry.py",
+    "scripts/publish_documentation_screenshots.py",
+    "scripts/restore_advanced_workspace.py",
+    "scripts/runtime_setup.py",
     "scripts/validate_dataset_masks.py",
     "scripts/verify_audit.py",
+    "scripts/verify_unsloth_studio.py",
+    "SECURITY.md",
+    "static/advanced-workspace.css",
+    "static/advanced-workspace.html",
+    "static/advanced-workspace.js",
     "static/app.js",
+    "static/brand/app-icon.svg",
+    "static/brand/logo-ar-dark.svg",
+    "static/brand/logo-ar.svg",
+    "static/brand/logo-en-dark.svg",
+    "static/brand/logo-en.svg",
+    "static/brand/mark-dark.svg",
+    "static/brand/mark.svg",
+    "static/brand/wordmark-ar-dark.svg",
+    "static/brand/wordmark-ar.svg",
+    "static/brand/wordmark-en-dark.svg",
+    "static/brand/wordmark-en.svg",
+    "static/chat-markdown.js",
     "static/chat.css",
     "static/chat.js",
     "static/favicon.svg",
+    "static/fonts/ibm-plex-mono-latin-400-normal.woff2",
+    "static/fonts/ibm-plex-mono-latin-500-normal.woff2",
+    "static/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2",
+    "static/fonts/ibm-plex-sans-arabic-arabic-500-normal.woff2",
+    "static/fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2",
+    "static/fonts/ibm-plex-sans-latin-400-normal.woff2",
+    "static/fonts/ibm-plex-sans-latin-500-normal.woff2",
+    "static/fonts/ibm-plex-sans-latin-600-normal.woff2",
+    "static/fonts/OFL.txt",
+    "static/i18n-ar.js",
+    "static/i18n.css",
     "static/index.html",
     "static/integrations.css",
     "static/integrations.js",
     "static/localization.js",
     "static/manual-data.css",
+    "static/models.js",
+    "static/my-versions.js",
+    "static/najdi.css",
     "static/phase1.css",
     "static/phase38-review.html",
     "static/phase38-review.js",
+    "static/prepare-data.js",
     "static/review-lifecycle.css",
     "static/rtl-overhaul.css",
     "static/styles.css",
     "static/theme-init.js",
     "static/theme.css",
     "static/theme.js",
-    "tests/chat-browser.cjs",
-    "tests/chat-ui.test.cjs",
+    "static/training-models.js",
+    "static/ux-refinements.css",
+    "static/workspace.css",
+    "tests/a11y-browser.cjs",
     "tests/chat_browser_fixture.py",
+    "tests/chat-browser.cjs",
+    "tests/chat-context.test.cjs",
+    "tests/chat-enhancements-browser.cjs",
+    "tests/chat-ui.test.cjs",
+    "tests/chat-v2-ui.test.cjs",
+    "tests/data-journey-browser.cjs",
+    "tests/dataset-identity-ui.test.cjs",
+    "tests/fake_github.py",
+    "tests/fake_hub.py",
+    "tests/fixture_safety.py",
+    "tests/gold-health-browser.cjs",
+    "tests/guided-workspace-browser.cjs",
     "tests/http_client.py",
+    "tests/i18n-browser.cjs",
+    "tests/i18n-catalog.test.cjs",
+    "tests/i18n-models.test.cjs",
     "tests/integrations-ui.test.cjs",
+    "tests/legacy-workspace-browser.cjs",
+    "tests/models-browser.cjs",
+    "tests/my-versions-ui.test.cjs",
     "tests/ollama_disposable.py",
+    "tests/pagination-ui.test.cjs",
+    "tests/phase39-ui.test.cjs",
     "tests/private_artifacts.py",
+    "tests/readme-screenshots.cjs",
     "tests/review-restrictions-browser.cjs",
+    "tests/synthetic_datasets.py",
+    "tests/test_ai05_collection_privacy.py",
     "tests/test_backend_localization.py",
+    "tests/test_chat_dataset_context.py",
     "tests/test_chat_engine.py",
     "tests/test_chat_hardware.py",
     "tests/test_chat_http.py",
-    "tests/test_chat_ollama.py",
     "tests/test_chat_ollama_real.py",
+    "tests/test_chat_ollama.py",
+    "tests/test_chat_preparation.py",
     "tests/test_chat_sdk_integration.py",
+    "tests/test_chat_v2_stream.py",
+    "tests/test_chat_v2.py",
     "tests/test_chat_workspace.py",
+    "tests/test_ci_workflows.py",
     "tests/test_complete_review_queue.py",
     "tests/test_dataset_balancer.py",
     "tests/test_dataset_boundary.py",
+    "tests/test_dataset_diagnostics_lifecycle.py",
     "tests/test_dataset_gates.py",
     "tests/test_dataset_platform.py",
+    "tests/test_dataset_quality_v22.py",
     "tests/test_dataset_registry.py",
     "tests/test_dataset_scope_ui.py",
     "tests/test_dataset_ui.py",
     "tests/test_dataset_validation_extraction.py",
     "tests/test_docs_integrity.py",
     "tests/test_english_localization.py",
+    "tests/test_gold_health_edge_cases.py",
+    "tests/test_gold_management.py",
+    "tests/test_gold_selection.py",
+    "tests/test_hf_direct.py",
     "tests/test_http_security.py",
     "tests/test_ingest_cli.py",
     "tests/test_installation.py",
-    "tests/test_integrations.py",
     "tests/test_integrations_http.py",
+    "tests/test_integrations.py",
+    "tests/test_language_taxonomy.py",
+    "tests/test_managed_runtime.py",
+    "tests/test_migration_010_language.py",
+    "tests/test_model_discovery.py",
     "tests/test_najdilab.py",
     "tests/test_native_dataset.py",
+    "tests/test_native_runtime.py",
+    "tests/test_phase_a_dataset_acceptance.py",
+    "tests/test_phase_a_regressions.py",
     "tests/test_phase310_gates.py",
     "tests/test_phase38_dataset.py",
     "tests/test_phase38_ui.py",
     "tests/test_phase39_api.py",
     "tests/test_phase39_edits.py",
     "tests/test_phase39_mt06_repair.py",
-    "tests/test_phase_a_dataset_acceptance.py",
-    "tests/test_phase_a_regressions.py",
     "tests/test_platform_state.py",
+    "tests/test_prepare_build_agreement.py",
+    "tests/test_qa04_symlink_unavailable.py",
+    "tests/test_qa06_hermes_refusals.py",
+    "tests/test_qa07_signed_freshness.py",
+    "tests/test_qa08_retention.py",
+    "tests/test_readme_structure.py",
     "tests/test_review_integrity.py",
     "tests/test_review_lifecycle.py",
     "tests/test_review_management.py",
     "tests/test_review_restriction_integrity.py",
     "tests/test_script_portability.py",
     "tests/test_select_v007_windows.py",
+    "tests/test_server_lazy_services.py",
     "tests/test_theme_support.py",
-    "tests/test_unsloth_export.py"
+    "tests/test_training_models.py",
+    "tests/test_unsloth_export.py",
+    "tests/test_ux_consistency.py",
+    "tests/test_ux10_navigation.py",
+    "tests/test_ux20_pagination.py",
+    "tests/test_v230_documentation.py",
+    "tests/test_verify_unsloth_studio.py",
+    "tests/test_version.py",
+    "tests/ux-audit.cjs",
+    "tests/workflow-restart-browser.cjs"
   ],
   "files": {
     ".env.example": {
@@ -210,7 +413,11 @@
     },
     "app/clean_export.py": {
       "destination": "app/clean_export.py",
-      "sha256": "db6adb31f9970f58c186407fda8d360e6bb9175afef0f5c765ad8410fe0d1f77"
+      "sha256": "5302db093dcc572cb819327aa4f7b53ef34ea4159d3122bc0ee40e94a0f8cbaa"
+    },
+    "app/collection_context.py": {
+      "destination": "app/collection_context.py",
+      "sha256": "9237cb56fad70b372d2319eabcbb870271bd717fdc9cc04cbec4910aff43bea3"
     },
     "app/dataset_balancer.py": {
       "destination": "app/dataset_balancer.py",
@@ -218,23 +425,27 @@
     },
     "app/dataset_platform.py": {
       "destination": "app/dataset_platform.py",
-      "sha256": "7ab62bccf102ec979b5154e96d6a7ae1cba22cfb2d96fa0e51a157b395a5442e"
+      "sha256": "9ca926fee6ae926d10a6b247d3be5c55c1b2bba2daa2e2e08e7064725353c2ce"
     },
     "app/dataset_quality.py": {
       "destination": "app/dataset_quality.py",
-      "sha256": "047cf004dac322fedc039b15e8601fc622e509437b20b0049c4b8652ce4fc187"
+      "sha256": "7ff036c65fc334becf78187d3e98d363287f88b829535889028d8c1686b57d83"
     },
     "app/db.py": {
       "destination": "app/db.py",
-      "sha256": "90ad2bd0c187d67d09a5a0f5a561cfdce7f2a514dfb92787ebf5f3c33306009d"
+      "sha256": "640cb3c6e265bc916f360e1a244ccfac3c2514d1e809e13e37e9c80b6f8b9ab8"
     },
     "app/http_security.py": {
       "destination": "app/http_security.py",
-      "sha256": "75b729b35c4127ad97996a05b99234338315e9b6a30ac0d7a6c2864eefb0343e"
+      "sha256": "d1ebdf43a5c8196713fff903dbf8fb4565191a314c42c0048a97d5aa2bb5c75c"
+    },
+    "app/language_taxonomy.py": {
+      "destination": "app/language_taxonomy.py",
+      "sha256": "1e4a900beb73ad6cef92ae8f02db705028b09fa527097e406bef55650ed47258"
     },
     "app/review_integrity.py": {
       "destination": "app/review_integrity.py",
-      "sha256": "182343ed9610d8a4141378a174fc9d3d9effc0eec1f3103cef14db9eca082f4b"
+      "sha256": "ee8759e3565ce06bad88e8d29d74f60ff1d071b4c9d8dac53620d6956d41a0c9"
     },
     "app/review_lifecycle.py": {
       "destination": "app/review_lifecycle.py",
@@ -242,7 +453,7 @@
     },
     "app/service.py": {
       "destination": "app/service.py",
-      "sha256": "94d4d0f113900c20a445aa9eedf474bbf9d224751e6e440d8cf0d3b08dff052b"
+      "sha256": "38180bf4d00cb605b55bccd1f408553850acb1cfa23b1c36f30d75b5353d298d"
     },
     "migrations/001_initial.sql": {
       "destination": "migrations/001_initial.sql",
@@ -260,17 +471,105 @@
       "destination": "migrations/004_review_lifecycle.sql",
       "sha256": "92290af7684d75f181a0a489567a75ffb236f3944db03fe2b317cd0d22d6079e"
     },
+    "public_source/CONTRIBUTING.md": {
+      "destination": "CONTRIBUTING.md",
+      "sha256": "0c54c30dcbfaa29787be000e85682c749c4309ccda10b71170128b112dd267fb"
+    },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "04537377771c62fd407ac6d5dd154fbe38ec6e8996266469e9a7ec29bb1242af"
+      "sha256": "8a59fdc801876468c211beed84cfc816c3302ec8188c0548638e85db1a6fa2f3"
+    },
+    "public_source/artifacts.py": {
+      "destination": "app/core_artifacts.py",
+      "sha256": "8e1530921bdf6324bff167f13a09bdc7fbb9d7dc31b69be95c208d42c3e12276"
+    },
+    "public_source/backup.py": {
+      "destination": "scripts/backup.py",
+      "sha256": "e325c1ea377f8651c734f7c8244abbda20d578e4a25324b3ffa8a39f81799589"
+    },
+    "public_source/datasets.py": {
+      "destination": "app/core_datasets.py",
+      "sha256": "bca0abb47a63dd4fc8c009a4e3c6569d1397ba1054576d7a26abffb4e7a1288d"
+    },
+    "public_source/docs/api.md": {
+      "destination": "docs/api.md",
+      "sha256": "21cd59d39c5a08549415a31b75abfe17314a76815e2b5985d7b66f3b89f476c2"
+    },
+    "public_source/docs/architecture.md": {
+      "destination": "docs/architecture.md",
+      "sha256": "ad08d4c597ba386f40b5655e65e3aa2bd038d1b142fb34853ee415fddce76b55"
+    },
+    "public_source/docs/generate_architecture.py": {
+      "destination": "docs/generate_architecture.py",
+      "sha256": "30f75dc41342f04391484d9ad1433ae7321d6d1fcd1939c99d4850bede845548"
+    },
+    "public_source/docs/images/artifact-access.png": {
+      "destination": "docs/images/artifact-access.png",
+      "sha256": "4da591031168a6776a2c3b29e8e869ca8067d71b92c04ea460f97b28140e6c54"
+    },
+    "public_source/docs/images/conversation-review.png": {
+      "destination": "docs/images/conversation-review.png",
+      "sha256": "4982f2ecb60ea94d4f12beefc4ace7678480a74eec1ef179de6b7735def25e89"
+    },
+    "public_source/docs/images/core-architecture.svg": {
+      "destination": "docs/images/core-architecture.svg",
+      "sha256": "d1b2593d30ea1282918b82b14d35dc69439f080b1cbc93583904acf81ac95f7d"
+    },
+    "public_source/docs/images/correction-editor.png": {
+      "destination": "docs/images/correction-editor.png",
+      "sha256": "8de5ca5c112f5980b17bc658a6f306cbdc959e3c2ad879c02c4453f9eb81d0b2"
+    },
+    "public_source/docs/images/dataset-readiness.png": {
+      "destination": "docs/images/dataset-readiness.png",
+      "sha256": "d2dbba57008b34611f03b16faae22f808cdcc48a17e32905d255efc619dd77e7"
+    },
+    "public_source/docs/images/dataset-version.png": {
+      "destination": "docs/images/dataset-version.png",
+      "sha256": "4d59082390c00675ade069d2799d6d78d5d017a1cbf4b9af3f0ab1ca482fa9e3"
+    },
+    "public_source/docs/images/overview.png": {
+      "destination": "docs/images/overview.png",
+      "sha256": "f868af7cc294fe17ba284ceefa9d263ba28460257e8e235a7322c65083f5ff93"
+    },
+    "public_source/docs/images/quality-findings.png": {
+      "destination": "docs/images/quality-findings.png",
+      "sha256": "6e7de373455ab38eee1239ef768ef2adec9e0451b9caa3da35b5796b5e48ea6a"
+    },
+    "public_source/docs/images/saved-decision.png": {
+      "destination": "docs/images/saved-decision.png",
+      "sha256": "adb1a9f4125bd81a775e10fd1fe2469a6081eaed6d2c6274c3945db5f905ff3c"
+    },
+    "public_source/docs/screenshots.md": {
+      "destination": "docs/screenshots.md",
+      "sha256": "832b8e5c617efd69bf68422a7e02dea9813803cfd20152ee998b7060d2d4b8ed"
+    },
+    "public_source/docs/user-guide.md": {
+      "destination": "docs/user-guide.md",
+      "sha256": "91275427e647af8392f7d2f8a54e0baa8724411268d79419cf73ca36354d8a94"
     },
     "public_source/migration_registry.json": {
       "destination": "migrations/registry.json",
       "sha256": "4d946ef72c0556e234a85ca2353a2a07c15bbc33fe5773e09f9651bd48f26015"
     },
+    "public_source/read_views.py": {
+      "destination": "app/core_views.py",
+      "sha256": "8bcd67410b4e3fdd45d41100ae6297e0cd2847c99cf136f0905d084d565d9d55"
+    },
+    "public_source/restore_backup.py": {
+      "destination": "scripts/restore_backup.py",
+      "sha256": "aae775d4623636690cd2956bc03677a8e7cd3b6866fc20853922632ebafb21ac"
+    },
+    "public_source/reviews.py": {
+      "destination": "app/core_reviews.py",
+      "sha256": "6a0852b54ef3eee6253520dcc83380a2de045aa825f72133f5af0a7778a2bc4d"
+    },
     "public_source/server.py": {
       "destination": "app/server.py",
       "sha256": "5f4dcb93d0298793d517bf023286c8d4df72d61513c9ed9761d4298e9dd61e0e"
+    },
+    "public_source/snapshot.py": {
+      "destination": "app/core_snapshot.py",
+      "sha256": "eb0a8bd53df885bba87621375f6e806398cbc14c8b9504ba0a82eda2f4878fbb"
     },
     "public_source/static/app.js": {
       "destination": "static/app.js",
@@ -284,6 +583,10 @@
       "destination": "static/style.css",
       "sha256": "1bd0e885c9e30f1abdeb596a79d236b67005ff614d64986c2646de08ee52c5ae"
     },
+    "public_source/storage.py": {
+      "destination": "app/core_storage.py",
+      "sha256": "0d00ef72d0bb7ca11062311d582cf90f0c254a7e1381e77729251ad652b6dc5b"
+    },
     "public_source/synthetic.json": {
       "destination": "synthetic.json",
       "sha256": "21b7807ac2e8762b12ead29d83028c0b258a9f0e360fedc1c9def0e0df60f748"
@@ -292,13 +595,61 @@
       "destination": "scripts/synthetic_demo.py",
       "sha256": "48148460b1acd28eba8dc41b48b88aed8dc3c72097a0c214c001d4d667aef442"
     },
+    "public_source/synthetic_workshop.json": {
+      "destination": "synthetic-workshop.json",
+      "sha256": "dba18fecc6dd731b889e8be3190523ea1e84a59ff6988e974b9deb5da3863305"
+    },
+    "public_source/tests/__init__.py": {
+      "destination": "tests/__init__.py",
+      "sha256": "7e22133fb1639284bd74d15745e49ed1a282136eed011467a6ed013b8c12b7cb"
+    },
+    "public_source/tests/artifacts.py": {
+      "destination": "tests/test_candidate_artifacts.py",
+      "sha256": "875bbda2ebeb15886ec1a842d6c0a5bbaad01dad84d1a4be9972afd153a6f8f8"
+    },
+    "public_source/tests/browser.cjs": {
+      "destination": "tests/browser.cjs",
+      "sha256": "17b3398c41be95bc981fb58ebb88acf41b5d852dd41bd3afa73840528b5e13c5"
+    },
+    "public_source/tests/candidate-copy.cjs": {
+      "destination": "tests/candidate-copy.cjs",
+      "sha256": "84907962385f4e9a6d9384721740a0b13e1b0b3ab4f45402f11567f62ecec58d"
+    },
+    "public_source/tests/context.py": {
+      "destination": "tests/test_candidate_context.py",
+      "sha256": "2f17a14acdaf8caffa19aa9e6f2c907793cd46482172d3d33f38a33ab017fa0b"
+    },
     "public_source/tests/contract.py": {
       "destination": "tests/test_candidate_contract.py",
       "sha256": "7869da83c5cf602800256ef862812b4984b084b9b1ca228a92f579ef33ddaf60"
     },
+    "public_source/tests/datasets.py": {
+      "destination": "tests/test_candidate_datasets.py",
+      "sha256": "139caca6334910a3661753e50554d05eb36771e08b0eb61e1c395413d4b8528d"
+    },
+    "public_source/tests/harness.cjs": {
+      "destination": "tests/harness.cjs",
+      "sha256": "4416c675a6c4005f36929372b09f193ec9fed226319eb6aae8fc3c3db8c900a0"
+    },
+    "public_source/tests/install.py": {
+      "destination": "tests/test_candidate_installation.py",
+      "sha256": "1e9020922a3e5e5826adc431fa920945038d089f32f1d0af022aa07b3c1dc7eb"
+    },
+    "public_source/tests/package.py": {
+      "destination": "tests/package.py",
+      "sha256": "3045dd8817605edca1624f39ecf9639e89fa15c7d7a9fb4be7b7220e33a16df9"
+    },
+    "public_source/tests/reviews.py": {
+      "destination": "tests/test_candidate_reviews.py",
+      "sha256": "33088fe94bd23aacd7e9de89f0ee3f32245cc819dcbd5b48675ba0126b3ad77f"
+    },
     "public_source/tests/security.py": {
       "destination": "tests/test_candidate_security.py",
       "sha256": "76e409003a82908d7d876036f64f6bb5dc1c762b6cb91af47f23b007ba30a084"
+    },
+    "public_source/tests/support.py": {
+      "destination": "tests/support.py",
+      "sha256": "11f0a55e9cf3895a7c2cea2463d9592221aa9addd3b35da5c89f4ad187abe0f3"
     },
     "requirements-dev.txt": {
       "destination": "requirements-dev.txt",
@@ -312,9 +663,17 @@
       "destination": "run.sh",
       "sha256": "2b800e28d437952bd97bcca7857254e676b8c9c06c6cf28ecd1d167cc38ec663"
     },
+    "scripts/install.ps1": {
+      "destination": "scripts/install.ps1",
+      "sha256": "ef428e1248de60dc37833105030d90ad336ff94ba1b16d4673c34d8f29087443"
+    },
     "scripts/install.py": {
       "destination": "scripts/install.py",
-      "sha256": "bae64ca7b0f5edb6de7fd6b5888bbb608383f1af71bb4a70cbf2f291d428ee19"
+      "sha256": "61b1b5fd6799863cd1673d65305eb0f89a3b5b24b657361b66ac1bcb44044f0c"
+    },
+    "scripts/install.sh": {
+      "destination": "scripts/install.sh",
+      "sha256": "fb1ffb3c77e1666dfae823f2d63146550405d0a7c08a9529b7fc5b60b053449f"
     },
     "scripts/launch.py": {
       "destination": "scripts/launch.py",
@@ -335,154 +694,6 @@
     "tests/test_dataset_quality.py": {
       "destination": "tests/test_dataset_quality.py",
       "sha256": "630a9235aa8aee9107f5ccd930617cf446bc1697a59b9663badd4d5b78404644"
-    },
-    "public_source/tests/support.py": {
-      "destination": "tests/support.py",
-      "sha256": "11f0a55e9cf3895a7c2cea2463d9592221aa9addd3b35da5c89f4ad187abe0f3"
-    },
-    "public_source/tests/reviews.py": {
-      "destination": "tests/test_candidate_reviews.py",
-      "sha256": "33088fe94bd23aacd7e9de89f0ee3f32245cc819dcbd5b48675ba0126b3ad77f"
-    },
-    "public_source/tests/__init__.py": {
-      "destination": "tests/__init__.py",
-      "sha256": "7e22133fb1639284bd74d15745e49ed1a282136eed011467a6ed013b8c12b7cb"
-    },
-    "public_source/reviews.py": {
-      "destination": "app/core_reviews.py",
-      "sha256": "6a0852b54ef3eee6253520dcc83380a2de045aa825f72133f5af0a7778a2bc4d"
-    },
-    "public_source/tests/context.py": {
-      "destination": "tests/test_candidate_context.py",
-      "sha256": "2f17a14acdaf8caffa19aa9e6f2c907793cd46482172d3d33f38a33ab017fa0b"
-    },
-    "public_source/tests/browser.cjs": {
-      "destination": "tests/browser.cjs",
-      "sha256": "17b3398c41be95bc981fb58ebb88acf41b5d852dd41bd3afa73840528b5e13c5"
-    },
-    "public_source/read_views.py": {
-      "destination": "app/core_views.py",
-      "sha256": "8bcd67410b4e3fdd45d41100ae6297e0cd2847c99cf136f0905d084d565d9d55"
-    },
-    "public_source/tests/datasets.py": {
-      "destination": "tests/test_candidate_datasets.py",
-      "sha256": "139caca6334910a3661753e50554d05eb36771e08b0eb61e1c395413d4b8528d"
-    },
-    "public_source/datasets.py": {
-      "destination": "app/core_datasets.py",
-      "sha256": "244d054d0bb5ea1cec3612cb5460fc193874102c47d1951ec7926b70a0bb844f"
-    },
-    "public_source/synthetic_workshop.json": {
-      "destination": "synthetic-workshop.json",
-      "sha256": "dba18fecc6dd731b889e8be3190523ea1e84a59ff6988e974b9deb5da3863305"
-    },
-    "public_source/snapshot.py": {
-      "destination": "app/core_snapshot.py",
-      "sha256": "eb0a8bd53df885bba87621375f6e806398cbc14c8b9504ba0a82eda2f4878fbb"
-    },
-    "public_source/storage.py": {
-      "destination": "app/core_storage.py",
-      "sha256": "0d00ef72d0bb7ca11062311d582cf90f0c254a7e1381e77729251ad652b6dc5b"
-    },
-    "public_source/tests/artifacts.py": {
-      "destination": "tests/test_candidate_artifacts.py",
-      "sha256": "875bbda2ebeb15886ec1a842d6c0a5bbaad01dad84d1a4be9972afd153a6f8f8"
-    },
-    "public_source/artifacts.py": {
-      "destination": "app/core_artifacts.py",
-      "sha256": "8e1530921bdf6324bff167f13a09bdc7fbb9d7dc31b69be95c208d42c3e12276"
-    },
-    "public_source/restore_backup.py": {
-      "destination": "scripts/restore_backup.py",
-      "sha256": "c801b0465bf458cdd8ed04703efa4dbe98b69e4bf0671b3d8baf6b7c65550bdc"
-    },
-    "public_source/backup.py": {
-      "destination": "scripts/backup.py",
-      "sha256": "e325c1ea377f8651c734f7c8244abbda20d578e4a25324b3ffa8a39f81799589"
-    },
-    "public_source/CONTRIBUTING.md": {
-      "destination": "CONTRIBUTING.md",
-      "sha256": "0c54c30dcbfaa29787be000e85682c749c4309ccda10b71170128b112dd267fb"
-    },
-    "public_source/docs/user-guide.md": {
-      "destination": "docs/user-guide.md",
-      "sha256": "91275427e647af8392f7d2f8a54e0baa8724411268d79419cf73ca36354d8a94"
-    },
-    "public_source/docs/architecture.md": {
-      "destination": "docs/architecture.md",
-      "sha256": "ad08d4c597ba386f40b5655e65e3aa2bd038d1b142fb34853ee415fddce76b55"
-    },
-    "public_source/docs/api.md": {
-      "destination": "docs/api.md",
-      "sha256": "21cd59d39c5a08549415a31b75abfe17314a76815e2b5985d7b66f3b89f476c2"
-    },
-    "public_source/docs/screenshots.md": {
-      "destination": "docs/screenshots.md",
-      "sha256": "832b8e5c617efd69bf68422a7e02dea9813803cfd20152ee998b7060d2d4b8ed"
-    },
-    "public_source/docs/generate_architecture.py": {
-      "destination": "docs/generate_architecture.py",
-      "sha256": "30f75dc41342f04391484d9ad1433ae7321d6d1fcd1939c99d4850bede845548"
-    },
-    "public_source/docs/images/core-architecture.svg": {
-      "destination": "docs/images/core-architecture.svg",
-      "sha256": "d1b2593d30ea1282918b82b14d35dc69439f080b1cbc93583904acf81ac95f7d"
-    },
-    "public_source/docs/images/overview.png": {
-      "destination": "docs/images/overview.png",
-      "sha256": "f868af7cc294fe17ba284ceefa9d263ba28460257e8e235a7322c65083f5ff93"
-    },
-    "public_source/docs/images/conversation-review.png": {
-      "destination": "docs/images/conversation-review.png",
-      "sha256": "4982f2ecb60ea94d4f12beefc4ace7678480a74eec1ef179de6b7735def25e89"
-    },
-    "public_source/docs/images/correction-editor.png": {
-      "destination": "docs/images/correction-editor.png",
-      "sha256": "8de5ca5c112f5980b17bc658a6f306cbdc959e3c2ad879c02c4453f9eb81d0b2"
-    },
-    "public_source/docs/images/saved-decision.png": {
-      "destination": "docs/images/saved-decision.png",
-      "sha256": "adb1a9f4125bd81a775e10fd1fe2469a6081eaed6d2c6274c3945db5f905ff3c"
-    },
-    "public_source/docs/images/dataset-readiness.png": {
-      "destination": "docs/images/dataset-readiness.png",
-      "sha256": "d2dbba57008b34611f03b16faae22f808cdcc48a17e32905d255efc619dd77e7"
-    },
-    "public_source/docs/images/dataset-version.png": {
-      "destination": "docs/images/dataset-version.png",
-      "sha256": "4d59082390c00675ade069d2799d6d78d5d017a1cbf4b9af3f0ab1ca482fa9e3"
-    },
-    "public_source/docs/images/quality-findings.png": {
-      "destination": "docs/images/quality-findings.png",
-      "sha256": "6e7de373455ab38eee1239ef768ef2adec9e0451b9caa3da35b5796b5e48ea6a"
-    },
-    "public_source/docs/images/artifact-access.png": {
-      "destination": "docs/images/artifact-access.png",
-      "sha256": "4da591031168a6776a2c3b29e8e869ca8067d71b92c04ea460f97b28140e6c54"
-    },
-    "public_source/tests/package.py": {
-      "destination": "tests/package.py",
-      "sha256": "3045dd8817605edca1624f39ecf9639e89fa15c7d7a9fb4be7b7220e33a16df9"
-    },
-    "public_source/tests/candidate-copy.cjs": {
-      "destination": "tests/candidate-copy.cjs",
-      "sha256": "84907962385f4e9a6d9384721740a0b13e1b0b3ab4f45402f11567f62ecec58d"
-    },
-    "public_source/tests/harness.cjs": {
-      "destination": "tests/harness.cjs",
-      "sha256": "4416c675a6c4005f36929372b09f193ec9fed226319eb6aae8fc3c3db8c900a0"
-    },
-    "public_source/tests/install.py": {
-      "destination": "tests/test_candidate_installation.py",
-      "sha256": "1e9020922a3e5e5826adc431fa920945038d089f32f1d0af022aa07b3c1dc7eb"
-    },
-    "scripts/install.sh": {
-      "destination": "scripts/install.sh",
-      "sha256": "fb1ffb3c77e1666dfae823f2d63146550405d0a7c08a9529b7fc5b60b053449f"
-    },
-    "scripts/install.ps1": {
-      "destination": "scripts/install.ps1",
-      "sha256": "d46aabd4584650c8a23aa46ac360aad961b4664b4d7da64ae12e53a7563db8a0"
     }
   }
 }

@@ -15,6 +15,7 @@ import pytest
 
 from app import server, service
 from tests.http_client import urlopen
+from tests.fixture_safety import refuse_default_database
 from tests.test_review_management import fixture_db, add_pending
 
 FLAGS = ('exclude_from_training', 'evaluation_only', 'contains_sensitive_data',
@@ -162,10 +163,11 @@ def test_restoration_reason_survives_subsequent_review_without_event_table(tmp_p
 @contextmanager
 def fixture_server(db):
     names = ('approve_review','correct_review','save_review','restore_review','bulk_review_actions',
-             'exclude_review','delete_review','list_review_queue','list_reviewed')
+             'exclude_review','delete_review','list_review_queue','list_reviewed','reviewed_page')
     with ExitStack() as stack:
         for name in names:
             stack.enter_context(patch.object(server, name, partial(getattr(service, name), db_path=db)))
+        stack.enter_context(patch.object(service, 'connect', refuse_default_database(service.connect)))
         http = server.NajdiLabHTTPServer(('127.0.0.1',0), server.NajdiLabHandler)
         thread = threading.Thread(target=http.serve_forever, daemon=True)
         thread.start()

@@ -1,5 +1,7 @@
 # Windows update and rollback — only after PR approval and merge
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 Do not run these installation steps while the PR is open. Review the final diff, obtain owner merge approval, merge through GitHub, and confirm the exact merged commit has green Linux/Windows CI first. This is guidance only; development did not touch the installed checkout, credentials or running services.
 
 Commands support Windows PowerShell 5.1 and PowerShell 7. Use your trusted private console. Never publish backup contents, environment variables or private logs.

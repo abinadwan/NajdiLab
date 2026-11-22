@@ -4,9 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A local platform for collecting and reviewing conversations and managing gold datasets">
-  <title>NajdiLab — Gold dataset laboratory</title>
+  <title>Najdi Lab — Gold dataset laboratory</title>
+  <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e100f" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script src="/theme-init.js"></script>
+  <script src="/i18n-ar.js"></script>
   <script src="/localization.js"></script>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/manual-data.css">
@@ -16,94 +19,308 @@
   <link rel="stylesheet" href="/theme.css">
   <link rel="stylesheet" href="/integrations.css">
   <link rel="stylesheet" href="/chat.css">
+  <link rel="stylesheet" href="/i18n.css">
+  <link rel="stylesheet" href="/ux-refinements.css">
+  <link rel="stylesheet" href="/najdi.css">
+  <link rel="stylesheet" href="/workspace.css">
 </head>
 <body>
+  <svg class="icon-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><symbol id="i-overview" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4.5" rx="1.5"/><rect x="13.5" y="11" width="7" height="9.5" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></symbol><symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-4.5 4v-4H6a2 2 0 0 1-2-2z"/></symbol><symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 13.5l2.6-8a1.5 1.5 0 0 1 1.4-1h9a1.5 1.5 0 0 1 1.4 1l2.6 8v5a1.5 1.5 0 0 1-1.5 1.5h-13a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 13.5h5l1.5 2.5h4l1.5-2.5h5"/></symbol><symbol id="i-messages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3a2 2 0 0 1-2-2z"/><path d="M16.5 8.5h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2v3l-3.5-3h-4a2 2 0 0 1-2-2v-1"/></symbol><symbol id="i-reviewed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></symbol><symbol id="i-add" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M12 8v8M8 12h8"/></symbol><symbol id="i-table" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></symbol><symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="2.75"/><path d="M4.5 6v12c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75V6M4.5 12c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75"/></symbol><symbol id="i-health" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5h4l2-5 4 10 2-5h6"/></symbol><symbol id="i-balance" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 20h8M4.5 7.5h15M7 7.5l-3 6h6zM17 7.5l-3 6h6z"/></symbol><symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l8.5 4.5-8.5 4.5-8.5-4.5z"/><path d="M3.5 12l8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5"/></symbol><symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5M10.5 3.5v5.5l-5.3 8.6a2 2 0 0 0 1.7 3h10.2a2 2 0 0 0 1.7-3l-5.3-8.6V3.5M7.5 15h9"/></symbol><symbol id="i-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5"/><path d="M4 15.5v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol><symbol id="i-analytics" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5h16M6.5 16.5v-5M11.5 16.5v-10M16.5 16.5v-7"/></symbol><symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol><symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></symbol><symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5z"/></symbol><symbol id="i-contrast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></symbol><symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l2 2"/></symbol><symbol id="i-more" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></symbol><symbol id="i-cube" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7.5 4.25v8.5L12 20.5l-7.5-4.25v-8.5z"/><path d="M4.5 7.75L12 12l7.5-4.25M12 12v8.5"/></symbol><symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol><symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></symbol><symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="7" y="7" width="10" height="10" rx="2"/></symbol><symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 7.8v.2"/></symbol></svg>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="shell">
-    <aside class="sidebar" aria-label="Main navigation">
-      <div class="brand" aria-label="NajdiLab">
-        <img src="/favicon.svg" width="38" height="38" alt="">
-        <div><strong>NajdiLab</strong><span>Gold dataset laboratory</span></div>
-        <button id="collapse-sidebar" class="collapse-sidebar" type="button" aria-label="Collapse menu" title="Collapse menu">‹</button>
+    <aside class="sidebar" aria-label="Application sidebar">
+      <div class="brand">
+        <span class="brand-lockup" role="img" aria-label="Najdi Lab"><svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><rect class="brand-tile" width="48" height="48" rx="11"/><path class="brand-bowl" d="M10 18L10 21.5A14 14 0 0 0 38 21.5L38 18L32 21.5A8 8 0 0 1 16 21.5Z"/><path class="brand-dot" d="M19 20.16L29 20.16L24 11.5Z"/></svg><span class="brand-words"><svg class="wordmark wordmark-en" viewBox="82 -746 4140 946" aria-hidden="true" focusable="false"><path d="M492.0 0.0L282.0 -358.0L210.0 -503.0L207.0 -503.0L207.0 0.0L82.0 0.0L82.0 -698.0L227.0 -698.0L437.0 -340.0L509.0 -195.0L512.0 -195.0L512.0 -698.0L637.0 -698.0L637.0 0.0L492.0 0.0ZM1238.0 0.0L1167.0 0.0Q1138.0 0.0 1115.5 -13.5Q1093.0 -27.0 1081.0 -53.0Q1072.0 -70.0 1070.0 -90.0L1064.0 -90.0Q1051.0 -40.0 1010.5 -14.0Q970.0 12.0 912.0 12.0Q832.0 12.0 789.0 -30.5Q746.0 -73.0 746.0 -142.0Q746.0 -196.0 772.5 -231.0Q799.0 -266.0 849.0 -284.0Q899.0 -302.0 969.0 -302.0L1058.0 -302.0L1058.0 -340.0Q1058.0 -383.0 1035.0 -407.5Q1012.0 -432.0 961.0 -432.0Q916.0 -432.0 888.5 -412.5Q861.0 -393.0 842.0 -366.0L766.0 -434.0Q795.0 -479.0 843.0 -506.5Q891.0 -534.0 970.0 -534.0Q1075.0 -534.0 1130.5 -485.5Q1186.0 -437.0 1186.0 -348.0L1186.0 -102.0L1238.0 -102.0L1238.0 0.0ZM1058.0 -225.0L976.0 -225.0Q926.0 -225.0 901.0 -208.5Q876.0 -192.0 876.0 -161.0L876.0 -144.0Q876.0 -113.0 897.0 -97.0Q918.0 -81.0 955.0 -81.0Q984.0 -81.0 1007.0 -89.5Q1030.0 -98.0 1044.0 -115.0Q1058.0 -132.0 1058.0 -156.0L1058.0 -225.0ZM1332.0 98.0L1332.0 -522.0L1460.0 -522.0L1460.0 63.0Q1460.0 128.0 1427.0 164.0Q1394.0 200.0 1322.0 200.0L1252.0 200.0L1252.0 98.0L1332.0 98.0ZM1396.0 -598.0Q1357.0 -598.0 1339.0 -616.5Q1321.0 -635.0 1321.0 -662.0L1321.0 -682.0Q1321.0 -710.0 1339.0 -728.0Q1357.0 -746.0 1396.0 -746.0Q1435.0 -746.0 1453.0 -728.0Q1471.0 -710.0 1471.0 -682.0L1471.0 -662.0Q1471.0 -635.0 1453.0 -616.5Q1435.0 -598.0 1396.0 -598.0ZM1921.0 0.0L1921.0 -87.0L1916.0 -87.0Q1902.0 -42.0 1863.0 -15.0Q1824.0 12.0 1772.0 12.0Q1707.0 12.0 1661.5 -20.0Q1616.0 -52.0 1592.0 -113.5Q1568.0 -175.0 1568.0 -262.0Q1568.0 -349.0 1592.0 -409.5Q1616.0 -470.0 1661.5 -502.0Q1707.0 -534.0 1772.0 -534.0Q1824.0 -534.0 1863.5 -507.5Q1903.0 -481.0 1916.0 -436.0L1921.0 -436.0L1921.0 -740.0L2049.0 -740.0L2049.0 0.0L1921.0 0.0ZM1813.0 -94.0Q1844.0 -94.0 1868.5 -104.0Q1893.0 -114.0 1907.0 -133.0Q1921.0 -152.0 1921.0 -179.0L1921.0 -345.0Q1921.0 -370.0 1907.0 -389.0Q1893.0 -408.0 1868.5 -418.5Q1844.0 -429.0 1813.0 -429.0Q1764.0 -429.0 1733.0 -395.5Q1702.0 -362.0 1702.0 -306.0L1702.0 -216.0Q1702.0 -161.0 1733.0 -127.5Q1764.0 -94.0 1813.0 -94.0ZM2251.0 -598.0Q2212.0 -598.0 2194.0 -616.5Q2176.0 -635.0 2176.0 -662.0L2176.0 -682.0Q2176.0 -710.0 2194.0 -728.0Q2212.0 -746.0 2251.0 -746.0Q2290.0 -746.0 2308.0 -728.0Q2326.0 -710.0 2326.0 -682.0L2326.0 -662.0Q2326.0 -635.0 2308.0 -616.5Q2290.0 -598.0 2251.0 -598.0ZM2187.0 0.0L2187.0 -522.0L2315.0 -522.0L2315.0 0.0L2187.0 0.0ZM3093.0 0.0L2686.0 0.0L2686.0 -698.0L2818.0 -698.0L2818.0 -117.0L3093.0 -117.0L3093.0 0.0ZM3647.0 0.0L3576.0 0.0Q3547.0 0.0 3524.5 -13.5Q3502.0 -27.0 3490.0 -53.0Q3481.0 -70.0 3479.0 -90.0L3473.0 -90.0Q3460.0 -40.0 3419.5 -14.0Q3379.0 12.0 3321.0 12.0Q3241.0 12.0 3198.0 -30.5Q3155.0 -73.0 3155.0 -142.0Q3155.0 -196.0 3181.5 -231.0Q3208.0 -266.0 3258.0 -284.0Q3308.0 -302.0 3378.0 -302.0L3467.0 -302.0L3467.0 -340.0Q3467.0 -383.0 3444.0 -407.5Q3421.0 -432.0 3370.0 -432.0Q3325.0 -432.0 3297.5 -412.5Q3270.0 -393.0 3251.0 -366.0L3175.0 -434.0Q3204.0 -479.0 3252.0 -506.5Q3300.0 -534.0 3379.0 -534.0Q3484.0 -534.0 3539.5 -485.5Q3595.0 -437.0 3595.0 -348.0L3595.0 -102.0L3647.0 -102.0L3647.0 0.0ZM3467.0 -225.0L3385.0 -225.0Q3335.0 -225.0 3310.0 -208.5Q3285.0 -192.0 3285.0 -161.0L3285.0 -144.0Q3285.0 -113.0 3306.0 -97.0Q3327.0 -81.0 3364.0 -81.0Q3393.0 -81.0 3416.0 -89.5Q3439.0 -98.0 3453.0 -115.0Q3467.0 -132.0 3467.0 -156.0L3467.0 -225.0ZM3741.0 0.0L3741.0 -740.0L3869.0 -740.0L3869.0 -436.0L3873.0 -436.0Q3887.0 -481.0 3926.5 -507.5Q3966.0 -534.0 4017.0 -534.0Q4084.0 -534.0 4129.0 -502.0Q4174.0 -470.0 4198.0 -409.5Q4222.0 -349.0 4222.0 -262.0Q4222.0 -175.0 4198.0 -113.5Q4174.0 -52.0 4129.0 -20.0Q4084.0 12.0 4017.0 12.0Q3966.0 12.0 3927.0 -15.0Q3888.0 -42.0 3873.0 -87.0L3869.0 -87.0L3869.0 0.0L3741.0 0.0ZM3976.0 -94.0Q4026.0 -94.0 4057.0 -127.5Q4088.0 -161.0 4088.0 -216.0L4088.0 -306.0Q4088.0 -362.0 4057.0 -395.5Q4026.0 -429.0 3976.0 -429.0Q3946.0 -429.0 3921.5 -418.5Q3897.0 -408.0 3883.0 -389.0Q3869.0 -370.0 3869.0 -345.0L3869.0 -179.0Q3869.0 -152.0 3883.0 -133.0Q3897.0 -114.0 3921.5 -104.0Q3946.0 -94.0 3976.0 -94.0Z"/></svg><svg class="wordmark wordmark-ar" viewBox="41 -740 3852 1190" aria-hidden="true" focusable="false"><path d="M427.0 12.0Q319.0 12.0 245.5 0.5Q172.0 -11.0 126.5 -37.5Q81.0 -64.0 61.0 -107.0Q41.0 -150.0 41.0 -212.0Q41.0 -252.0 51.5 -298.5Q62.0 -345.0 82.0 -393.0L168.0 -368.0Q150.0 -331.0 140.0 -298.0Q130.0 -265.0 130.0 -239.0Q130.0 -209.0 142.5 -188.5Q155.0 -168.0 183.0 -155.5Q211.0 -143.0 255.5 -137.0Q300.0 -131.0 364.0 -131.0L504.0 -131.0Q571.0 -131.0 616.5 -134.5Q662.0 -138.0 690.0 -146.0Q718.0 -154.0 729.5 -167.5Q741.0 -181.0 741.0 -201.0Q741.0 -216.0 738.5 -240.5Q736.0 -265.0 729.0 -304.0L712.0 -394.0L810.0 -410.0L824.0 -320.0Q829.0 -287.0 832.5 -255.5Q836.0 -224.0 836.0 -201.0Q836.0 -138.0 817.0 -97.0Q798.0 -56.0 751.5 -32.0Q705.0 -8.0 626.0 2.0Q547.0 12.0 427.0 12.0ZM425.0 209.0Q401.0 209.0 385.5 194.5Q370.0 180.0 370.0 148.0Q370.0 115.0 385.5 100.5Q401.0 86.0 425.0 86.0L442.0 86.0Q466.0 86.0 481.5 100.5Q497.0 115.0 497.0 148.0Q497.0 180.0 481.5 194.5Q466.0 209.0 442.0 209.0L425.0 209.0ZM918.0 -130.0L1095.0 -293.0L855.0 -533.0L933.0 -613.0L1177.0 -369.0Q1202.0 -394.0 1211.5 -419.5Q1221.0 -445.0 1221.0 -489.0L1221.0 -740.0L1327.0 -740.0L1327.0 -489.0Q1327.0 -459.0 1322.5 -435.5Q1318.0 -412.0 1308.0 -390.5Q1298.0 -369.0 1281.0 -349.0Q1264.0 -329.0 1239.0 -307.0L1283.0 -264.0Q1303.0 -244.0 1316.5 -227.0Q1330.0 -210.0 1338.5 -193.5Q1347.0 -177.0 1350.5 -160.0Q1354.0 -143.0 1354.0 -124.0Q1354.0 -98.0 1345.0 -75.5Q1336.0 -53.0 1319.5 -36.0Q1303.0 -19.0 1280.0 -9.5Q1257.0 0.0 1229.0 0.0L918.0 0.0L918.0 -130.0ZM1155.0 -234.0L1042.0 -135.0L1043.0 -131.0L1259.0 -131.0L1155.0 -234.0ZM1995.0 240.0Q1917.0 240.0 1856.0 222.0Q1795.0 204.0 1752.0 169.5Q1709.0 135.0 1686.5 85.5Q1664.0 36.0 1664.0 -27.0Q1664.0 -72.0 1676.5 -127.0Q1689.0 -182.0 1711.0 -235.0L1797.0 -209.0Q1778.0 -167.0 1766.0 -123.5Q1754.0 -80.0 1754.0 -47.0Q1754.0 22.0 1808.0 60.5Q1862.0 99.0 1958.0 99.0L2032.0 99.0Q2142.0 99.0 2204.5 63.5Q2267.0 28.0 2271.0 -35.0L2116.0 -63.0Q2025.0 -80.0 1979.5 -121.5Q1934.0 -163.0 1934.0 -235.0Q1934.0 -285.0 1953.0 -335.5Q1972.0 -386.0 2005.5 -427.0Q2039.0 -468.0 2084.0 -493.5Q2129.0 -519.0 2181.0 -519.0Q2241.0 -519.0 2285.5 -489.0Q2330.0 -459.0 2358.0 -406.0L2265.0 -322.0Q2248.0 -350.0 2221.5 -369.0Q2195.0 -388.0 2157.0 -388.0Q2131.0 -388.0 2107.0 -378.0Q2083.0 -368.0 2064.5 -351.0Q2046.0 -334.0 2035.0 -311.5Q2024.0 -289.0 2024.0 -265.0Q2024.0 -236.0 2050.5 -220.0Q2077.0 -204.0 2133.0 -193.0L2262.0 -168.0Q2316.0 -158.0 2338.5 -128.0Q2361.0 -98.0 2361.0 -42.0Q2361.0 25.0 2336.0 77.5Q2311.0 130.0 2264.0 166.0Q2217.0 202.0 2149.0 221.0Q2081.0 240.0 1995.0 240.0ZM2061.0 450.0Q2037.0 450.0 2021.5 435.5Q2006.0 421.0 2006.0 389.0Q2006.0 356.0 2021.5 341.5Q2037.0 327.0 2061.0 327.0L2078.0 327.0Q2102.0 327.0 2117.5 341.5Q2133.0 356.0 2133.0 389.0Q2133.0 421.0 2117.5 435.5Q2102.0 450.0 2078.0 450.0L2061.0 450.0ZM1912.0 450.0Q1888.0 450.0 1872.5 435.5Q1857.0 421.0 1857.0 389.0Q1857.0 356.0 1872.5 341.5Q1888.0 327.0 1912.0 327.0L1929.0 327.0Q1953.0 327.0 1968.5 341.5Q1984.0 356.0 1984.0 389.0Q1984.0 421.0 1968.5 435.5Q1953.0 450.0 1929.0 450.0L1912.0 450.0ZM2550.0 0.0Q2490.0 0.0 2457.0 -31.5Q2424.0 -63.0 2424.0 -129.0L2424.0 -199.0L2526.0 -199.0L2526.0 -131.0L2662.0 -131.0Q2706.0 -131.0 2723.5 -140.5Q2741.0 -150.0 2741.0 -174.0Q2741.0 -185.0 2736.5 -201.0Q2732.0 -217.0 2724.0 -237.0L2634.0 -493.0L2745.0 -533.0L2846.0 -246.0Q2858.0 -211.0 2869.5 -189.0Q2881.0 -167.0 2893.0 -154.0Q2905.0 -141.0 2919.5 -136.0Q2934.0 -131.0 2952.0 -131.0L2981.0 -131.0L2981.0 -27.0L2954.0 0.0Q2916.0 0.0 2888.0 -6.0Q2860.0 -12.0 2838.0 -26.0Q2816.0 -40.0 2798.5 -63.5Q2781.0 -87.0 2765.0 -123.0L2761.0 -122.0Q2750.0 -56.0 2719.5 -28.0Q2689.0 0.0 2625.0 0.0L2550.0 0.0ZM2954.0 -104.0L2981.0 -131.0L3040.0 -131.0Q3092.0 -131.0 3135.0 -133.0Q3178.0 -135.0 3217.0 -141.5Q3256.0 -148.0 3295.5 -161.0Q3335.0 -174.0 3382.0 -197.0L3435.0 -223.0L3435.0 -228.0L3279.0 -261.0L3111.0 -303.0L3111.0 -224.0L3010.0 -224.0L3010.0 -301.0Q3010.0 -423.0 3122.0 -423.0Q3129.0 -423.0 3137.0 -422.5Q3145.0 -422.0 3155.5 -420.0Q3166.0 -418.0 3181.0 -414.5Q3196.0 -411.0 3217.0 -405.0L3425.0 -351.0Q3470.0 -340.0 3513.5 -334.0Q3557.0 -328.0 3596.0 -328.0L3615.0 -328.0L3615.0 -196.0L3543.0 -196.0Q3543.0 -160.0 3560.5 -145.5Q3578.0 -131.0 3619.0 -131.0L3650.0 -131.0L3650.0 -27.0L3623.0 0.0Q3544.0 -1.0 3504.0 -35.0Q3464.0 -69.0 3456.0 -144.0L3430.0 -127.0Q3365.0 -85.0 3314.0 -59.5Q3263.0 -34.0 3217.5 -21.0Q3172.0 -8.0 3129.5 -4.0Q3087.0 0.0 3040.0 0.0L2954.0 0.0L2954.0 -104.0ZM3291.0 210.0Q3267.0 210.0 3251.5 195.5Q3236.0 181.0 3236.0 149.0Q3236.0 116.0 3251.5 101.5Q3267.0 87.0 3291.0 87.0L3308.0 87.0Q3332.0 87.0 3347.5 101.5Q3363.0 116.0 3363.0 149.0Q3363.0 181.0 3347.5 195.5Q3332.0 210.0 3308.0 210.0L3291.0 210.0ZM3623.0 -104.0L3650.0 -131.0L3675.0 -131.0Q3745.0 -131.0 3771.5 -145.5Q3798.0 -160.0 3798.0 -198.0Q3798.0 -214.0 3795.5 -238.5Q3793.0 -263.0 3786.0 -304.0L3770.0 -394.0L3868.0 -410.0L3882.0 -320.0Q3887.0 -286.0 3890.0 -253.5Q3893.0 -221.0 3893.0 -198.0Q3893.0 -96.0 3841.0 -48.0Q3789.0 0.0 3675.0 0.0L3623.0 0.0L3623.0 -104.0ZM3796.0 -502.0Q3772.0 -502.0 3756.5 -516.5Q3741.0 -531.0 3741.0 -563.0Q3741.0 -596.0 3756.5 -610.5Q3772.0 -625.0 3796.0 -625.0L3813.0 -625.0Q3837.0 -625.0 3852.5 -610.5Q3868.0 -596.0 3868.0 -563.0Q3868.0 -531.0 3852.5 -516.5Q3837.0 -502.0 3813.0 -502.0L3796.0 -502.0Z"/></svg><span id="app-version" class="brand-version" translate="no" data-i18n-skip></span></span></span>
+        <button id="collapse-sidebar" class="collapse-sidebar" type="button" aria-label="Collapse menu" title="Collapse menu" aria-expanded="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg></button>
       </div>
-      <nav id="main-nav">
-        <span class="nav-group">Home</span>
-        <button class="nav-item" data-view="chat"><span class="nav-icon">◫</span> Chat Workspace</button>
-        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">◈</span><span class="nav-label">Dashboard</span></button>
-        <span class="nav-group">Dataset</span>
-        <button class="nav-item" data-view="review-queue"><span class="nav-icon">⌁</span><span class="nav-label">Review queue</span> <b id="nav-pending">—</b></button>
-        <button class="nav-item" data-view="conversations"><span class="nav-icon">◫</span> Conversations</button>
-        <button class="nav-item" data-view="reviewed"><span class="nav-icon">✓</span> Reviewed</button>
-        <button class="nav-item" data-view="add-data"><span class="nav-icon">＋</span> Add data</button>
-        <button class="nav-item" data-view="manual-data"><span class="nav-icon">▦</span> Manual data</button>
-        <button class="nav-item" data-view="dataset"><span class="nav-icon">▤</span> Dataset records</button>
-        <button class="nav-item" data-view="dataset-health"><span class="nav-icon">♥</span> Dataset health</button>
-        <button class="nav-item" data-view="balancer"><span class="nav-icon">≋</span><span class="nav-label">Dataset balancer<small>Dataset Balancer</small></span></button>
-        <button class="nav-item" data-view="dataset-versions"><span class="nav-icon">◇</span> Dataset versions</button>
-        <span class="nav-group">Evaluation</span>
-        <button class="nav-item" data-view="eval-sets"><span class="nav-icon">⌕</span> Evaluation sets</button>
-        <span class="nav-group">Export</span>
-        <button class="nav-item" data-view="exports"><span class="nav-icon">⇩</span> Export center</button>
-        <span class="nav-group">System</span>
-        <button class="nav-item" data-view="analytics"><span class="nav-icon">⌁</span> Analytics</button>
-        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span> Settings</button>
+      <nav id="main-nav" aria-label="Main navigation">
+        <div class="nav-section" role="group" aria-labelledby="nav-group-overview"><span class="nav-group" id="nav-group-overview">Overview</span>
+          <button class="nav-item active" aria-current="page" data-view="dashboard" title="Dashboard"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-overview"/></svg></span><span class="nav-label">Dashboard</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-chat"><span class="nav-group" id="nav-group-chat">Chat</span>
+          <button class="nav-item" data-view="chat" title="Chat Workspace"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-chat"/></svg></span><span class="nav-label">Chat Workspace</span></button>
+          <button class="nav-item" data-view="models" title="Model library"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-cube"/></svg></span><span class="nav-label">Model library</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-review"><span class="nav-group" id="nav-group-review">Review</span>
+          <button class="nav-item" data-view="review-queue" title="Review queue"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-inbox"/></svg></span><span class="nav-label">Review queue</span> <b id="nav-pending">—</b></button>
+          <button class="nav-item" data-view="conversations" title="Conversations"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-messages"/></svg></span><span class="nav-label">Conversations</span></button>
+          <button class="nav-item" data-view="reviewed" title="Reviewed"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-reviewed"/></svg></span><span class="nav-label">Reviewed</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-data"><span class="nav-group" id="nav-group-data">Data</span>
+
+          <button class="nav-item" data-view="prepare" title="Data workspace"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-flask"/></svg></span><span class="nav-label">Data workspace</span></button>
+          <button class="nav-item" data-view="my-versions" title="My versions"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-layers"/></svg></span><span class="nav-label">My versions</span></button>
+        </div>
+        <div class="nav-section" role="group" aria-labelledby="nav-group-system"><span class="nav-group" id="nav-group-system">Administration</span>
+          <button class="nav-item" data-view="analytics" title="Analytics"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-analytics"/></svg></span><span class="nav-label">Analytics</span></button>
+          <button class="nav-item" data-view="settings" title="Settings"><span class="nav-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="#i-settings"/></svg></span><span class="nav-label">Settings</span></button>
+        </div>
       </nav>
-      <div class="local-badge"><i></i><span>Local only<br><small>127.0.0.1:8770</small></span></div>
+      <div class="local-badge"><span class="local-icon" aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"/></svg></span><span>Local only<small id="local-address">Checking current origin…</small></span></div>
+      <p class="sidebar-copyright">© <span id="copyright-year"></span> <span id="copyright-owner">Najdi Lab</span>. All rights reserved.</p>
     </aside>
 
-    <main class="main">
+    <main class="main" id="main-content" tabindex="-1" aria-labelledby="page-title">
       <header class="topbar">
-        <button id="mobile-menu" class="icon-button" aria-label="Open menu">☰</button>
-        <div>
-          <span id="page-breadcrumb" class="breadcrumb">NajdiLab / Overview</span>
-          <h1 id="page-title">Dashboard</h1>
-          <p id="page-subtitle">Dataset status and local workflows in one place.</p>
-        </div>
-        <div class="top-actions"><div class="theme-control"><label for="theme-select">Appearance</label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip">● Local storage</span><button id="refresh-view" class="button ghost">Refresh</button></div>
+        <button id="mobile-menu" class="icon-button" type="button" aria-label="Open menu" aria-controls="main-nav" aria-expanded="false"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+        <span id="page-breadcrumb" class="breadcrumb">Najdi Lab / Overview</span>
+        <div class="top-actions"><div class="language-control"><label for="language-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-globe"/></svg><span class="control-label">Language</span></label><select id="language-select" data-language-select aria-label="Interface language"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="theme-control"><label for="theme-select"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-contrast"/></svg><span class="control-label">Appearance</span></label><select id="theme-select" aria-label="Choose interface theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><span class="privacy-chip"><i aria-hidden="true"></i>Local storage</span><button id="refresh-view" class="button ghost" type="button"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span>Refresh</span></button></div>
       </header>
+      <div class="sheet">
+      <div class="page-head">
+        <h1 id="page-title">Dashboard</h1>
+        <p id="page-subtitle">Dataset status and local workflows in one place.</p>
+      </div>
 
-      <section id="view-chat" class="view">
-        <div class="panel chat-intro"><strong>Raw model chat</strong><p>No system/developer prompts from NajdiLab. No tools, RAG, external memory or response rewriting. The engine uses the model's normal chat template.</p><p>These are conversations created in NajdiLab. This does not collect native LM Studio or Ollama chats.</p></div>
-        <div class="chat-layout">
-          <aside class="panel chat-controls" aria-label="Conversation controls">
-            <label for="chat-provider">Connected provider</label><select id="chat-provider"></select>
-            <label for="chat-model">Model</label><select id="chat-model"></select>
-            <p class="muted">Connect providers in Settings → Integrations. LM Studio must already have the model loaded; NajdiLab never loads it there.</p>
-            <label for="chat-budget">Context budget (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" value="4096" list="chat-budget-options"><datalist id="chat-budget-options"><option value="4096"></option><option value="8192"></option><option value="16384"></option><option value="32768"></option><option value="65536"></option></datalist>
-            <label for="chat-reserve">Reserved reply tokens</label><input id="chat-reserve" type="number" min="1" max="8192" value="512">
-            <label id="chat-load-row" class="inline-check" hidden><input id="chat-load-approved" type="checkbox"> Let Ollama load this model at this context</label>
-            <p class="muted">A budget is an admission limit, not a GPU memory guarantee. Unknown counts or engine limits block sending. Ollama loads models on request, and a different context reloads the model, so it needs this approval.</p>
-            <button id="chat-new" class="button primary" type="button">New conversation</button>
-            <label for="chat-saved">Saved conversations</label><select id="chat-saved"><option value="">Choose a saved conversation</option></select>
-            <button id="chat-refresh" class="button ghost" type="button">Refresh saved state</button>
-            <button id="chat-archive" class="button ghost" type="button" disabled>Archive conversation</button>
-            <button id="chat-hardware" class="button ghost" type="button">Read device specs</button>
-            <p class="muted">Read-only device and selected-model snapshot. It never loads a model. No allocation or stress tests.</p>
-            <div id="chat-hardware-result" role="status"></div>
+      <section id="view-chat" class="view" aria-busy="true">
+        <div class="chatv2" id="chat-shell" data-sidebar="open">
+          <aside class="chatv2-sidebar panel" id="chat-sidebar" aria-label="Conversation list">
+            <div class="chatv2-sidebar-head">
+              <button id="chat-new" class="button primary" type="button">New chat</button>
+              <button id="chat-sidebar-close" class="chatv2-icon" type="button" aria-controls="chat-sidebar" aria-label="Hide conversation list" title="Hide conversation list"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg></button>
+            </div>
+            <label class="sr-only" for="chat-search">Search conversations</label>
+            <input id="chat-search" type="search" dir="auto" maxlength="200" placeholder="Search conversations" autocomplete="off">
+            <div class="chatv2-filter" role="group" aria-label="Which conversations">
+              <button id="chat-show-active" type="button" aria-pressed="true">Conversations</button>
+              <button id="chat-show-archived" type="button" aria-pressed="false">Archived</button>
+            </div>
+            <nav id="chat-list" class="chatv2-list" aria-label="Saved conversations"></nav>
+            <button id="chat-saved-more" class="button ghost" type="button" hidden>Load more conversations</button>
+            <p id="chat-saved-count" class="muted" role="status"></p>
           </aside>
-          <div class="panel chat-main">
-            <p id="chat-notice" role="status" aria-live="polite">Start a new conversation or open a saved one.</p>
-            <label class="inline-check"><input id="chat-collect" type="checkbox" disabled> Collect future completed pairs for human review</label>
-            <p class="muted">OFF by default and after restart. Saved chat history stays local regardless of this choice. Collected pairs enter PENDING, never dataset-approved. No earlier turns are collected retroactively.</p>
-            <p id="chat-usage" class="muted"></p>
-            <div id="chat-messages" class="chat-messages" aria-label="Conversation messages"></div>
-            <form id="chat-form"><label for="chat-draft">Message</label><textarea id="chat-draft" dir="auto" rows="4" maxlength="65536" placeholder="Write a message…"></textarea><div class="chat-actions"><button id="chat-send" class="button primary" type="submit" disabled>Send</button><button id="chat-stop" class="button ghost" type="button" disabled>Stop</button></div></form>
-            <p class="muted">Completed text pairs are saved. Failed, stopped or token-limited responses are discarded. Archiving retains local text and historical exports; it excludes the conversation's collected pairs from future dataset selection. Physical erasure requires a separate retention decision.</p>
+          <div class="chatv2-main panel">
+            <header class="chatv2-header">
+              <button id="chat-sidebar-toggle" class="chatv2-icon" type="button" aria-controls="chat-sidebar" aria-expanded="true" aria-label="Show or hide conversation list" title="Conversation list"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+              <div class="chatv2-heading">
+                <h2 id="chat-title" dir="auto" translate="no">New chat</h2>
+                <p id="chat-session-identity" class="chatv2-binding" role="status">No conversation selected.</p>
+              </div>
+              <div class="chatv2-header-actions">
+                <button id="chat-new-header" class="chatv2-icon" type="button" aria-label="New chat" title="New chat"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-edit"/></svg></button>
+                <button id="chat-actions" class="chatv2-icon" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Conversation actions" title="Conversation actions" disabled><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-more"/></svg></button>
+                <button id="chat-info-open" class="chatv2-icon" type="button" aria-haspopup="dialog" aria-label="Chat information" title="Chat information"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-info"/></svg></button>
+              </div>
+            </header>
+            <p id="chat-notice" class="chatv2-notice" role="status" aria-live="polite"></p>
+            <section id="chat-limit" class="chatv2-limit" aria-labelledby="chat-limit-title" hidden>
+              <h3 id="chat-limit-title">Context limit reached</h3>
+              <p id="chat-limit-text"></p>
+              <button id="chat-limit-open" class="button ghost" type="button">Open the previous conversation (read-only)</button>
+            </section>
+            <div id="chat-messages" class="chatv2-messages" aria-label="Conversation messages" tabindex="0">
+              <div id="chat-empty" class="chatv2-empty">
+                <h3>Raw local model chat</h3>
+                <p>NajdiLab adds no system prompt, tools, retrieval or memory. Replies are saved only when they finish completely and unchanged.</p>
+              </div>
+            </div>
+            <form id="chat-form" class="chatv2-composer" aria-label="Message composer">
+              <section id="chat-prepare" class="chatv2-prepare" aria-labelledby="chat-prepare-title" hidden>
+                <h3 id="chat-prepare-title"></h3>
+                <p id="chat-prepare-text"></p>
+                <p id="chat-prepare-error" class="chatv2-error" role="alert"></p>
+                <div class="chatv2-prepare-actions"><button id="chat-prepare-cancel" class="button ghost" type="button">Not now</button><button id="chat-prepare-go" class="button primary" type="button"></button></div>
+              </section>
+              <div class="chatv2-composer-box">
+                <label class="sr-only" for="chat-draft">Message</label>
+                <textarea id="chat-draft" dir="auto" rows="1" maxlength="65536" placeholder="Message the model…" aria-describedby="chat-keys chat-context-left"></textarea>
+                <div class="chatv2-controls">
+                  <button id="chat-model-button" class="chatv2-chip" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="chat-model-menu"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cube"/></svg><span class="sr-only">Model: </span><span id="chat-model-label" translate="no" dir="auto">Choose a model</span><span id="chat-model-state" class="chatv2-dot" aria-hidden="true"></span></button>
+                  <button id="chat-context-button" class="chatv2-chip" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="chat-context-menu"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-layers"/></svg><span class="sr-only">Context: </span><span id="chat-context-label" translate="no">8K</span></button>
+                  <label class="chatv2-chip chatv2-collect" title="Collection is off by default and after restart; only future completed replies enter human review."><input id="chat-collect" type="checkbox" aria-describedby="chat-collect-help"><span>Collect for review</span></label>
+                  <span id="chat-collect-help" class="sr-only">Collection is off by default and after restart; only future completed replies enter human review. For a complete multi-turn training example, turn collection on before the first message of a new chat.</span>
+                  <button id="chat-send" class="chatv2-send" type="submit" aria-label="Send" title="Send (Enter)" disabled><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-send"/></svg></button>
+                  <button id="chat-stop" class="chatv2-send stop" type="button" aria-label="Stop" title="Stop the reply" hidden><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-stop"/></svg></button>
+                </div>
+              </div>
+              <div id="chat-context" class="chatv2-context" role="group" aria-label="Context usage" hidden>
+                <meter id="chat-context-meter" min="0" max="100" low="85" high="95" optimum="0" value="0" aria-labelledby="chat-usage"></meter>
+                <span id="chat-usage" class="chatv2-usage"></span>
+                <span id="chat-context-left" class="chatv2-context-left"></span>
+              </div>
+              <p id="chat-context-alert" class="chatv2-context-alert" role="status" aria-live="polite"></p>
+              <p id="chat-keys" class="chatv2-hint"><kbd>Enter</kbd> <span>sends</span> · <kbd>Shift</kbd>+<kbd>Enter</kbd> <span>adds a new line.</span></p>
+            </form>
           </div>
         </div>
+        <div id="chat-action-menu" class="chatv2-menu" role="menu" hidden>
+          <button type="button" role="menuitem" data-chat-action="rename">Rename</button>
+          <button type="button" role="menuitem" data-chat-action="pin">Pin</button>
+          <button type="button" role="menuitem" data-chat-action="archive">Archive</button>
+          <button type="button" role="menuitem" data-chat-action="restore">Restore</button>
+          <button type="button" role="menuitem" data-chat-action="delete" class="danger">Delete permanently…</button>
+        </div>
+        <div id="chat-model-menu" class="chatv2-popover chatv2-model-menu" role="menu" aria-label="Choose a model" hidden></div>
+        <div id="chat-context-menu" class="chatv2-popover chatv2-context-menu" role="dialog" aria-label="Context size" hidden>
+          <fieldset class="chatv2-context-options"><legend>Context size</legend><div id="chat-context-options" class="chatv2-context-grid"></div></fieldset>
+          <p id="chat-context-note" class="muted"></p>
+          <details id="chat-context-advanced" class="chatv2-advanced"><summary>Advanced</summary>
+            <label for="chat-budget">Custom context (tokens)</label><input id="chat-budget" type="number" min="128" max="1048576" step="1" value="8192" inputmode="numeric">
+            <label for="chat-reserve">Reply reserve (tokens)</label><input id="chat-reserve" type="number" min="1" max="8192" step="1" value="1024" inputmode="numeric">
+            <label for="chat-gpu">GPU use (NajdiLab Native)</label><select id="chat-gpu"><option value="auto">Automatic</option><option value="all">All layers on GPU</option><option value="0">CPU only</option></select>
+            <p id="chat-budget-breakdown" class="muted" role="status"></p>
+            <button id="chat-budget-apply" class="button ghost" type="button">Use these values</button>
+          </details>
+        </div>
+        <dialog id="chat-switch" class="chatv2-dialog" aria-labelledby="chat-switch-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="chat-switch-title">Start a new conversation?</h2></div>
+            <p id="chat-switch-text"></p>
+            <p class="muted">This conversation keeps its model, context and history unchanged. Your unsent message moves to the new chat. Collection starts off.</p>
+            <div class="confirmation-actions"><button id="chat-switch-cancel" class="button ghost" value="cancel">Keep this conversation</button><button id="chat-switch-go" class="button primary" value="new">Start new chat</button></div>
+          </form>
+        </dialog>
+        <dialog id="chat-panel" class="chatv2-dialog chatv2-drawer" aria-labelledby="chat-panel-title">
+          <div class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="chat-panel-title">Chat information</h2><button id="chat-panel-close" class="icon-close" type="button" aria-label="Close">×</button></div>
+            <p class="muted">Read only. Choose the model and context in the message box; manage models and the llama.cpp runtime in Model library.</p>
+            <p class="muted">Raw chat: no system or developer prompt from NajdiLab, no tools, retrieval, memory or rewriting. The engine's own chat template is used. Native LM Studio or Ollama chats are never read.</p>
+            <div id="chat-info" class="chatv2-info"></div>
+          </div>
+        </dialog>
+        <dialog id="chat-rename" class="chatv2-dialog" aria-labelledby="chat-rename-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="chat-rename-title">Rename conversation</h2></div>
+            <label for="chat-rename-input">Title</label><input id="chat-rename-input" dir="auto" maxlength="120">
+            <p class="muted">Leave empty to use the automatic title from the first message.</p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="chat-rename-save" class="button primary" value="save">Save</button></div>
+          </form>
+        </dialog>
+        <dialog id="chat-delete" class="chatv2-dialog" aria-labelledby="chat-delete-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="chat-delete-title">Delete conversation permanently</h2></div>
+            <p class="chatv2-warning">This cannot be undone. Archive instead if you may need it later.</p>
+            <div id="chat-delete-preview" class="chatv2-details" role="status"></div>
+            <label for="chat-delete-confirm">Type DELETE to confirm</label><input id="chat-delete-confirm" dir="ltr" autocomplete="off" spellcheck="false">
+            <p id="chat-delete-error" class="chatv2-error" role="alert"></p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="chat-delete-go" class="button delete-action" type="button" disabled>Delete permanently</button></div>
+          </form>
+        </dialog>
+      </section>
+
+      <section id="view-models" class="view">
+        <div class="subtabs" role="tablist" aria-label="Model library sections">
+          <button class="active" role="tab" type="button" id="models-tab-recommended" aria-selected="true" aria-controls="models-recommended" data-models-tab="recommended">Recommended for your device</button><button role="tab" type="button" id="models-tab-trending" aria-selected="false" aria-controls="models-trending" data-models-tab="trending" tabindex="-1">Trending</button><button role="tab" type="button" id="models-tab-discover" aria-selected="false" aria-controls="models-discover" data-models-tab="discover" tabindex="-1">Discover on Hugging Face</button><button role="tab" type="button" id="models-tab-library" aria-selected="false" aria-controls="models-library" data-models-tab="library" tabindex="-1">Downloads and library</button><button role="tab" type="button" id="models-tab-runtime" aria-selected="false" aria-controls="models-runtime" data-models-tab="runtime" tabindex="-1">llama.cpp runtime</button><button role="tab" type="button" id="models-tab-training" aria-selected="false" aria-controls="models-training" data-models-tab="training" tabindex="-1">Customization models</button>
+        </div>
+        <div id="models-recommended" role="tabpanel" aria-labelledby="models-tab-recommended">
+          <p class="safety-banner models-privacy">This computer's memory, GPU and llama.cpp runtime are read here and never sent. Only list and file-header requests go to huggingface.co. Popularity only chooses which models are checked; the order comes from how each model fits this computer. Nothing downloads or loads without your approval.</p>
+          <form id="models-recommend-form" class="panel models-filter-form" aria-label="Recommendation settings">
+            <div class="models-filter-grid" data-filters="recommend"></div>
+            <label class="inline-check"><input id="rec-hardware" type="checkbox"> Read this computer's hardware for the check (stays on this computer)</label>
+            <div class="models-actions"><button class="button primary" type="submit">Find models for this computer</button><button id="models-recommend-refresh" class="button ghost" type="button" hidden>Refresh from Hugging Face</button></div>
+          </form>
+          <p id="models-recommend-status" class="models-status" role="status" aria-live="polite"></p>
+          <div id="models-recommend-summary"></div>
+          <ol id="models-recommend-list" class="models-library-items models-discovery-list"></ol>
+        </div>
+        <div id="models-trending" role="tabpanel" aria-labelledby="models-tab-trending" hidden>
+          <p class="safety-banner models-privacy">Rankings come from Hugging Face in its own order: trending score, downloads, likes or last update. NajdiLab only removes models that do not match the filters. Popularity is not a measure of quality or of compatibility with this computer.</p>
+          <form id="models-trending-form" class="panel models-filter-form" aria-label="Trending filters">
+            <div class="models-filter-grid" data-filters="trending"></div>
+            <label class="inline-check"><input id="trend-unknown" type="checkbox"> Include models whose parameter count is unknown (shown as UNVERIFIED)</label>
+            <div class="models-actions"><button class="button primary" type="submit">Show models</button><button id="models-trending-refresh" class="button ghost" type="button" hidden>Refresh from Hugging Face</button></div>
+          </form>
+          <p id="models-trending-status" class="models-status" role="status" aria-live="polite"></p>
+          <div id="models-trending-summary"></div>
+          <ol id="models-trending-list" class="models-library-items models-discovery-list"></ol>
+          <div class="models-actions"><button id="models-trending-more" class="button ghost" type="button" hidden>Load more</button></div>
+        </div>
+        <div id="models-discover" role="tabpanel" aria-labelledby="models-tab-discover" hidden>
+          <p class="safety-banner models-privacy">Searching sends only your search words to huggingface.co. Chats, datasets and this computer's hardware details never leave it. Single-file GGUF models only; nothing downloads or loads without your approval.</p>
+          <form id="models-search" class="panel models-search" role="search">
+            <div class="field"><label for="models-query">Model name</label><input id="models-query" type="search" maxlength="100" autocomplete="off" dir="auto" translate="no" placeholder="qwen2.5 instruct"></div>
+            <div class="field"><label for="models-author">Publisher (optional)</label><input id="models-author" maxlength="96" autocomplete="off" dir="ltr" translate="no" placeholder="bartowski"></div>
+            <button class="button primary" type="submit">Search Hugging Face</button>
+          </form>
+          <p id="models-search-status" class="models-status" role="status" aria-live="polite"></p>
+          <div class="models-browser">
+            <nav id="models-results" class="models-results" aria-label="Search results"></nav>
+            <section id="models-detail" class="panel models-detail" aria-label="Model details"><div class="empty-inline">Search, then choose a repository to see its GGUF files, license and compatibility.</div></section>
+          </div>
+        </div>
+        <div id="models-library" role="tabpanel" aria-labelledby="models-tab-library" hidden>
+          <section id="models-storage" class="panel models-storage" aria-label="Managed model folder"></section>
+          <div id="models-library-list" class="models-library-list"></div>
+        </div>
+        <div id="models-runtime" role="tabpanel" aria-labelledby="models-tab-runtime" hidden>
+          <section id="runtime-status" class="panel models-storage" aria-label="Managed llama.cpp runtime"></section>
+          <div id="runtime-packages" class="models-library-list"></div>
+        </div>
+        <div id="models-training" role="tabpanel" aria-labelledby="models-tab-training" hidden>
+          <section class="panel models-storage" aria-labelledby="training-models-title">
+            <h2 id="training-models-title">Customization models</h2>
+            <p>Customization models are Safetensors checkpoints (configuration, tokenizer and weights) that external tools such as Unsloth use to fine-tune a model. NajdiLab does not fine-tune: it checks, downloads and verifies these files and prepares the data. The GGUF files that NajdiLab Native runs for chat are a different format and cannot be used for customization.</p>
+            <form id="training-models-form" class="models-search"><label for="training-models-repo">Hugging Face repository</label><input id="training-models-repo" placeholder="Example: unsloth/Qwen2.5-0.5B-Instruct" autocomplete="off" spellcheck="false" required><button class="button ghost" type="submit">Check repository</button></form>
+            <div id="training-models-review" role="status" aria-live="polite"></div>
+            <div id="training-models-confirm" hidden><label class="inline-check"><input id="training-models-ack" type="checkbox"> I have reviewed this model's license and will follow it.</label><button id="training-models-download" class="button primary" type="button" disabled>Download and verify</button></div>
+            <div id="training-models-job" role="status" aria-live="polite"></div>
+          </section>
+          <h3>Managed by NajdiLab</h3>
+          <div id="training-models-list" class="models-library-list"></div>
+          <h3>Hugging Face cache (read only)</h3>
+          <p class="muted">Shared with other tools on this computer, for example Unsloth Studio. NajdiLab lists these files but never changes or deletes them; use Hugging Face's own cache tools to remove them.</p>
+          <div id="training-models-cache" class="models-library-list"></div>
+        </div>
+        <dialog id="models-download-dialog" class="chatv2-dialog models-dialog" aria-labelledby="models-download-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="models-download-title">Download this model</h2><button class="icon-close" value="cancel" aria-label="Close">×</button></div>
+            <div id="models-download-summary"></div>
+            <section class="models-license" aria-labelledby="models-license-title"><h3 id="models-license-title">License</h3><p id="models-download-license"></p>
+              <label class="inline-check"><input id="models-license-ack" type="checkbox"> I have reviewed this model's license and will follow it.</label></section>
+            <p class="muted">The file is verified against its published size and SHA-256 before it can be used. It is not loaded after the download; loading is a separate step.</p>
+            <p id="models-download-error" class="chatv2-error" role="alert"></p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="models-download-start" class="button primary" type="button" disabled>Start download</button></div>
+          </form>
+        </dialog>
+        <dialog id="runtime-dialog" class="chatv2-dialog models-dialog" aria-labelledby="runtime-dialog-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="runtime-dialog-title"></h2><button class="icon-close" value="cancel" aria-label="Close">×</button></div>
+            <div id="runtime-dialog-body"></div>
+            <section id="runtime-dialog-license" class="models-license" aria-labelledby="runtime-license-title" hidden><h3 id="runtime-license-title">Licenses</h3><ul id="runtime-dialog-licenses" class="models-reasons"></ul>
+              <label class="inline-check"><input id="runtime-license-ack" type="checkbox"> I have reviewed these licenses and accept them for this computer.</label></section>
+            <div id="runtime-dialog-typed" hidden><label for="runtime-dialog-confirm">Type UNINSTALL to confirm</label><input id="runtime-dialog-confirm" dir="ltr" autocomplete="off" spellcheck="false" translate="no"></div>
+            <p id="runtime-dialog-error" class="chatv2-error" role="alert"></p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="runtime-dialog-go" class="button primary" type="button" disabled></button></div>
+          </form>
+        </dialog>
+        <dialog id="models-delete-dialog" class="chatv2-dialog" aria-labelledby="models-delete-title">
+          <form method="dialog" class="chatv2-dialog-body">
+            <div class="dialog-head"><h2 id="models-delete-title">Delete this model file</h2></div>
+            <p class="chatv2-warning">This permanently removes the file from NajdiLab's managed folder. Files of other applications are never touched.</p>
+            <p>File: <span id="models-delete-name"></span></p>
+            <div id="models-delete-plan" role="status" aria-live="polite"></div>
+            <label for="models-delete-confirm">Type the file name to confirm</label><input id="models-delete-confirm" dir="ltr" autocomplete="off" spellcheck="false">
+            <p id="models-delete-error" class="chatv2-error" role="alert"></p>
+            <div class="confirmation-actions"><button class="button ghost" value="cancel">Cancel</button><button id="models-delete-go" class="button delete-action" type="button" disabled>Delete permanently</button></div>
+          </form>
+        </dialog>
       </section>
 
       <section id="view-dashboard" class="view active">
-        <div id="dashboard-stats" class="stat-grid" aria-live="polite"></div>
+        <section class="panel pipeline-card" aria-labelledby="pipeline-heading">
+          <div class="panel-heading"><h2 id="pipeline-heading">From conversation to Gold dataset</h2></div>
+          <div id="dashboard-stats" class="stat-grid pipeline" aria-live="polite"><div class="stat-card"><span>Conversations</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Pending review</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Records to check</span><strong class="skeleton-value"></strong></div><div class="stat-card"><span>Gold versions</span><strong class="skeleton-value"></strong></div></div>
+        </section>
         <div class="dashboard-grid">
-          <section class="panel workflow-card"><span class="eyebrow">Workflow</span><h2>From conversation to Gold dataset</h2><div class="workflow-steps"><button data-go="review-queue">Review</button><i aria-hidden="true">→</i><button data-go="dataset-health">Health</button><i aria-hidden="true">→</i><button data-go="balancer">Balance</button><i aria-hidden="true">→</i><button data-go="exports">Build</button></div></section>
-          <section class="panel readiness-card"><span class="eyebrow">System status</span><h2>Dataset workflow status</h2><ul id="dashboard-readiness"><li><span class="status-dot ok"></span>Local database</li><li><span class="status-dot ok"></span>Review uses an overlay and preserves the original</li><li><span class="status-dot ok"></span>Gold versions cannot be overwritten</li><li><span class="status-dot neutral"></span>Training is external: export a reviewed dataset for Unsloth</li></ul></section>
-          <section class="panel recent-card"><div class="panel-heading"><div><span class="eyebrow">Latest versions</span><h2>Dataset Versions</h2></div><button class="button ghost" data-go="exports">View all</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
+          <section class="panel workflow-card" aria-labelledby="workflow-heading"><div class="panel-heading"><h2 id="workflow-heading">Prepare data</h2></div>
+            <p>Add data, prepare it, then find the frozen result in My versions.</p>
+            <ol class="workflow-steps">
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Choose data</strong><span>Choose records. Filters change what is shown, never your selection.</span></span></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Check and prepare</strong><span>Run privacy, eligibility and split checks for the selected records.</span></span></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Approve Gold</strong><span>Review the selected records and confirm a frozen version.</span></span></li>
+              <li><span class="step-mark" aria-hidden="true"></span><span class="step-body"><strong>Export</strong><span>Download compatible files for each data type.</span></span></li>
+            </ol>
+            <div class="toolbar"><button type="button" class="button primary" data-go="prepare">Prepare data</button></div>
+            <p>Human review is a separate workspace for collected responses.</p><button type="button" class="button ghost" data-go="review-queue">Open human review</button>
+          </section>
+          <section class="panel recent-card" aria-labelledby="recent-heading"><div class="panel-heading"><h2 id="recent-heading">My versions</h2><button class="button ghost" type="button" data-go="my-versions">View all</button></div><div id="dashboard-exports" class="exports-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
         </div>
+        <section class="panel readiness-card" aria-labelledby="readiness-heading"><div class="panel-heading"><h2 id="readiness-heading">Dataset workflow status</h2></div><ul id="dashboard-readiness"><li>Local database</li><li>Review uses an overlay and preserves the original</li><li>Gold versions cannot be overwritten</li></ul></section>
       </section>
 
       <section id="view-review-queue" class="view">
         <div id="queue-empty" class="empty-state hidden">
-          <div class="empty-mark">✓</div><h2>Review queue complete</h2><p>All current responses have been reviewed.</p>
+          <div class="empty-mark" aria-hidden="true"></div><h2>Review queue complete</h2><p>All current responses have been reviewed.</p><button class="button ghost" type="button" data-go="chat">Open Chat Workspace</button>
         </div>
         <div id="review-workspace" class="review-workspace">
           <section class="context-column panel">
@@ -112,18 +329,19 @@
             <div id="context-messages" class="chat-stream"></div>
           </section>
           <section class="review-column panel">
-            <div class="review-progress"><span id="queue-position">—</span><div class="progress"><i id="queue-progress"></i></div><kbd>Ctrl + Enter to save the edit</kbd></div>
+            <div class="review-progress"><span id="queue-position">—</span><div class="progress"><i id="queue-progress"></i></div><span id="review-shortcut-hint" class="kbd-hint">Ctrl + Enter to save the edit</span></div>
             <div class="original-card">
-              <div class="label-row"><span>Original response</span><span class="locked">🔒 Preserved and immutable</span></div>
+              <div class="label-row"><span>Original response</span><span class="locked"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"/></svg><span>Preserved and immutable</span></span></div>
               <p dir="auto" id="original-response"></p>
             </div>
+            <p id="review-context-warning" class="chat-context-warning hidden" role="note"></p>
             <div class="review-actions" role="group" aria-label="Review actions">
               <button id="approve-review" class="button approve-action">Approve</button>
               <button id="edit-review" class="button edit-action">Edit</button>
               <button id="exclude-review" class="button ignore-action">Exclude</button>
               <button id="delete-review" class="button delete-action">Delete</button>
             </div>
-            <div class="field ignore-reason-field"><label for="ignored-reason">Ignore reason <span class="muted">Optional</span></label><input id="ignored-reason" type="text" maxlength="300" placeholder="Example: duplicate or outside the dataset scope"></div>
+            <div class="field ignore-reason-field"><label for="ignored-reason">Exclusion reason <span class="muted">Required when excluding</span></label><input id="ignored-reason" type="text" maxlength="300" placeholder="Example: duplicate or outside the dataset scope"></div>
             <div id="edit-review-panel" class="edit-review-panel hidden">
               <div class="status-grid" role="group" aria-label="Correction type">
                 <button data-status="FULL_CORRECTION"><span>Full correction</span><small>Dialect and content</small></button>
@@ -136,141 +354,146 @@
             <div class="field"><label for="reviewer-identity">Reviewer identity</label><select id="reviewer-identity"><option value="human">Human reviewer</option><option value="ai_suggestion">Machine suggestion reviewed by a human</option><option value="import">Imported decision</option></select></div>
             <div class="field"><label>Error tags <span class="muted">Optional; select multiple</span></label><div id="error-tags" class="tag-picker"></div></div>
             <div class="check-grid">
-              <label><input id="training-eligible" type="checkbox"> Dataset eligible</label>
-              <label><input id="evaluation-only" type="checkbox"> Evaluation only</label>
+              <label><input id="training-eligible" type="checkbox" aria-describedby="review-eligibility-help review-context-warning"> Eligible for dataset export (separate from review approval)</label>
+              <label><input id="evaluation-only" type="checkbox" aria-describedby="review-context-warning"> Evaluation only</label>
               <label><input id="exclude-training" type="checkbox"> Permanently exclude from dataset selection</label>
               <label><input id="needs-fact-check" type="checkbox"> Needs fact checking</label>
               <label><input id="contains-personal" type="checkbox"> Contains personal data</label>
               <label><input id="contains-sensitive" type="checkbox"> Contains sensitive data</label>
             </div>
+            <p id="review-eligibility-help" class="muted" role="note">Approve judges the response quality. Dataset eligibility is an independent decision and remains off unless explicitly checked. Any privacy, holdout, or exclusion restriction still blocks export.</p>
             <div id="correction-save-row" class="save-row hidden"><button id="cancel-edit-review" class="button ghost">Cancel edit</button><button id="save-review" class="button primary" disabled>Save edit and continue</button></div>
           </section>
         </div>
       </section>
 
       <section id="view-conversations" class="view">
-        <div class="toolbar panel"><input id="conversation-search" type="search" placeholder="Search title, identifier, or message content…"><select id="conversation-channel"><option value="">All channels</option></select><button id="search-conversations" class="button primary">Search</button></div>
+        <div class="toolbar panel"><input id="conversation-search" aria-label="Search conversations" type="search" placeholder="Search title, identifier, or message content…"><select id="conversation-channel" aria-label="Filter conversations by channel"><option value="">All channels</option></select><button id="search-conversations" class="button primary">Search</button></div>
         <div class="split-list">
-          <div id="conversation-list" class="panel list-panel"></div>
+          <div class="list-column"><div id="conversation-list" class="panel list-panel"></div><nav id="conversations-pager" class="pager" aria-label="Conversation pages"></nav></div>
           <div id="conversation-detail" class="panel detail-panel"><div class="empty-inline">Choose a conversation to view it in full.</div></div>
         </div>
       </section>
 
       <section id="view-reviewed" class="view">
         <div class="filters panel">
-          <input id="reviewed-search" type="search" placeholder="Search responses and notes…">
-          <select id="filter-status"><option value="">Approved and corrected statuses</option><option value="APPROVED">Approved</option><option value="FULL_CORRECTION">Full correction</option><option value="DIALECT_CORRECTION">Dialect correction</option><option value="CONTENT_CORRECTION">Content correction</option><option value="IGNORED">Ignored</option><option value="DELETED">Deleted</option></select>
-          <select id="filter-channel"><option value="">All channels</option></select>
-          <select id="filter-tag"><option value="">All tags</option></select>
-          <select id="filter-eligible"><option value="">All eligibility</option><option value="1">Eligible</option><option value="0">Ineligible</option></select>
+          <input id="reviewed-search" aria-label="Search reviewed records" type="search" placeholder="Search responses and notes…">
+          <select id="filter-status" aria-label="Filter by review status"><option value="">Approved and corrected statuses</option><option value="APPROVED">Approved</option><option value="FULL_CORRECTION">Full correction</option><option value="DIALECT_CORRECTION">Dialect correction</option><option value="CONTENT_CORRECTION">Content correction</option><option value="IGNORED">Ignored</option><option value="DELETED">Deleted</option></select>
+          <select id="filter-channel" aria-label="Filter by channel"><option value="">All channels</option></select>
+          <select id="filter-tag" aria-label="Filter by error tag"><option value="">All tags</option></select>
+          <select id="filter-eligible" aria-label="Filter by dataset eligibility"><option value="">All eligibility</option><option value="1">Eligible</option><option value="0">Ineligible</option></select>
           <label class="date-label">From <input id="filter-date-from" type="date"></label><label class="date-label">To <input id="filter-date-to" type="date"></label>
           <button id="apply-reviewed-filters" class="button primary">Apply</button>
         </div>
         <div class="panel bulk-review-toolbar"><span id="bulk-review-count">No reviews selected</span><input id="bulk-review-reason" maxlength="300" placeholder="Reason for exclusion or restoration"><button id="bulk-exclude-reviews" class="button ignore-action">Exclude selected</button><button id="bulk-restore-reviews" class="button ghost">Restore selected</button></div>
         <div id="reviewed-list" class="cards-grid"></div>
+        <nav id="reviewed-pager" class="pager" aria-label="Reviewed record pages"></nav>
       </section>
 
-      <section id="view-manual-data" class="view">
-        <div id="manual-stats" class="stat-grid"></div>
-        <div class="manual-filters panel">
-          <input id="manual-search" type="search" placeholder="Search content, source, or notes…">
-          <select id="manual-type"><option value="">All types</option><option value="sft">Conversation / SFT</option><option value="direct">Direct language text</option><option value="dpo">Preference pair / DPO</option></select>
-          <select id="manual-status"><option value="">All active statuses</option><option value="eligible">Dataset eligible</option><option value="ineligible">Ineligible</option><option value="archived">Archived</option><option value="excluded">Excluded from dataset selection</option></select>
-          <select id="manual-language"><option value="">All language layers</option><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">MSA</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select>
-          <input id="manual-source" list="manual-source-options" placeholder="Source"><datalist id="manual-source-options"></datalist>
-          <input id="manual-origin" list="manual-origin-options" placeholder="Origin"><datalist id="manual-origin-options"></datalist>
-          <input id="manual-domain" list="manual-domain-options" placeholder="Domain"><datalist id="manual-domain-options"></datalist>
-          <label class="date-label">From <input id="manual-date-from" type="date"></label>
-          <label class="date-label">To <input id="manual-date-to" type="date"></label>
-          <select id="manual-sort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="updated">Last modified</option><option value="type">Type</option><option value="domain">Domain</option><option value="language_layer">Language layer</option><option value="eligible">Dataset eligible</option></select>
-          <label class="inline-check"><input id="manual-show-archived" type="checkbox"> Show archived</label>
-          <button id="apply-manual-filters" class="button primary">Apply</button>
-          <button id="reset-manual-filters" class="button ghost">Reset</button>
-        </div>
-        <div id="manual-bulk" class="bulk-bar panel hidden">
-          <strong><span id="manual-selected-count">0</span> selected</strong>
-          <select id="manual-bulk-action"><option value="">Choose a bulk action</option><option value="eligible">Make dataset eligible</option><option value="ineligible">Make ineligible</option><option value="archive">Archive</option><option value="unarchive">Unarchive</option><option value="exclude">Exclude from dataset selection</option><option value="include">Remove exclusion</option></select>
-          <button id="apply-manual-bulk" class="button primary">Execute</button>
-        </div>
-        <div class="manual-table-wrap panel">
-          <table class="manual-table">
-            <thead><tr><th><input id="manual-select-all" type="checkbox" aria-label="Select all"></th><th>ID</th><th>Type and content</th><th>Language / domain</th><th>Source / origin</th><th>Created / modified</th><th>Status</th><th>Version</th><th>Actions</th></tr></thead>
-            <tbody id="manual-list"></tbody>
-          </table>
-        </div>
-      </section>
+
 
       <section id="view-add-data" class="view">
-        <div class="subtabs" role="tablist">
-          <button class="active" data-add-tab="sft">Conversation / SFT</button><button data-add-tab="direct">Direct language text</button><button data-add-tab="preference">Preference pair / DPO</button>
-        </div>
+        <div id="data-entry-content">
+        <div class="subtabs" role="tablist" aria-label="Data type">
+          <button class="active" role="tab" aria-selected="true" aria-controls="form-sft" data-add-tab="sft">Conversation / SFT</button><button role="tab" aria-selected="false" aria-controls="form-direct" data-add-tab="direct">Direct language text</button><button role="tab" aria-selected="false" aria-controls="form-preference" data-add-tab="preference">Preference pair / DPO</button>
+        <button role="tab" aria-selected="false" type="button" data-add-records>My records</button></div>
         <form id="form-sft" class="data-form panel active">
           <div class="form-intro"><h2>Manual conversation</h2><p>Add a short or multi-turn conversation while preserving context order.</p></div>
           <div id="sft-turns" class="turn-builder"></div>
           <button id="add-sft-turn" type="button" class="button ghost">＋ Add turn</button>
-          <div class="form-grid"><label>Language layer<select name="language_layer"><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">Modern Standard Arabic</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select></label><label>Domain<input name="domain" placeholder="Example: technology"></label><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option></select></label></div>
+          <div class="form-grid"><span class="taxonomy-host" data-taxonomy-host></span><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
           <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
+          <label class="inline-check"><input name="evaluation_only" type="checkbox"> Evaluation only: held out from training to measure quality</label>
           <button class="button primary" type="submit">Save conversation</button>
         </form>
         <form id="form-direct" class="data-form panel">
-          <div class="form-intro"><h2>Direct language text</h2><p>Standalone text for the language layer, without user/assistant.</p></div>
+          <div class="form-intro"><h2>Direct language text</h2><p>Standalone text, without user and assistant turns. Describe its language below.</p></div>
           <label class="wide-label">Text<textarea dir="auto" name="text" rows="9" required></textarea></label>
-          <div class="form-grid"><label>Language layer<select name="language_layer"><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">Modern Standard Arabic</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select></label><label>Domain<input name="domain"></label><label>Source<input name="source"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="imported">Imported</option></select></label></div>
+          <div class="form-grid"><span class="taxonomy-host" data-taxonomy-host></span><label>Source<input name="source"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="human_corrected">Human corrected</option><option value="imported">Imported</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
           <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
+          <label class="inline-check"><input name="evaluation_only" type="checkbox"> Evaluation only: held out from training to measure quality</label>
           <button class="button primary" type="submit">Save text</button>
         </form>
         <form id="form-preference" class="data-form panel">
           <div class="form-intro"><h2>Preference pair</h2><p>Record context, the rejected response, and the preferred response as an independent sample.</p></div>
           <label class="wide-label">Prompt / Context<textarea dir="auto" name="prompt_context" rows="4" required></textarea></label>
           <div class="preference-grid"><label>Rejected response<textarea dir="auto" name="rejected_response" rows="7" required></textarea></label><label>Preferred response<textarea dir="auto" name="preferred_response" rows="7" required></textarea></label></div>
-          <div class="form-grid"><label>Language layer<select name="language_layer"><option value="najdi_riyadh">Najdi / Riyadh</option><option value="saudi_neutral">Saudi neutral</option><option value="msa">Modern Standard Arabic</option><option value="technical_arabic">Technical Arabic</option><option value="formal_arabic">Formal Arabic</option></select></label><label>Domain<input name="domain"></label><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="ai_arena">AI Arena</option></select></label></div>
+          <div class="form-grid"><span class="taxonomy-host" data-taxonomy-host></span><label>Source<input name="source" value="NajdiLab manual entry"></label><label>Source type<select name="source_type"><option value="human_written">Human written</option><option value="human_corrected">Human corrected</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="external_licensed">Licensed external</option></select></label><label>Origin<select name="origin"><option value="manual">Manual</option><option value="synthetic_reviewed">Reviewed synthetic</option><option value="ai_arena">AI Arena</option></select></label></div>
           <label class="wide-label">Notes<textarea dir="auto" name="notes" rows="2"></textarea></label>
           <label class="inline-check"><input name="training_eligible" type="checkbox"> Approve as dataset eligible</label>
+          <label class="inline-check"><input name="evaluation_only" type="checkbox"> Evaluation only: held out from training to measure quality</label>
           <button class="button primary" type="submit">Save preference pair</button>
         </form>
-      </section>
-
-      <section id="view-dataset" class="view">
-        <div id="dataset-stats" class="stat-grid"></div>
-        <div class="panel"><div class="panel-heading"><div><span class="eyebrow">Approved only</span><h2>Gold dataset records</h2></div><label class="inline-check"><input id="dataset-demo" type="checkbox"> Include demo</label></div><div id="dataset-list" class="dataset-list"></div></div>
-      </section>
-
-      <section id="view-dataset-health" class="view">
-        <div class="phase-toolbar panel"><div class="dataset-picker"><label for="health-version">Version</label><select id="health-version" class="technical-select" dir="ltr" aria-label="Version"><option>Loading versions...</option></select></div><div id="health-last-result" class="last-result">Last saved result</div><button id="refresh-health" class="button primary" disabled>Check health</button></div>
-        <div id="health-state" class="panel health-state">Loading versions...</div>
-        <div id="health-results" class="hidden">
-          <div class="health-identity"><div><span>Dataset</span><strong id="health-dataset" dir="ltr">—</strong></div><div><span>Health timestamp</span><strong id="health-timestamp" dir="ltr">—</strong></div><button id="health-version-details" class="button ghost">View version details</button></div>
-          <div id="health-summary" class="health-card-grid"></div>
-          <div id="health-checks" class="health-card-grid secondary"></div>
-          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Warnings</span><h2>Warnings</h2></div><span id="health-warning-count" class="count-chip">0</span></div><div id="health-warnings"></div></section>
-          <section id="health-detail-panel" class="panel phase-panel health-detail hidden"></section>
         </div>
       </section>
 
-      <section id="view-balancer" class="view">
-        <div class="phase-toolbar panel"><div><span class="eyebrow">Read-only diagnosis</span><h2>Dataset Balancer</h2></div><div class="dataset-picker"><label for="balance-version">Version</label><select id="balance-version" class="technical-select" dir="ltr" aria-label="Dataset version"><option>Loading versions...</option></select></div><button id="run-balance" class="button primary" disabled>Analyze balance</button></div>
-        <div class="safety-banner">Analysis and diagnosis only. Does not modify Gold or Raw Data, change the split, or run a model.</div>
-        <div id="balance-state" class="panel health-state">Loading versions...</div>
-        <div id="balance-results" class="hidden">
-          <div class="health-identity"><div><span>Dataset</span><strong id="balance-dataset" dir="ltr">—</strong></div><div><span>State</span><strong id="balance-dataset-state" dir="ltr">—</strong></div><div><span>Last analyzed</span><strong id="balance-timestamp" dir="ltr">—</strong></div></div>
-          <div id="balance-overview" class="health-card-grid balance-overview"></div>
-          <div id="balance-panels" class="balance-grid"></div>
-          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Balance Warnings</span><h2>Detected warnings</h2></div><span id="balance-warning-count" class="count-chip">0</span></div><div id="balance-warnings" class="balance-notices"></div></section>
-          <section class="panel phase-panel"><div class="panel-heading"><div><span class="eyebrow">Recommendations</span><h2>Recommendations for human decision</h2></div></div><div id="balance-recommendations" class="balance-notices"></div></section>
+      <section id="view-prepare" class="view">
+
+        <div id="guided-wizard">
+          <div class="workspace-intro"><div><h2>From records to a frozen dataset</h2><p>One workspace. Your selection and drafts stay here as you move between stages.</p></div><span id="workflow-save-status" role="status" aria-live="polite">Draft saved in this browser</span></div>
+          <ol class="prepare-stepper" aria-label="Steps">
+            <li><button type="button" class="prepare-stepper-item" data-step="1" aria-current="step"><span class="prepare-step-number">1</span> Data</button></li>
+            <li><button type="button" class="prepare-stepper-item" data-step="2" disabled><span class="prepare-step-number">2</span> Check and correct</button></li>
+            <li><button type="button" class="prepare-stepper-item" data-step="3" disabled><span class="prepare-step-number">3</span> Approve Gold</button></li>
+            <li><button type="button" class="prepare-stepper-item" data-step="4" disabled><span class="prepare-step-number">4</span> Export</button></li>
+          </ol>
+          <section id="prepare-panel-1" class="panel prepare-step" aria-labelledby="prepare-step1">
+            <div class="panel-heading"><div><h2 id="prepare-step1" tabindex="-1">1. Data</h2><p>Add, correct and choose the examples for this version.</p></div><button id="wizard-add-record" type="button" class="button ghost">Add a record</button></div>
+            <details id="wizard-entry"><summary>Add data manually</summary><div id="wizard-editor"></div></details>
+            <div class="toolbar prepare-filters">
+              <label for="prepare-type">Type</label><select id="prepare-type"><option value="">All types</option><option value="sft">Single-turn</option><option value="multi_turn">Multi-turn</option><option value="direct_language">Direct language</option><option value="preference_pair">Preference pair</option></select>
+              <label for="prepare-source">Source</label><select id="prepare-source"><option value="">All sources</option><option value="manual">Manual</option><option value="collected">Collected</option></select>
+              <label for="prepare-split-filter">Use</label><select id="prepare-split-filter"><option value="">Training and evaluation</option><option value="training">Training</option><option value="evaluation_only">Evaluation only</option></select>
+              <label for="prepare-language">Language</label><select id="prepare-language"><option value="">All languages</option></select>
+            </div>
+            <div class="toolbar"><button id="prepare-all" type="button" class="button ghost">Choose all shown</button><button id="prepare-none" type="button" class="button ghost">Leave out all shown</button><span id="prepare-count" class="prepare-count" role="status" aria-live="polite"></span></div>
+            <div id="prepare-records" class="prepare-records"></div>
+            <details id="prepare-selection-review"><summary>Review the chosen records</summary><ul id="prepare-selection-list" class="prepare-selection-list"></ul></details>
+            <div class="prepare-nav"><button id="prepare-check" type="button" class="button primary">Next: check data</button></div>
+          </section>
+          <section id="prepare-panel-2" class="panel prepare-step" aria-labelledby="prepare-step2" hidden>
+            <h2 id="prepare-step2" tabindex="-1">2. Check and correct</h2><p>The same backend checks and selection fingerprint protect this preview and the final build.</p>
+            <p id="prepare-status" class="prepare-status" role="status" aria-live="polite"></p><div id="prepare-summary"></div><div id="prepare-problems"></div>
+            <details id="prepare-advanced"><summary>Check evidence</summary><div id="prepare-advanced-body"></div></details>
+            <div class="prepare-nav"><button id="prepare-back-1" type="button" class="button ghost">Previous</button><button id="prepare-recheck" type="button" class="button ghost">Run checks again</button><button id="prepare-next-3" type="button" class="button primary" disabled>Next: approve Gold</button></div>
+          </section>
+          <section id="prepare-panel-3" class="panel prepare-step" aria-labelledby="prepare-step3" hidden>
+            <h2 id="prepare-step3" tabindex="-1">3. Approve Gold</h2><p>Structural validity checks format and safety. It does not establish linguistic quality or improvement from training.</p>
+            <div id="prepare-final"></div>
+            <label class="inline-check"><input id="prepare-confirm" type="checkbox"> Create a frozen Gold version with exactly these records. It cannot be changed afterwards.</label>
+            <p id="prepare-create-status" role="status" aria-live="polite"></p>
+            <div class="prepare-nav"><button id="prepare-back-2" type="button" class="button ghost">Previous</button><button id="prepare-create" type="button" class="button primary" disabled>Create Gold version</button></div>
+          </section>
+          <section id="prepare-panel-4" class="panel prepare-step" aria-labelledby="prepare-step4" hidden>
+            <h2 id="prepare-step4" tabindex="-1">4. Export</h2><p>Gold freezes your chosen data. Export creates files for a specific training tool. Each record type keeps its own format.</p>
+            <div id="prepare-created" role="status" aria-live="polite"></div><div id="prepare-raw-exports"></div>
+            <div id="prepare-export"><fieldset class="unsloth-profiles"><legend>Training tool</legend>
+              <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_chat" checked> <span><strong>Unsloth Studio — SFT (chat)</strong><small>Recommended for Studio. Earlier turns become context, never targets.</small></span></label>
+              <label class="inline-check"><input type="radio" name="prepare-profile" value="studio_alpaca"> <span><strong>Unsloth Studio — SFT (Alpaca)</strong><small>Instruction, input and output.</small></span></label>
+              <label class="inline-check"><input type="radio" name="prepare-profile" value="trl_prompt_completion"> <span><strong>Unsloth / TRL in Python</strong><small>Needs completion_only_loss=True. Not for Unsloth Studio.</small></span></label></fieldset>
+              <p id="prepare-export-compatibility" role="status"></p><button id="prepare-export-go" type="button" class="button primary">Create Unsloth export</button><div id="prepare-export-result" role="status" aria-live="polite"></div>
+            </div>
+            <div class="prepare-nav"><button id="prepare-back-3" type="button" class="button ghost">Previous</button><button id="prepare-new-version" type="button" class="button ghost">Prepare another version</button></div>
+          </section>
         </div>
       </section>
+      <section id="view-my-versions" class="view">
+        <div class="panel chat-intro"><h2>My versions</h2><p>Every Gold version you created. A frozen version never changes: to include different records, create a new version in Prepare data.</p></div>
+        <div id="versions-list" class="versions-list"></div>
 
-      <section id="view-dataset-versions" class="view">
-        <div class="versions-layout"><section class="panel version-list-panel"><div class="panel-heading"><div><span class="eyebrow">Gold Library</span><h2>Dataset Versions</h2></div></div><div id="version-list" class="version-list"></div></section><section id="version-detail" class="panel phase-panel"><div class="empty-inline">Choose a version to view manifest, status, and files.</div></section></div>
       </section>
 
 
-      <section id="view-eval-sets" class="view">
-        <div class="phase-toolbar panel"><div><span class="eyebrow">Locked Holdout</span><h2>Isolate evaluation from eligible records</h2></div><select id="eval-version" aria-label="Dataset version"></select><button id="refresh-eval" class="button primary">Check leakage</button></div>
-        <div id="eval-status-card" class="panel phase-panel"></div><div id="eval-files" class="eval-file-grid"></div><div id="leakage-detail" class="panel phase-panel"></div>
-      </section>
+
+
+
+
+
+
+
+
 
 
       <section id="view-phase38-review" class="view">
@@ -302,33 +525,35 @@
         <section class="panel phase38-status"><h3>Review edited records</h3><p id="phase39-status">Loading verification status…</p><div id="phase39-records"></div></section>
       </section>
 
-      <section id="view-exports" class="view">
-        <div class="panel chat-intro"><h2>External Unsloth handoff</h2><p>Choose an existing frozen version. Creates conversational prompt/completion JSONL and a provenance manifest; only the final approved assistant target is a completion. Direct text, DPO, tools and holdout stay in their existing separate exports.</p><label for="unsloth-version">Dataset version</label><input id="unsloth-version" placeholder="gold-v001"><button id="unsloth-create" class="button primary" type="button">Create Unsloth handoff</button><p>Use completion_only_loss=True and packing=False in external Unsloth/TRL. Check the chosen tokenizer/template and reject overlength records before training. Frozen exports reflect their original review state; after exclusions, build a fresh dataset version.</p><div id="unsloth-result" role="status"></div></div>
-        <div class="export-layout">
-          <div class="panel export-card"><span class="eyebrow">Version cannot be overwritten</span><h2>Create Gold Dataset</h2><p>Separates record types, prevents evaluation leakage, and computes SHA-256 for each file.</p><label class="inline-check warning"><input id="export-demo" type="checkbox"> Include data from Demo in this version</label><button id="preview-dedup" class="button ghost">Check duplicates first</button><button id="create-export" class="button primary">Create new version</button><div id="dedup-result" class="dedup-result"></div></div>
-          <div class="panel"><div class="panel-heading"><div><span class="eyebrow">History</span><h2>Previous versions</h2></div></div><div id="exports-list" class="exports-list"></div></div>
-        </div>
-        <div class="panel export-types"><h2>Files in each version</h2><div class="type-grid"><span>SFT JSONL</span><span>Multi-turn SFT</span><span>Direct Language</span><span>Preference / DPO</span><span>Evaluation Holdout</span><span>Full Archive</span></div></div>
-      </section>
+
 
       <section id="view-analytics" class="view">
         <div id="analytics-stats" class="stat-grid"></div>
-        <div class="analytics-grid"><div class="panel"><h2>Performance by model</h2><div id="model-analytics"></div></div><div class="panel"><h2>By channel</h2><div id="channel-analytics" class="bar-list"></div></div><div class="panel"><h2>Most frequent error tags</h2><div id="tag-analytics" class="bar-list"></div></div></div>
+        <div class="analytics-grid"><div class="panel"><h2>Performance by model</h2><div id="model-analytics" class="table-scroll" tabindex="0" role="region" aria-label="Performance by model"></div></div><div class="panel"><h2>By channel</h2><div id="channel-analytics" class="bar-list"></div></div><div class="panel"><h2>Most frequent error tags</h2><div id="tag-analytics" class="bar-list"></div></div></div>
       </section>
 
       <section id="view-settings" class="view">
+
+
+
         <section class="integrations" aria-labelledby="integrations-heading">
-          <h2 id="integrations-heading">Integrations</h2>
-          <p>Discover local AI services without changing their configuration. Runtime tests use synthetic text only. LM Studio and Ollama do not automatically provide their application conversation history.</p>
+          <h2 id="integrations-heading">Models &amp; Integrations</h2>
+          <p>Chat and review happen inside NajdiLab. Connect existing Ollama or LM Studio model runtimes without changing their configuration. Connection tests use synthetic text only.</p>
           <p id="integration-status" class="integration-notice" role="status" aria-live="polite">Open Settings to discover known local services.</p>
+          <label class="inline-check"><input id="chat-legacy-providers" type="checkbox"> Also offer LM Studio and Ollama in the Chat model menu (new chats use NajdiLab Native by default; existing conversations always open)</label>
           <fieldset id="integrations-controls"><legend class="sr-only">Local service integrations</legend>
             <button type="button" id="integration-scan" class="button ghost">Scan again</button>
             <div id="integration-cards" class="integration-grid"></div>
           </fieldset>
+          <article class="panel integration-planned" aria-labelledby="huggingface-heading">
+            <header><h3 id="huggingface-heading">Hugging Face Direct</h3><span class="integration-badge" data-state="CONNECTED">Available</span></header>
+            <p>Discover single-file GGUF models, check them against this computer, download them with storage and SHA-256 protection, and run them through NajdiLab Native. Nothing downloads or loads without your approval.</p>
+            <button class="button ghost" type="button" data-go="models">Open the model library</button>
+          </article>
         </section>
-        <div class="settings-grid"><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>Interface theme</h2><p>Choose light, dark, or system. This choice is saved only in this browser.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="Choose interface theme in settings"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>Secure local operation</h2><p>The server listens on 127.0.0.1 only. No API keys appear in logs, and sensitive fields are redacted from metadata.</p></div><span class="status-ok">Enabled</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>SQLite</h2><p>Foreign keys, WAL, atomic transactions, and numbered migrations.</p></div><span class="status-ok">Passed</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>External training</h2><p>NajdiLab prepares datasets; Unsloth runs training separately.</p></div><span class="status-neutral">EXTERNAL ONLY</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>Data from Demo</h2><p>is labeled and logically isolated. Exports exclude it by default.</p></div><span class="status-demo">Isolated</span></div></div>
+        <div class="settings-grid"><div class="panel settings-card language-setting"><div class="setting-icon" aria-hidden="true"></div><div><h2>Interface language</h2><p>Choose English (left to right) or Arabic (right to left). This choice is saved only in this browser.</p></div><select id="language-select-settings" data-language-select aria-label="Interface language in settings"><option value="en" lang="en" translate="no">English</option><option value="ar" lang="ar" translate="no">العربية</option></select></div><div class="panel settings-card preset-setting"><div class="setting-icon" aria-hidden="true">✎</div><div><h2>Data entry preset</h2><p id="data-preset-help">Optional starting values for language, dialect, style and domain in Add Data. They describe new records only, can be changed on every record, and are never added to training text or chat. Saved only in this browser.</p></div><select id="data-preset" aria-label="Data entry preset" aria-describedby="data-preset-help"><option value="">None</option><option value="general">General Assistant</option><option value="najdi">Najdi / Riyadh</option><option value="technical">Technical Assistant</option><option value="custom">Custom (my last choices)</option></select></div><div class="panel settings-card shortcut-setting"><div class="setting-icon" aria-hidden="true">⌨</div><div><h2>Review keyboard shortcuts</h2><p id="review-shortcuts-help">Single keys 1–3 choose a correction type and 4 approves the current response. Off by default so a stray key press cannot approve a review. Ctrl + Enter always saves an open correction. Saved only in this browser.</p></div><label class="inline-check"><input id="review-shortcuts" type="checkbox" aria-describedby="review-shortcuts-help"> Enable single-key shortcuts</label></div><div class="panel settings-card about-setting"><div class="setting-icon" aria-hidden="true"></div><div><h2>About Najdi Lab</h2><p>Development candidate under validation; not a public release. The version does not change dataset, model or migration versions.</p></div><span id="settings-version" class="status-neutral" translate="no" data-i18n-skip></span></div><div class="panel settings-card context-setting"><div class="setting-icon" aria-hidden="true"></div><div><h2>Chat context warnings</h2><p id="context-warnings-help">Show a notice when a conversation's measured usage (history plus the reply reserve) reaches these percentages. Notices never let a message exceed the context: NajdiLab still checks every prompt exactly. Saved only in this browser.</p><p id="context-warnings-status" class="sr-status" role="status" aria-live="polite"></p></div><form id="context-warnings-form" class="threshold-form" novalidate><label for="context-warn-info">Information</label><input id="context-warn-info" type="number" min="1" max="99" step="1" inputmode="numeric" value="70" aria-describedby="context-warnings-help"><label for="context-warn-warn">Approaching</label><input id="context-warn-warn" type="number" min="1" max="99" step="1" inputmode="numeric" value="85" aria-describedby="context-warnings-help"><label for="context-warn-critical">Critical</label><input id="context-warn-critical" type="number" min="1" max="99" step="1" inputmode="numeric" value="95" aria-describedby="context-warnings-help"><button class="button ghost" type="submit">Save</button></form></div><div class="panel settings-card theme-setting"><div class="setting-icon" aria-hidden="true">◐</div><div><h2>Interface theme</h2><p>Choose light, dark, or system. This choice is saved only in this browser.</p><span id="theme-status" class="sr-status" aria-live="polite"></span></div><select id="theme-select-settings" aria-label="Choose interface theme in settings"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="panel settings-card"><div class="setting-icon">⌂</div><div><h2>Secure local operation</h2><p>The server listens on 127.0.0.1 only. No API keys appear in logs, and sensitive fields are redacted from metadata.</p></div><span class="status-ok">Enabled</span></div><div class="panel settings-card"><div class="setting-icon">◎</div><div><h2>Local database</h2><p>Live application health check; this does not certify a database integrity test or backup.</p></div><span id="sqlite-status" class="status-neutral" role="status">Not checked</span></div><div class="panel settings-card"><div class="setting-icon">⊘</div><div><h2>External training</h2><p>NajdiLab prepares datasets; Unsloth runs training separately.</p></div><span class="status-neutral">EXTERNAL ONLY</span></div><div class="panel settings-card"><div class="setting-icon">D</div><div><h2>Data from Demo</h2><p>is labeled and logically isolated. Exports exclude it by default.</p></div><span class="status-demo">Isolated</span></div></div>
       </section>
-      <footer class="app-footer">© <span id="copyright-year"></span> <span id="copyright-owner">NajdiLab</span>. All rights reserved.</footer>
+      </div>
     </main>
   </div>
   <dialog id="manual-dialog" class="manual-dialog">
@@ -349,7 +574,12 @@
   <script src="/theme.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/integrations.js" defer></script>
+  <script src="/chat-markdown.js" defer></script>
   <script src="/chat.js" defer></script>
+  <script src="/models.js" defer></script>
+  <script src="/training-models.js" defer></script>
+  <script src="/prepare-data.js" defer></script>
+  <script src="/my-versions.js" defer></script>
 </body>
 </html>
 

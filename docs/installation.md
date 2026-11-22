@@ -1,5 +1,7 @@
 # Installation and operation
 
+Current Documentation — V2.3.0 development candidate
+
 Install only a reviewed source revision for local Chat/review/datasets. Follow the [dataset roadmap](roadmap.md) and [Chat/export contract](chat-workspace.md). This cleanup does not update the installed application or alter existing private data.
 
 Read [requirements](system-requirements.md) and [actual verification](verification-evidence.md). Core app uses Python 3.11+ and SQLite standard library, independently of Hermes, Ollama, GPU/CUDA and models. GitHub access remains private; source-license approval is pending.
@@ -7,11 +9,11 @@ Read [requirements](system-requirements.md) and [actual verification](verificati
 ## Clone source
 
 ```bash
-git clone https://github.com/abinadwan/NajdiLab.git
+git clone --branch update-project https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
 ```
 
-The default `main` branch already contains the private preparation changes through [merged PR #5](https://github.com/abinadwan/NajdiLab/pull/5). The deleted `dev/*` branches are not installation targets. A clone downloads code; it does not install dependencies or restore data. These commands operate the main local application, **not** the separately built [reduced Core candidate](public-core-user-guide.md). The repository remains private, and public release is not authorized.
+V2.3.0 is a development candidate on `update-project`, with Draft PR #23. Review the selected revision before installation. The separate [Core candidate](public-core-user-guide.md) has its own scope and version. A clone downloads source and leaves operational data restoration to the [restore procedure](backup-and-restore.md).
 
 ## Windows PowerShell
 
@@ -26,6 +28,17 @@ python .\scripts\install.py --check
 ```
 
 If script policy blocks reviewed local scripts, use `python .\scripts\install.py` and `.\.venv\Scripts\python.exe .\scripts\launch.py` directly. A process-scoped policy change is an alternative for a reviewed script; do not weaken machine-wide policy. No elevation needed. run.cmd wraps the PowerShell launcher.
+
+## Managed llama.cpp runtime (optional, for NajdiLab Native)
+
+Setup asks, after the steps above, whether to install the llama.cpp program that NajdiLab Native uses. It first explains what it will read (operating system, NVIDIA GPU, compute capability, driver CUDA version, locally with `nvidia-smi`) and asks; then it shows the chosen package, every file with its size, source and SHA-256, the destination and space needed, and the licenses, and asks again. Nothing is downloaded without both answers being yes, and non-interactive runs never download.
+
+```powershell
+.\scripts\install.ps1 -Runtime     # only the runtime step
+.\scripts\install.ps1 -NoRuntime   # skip it
+```
+
+The same is available in the app: **Model library → llama.cpp runtime**. Offline: copy the pinned archives (names and hashes in `app/runtime_catalog.py`) into `data/native/runtime/archives/` first; installation verifies them and downloads nothing. Details, rollback and licenses: [Managed llama.cpp runtime](development/MANAGED_RUNTIME.md). Cloning the source does not include any binary.
 
 ## Linux / WSL2
 

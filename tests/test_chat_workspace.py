@@ -381,3 +381,48 @@ def test_collected_ollama_turn_reaches_a_handoff_only_after_human_approval(tmp_p
     handoff=create_handoff('gold-v001',output_root=tmp_path/'handoffs')
     row=json.loads((Path(handoff['directory'])/'dataset.jsonl').read_text(encoding='utf-8'))
     assert row=={'prompt':[{'role':'user','content':'  سؤال خام  '}],'completion':[{'role':'assistant','content':Engine.content}]}
+
+def test_successful_reported_gemma_shape_preserves_raw_text_and_discards_thinking(chat):
+    ws, engine, _, db = chat
+    session = new(ws, context_budget=4096, reply_reserve=999)
+    session = ws.collect(session['id'], {'enabled':True, 'revision':session['revision']})
+    content = '### عنوان\n**نص**\n' + 'س' * 85
+    assert len(content) == 102
+    original = engine.generate
+    def generated(*args):
+        return {**original(*args), 'content':content, 'stop_reason':'stop', 'output_tokens':413, 'reasoning_discarded':True}
+    engine.generate = generated
+    result = send(ws, session)
+    assert result['session']['turns'][0]['assistant'] == content
+    assert result['session']['turns'][0]['output_tokens'] == 413
+    with connect(db) as conn:
+        assert conn.execute('SELECT original_response FROM reviews').fetchone()[0] == content
+
+
+def test_prompt_count_mismatch_has_content_free_predicate_detail(chat):
+    ws, engine, _, db = chat
+    original = engine.generate
+    def generated(*args):
+        return {**original(*args), 'input_tokens':123, 'content':'PRIVATE MODEL CONTENT'}
+    engine.generate = generated
+    with pytest.raises(IntegrationError) as caught:
+        send(ws, new(ws))
+    assert caught.value.code == 'INCOMPLETE_RESPONSE'
+    assert str(caught.value) == 'The final prompt token count differed from the measured prompt; no pair was saved.'
+    assert count(db, 'chat_turns') == count(db, 'reviews') == 0
+
+@pytest.mark.parametrize('change,detail', [
+    ({'stop_reason':'length'}, 'The engine did not finish the reply normally; no pair was saved.'),
+    ({'content':'   '}, 'The engine returned empty, invalid or oversized final text; no pair was saved.'),
+    ({'tool_calls':[{'name':'PRIVATE TOOL'}]}, 'The engine returned tool calls instead of a plain text reply; no pair was saved.'),
+])
+def test_incomplete_diagnostics_are_constant_and_save_nothing(chat, change, detail):
+    ws, engine, _, db = chat
+    original = engine.generate
+    def generated(*args):
+        return {**original(*args), **change}
+    engine.generate = generated
+    with pytest.raises(IntegrationError) as caught:
+        send(ws, new(ws))
+    assert caught.value.code == 'INCOMPLETE_RESPONSE' and str(caught.value) == detail
+    assert count(db, 'chat_turns') == count(db, 'reviews') == 0

@@ -13,13 +13,17 @@ import tempfile
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
+from functools import wraps
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from .db import DB_PATH, ROOT, connect, json_dumps, json_loads, redact_secrets, transaction, utc_now
-from .review_integrity import ExportReadinessError, export_readiness, export_privacy
+from .gold_lifecycle import storage_lock, deleted_identity_reserved
+from . import language_taxonomy
+from .review_integrity import ExportReadinessError, export_readiness, export_privacy, resolve_selection
 from .review_lifecycle import append_event, validate_transition, LifecycleError
+from .collection_context import collection_context, INCOMPLETE_CONTEXT_WARNING
 
 CORRECTION_REVIEW_STATUSES = {
     "FULL_CORRECTION",
@@ -71,6 +75,39 @@ REVIEW_DEDUP_PRIORITY = {
 
 class ValidationError(ValueError):
     pass
+
+
+class RecordValidationError(ValidationError):
+    """A build rule broken by one chosen record: the preview can offer to leave exactly that record out."""
+
+    def __init__(self, message: str, sample_id: str, code: str):
+        super().__init__(message)
+        self.sample_id, self.code = sample_id, code
+
+
+PAGE_DEFAULT_LIMIT = 100
+PAGE_MAX_LIMIT = 500
+
+
+def page_request(query: dict[str, Any]) -> tuple[int, int]:
+    """Read `limit`/`offset` from a query; out-of-range values are rejected, never clamped."""
+    def number(name: str, default: int, low: int, high: int) -> int:
+        raw = query.get(name)
+        if raw is None or raw == "":
+            return default
+        try:
+            value = int(str(raw))
+        except ValueError:
+            raise ValidationError(f"{name} must be an integer") from None
+        if not low <= value <= high:
+            raise ValidationError(f"{name} must be between {low} and {high}")
+        return value
+    return number("limit", PAGE_DEFAULT_LIMIT, 1, PAGE_MAX_LIMIT), number("offset", 0, 0, 10**9)
+
+
+def page_info(total: int, limit: int, offset: int, returned: int) -> dict[str, Any]:
+    return {"total": total, "limit": limit, "offset": offset, "returned": returned,
+            "has_more": offset + returned < total, "max_limit": PAGE_MAX_LIMIT}
 
 
 def _bool(value: Any) -> int:
@@ -420,6 +457,12 @@ def _message_context(conn: sqlite3.Connection, message_id: int) -> list[dict[str
     return [dict(row) for row in rows]
 
 
+def _review_collection_context(conn: sqlite3.Connection, message_id: int) -> dict[str, Any]:
+    row = conn.execute('''SELECT c.source, c.metadata_json FROM conversations c
+        JOIN messages m ON m.conversation_id=c.id WHERE m.id=?''', (message_id,)).fetchone()
+    return collection_context(row) if row else {}
+
+
 def list_review_queue(db_path: Path | str = DB_PATH, include_demo: bool = True) -> list[dict[str, Any]]:
     conn = connect(db_path)
     try:
@@ -447,6 +490,7 @@ def list_review_queue(db_path: Path | str = DB_PATH, include_demo: bool = True) 
                 value[0] for value in conn.execute("SELECT tag FROM review_tags WHERE review_id = ?", (row["id"],))
             ]
             item["context"] = _message_context(conn, row["message_id"])
+            item.update(_review_collection_context(conn, row["message_id"]))
             result.append(item)
         return result
     finally:
@@ -534,6 +578,9 @@ def _save_review_conn(
         flags[key] = int(value)
     training_eligible = flags["training_eligible"]
     evaluation_only = flags["evaluation_only"]
+    if ((training_eligible or evaluation_only) and
+        _review_collection_context(conn, current['message_id']).get('context_complete') is False):
+        raise ValidationError(INCOMPLETE_CONTEXT_WARNING)
     exclude = flags["exclude_from_training"]
     if any(value for key, value in flags.items() if key != "training_eligible"):
         training_eligible = 0
@@ -752,10 +799,44 @@ def get_review(
         item = dict(row)
         item["tags"] = [x[0] for x in conn.execute("SELECT tag FROM review_tags WHERE review_id = ?", (review_id,))]
         item["context"] = _message_context(conn, row["message_id"])
+        item.update(_review_collection_context(conn, row["message_id"]))
         return item
     finally:
         if own_conn:
             conn.close()
+
+
+def _conversation_filter(search: str, model: str, channel: str) -> tuple[str, list[Any]]:
+    params: list[Any] = []
+    clauses = ["1=1"]
+    if search:
+        clauses.append("(c.title LIKE ? OR c.external_conversation_id LIKE ? OR EXISTS (SELECT 1 FROM messages sm WHERE sm.conversation_id = c.id AND sm.content LIKE ?))")
+        q = f"%{search}%"
+        params.extend([q, q, q])
+    if model:
+        clauses.append("c.model_name = ?")
+        params.append(model)
+    if channel:
+        clauses.append("c.channel = ?")
+        params.append(channel)
+    return " AND ".join(clauses), params
+
+
+def _conversation_rows(conn: sqlite3.Connection, where: str, params: list[Any], page: tuple[int, int] | None) -> list[dict[str, Any]]:
+    window = " LIMIT ? OFFSET ?" if page else ""
+    rows = conn.execute(
+        f"""
+        SELECT c.*, COUNT(DISTINCT m.id) AS message_count,
+               SUM(CASE WHEN r.review_status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count
+        FROM conversations c
+        LEFT JOIN messages m ON m.conversation_id = c.id
+        LEFT JOIN reviews r ON r.message_id = m.id
+        WHERE {where}
+        GROUP BY c.id ORDER BY c.updated_at DESC, c.id DESC{window}
+        """,
+        [*params, *(page or ())],
+    ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def list_conversations(
@@ -763,31 +844,20 @@ def list_conversations(
 ) -> list[dict[str, Any]]:
     conn = connect(db_path)
     try:
-        params: list[Any] = []
-        clauses = ["1=1"]
-        if search:
-            clauses.append("(c.title LIKE ? OR c.external_conversation_id LIKE ? OR EXISTS (SELECT 1 FROM messages sm WHERE sm.conversation_id = c.id AND sm.content LIKE ?))")
-            q = f"%{search}%"
-            params.extend([q, q, q])
-        if model:
-            clauses.append("c.model_name = ?")
-            params.append(model)
-        if channel:
-            clauses.append("c.channel = ?")
-            params.append(channel)
-        rows = conn.execute(
-            f"""
-            SELECT c.*, COUNT(DISTINCT m.id) AS message_count,
-                   SUM(CASE WHEN r.review_status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count
-            FROM conversations c
-            LEFT JOIN messages m ON m.conversation_id = c.id
-            LEFT JOIN reviews r ON r.message_id = m.id
-            WHERE {' AND '.join(clauses)}
-            GROUP BY c.id ORDER BY c.updated_at DESC
-            """,
-            params,
-        ).fetchall()
-        return [dict(row) for row in rows]
+        where, params = _conversation_filter(search, model, channel)
+        return _conversation_rows(conn, where, params, None)
+    finally:
+        conn.close()
+
+
+def conversations_page(query: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+    limit, offset = page_request(query)
+    conn = connect(db_path)
+    try:
+        where, params = _conversation_filter(query.get("search", ""), query.get("model", ""), query.get("channel", ""))
+        total = conn.execute(f"SELECT COUNT(*) FROM conversations c WHERE {where}", params).fetchone()[0]
+        items = _conversation_rows(conn, where, params, (limit, offset))
+        return {"items": items, "page": page_info(total, limit, offset, len(items))}
     finally:
         conn.close()
 
@@ -812,64 +882,89 @@ def get_conversation(conversation_id: int, db_path: Path | str = DB_PATH) -> dic
         conn.close()
 
 
+def _reviewed_filter(filters: dict[str, str]) -> tuple[str, list[Any]]:
+    requested_status = str(filters.get("review_status") or "").upper()
+    params: list[Any] = []
+    if requested_status:
+        if requested_status not in REVIEW_STATUSES:
+            raise ValidationError("Invalid review status")
+        clauses = ["r.review_status = ?"]
+        params.append(requested_status)
+    else:
+        placeholders = ",".join("?" for _ in TRAINING_REVIEW_STATUSES)
+        clauses = [f"r.review_status IN ({placeholders})"]
+        params.extend(sorted(TRAINING_REVIEW_STATUSES))
+    mapping = {
+        "model": "c.model_name",
+        "provider": "c.provider",
+        "channel": "c.channel",
+    }
+    for key, column in mapping.items():
+        if filters.get(key):
+            clauses.append(f"{column} = ?")
+            params.append(filters[key])
+    for key in ("training_eligible", "evaluation_only"):
+        if filters.get(key) in {"0", "1"}:
+            clauses.append(f"r.{key} = ?")
+            params.append(int(filters[key]))
+    if filters.get("tag"):
+        clauses.append("EXISTS (SELECT 1 FROM review_tags rt WHERE rt.review_id = r.id AND rt.tag = ?)")
+        params.append(filters["tag"])
+    if filters.get("date_from"):
+        clauses.append("r.updated_at >= ?")
+        params.append(filters["date_from"])
+    if filters.get("date_to"):
+        clauses.append("r.updated_at <= ?")
+        params.append(filters["date_to"] + "T23:59:59Z")
+    if filters.get("search"):
+        clauses.append("(r.original_response LIKE ? OR r.corrected_response LIKE ? OR r.review_notes LIKE ? OR c.title LIKE ?)")
+        q = f"%{filters['search']}%"
+        params.extend([q, q, q, q])
+    return " AND ".join(clauses), params
+
+
+_REVIEWED_FROM = """FROM reviews r JOIN messages m ON m.id = r.message_id
+            JOIN conversations c ON c.id = m.conversation_id"""
+
+
+def _reviewed_rows(conn: sqlite3.Connection, where: str, params: list[Any], limit: int, offset: int) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        f"""
+        SELECT r.*, c.title AS conversation_title, c.model_name, c.provider, c.channel, c.demo,
+               m.turn_index, GROUP_CONCAT(rt.tag) AS tags_csv
+        {_REVIEWED_FROM}
+        LEFT JOIN review_tags rt ON rt.review_id = r.id
+        WHERE {where}
+        GROUP BY r.id ORDER BY r.updated_at DESC, r.id DESC LIMIT ? OFFSET ?
+        """,
+        [*params, limit, offset],
+    ).fetchall()
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["tags"] = item.pop("tags_csv").split(",") if item.get("tags_csv") else []
+        result.append(item)
+    return result
+
+
 def list_reviewed(filters: dict[str, str], db_path: Path | str = DB_PATH) -> list[dict[str, Any]]:
+    # Core profile contract: a plain list of at most 500 items. The full app uses reviewed_page.
+    where, params = _reviewed_filter(filters)
     conn = connect(db_path)
     try:
-        requested_status = str(filters.get("review_status") or "").upper()
-        params: list[Any] = []
-        if requested_status:
-            if requested_status not in REVIEW_STATUSES:
-                raise ValidationError("Invalid review status")
-            clauses = ["r.review_status = ?"]
-            params.append(requested_status)
-        else:
-            placeholders = ",".join("?" for _ in TRAINING_REVIEW_STATUSES)
-            clauses = [f"r.review_status IN ({placeholders})"]
-            params.extend(sorted(TRAINING_REVIEW_STATUSES))
-        mapping = {
-            "model": "c.model_name",
-            "provider": "c.provider",
-            "channel": "c.channel",
-        }
-        for key, column in mapping.items():
-            if filters.get(key):
-                clauses.append(f"{column} = ?")
-                params.append(filters[key])
-        for key in ("training_eligible", "evaluation_only"):
-            if filters.get(key) in {"0", "1"}:
-                clauses.append(f"r.{key} = ?")
-                params.append(int(filters[key]))
-        if filters.get("tag"):
-            clauses.append("EXISTS (SELECT 1 FROM review_tags rt WHERE rt.review_id = r.id AND rt.tag = ?)")
-            params.append(filters["tag"])
-        if filters.get("date_from"):
-            clauses.append("r.updated_at >= ?")
-            params.append(filters["date_from"])
-        if filters.get("date_to"):
-            clauses.append("r.updated_at <= ?")
-            params.append(filters["date_to"] + "T23:59:59Z")
-        if filters.get("search"):
-            clauses.append("(r.original_response LIKE ? OR r.corrected_response LIKE ? OR r.review_notes LIKE ? OR c.title LIKE ?)")
-            q = f"%{filters['search']}%"
-            params.extend([q, q, q, q])
-        rows = conn.execute(
-            f"""
-            SELECT r.*, c.title AS conversation_title, c.model_name, c.provider, c.channel, c.demo,
-                   m.turn_index, GROUP_CONCAT(rt.tag) AS tags_csv
-            FROM reviews r JOIN messages m ON m.id = r.message_id
-            JOIN conversations c ON c.id = m.conversation_id
-            LEFT JOIN review_tags rt ON rt.review_id = r.id
-            WHERE {' AND '.join(clauses)}
-            GROUP BY r.id ORDER BY r.updated_at DESC LIMIT 500
-            """,
-            params,
-        ).fetchall()
-        result = []
-        for row in rows:
-            item = dict(row)
-            item["tags"] = item.pop("tags_csv").split(",") if item.get("tags_csv") else []
-            result.append(item)
-        return result
+        return _reviewed_rows(conn, where, params, PAGE_MAX_LIMIT, 0)
+    finally:
+        conn.close()
+
+
+def reviewed_page(filters: dict[str, str], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+    limit, offset = page_request(filters)
+    where, params = _reviewed_filter(filters)
+    conn = connect(db_path)
+    try:
+        total = conn.execute(f"SELECT COUNT(*) {_REVIEWED_FROM} WHERE {where}", params).fetchone()[0]
+        items = _reviewed_rows(conn, where, params, limit, offset)
+        return {"items": items, "page": page_info(total, limit, offset, len(items))}
     finally:
         conn.close()
 
@@ -1129,6 +1224,7 @@ def sync_manual_export_history(db_path: Path | str = DB_PATH) -> int:
 
 
 def list_manual_data(filters: dict[str, str], db_path: Path | str = DB_PATH) -> dict[str, Any]:
+    limit, offset = page_request(filters)
     conn = connect(db_path)
     try:
         all_items: list[dict[str, Any]] = []
@@ -1174,6 +1270,9 @@ def list_manual_data(filters: dict[str, str], db_path: Path | str = DB_PATH) -> 
             all_items = [item for item in all_items if item.get("archived")]
         elif status == "excluded":
             all_items = [item for item in all_items if item.get("exclude_from_training")]
+        for key in ("language", "dialect", "style"):
+            if filters.get(key):
+                all_items = [item for item in all_items if str(item.get(key) or "") == filters[key]]
         for key in ("language_layer", "source", "origin", "domain"):
             if filters.get(key):
                 needle = filters[key].casefold()
@@ -1205,9 +1304,11 @@ def list_manual_data(filters: dict[str, str], db_path: Path | str = DB_PATH) -> 
         all_items.sort(key=key_functions.get(sort, key_functions["newest"]), reverse=reverse)
         facets = {
             key: sorted({str(item.get(key)) for item in all_items if item.get(key)})
-            for key in ("source", "origin", "domain")
+            for key in ("source", "origin", "domain", "language", "dialect", "style")
         }
-        return {"items": all_items[:500], "summary": summary, "facets": facets}
+        items = all_items[offset:offset + limit]
+        return {"items": items, "summary": summary, "facets": facets,
+                "page": page_info(len(all_items), limit, offset, len(items))}
     finally:
         conn.close()
 
@@ -1243,7 +1344,7 @@ def _validate_manual_payload(
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     common = {
-        "language_layer", "domain", "source", "source_type", "origin", "notes",
+        "language_layer", "language", "dialect", "style", "domain", "source", "source_type", "origin", "notes",
         "training_eligible", "exclude_from_training", "evaluation_only",
         "contains_sensitive_data", "contains_personal_data", "archived",
     }
@@ -1258,8 +1359,14 @@ def _validate_manual_payload(
         if key in data:
             payload[key] = data[key]
     layer = payload.get("language_layer", current.get("language_layer"))
-    if layer not in LANGUAGE_LAYERS:
+    if layer is not None and layer not in LANGUAGE_LAYERS:
         raise ValidationError("Invalid language layer")
+    if any(field in payload for field in language_taxonomy.FIELDS):
+        try:
+            normalized = language_taxonomy.normalize(payload, current)
+        except language_taxonomy.TaxonomyError as exc:
+            raise ValidationError(str(exc)) from None
+        payload.update({field: normalized[field] for field in language_taxonomy.FIELDS if field in payload})
     origin = payload.get("origin", current.get("origin"))
     if origin not in ORIGINS:
         raise ValidationError("Invalid origin")
@@ -1500,15 +1607,14 @@ def add_manual_sft(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[
     for index, message in enumerate(messages):
         if message.get("role") not in {"system", "user", "assistant"} or not str(message.get("content", "")).strip():
             raise ValidationError(f"Invalid message at position {index + 1}")
-    language_layer = data.get("language_layer") or "saudi_neutral"
-    if language_layer not in LANGUAGE_LAYERS:
+    if data.get("language_layer") and data["language_layer"] not in LANGUAGE_LAYERS:
         raise ValidationError("Invalid language layer")
     return _insert_training_item("manual_sft_items", {**data, "messages_json": json_dumps(messages)}, db_path)
 
 
 def add_direct_text(data: dict[str, Any], db_path: Path | str = DB_PATH) -> dict[str, Any]:
     _required(data, "text")
-    if data.get("language_layer") not in LANGUAGE_LAYERS:
+    if data.get("language_layer") and data["language_layer"] not in LANGUAGE_LAYERS:
         raise ValidationError("Invalid language layer")
     if data.get("source_type") not in {"human_written", "human_corrected", "synthetic_reviewed", "external_licensed"}:
         raise ValidationError("Invalid source type")
@@ -1538,9 +1644,17 @@ def _insert_training_item(table: str, data: dict[str, Any], db_path: Path | str)
     exclude = _bool(data.get("exclude_from_training"))
     eligible = 0 if evaluation_only or exclude else _bool(data.get("training_eligible"))
     now = utc_now()
+    # Language metadata: four dimensions; a legacy-only client gets the certain mapping of its layer.
+    described = {field: data.get(field) for field in language_taxonomy.FIELDS if data.get(field) not in (None, "")}
+    if not any(described.get(field) for field in ("language", "dialect", "style")):
+        described = {**language_taxonomy.from_legacy(data.get("language_layer")), **described}
+    try:
+        metadata = language_taxonomy.normalize(described)
+    except language_taxonomy.TaxonomyError as exc:
+        raise ValidationError(str(exc)) from None
     common = {
-        "language_layer": data.get("language_layer") or "saudi_neutral",
-        "domain": data.get("domain"),
+        "language_layer": data.get("language_layer") or None,
+        **metadata,
         "origin": origin,
         "notes": data.get("notes"),
         "training_eligible": eligible,
@@ -1567,10 +1681,13 @@ def _insert_training_item(table: str, data: dict[str, Any], db_path: Path | str)
         payload["source_type"] = payload.get("source_type") or (
             "synthetic_reviewed" if origin == "synthetic_reviewed" else "human_written"
         )
-    columns = list(payload)
     conn = connect(db_path)
     try:
         with transaction(conn):
+            # A database without migration 010 (the NajdiLab Core candidate's core schema) has no
+            # language/dialect/style columns; it keeps working with its legacy fields only.
+            existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+            columns = [column for column in payload if column in existing or column not in language_taxonomy.FIELDS]
             cursor = conn.execute(
                 f"INSERT INTO {table}({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})",
                 [payload[column] for column in columns],
@@ -1639,6 +1756,7 @@ def _review_training_records(conn: sqlite3.Connection, include_demo: bool, evalu
                 "channel": row["channel"],
                 "demo": row["demo"],
                 "tags": [x[0] for x in conn.execute("SELECT tag FROM review_tags WHERE review_id = ?", (row["id"],))],
+                **_review_collection_context(conn, row['message_id']),
             }
         )
     return records
@@ -1944,7 +2062,11 @@ def _split_export_entries(
     minimum_conversations = min(3, len(available_conversations))
     lower, goal, upper = _holdout_bounds(total_records)
     candidates = set(grouped) - selected_conversations
-    if total_records >= EXPORT_MIN_AUTO_SPLIT_RECORDS:
+    # Records the user marked "evaluation only" always go to evaluation. Whole conversations are held out
+    # automatically only while evaluation is still below the lower bound; once the user's own evaluation records
+    # reach it, nothing is forced on top (that pushed a version past 15% and made it impossible to build).
+    automatic_split = total_records >= EXPORT_MIN_AUTO_SPLIT_RECORDS and len(evaluation) < lower
+    if automatic_split:
         while candidates and (
             len(evaluation) < goal or len(selected_conversations) < minimum_conversations
         ):
@@ -1993,6 +2115,7 @@ def _split_export_entries(
         "evaluation_records_omitted_for_conversation_isolation": omitted,
         "available_conversation_count": len(available_conversations),
         "selected_evaluation_conversation_ids": sorted(selected_conversations),
+        "automatic_split": automatic_split,
     }
     return training, evaluation, split_stats
 
@@ -2037,6 +2160,11 @@ def _balance_multi_turn_records(
 
 
 def _validate_sft_record(item: dict[str, Any], filename: str) -> None:
+    if (item.get('context_complete') is False or
+        (item.get('context_scope') == 'continuous_consented_segment_only' or
+         str(item.get('conversation_id') or '').startswith('najdilab-chat:')) and
+        item.get('context_complete') is not True):
+        raise ValidationError(f"{filename}: incomplete collected context: {item.get('id')}")
     messages = item.get("messages")
     if not isinstance(messages, list) or not messages:
         raise ValidationError(f"{filename}: record has no messages: {item.get('id')}")
@@ -2088,6 +2216,19 @@ def _validate_export_records(
                 f"Export failed: exact duplicate between {target_owners[digest]} and {item.get('id')}"
             )
         target_owners[digest] = str(item.get("id"))
+    # Train/eval leakage by content: an evaluation answer that is also a training answer (or another evaluation
+    # answer) would measure memorisation, not quality. Conversation isolation alone does not catch it, because
+    # manual records have no conversation. Found by the 80-record acceptance run; present since explicit evaluation.
+    for item in evaluation:
+        target = _normalized(_training_target(item))
+        if not target:
+            raise ValidationError(f"Export failed: empty evaluation target in {item.get('id')}")
+        digest = hashlib.sha256(target.encode("utf-8")).hexdigest()
+        if digest in target_owners:
+            raise RecordValidationError(
+                f"Export failed: the same answer is in {target_owners[digest]} and in evaluation record {item.get('id')}",
+                str(item.get("id")), "EVALUATION_DUPLICATES_ANOTHER_RECORD")
+        target_owners[digest] = str(item.get("id"))
 
     training_conversations = {
         conversation_id
@@ -2105,12 +2246,18 @@ def _validate_export_records(
             "Export failed: conversation_id leakage between training and evaluation: "
             + ", ".join(conversation_overlap)
         )
+    # Whenever conversations were held out automatically, evaluation must span at least three conversations and
+    # stay within 10-15% of the version. Manual records have no conversation and are never given one: without three
+    # conversations the version is training-only, and its manifest says so. Records the user marked "evaluation only"
+    # that already reach the lower bound are the evaluation set as chosen; leakage checks apply in every case.
+    automatic = split_stats.get("automatic_split", True)
     if (
-        split_stats["available_conversation_count"] >= 3
+        automatic
+        and split_stats["available_conversation_count"] >= 3
         and len(evaluation_conversations) < 3
     ):
         raise ValidationError("Export failed: evaluation must span at least three conversations")
-    if split_stats["eligible_record_count"] >= EXPORT_MIN_AUTO_SPLIT_RECORDS and not (
+    if automatic and split_stats["eligible_record_count"] >= EXPORT_MIN_AUTO_SPLIT_RECORDS and split_stats["available_conversation_count"] >= 3 and not (
         split_stats["evaluation_target_lower"]
         <= len(evaluation)
         <= split_stats["evaluation_target_upper"]
@@ -2188,13 +2335,198 @@ def _validate_jsonl_files(temp_dir: Path, files: dict[str, list[dict[str, Any]]]
             raise ValidationError(f"{filename}: written record count does not match the expected count")
 
 
+def _plan_fingerprint(training_entries, explicit_evaluation_entries) -> str:
+    """Identity of exactly what a build would read: the chosen records and their current content."""
+    payload = sorted((kind, json_dumps(item)) for kind, item in [*training_entries, *[("eval:" + k, i) for k, i in explicit_evaluation_entries]])
+    return hashlib.sha256(json_dumps(payload).encode("utf-8")).hexdigest()
+
+
+def _plan_version(training_entries, explicit_evaluation_entries, chosen, include_demo):
+    """Everything a version build decides before writing: split, balancing, de-duplication and validation.
+    The preview and the build both call this, so they cannot disagree on the same records (QA P1)."""
+    training_entries = [(kind, item) for kind, item in training_entries if item.get('id') in chosen]
+    explicit_evaluation_entries = [(kind, item) for kind, item in explicit_evaluation_entries if item.get('id') in chosen]
+    training_entries_chosen, explicit_chosen = list(training_entries), list(explicit_evaluation_entries)
+    # Manifest summaries describe the records in this version (training candidates, as before).
+    reviews = [item for kind, item in training_entries if str(item.get('id', '')).startswith('review:')]
+    manual = [item for kind, item in training_entries if str(item.get('id', '')).startswith('manual_sft_items:')]
+    other_manual = [item for kind, item in training_entries if kind in ('direct_language', 'preference_pairs')]
+    training_entries, evaluation, split_stats = _split_export_entries(
+        training_entries, explicit_evaluation_entries
+    )
+    training_sft = [item for kind, item in training_entries if kind == "sft"]
+    multi_turn_before_balancing = [
+        item for item in training_sft if len(item.get("messages", [])) > 2
+    ]
+    balanced_multi_turn, balance_stats = _balance_multi_turn_records(
+        multi_turn_before_balancing
+    )
+    raw_training_files = {
+        "sft.jsonl": [item for item in training_sft if len(item.get("messages", [])) <= 2],
+        "multi_turn.jsonl": balanced_multi_turn,
+        "direct_language.jsonl": [
+            item for kind, item in training_entries if kind == "direct_language"
+        ],
+        "preference_pairs.jsonl": [
+            item for kind, item in training_entries if kind == "preference_pairs"
+        ],
+    }
+    training_files, dedup = _duplicate_analysis(raw_training_files, remove_exact=True)
+    final_multi_counts = Counter(
+        conversation_id
+        for item in training_files["multi_turn.jsonl"]
+        if (conversation_id := _conversation_id(item)) is not None
+    )
+    balance_stats["multi_turn_records_after_export"] = len(training_files["multi_turn.jsonl"])
+    balance_stats["max_multi_turn_records_per_conversation_after_export"] = max(
+        final_multi_counts.values(), default=0
+    )
+    validation = _validate_export_records(
+        training_files, evaluation, include_demo, split_stats, balance_stats
+    )
+    automatic_count = sum(item.get("holdout_reason") == "deterministic_conversation_split" for item in evaluation)
+    split_stats["evaluation_policy"] = (
+        ("explicit_plus_automatic" if automatic_count else "explicit_evaluation_only") if explicit_chosen
+        else "automatic_holdout" if evaluation else "training_only")
+    if not evaluation:
+        split_stats["evaluation_policy_reason"] = (
+            "fewer than 20 records" if split_stats["eligible_record_count"] < EXPORT_MIN_AUTO_SPLIT_RECORDS
+            else "fewer than three independent conversations; manual records are never given a conversation")
+    return {"training_files": training_files, "evaluation": evaluation, "split_stats": split_stats, "balance_stats": balance_stats,
+            "dedup": dedup, "validation": validation, "reviews": reviews, "manual": manual, "other_manual": other_manual,
+            "fingerprint": _plan_fingerprint(training_entries_chosen, explicit_chosen)}
+
+
+def _gather_export_entries(conn, db_path, include_demo):
+    """Every eligible record as (kind, record): training candidates and explicit evaluation-only records.
+    The single source for building a version and for previewing one."""
+    dataset = training_dataset(db_path, include_demo)
+    training_entries = (
+        [("sft", _annotate_sft_record(item)) for item in dataset["reviews"] + dataset["manual_sft"]]
+        + [("direct_language", item) for item in dataset["direct_language"]]
+        + [("preference_pairs", item) for item in dataset["preference_pairs"]]
+    )
+    explicit_evaluation_entries = (
+        [("sft", _annotate_sft_record(item)) for item in (
+            _review_training_records(conn, include_demo, evaluation=True)
+            + _manual_records(conn, "manual_sft_items", include_demo, evaluation=True))]
+        + [("direct_language", item) for item in _manual_records(conn, "direct_language_texts", include_demo, evaluation=True)]
+        + [("preference_pairs", item) for item in _manual_records(conn, "preference_pairs", include_demo, evaluation=True)]
+    )
+    return training_entries, explicit_evaluation_entries
+
+
+def _preview_text(value, limit=280):
+    text = str(value or "")
+    return text if len(text) <= limit else text[:limit] + "…"
+
+
+def prepare_records(db_path: Path | str = DB_PATH, include_demo: bool = False) -> dict[str, Any]:
+    """The eligible records a training data version can contain, with a short preview of each."""
+    conn = connect(db_path)
+    try:
+        training, evaluation = _gather_export_entries(conn, db_path, include_demo)
+    finally:
+        conn.close()
+    rows = []
+    for split, entries in (("training", training), ("evaluation_only", evaluation)):
+        for kind, item in entries:
+            messages = item.get("messages") or []
+            context = item.get("prompt_context") or []
+            if kind == "sft":
+                users = [m.get("content") for m in messages if isinstance(m, dict) and m.get("role") == "user"]
+                question, answer = (users[-1] if users else ""), (messages[-1].get("content") if messages else "")
+                record_type = "multi_turn" if len(messages) > 2 else "sft"
+            elif kind == "direct_language":
+                question, answer, record_type = "", item.get("text"), "direct_language"
+            else:
+                question = " ".join(str(m.get("content") or "") for m in context if isinstance(m, dict)) if isinstance(context, list) else context
+                answer, record_type = item.get("preferred_response"), "preference_pair"
+            rows.append({"id": item.get("id"), "type": record_type, "split": split,
+                         "source": "collected" if str(item.get("id", "")).startswith("review:") else "manual",
+                         "conversation_id": item.get("conversation_id"), "turns": len(messages) or None,
+                         "status": item.get("review_status") or item.get("origin"),
+                         **{field: item.get(field) for field in ("language", "dialect", "style", "domain", "language_layer")},
+                         "question": _preview_text(question), "answer": _preview_text(answer)})
+    rows.sort(key=lambda r: r["id"] or "")
+    return {"items": rows, "count": len(rows)}
+
+
+def prepare_check(selection: list[str] | None, db_path: Path | str = DB_PATH, include_demo: bool = False) -> dict[str, Any]:
+    """Every check and decision of a version build, for exactly these records, without writing anything.
+    Uses the same selection, split, de-duplication and validation as create_export (QA P1)."""
+    readiness = export_readiness(db_path, include_demo=include_demo, selection=selection)
+    chosen = readiness.get("selection")
+    plan, build_error = None, None
+    if chosen is not None:
+        conn = connect(db_path)
+        try:
+            training, explicit = _gather_export_entries(conn, db_path, include_demo)
+        finally:
+            conn.close()
+        try:
+            plan = _plan_version(training, explicit, set(chosen), include_demo)
+        except ValidationError as exc:
+            build_error = exc
+    blocking = list(readiness.get("blocking_findings") or [])
+    if build_error:
+        blocking.append({"code": getattr(build_error, "code", "BUILD_RULE"), "sample_id": getattr(build_error, "sample_id", None),
+                         "reason": str(build_error), "severity": "ERROR", "blocking": True, "confirmed": True})
+    record_problems = {f["sample_id"] for f in blocking if f.get("sample_id") in set(chosen or [])}
+    global_problems = [f for f in blocking if f.get("sample_id") not in set(chosen or [])]
+    status = "ready" if not blocking else "needs_attention" if chosen and not any(
+        f["code"] in {"SELECTION_INVALID", "NO_EXPORTABLE_DATA", "DATABASE_UNAVAILABLE", "EXPORT_SOURCE_DATA_UNAVAILABLE"} for f in blocking) else "rejected"
+    summary = {"selected": len(chosen or []), "rejected_records": len(record_problems), "accepted": len(chosen or []) - len(record_problems),
+               "blocking_outside_records": len(global_problems)}
+    if plan:
+        files = {name: len(items) for name, items in plan["training_files"].items()}
+        entries = [item for items in plan["training_files"].values() for item in items]
+        summary.update(
+            files=files, training=sum(files.values()), evaluation=len(plan["evaluation"]),
+            evaluation_policy=plan["split_stats"]["evaluation_policy"], evaluation_policy_reason=plan["split_stats"].get("evaluation_policy_reason"),
+            evaluation_conversations=len({c for i in plan["evaluation"] if (c := _conversation_id(i))}),
+            shared_conversations=len({c for i in entries if (c := _conversation_id(i))} & {c for i in plan["evaluation"] if (c := _conversation_id(i))}),
+            exact_duplicates_removed=plan["dedup"].get("exact_duplicates_removed", 0), near_duplicates=plan["dedup"].get("near_duplicate_count", 0),
+            languages=dict(Counter(str(i.get("language") or "not recorded") for i in entries)),
+            multi_turn_balance=plan["balance_stats"])
+        # An explicit evaluation set is used as chosen; outside the usual 10-15% the user is told, not blocked.
+        total = summary["training"] + summary["evaluation"]
+        share = summary["evaluation"] / total if total else 0
+        if summary["evaluation_policy"] == "explicit_evaluation_only" and not 0.10 <= share <= 0.15:
+            summary["evaluation_note"] = (
+                "Evaluation is under 10% of this version. It is used as you chose; more evaluation records give a steadier measure."
+                if share < 0.10 else "Evaluation is over 15% of this version. It is used as you chose; it leaves fewer records for training.")
+    return {"status": status, "readiness": {**readiness, "blocking_findings": blocking, "ok": not blocking},
+            "summary": summary, "fingerprint": plan["fingerprint"] if plan and not blocking else None,
+            "note": "Nothing was written. Creating the version repeats these exact steps and refuses if anything changed."}
+
+
+def _serialize_export(function):
+    @wraps(function)
+    def locked(db_path=DB_PATH, exports_dir=None, include_demo=False, filters=None,
+               selection=None, expected_fingerprint=None):
+        # Refused exports must not create storage, including a coordination file.
+        # The implementation repeats readiness after acquiring the mutation lock.
+        readiness = export_readiness(db_path, include_demo=include_demo, selection=selection)
+        if not readiness["ok"]:
+            raise ExportReadinessError(readiness)
+        with storage_lock(Path(exports_dir or ROOT / 'exports')):
+            return function(db_path, exports_dir, include_demo, filters, selection, expected_fingerprint)
+    return locked
+
+
+@_serialize_export
 def create_export(
     db_path: Path | str = DB_PATH,
     exports_dir: Path | str | None = None,
     include_demo: bool = False,
     filters: dict[str, Any] | None = None,
+    selection: list[str] | None = None,
+    expected_fingerprint: str | None = None,
 ) -> dict[str, Any]:
-    readiness = export_readiness(db_path, include_demo=include_demo)
+    # `selection`: exactly these eligible records (ids as exported, e.g. "review:12", "manual_sft_items:3");
+    # None keeps every eligible record. Problems outside the selection are reported but cannot block it.
+    readiness = export_readiness(db_path, include_demo=include_demo, selection=selection)
     if not readiness["ok"]:
         raise ExportReadinessError(readiness)
     exports_dir = Path(exports_dir or ROOT / "exports")
@@ -2202,38 +2534,20 @@ def create_export(
     conn = connect(db_path)
     try:
         with transaction(conn):
-            privacy = export_privacy(conn,include_demo=include_demo)
+            try:
+                chosen = set(resolve_selection(conn, selection, include_demo=include_demo))
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from None
+            if chosen != set(readiness["selection"]):
+                raise ValidationError("The eligible records changed while the version was being prepared. Check again.")
+            privacy = export_privacy(conn, include_demo=include_demo, selection=sorted(chosen))
             if not privacy['ok']:
                 raise ExportReadinessError(privacy)
             number = conn.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM dataset_versions").fetchone()[0]
             version = f"gold-v{number:03d}"
-            if (exports_dir / version).exists():
+            if (exports_dir / version).exists() or deleted_identity_reserved(exports_dir, version):
                 raise ValidationError("The version directory already exists")
-            dataset = training_dataset(db_path, include_demo)
-            reviews = dataset["reviews"]
-            manual = dataset["manual_sft"]
-            training_entries = (
-                [("sft", _annotate_sft_record(item)) for item in reviews + manual]
-                + [("direct_language", item) for item in dataset["direct_language"]]
-                + [("preference_pairs", item) for item in dataset["preference_pairs"]]
-            )
-            explicit_evaluation_entries = (
-                [
-                    ("sft", _annotate_sft_record(item))
-                    for item in (
-                        _review_training_records(conn, include_demo, evaluation=True)
-                        + _manual_records(conn, "manual_sft_items", include_demo, evaluation=True)
-                    )
-                ]
-                + [
-                    ("direct_language", item)
-                    for item in _manual_records(conn, "direct_language_texts", include_demo, evaluation=True)
-                ]
-                + [
-                    ("preference_pairs", item)
-                    for item in _manual_records(conn, "preference_pairs", include_demo, evaluation=True)
-                ]
-            )
+            training_entries, explicit_evaluation_entries = _gather_export_entries(conn, db_path, include_demo)
             archive = {
                 "conversations": [dict(x) for x in conn.execute("SELECT * FROM conversations")],
                 "messages": [dict(x) for x in conn.execute("SELECT * FROM messages")],
@@ -2243,39 +2557,12 @@ def create_export(
                 "direct_language_texts": [dict(x) for x in conn.execute("SELECT * FROM direct_language_texts")],
                 "preference_pairs": [dict(x) for x in conn.execute("SELECT * FROM preference_pairs")],
             }
-        training_entries, evaluation, split_stats = _split_export_entries(
-            training_entries, explicit_evaluation_entries
-        )
-        training_sft = [item for kind, item in training_entries if kind == "sft"]
-        multi_turn_before_balancing = [
-            item for item in training_sft if len(item.get("messages", [])) > 2
-        ]
-        balanced_multi_turn, balance_stats = _balance_multi_turn_records(
-            multi_turn_before_balancing
-        )
-        raw_training_files = {
-            "sft.jsonl": [item for item in training_sft if len(item.get("messages", [])) <= 2],
-            "multi_turn.jsonl": balanced_multi_turn,
-            "direct_language.jsonl": [
-                item for kind, item in training_entries if kind == "direct_language"
-            ],
-            "preference_pairs.jsonl": [
-                item for kind, item in training_entries if kind == "preference_pairs"
-            ],
-        }
-        training_files, dedup = _duplicate_analysis(raw_training_files, remove_exact=True)
-        final_multi_counts = Counter(
-            conversation_id
-            for item in training_files["multi_turn.jsonl"]
-            if (conversation_id := _conversation_id(item)) is not None
-        )
-        balance_stats["multi_turn_records_after_export"] = len(training_files["multi_turn.jsonl"])
-        balance_stats["max_multi_turn_records_per_conversation_after_export"] = max(
-            final_multi_counts.values(), default=0
-        )
-        validation = _validate_export_records(
-            training_files, evaluation, include_demo, split_stats, balance_stats
-        )
+        plan = _plan_version(training_entries, explicit_evaluation_entries, chosen, include_demo)
+        if expected_fingerprint is not None and plan["fingerprint"] != expected_fingerprint:
+            raise ValidationError("The chosen records or their content changed after the check. Check again before creating the version.")
+        training_files, evaluation, split_stats = plan["training_files"], plan["evaluation"], plan["split_stats"]
+        balance_stats, dedup, validation = plan["balance_stats"], plan["dedup"], plan["validation"]
+        reviews, manual, other_manual = plan["reviews"], plan["manual"], plan["other_manual"]
         temp_dir = Path(tempfile.mkdtemp(prefix=f".{version}-", dir=exports_dir))
         final_dir = exports_dir / version
         try:
@@ -2296,10 +2583,10 @@ def create_export(
             status_counts = Counter(item.get("review_status") for item in reviews)
             source_models = sorted({item.get("model_name") for item in reviews if item.get("model_name")})
             language_layers = sorted(
-                {item.get("language_layer") for item in manual + dataset["direct_language"] + dataset["preference_pairs"] if item.get("language_layer")}
+                {item.get("language_layer") for item in manual + other_manual if item.get("language_layer")}
             )
             domains = sorted(
-                {item.get("domain") for item in manual + dataset["direct_language"] + dataset["preference_pairs"] if item.get("domain")}
+                {item.get("domain") for item in manual + other_manual if item.get("domain")}
             )
             excluded_count = conn.execute(
                 "SELECT (SELECT COUNT(*) FROM reviews WHERE exclude_from_training = 1) + "
@@ -2323,6 +2610,7 @@ def create_export(
             manifest = {
                 "version": version,
                 "state": "Frozen",
+                "ownership": {"managed_reference_policy": 1},
                 "privacy_policy": "no_flagged_or_excluded_context_v1",
                 "created_at": utc_now(),
                 "record_count": sum(len(items) for items in files.values()),
@@ -2352,8 +2640,17 @@ def create_export(
                 "ignored_count": lifecycle_counts["ignored_count"],
                 "deleted_count": lifecycle_counts["deleted_count"],
                 "filters_used": {**(filters or {}), "include_demo": include_demo},
+                "selection": {"mode": "all_eligible" if selection is None else "explicit", "records": sorted(chosen)},
                 "validation": validation,
             }
+            # Diagnostics belong to the version from its first moment: generate them in the staging folder,
+            # bound to this version name and the training files' fingerprint, before it is published as
+            # Frozen (earlier versions needed a derived Draft just to obtain them).
+            from .dataset_platform import _generate_training_diagnostics
+            _generate_training_diagnostics(temp_dir, manifest)
+            # Diagnostics are part of the version's content: hash them like every other file.
+            for name in ("loss-mask-validation.json", "balancing_report.json"):
+                manifest["sha256"][name] = hashlib.sha256((temp_dir / name).read_bytes()).hexdigest()
             (temp_dir / "manifest.json").write_text(
                 json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
             )
@@ -2397,7 +2694,10 @@ def create_export(
 def list_exports(db_path: Path | str = DB_PATH) -> list[dict[str, Any]]:
     conn = connect(db_path)
     try:
-        return [dict(row) for row in conn.execute("SELECT * FROM dataset_versions ORDER BY id DESC")]
+        return [dict(row) for row in conn.execute(
+            "SELECT d.* FROM dataset_versions d LEFT JOIN gold_version_deletions g ON g.dataset_version_id=d.id "
+            "WHERE g.status IS NULL OR g.status<>'deleted' ORDER BY d.id DESC"
+        )]
     finally:
         conn.close()
 

@@ -7,9 +7,12 @@ from pathlib import Path
 from typing import Any
 
 from .db import DB_PATH
+from .collection_context import collection_context
 
 CORRECTIONS = {"FULL_CORRECTION", "DIALECT_CORRECTION", "CONTENT_CORRECTION"}
 DECISIONS = {"APPROVED", *CORRECTIONS}
+INACTIVE_STATUSES = {"IGNORED", "DELETED"}
+MANUAL_TABLES = ("manual_sft_items", "direct_language_texts", "preference_pairs")
 INACTIVE = {"IGNORED", "DELETED"}
 
 
@@ -145,6 +148,12 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
                 "A correction from a previous decision is retained but remains inactive until the restored review is resolved",
                 "WARNING", confirmed=False,
             ))
+        elif status in INACTIVE_STATUSES and corrected is not None:
+            findings.append(_finding(
+                "REVIEW_PRESERVED_CORRECTION_INACTIVE", sample_id,
+                "This review was ignored or deleted; its earlier correction is kept for a possible restore and is never exported",
+                "WARNING", confirmed=False,
+            ))
         elif status not in CORRECTIONS and corrected is not None:
             findings.append(_finding("REVIEW_CORRECTION_STATUS_CONFLICT", sample_id, "Corrected text exists with a status that does not represent a correction", "ERROR", confirmed=True))
         if bool(row["training_eligible"]) and status not in DECISIONS:
@@ -158,7 +167,11 @@ def review_integrity(conn: sqlite3.Connection, *, include_demo: bool = False) ->
             events = conn.execute(
                 "SELECT sequence,to_status,source_sha256 FROM review_events WHERE review_id=? ORDER BY sequence", (row["id"],)
             ).fetchall()
-            if not events:
+            if not events and status == "PENDING" and int(row["id"]) > legacy_max_review_id:
+                # A review that was never decided has no transition to audit yet; REVIEW_PENDING already blocks it.
+                # Reporting a missing event as well showed one waiting review as two problems, one of them technical.
+                pass
+            elif not events:
                 if int(row["id"]) <= legacy_max_review_id:
                     findings.append(_finding(
                         "REVIEW_HISTORY_UNVERIFIABLE", sample_id,
@@ -201,9 +214,50 @@ def _result(findings: list[dict[str, Any]], include_demo: bool) -> dict[str, Any
     }
 
 
-def export_privacy(conn: sqlite3.Connection, *, include_demo: bool = False) -> dict[str, Any]:
+def eligible_records(conn: sqlite3.Connection, *, include_demo: bool = False) -> list[str]:
+    """Every record a build may include today: active, eligible (training or evaluation), not excluded."""
+    ids = [f"review:{row[0]}" for row in conn.execute(
+        """SELECT r.id FROM reviews r JOIN messages m ON m.id=r.message_id JOIN conversations c ON c.id=m.conversation_id
+           WHERE r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')
+           AND r.exclude_from_training=0 AND (r.training_eligible=1 OR r.evaluation_only=1) AND (?=1 OR c.demo=0)
+           ORDER BY r.id""", (int(include_demo),))]
+    for table in MANUAL_TABLES:
+        ids += [f"{table}:{row[0]}" for row in conn.execute(
+            f"""SELECT id FROM {table} WHERE archived=0 AND exclude_from_training=0 AND deleted_at IS NULL
+                AND ignored_at IS NULL AND (training_eligible=1 OR evaluation_only=1) AND (?=1 OR demo=0) ORDER BY id""",
+            (int(include_demo),))]
+    return ids
+
+
+def resolve_selection(conn: sqlite3.Connection, selection, *, include_demo: bool = False) -> list[str]:
+    """The records a build includes: all eligible records, or exactly the chosen ones (each must be eligible)."""
+    eligible = eligible_records(conn, include_demo=include_demo)
+    if selection is None:
+        return eligible
+    if not isinstance(selection, (list, tuple)) or not all(isinstance(x, str) for x in selection):
+        raise ValueError("selection must be a list of record ids")
+    unknown = sorted(set(selection) - set(eligible))
+    if unknown:
+        raise ValueError("Only eligible, active records can be selected: " + ", ".join(unknown[:5]))
+    return [x for x in eligible if x in set(selection)]
+
+
+def export_privacy(conn: sqlite3.Connection, *, include_demo: bool = False, selection: list[str] | None = None) -> dict[str, Any]:
     """Block a whole window; never trim excluded/private context silently."""
     findings = []
+    chosen = None if selection is None else set(selection)
+    for review_id, source, metadata in conn.execute('''SELECT r.id, c.source, c.metadata_json FROM reviews r
+        JOIN messages m ON m.id=r.message_id JOIN conversations c ON c.id=m.conversation_id
+        WHERE r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')
+        AND r.exclude_from_training=0 AND (r.training_eligible=1 OR r.evaluation_only=1)
+        AND (?=1 OR c.demo=0)''', (int(include_demo),)):
+        if chosen is not None and f'review:{review_id}' not in chosen:
+            continue
+        if collection_context({'source': source, 'metadata_json': metadata}).get('context_complete') is False:
+            findings.append(_finding('EXPORT_INCOMPLETE_CONTEXT', f'review:{review_id}',
+                'The selected collected chat has missing or unverifiable earlier context. '
+                'Review remains available; training and evaluation export require a complete consented context.',
+                'ERROR', confirmed=True))
     rows = conn.execute('''SELECT DISTINCT r.id FROM reviews r
         JOIN messages m ON m.id=r.message_id JOIN conversations c ON c.id=m.conversation_id
         WHERE r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')
@@ -215,6 +269,8 @@ def export_privacy(conn: sqlite3.Connection, *, include_demo: bool = False) -> d
                  OR pr.review_status IN ('IGNORED','DELETED') OR (r.training_eligible=1 AND pr.evaluation_only=1))
         )''', (int(include_demo),)).fetchall()
     for row in rows:
+        if chosen is not None and f'review:{row[0]}' not in chosen:
+            continue
         findings.append(_finding('EXPORT_PRIVATE_CONTEXT',f'review:{row[0]}',
             'A selected target or its full context contains privacy-flagged, excluded, deleted or evaluation-only data. Resolve the review or exclude the whole target; context was not trimmed.',
             'ERROR',confirmed=True))
@@ -222,12 +278,14 @@ def export_privacy(conn: sqlite3.Connection, *, include_demo: bool = False) -> d
         for row in conn.execute(f'''SELECT id FROM {table} WHERE archived=0 AND exclude_from_training=0
             AND deleted_at IS NULL AND ignored_at IS NULL AND (training_eligible=1 OR evaluation_only=1)
             AND (contains_personal_data=1 OR contains_sensitive_data=1) AND (?=1 OR demo=0)''', (int(include_demo),)):
+            if chosen is not None and f'{table}:{row[0]}' not in chosen:
+                continue
             findings.append(_finding('EXPORT_PRIVATE_TARGET',f'{table}:{row[0]}',
                 'An eligible manual record has a privacy flag; resolve or exclude it before export.', 'ERROR',confirmed=True))
     return _result(findings,include_demo)
 
 
-def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = False) -> dict[str, Any]:
+def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = False, selection: list[str] | None = None) -> dict[str, Any]:
     path = Path(db_path)
     try:
         conn = sqlite3.connect(f"file:{path.resolve().as_posix()}?mode=ro", uri=True)
@@ -238,22 +296,14 @@ def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = Fals
     try:
         result = review_integrity(conn, include_demo=include_demo)
         try:
-            privacy = export_privacy(conn,include_demo=include_demo)
-            result = _result([*result['findings'],*privacy['findings']],include_demo)
-            exportable = conn.execute(
-                """
-                SELECT
-                  (SELECT COUNT(*) FROM reviews r
-                     JOIN messages m ON m.id=r.message_id
-                     JOIN conversations c ON c.id=m.conversation_id
-                     WHERE r.review_status IN ('APPROVED','FULL_CORRECTION','DIALECT_CORRECTION','CONTENT_CORRECTION')
-                     AND r.exclude_from_training=0 AND (r.training_eligible=1 OR r.evaluation_only=1)
-                     AND (?=1 OR c.demo=0))
-                + (SELECT COUNT(*) FROM manual_sft_items WHERE archived=0 AND exclude_from_training=0 AND deleted_at IS NULL AND ignored_at IS NULL AND (training_eligible=1 OR evaluation_only=1))
-                + (SELECT COUNT(*) FROM direct_language_texts WHERE archived=0 AND exclude_from_training=0 AND deleted_at IS NULL AND ignored_at IS NULL AND (training_eligible=1 OR evaluation_only=1))
-                + (SELECT COUNT(*) FROM preference_pairs WHERE archived=0 AND exclude_from_training=0 AND deleted_at IS NULL AND ignored_at IS NULL AND (training_eligible=1 OR evaluation_only=1))
-                """
-            , (int(include_demo),)).fetchone()[0]
+            try:
+                chosen = resolve_selection(conn, selection, include_demo=include_demo)
+            except ValueError as exc:
+                return _result([*result["findings"], _finding("SELECTION_INVALID", None, str(exc), "ERROR", confirmed=True)], include_demo)
+            privacy = export_privacy(conn, include_demo=include_demo, selection=chosen)
+            # Review integrity stays fail-closed for the whole database; privacy is checked for the records exported.
+            result = _result([*result['findings'], *privacy['findings']], include_demo)
+            exportable = len(chosen)
         except sqlite3.Error as exc:
             extra = _finding("EXPORT_SOURCE_DATA_UNAVAILABLE", None, "Unable to verify export data sources", "ERROR", confirmed=True,
                              details={"error": type(exc).__name__})
@@ -263,6 +313,7 @@ def export_readiness(db_path: Path | str = DB_PATH, *, include_demo: bool = Fals
                 "NO_EXPORTABLE_DATA", None, "No reviewed records or manual data are eligible for a build", "ERROR", confirmed=True
             )], include_demo)
         result["exportable_records"] = int(exportable)
+        result["selection"] = chosen
         result["policy"] = "fail_closed_confirmed_errors; ambiguous_findings_warn_only; frozen_releases_unchanged"
         return result
     finally:

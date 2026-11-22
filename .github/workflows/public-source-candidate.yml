@@ -1,10 +1,18 @@
 name: Source-only candidate
+# Same trigger policy as Source checks: no automatic heavy runs for draft PR pushes.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   candidate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +51,9 @@ jobs:
               stream.write('NAJDILAB_BROWSER_EXECUTABLE=' + browser + '\n')
               stream.write('NODE_PATH=' + str(Path(os.environ['GITHUB_WORKSPACE']).parent / 'core-browser-tools/node_modules') + '\n')
       - run: node tests/harness.cjs
+        timeout-minutes: 10
         working-directory: ../candidate
       - run: node tests/browser.cjs .
+        timeout-minutes: 10
         working-directory: ../candidate
       - run: python scripts/check_docs.py

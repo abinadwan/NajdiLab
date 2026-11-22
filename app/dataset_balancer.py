@@ -176,7 +176,9 @@ def analyze_dataset_balance(version: str) -> dict[str, Any]:
     conversation_extra, conversation_groups = _duplicate_extra(str(row.get("conversation_id")) for _, _, row in typed_rows if row.get("conversation_id"))
     try:
         health = dataset_health(version); integrity_warnings = health.get("warnings", []); eval_integrity = health.get("evaluation_integrity", {})
-    except DatasetPlatformError:
+    except DatasetPlatformError as exc:
+        if exc.code == "INVALID_DIAGNOSTICS" or (exc.path and Path(exc.path).name == "balancing_report.json"):
+            raise
         integrity_warnings, eval_integrity = [], {}
 
     warnings = []

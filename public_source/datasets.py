@@ -14,7 +14,8 @@ from .core_reviews import ReviewError
 from .review_integrity import ExportReadinessError, export_readiness
 
 DATA_FILES = {'sft.jsonl', 'multi_turn.jsonl', 'direct_language.jsonl', 'preference_pairs.jsonl', 'evaluation_holdout.jsonl'}
-INTERNAL_FILES = DATA_FILES | {'full_archive.json', 'dedup_report.json'}
+# Diagnostics written when a version is created (V2.2.0) are hashed in its manifest like the data files.
+INTERNAL_FILES = DATA_FILES | {'full_archive.json', 'dedup_report.json', 'loss-mask-validation.json', 'balancing_report.json'}
 MAX_FILE_BYTES = 16 * 1024 * 1024
 
 

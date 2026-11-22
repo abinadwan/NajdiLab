@@ -1,5 +1,7 @@
 # Review restriction integrity remediation
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 Approved source: `b074bd3f5711dff4ab7e1bb245a615cf72f924e8` on
 `refactor/remove-legacy-training` (Draft PR #13). Work is isolated on
 `fix/review-restriction-integrity`; no push, PR, merge or installed update is authorized.
@@ -196,11 +198,11 @@ prove mobile/small-window usability, or establish the precise rendering cause
 of the default-viewport click failure. Separate responsive acceptance is still
 needed; it is outside this narrow follow-up.
 
-Run from `C:\Users\Admin\Documents\NajdiLab-PR14` with the existing environment:
+Run from `%USERPROFILE%\Documents\NajdiLab-PR14` with the existing environment:
 
 ```powershell
-$env:NODE_PATH='C:\Users\Admin\Documents\NajdiLab-PR14-BrowserTools\node_modules'
-$env:PYTHON='C:\Users\Admin\Documents\NajdiLab-Test\.venv\Scripts\python.exe'
+$env:NODE_PATH='%USERPROFILE%\Documents\NajdiLab-PR14-BrowserTools\node_modules'
+$env:PYTHON='%USERPROFILE%\Documents\NajdiLab-Test\.venv\Scripts\python.exe'
 $env:PYTHONDONTWRITEBYTECODE='1'
 $env:NAJDILAB_BROWSER_EXECUTABLE='C:\Program Files\Google\Chrome\Application\chrome.exe'
 $env:NAJDILAB_DISPOSABLE_OLLAMA='0'

@@ -18,11 +18,14 @@ def test_current_navigation_has_chat_without_training_execution_controls():
                    '/api/v1/training-dataset', '/api/v1/training-data/'):
         assert marker not in js
     assert 'id="chat-collect"' in html and 'id="chat-stop"' in html
-    assert 'No system/developer prompts' in html
+    # Chat V2 wording of the raw-chat disclosure (empty state and settings drawer).
+    assert 'NajdiLab adds no system prompt, tools, retrieval or memory' in html
+    assert 'no system or developer prompt from NajdiLab' in html
 
 
 def test_dataset_forms_keep_persistent_flags_and_use_dataset_api_names():
     html = (ROOT / 'static/index.html').read_text(encoding='utf-8')
+    legacy = (ROOT / 'static/advanced-workspace.html').read_text(encoding='utf-8')
     js = (ROOT / 'static/app.js').read_text(encoding='utf-8')
     assert 'id="training-eligible"' in html
     assert 'id="exclude-training"' in html
@@ -31,10 +34,11 @@ def test_dataset_forms_keep_persistent_flags_and_use_dataset_api_names():
                    '/api/v1/manual-data/sft', '/api/v1/manual-data/direct', '/api/v1/manual-data/preference'):
         assert marker in js
     for marker in ('Dataset records', 'Dataset eligible', 'Exclude from dataset selection'):
-        assert marker in html
+        assert marker in html + legacy
     for marker in ('Training data', 'Training eligible', 'Exclude from training'):
         assert marker not in html and marker not in js
-    assert 'id="unsloth-create"' in html
+    assert 'id="unsloth-create"' not in html
+    assert 'id="unsloth-create"' in legacy
 
 
 def test_no_retired_comparison_or_training_styles_remain():

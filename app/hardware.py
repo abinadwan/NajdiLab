@@ -7,7 +7,7 @@ import subprocess
 
 from .db import utc_now
 
-CANDIDATES = (8192, 16384, 32768, 65536)
+CANDIDATES = (4096, 8192, 16384, 32768, 65536)
 # Rule-of-thumb margin for graph/scratch buffers and allocator overhead. It is
 # not measured per model, which is why every result is labeled an estimate.
 HEADROOM = 1.15
@@ -42,7 +42,8 @@ def kv_bytes_per_token(kv):
 def recommendation(snapshot, limits=None):
     """Keeps model maximum, runtime setting, estimate and measurement separate."""
     limits = limits or {}
-    evidence = {'model_max_context':limits.get('model_max_context'), 'runtime_context':limits.get('runtime_context'),
+    evidence = {'budget_ceiling':limits.get('budget_ceiling'),
+                'model_max_context':limits.get('model_max_context'), 'runtime_context':limits.get('runtime_context'),
                 'measured':limits.get('loaded'), 'candidates':[]}
     insufficient = {**evidence, 'status':'INSUFFICIENT_EVIDENCE', 'recommended_context':None, 'label':None}
     if not limits:

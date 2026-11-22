@@ -1,5 +1,7 @@
 # Integrations validation — 2026-10-31
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 Scope: isolated feature checkout based on main `ebfa1fce1dc9ef6a755cfcb46530e8e1088b5594`. No installed NajdiLab, Hermes, LM Studio or Ollama configuration/service was modified. All connector traffic in tests targets disposable fake APIs on ephemeral ports and temporary homes. No real credentials/history/system/tool data was read or sent.
 
 ## Evidence

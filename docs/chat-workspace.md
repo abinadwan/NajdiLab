@@ -39,7 +39,7 @@ No native LM Studio/Ollama chats are collected, and Hermes ingress remains BLOCK
 | Measured | `/api/ps` `size`/`size_vram` for a loaded model | What this model uses now, at that context |
 | Estimated feasibility | Weights + KV bound, against free VRAM | A prediction, labeled unverified |
 
-The estimate is `(weights + kv_per_token × context) × 1.15 + 512 MiB` against the largest GPU's free memory, plus VRAM this model already holds, since a reload replaces it. `kv_per_token` assumes every layer is full-attention with f16 keys and values, an upper bound: sliding-window layers use less. The 1.15 and 512 MiB are rules of thumb, not measurements. Tiers are 8K/16K/32K/64K. The largest tier that fits is a *suggested starting context*, always labeled **unverified**, or `NO_ESTIMATED_FIT` if none does. If layer sizes, GPU memory or weight size are unavailable the result is `INSUFFICIENT_EVIDENCE` with no number. LM Studio does not expose layer sizes, so it reports `LOADED_CONTEXT_ONLY`: the context you already loaded. Reading specs never loads a model, and no stress test exists. Only your own [acceptance](chat-windows-acceptance.md) can validate a capacity.
+The estimate is `(weights + kv_per_token × context) × 1.15 + 512 MiB` against the largest GPU's free memory, plus VRAM this model already holds, since a reload replaces it. `kv_per_token` assumes every layer is full-attention with f16 keys and values, an upper bound: sliding-window layers use less. The 1.15 and 512 MiB are rules of thumb, not measurements. Tiers are 4K/8K/16K/32K/64K. The largest tier that fits is a *suggested starting context*, always labeled **unverified**, or `NO_ESTIMATED_FIT` if none does. If layer sizes, GPU memory or weight size are unavailable the result is `INSUFFICIENT_EVIDENCE` with no number. LM Studio does not expose layer sizes, so it reports `LOADED_CONTEXT_ONLY`: the context you already loaded. Reading specs never loads a model, and no stress test exists. Only your own [acceptance](chat-windows-acceptance.md) can validate a capacity.
 
 ## Storage, consent and privacy
 
@@ -63,12 +63,50 @@ All browser writes retain Host/Origin/Fetch-Metadata/CSRF/framing/body limits. N
 | POST | `…/{uuid}/send` | request_id UUID, revision, selection_revision, text; COMPLETED or CONTEXT_LIMIT + input_tokens, reply_reserve, context_budget, new_session |
 | POST | `…/{uuid}/collect` | enabled boolean, revision; no retrospective import |
 | POST | `…/{uuid}/stop` | `{}`; stop_requested receipt |
-| POST | `…/{uuid}/archive` | revision; retained archived session |
+| POST | `…/{uuid}/archive` | revision; retained archived session (records `archived_at` and the status before archiving) |
+| POST | `…/{uuid}/send-stream` | same body as `send`; `application/x-ndjson` events (see [Streaming](#streaming-thinking-and-timings)); errors before acceptance are plain JSON |
+| POST | `…/{uuid}/restore` | revision; back to the status it had before archiving (`OPEN` for pre-V2 archives) |
+| POST | `…/{uuid}/rename` | title string (1–120 characters) or null for the automatic title; does not change the send revision |
+| POST | `…/{uuid}/pin` | pinned boolean |
+| GET | `…/{uuid}/delete-preview` | what permanent deletion would delete, blank out, keep and not reach; `blocked` when exported |
+| POST | `…/{uuid}/delete` | revision and `confirm: "DELETE"`; see [data retention](data-retention.md#permanent-chat-deletion-chat-experience-v2) |
+| GET | `/api/v1/chat/sessions?q=…&archived=0\|1` | paged list, pinned first then last activity; `q` searches titles and text; `display_title` is a local suggestion when no title is stored |
+| GET | `/api/v1/chat/presets` | Light 4096/1024, Balanced 8192/2048, Long 16384/3072 |
+| GET/POST | `/api/v1/native/status`, `/models`, `/start`, `/stop` | [NajdiLab Native](native-runtime.md); start/stop require `approved: true` |
 | POST | `/api/v1/chat/hardware` | approved=true, optionally provider, model, selection_revision together; bounded read-only snapshot, recommendation per [Hardware evidence](#hardware-evidence); a runtime failure appears in `warnings` |
 | POST | `/api/v1/unsloth-exports` | version; new immutable handoff metadata |
 | GET | `/api/v1/unsloth-exports/{hex-id}/{file}` | dataset.jsonl, provenance.jsonl or manifest.json; hashed files checked |
 
 Unknown/extra fields, wrong types, stale revisions and unapproved choices fail closed. All `/api/v1/training/**`, model-adapter verification, `/api/v1/phase3/**` and platform-status routes are removed, with no410 shim or job/log/metric HTTP reader. Dataset eligibility is `/api/v1/dataset-records`; manual creation is `/api/v1/manual-data/{sft|direct|preference}`. Stored private evidence and applied migrations remain intact.
+
+## Chat Experience V2
+
+Design log, decisions and test results: [CHAT_EXPERIENCE_V2.md](development/CHAT_EXPERIENCE_V2.md).
+
+### Streaming, thinking and timings
+
+`send-stream` returns one JSON object per line: `accepted` (request id), `phase` (`engine_check`, `admission`, `waiting_first_token`, `thinking`, `answering`, `verifying`), `admitted` (counts), `thinking` and `content` deltas, then exactly one `done` (the committed session, as `send` returns) or `error` (`code`, `error`, optional `check`). Streamed text is display-only: the server saves the turn only after every existing completion check passes, so a stopped, failed or length-limited reply is never saved or collected. If the browser disconnects, the turn is stopped.
+
+- **Ollama** streams `/api/chat` with `stream: true` and the same `truncate: false`, `shift: false`, `num_ctx`, `num_predict`; `message.thinking` is a separate channel. Exactly one final `done` chunk is required; data after it, an `error` line or a missing final chunk fail the turn.
+- **LM Studio** streams the SDK's fragments from the helper process. Reasoning fragments go to the thinking channel (previously they made the turn fail with `NON_TEXT_RESPONSE`, which still happens on the non-streaming route). The parent checks that the final text equals the streamed answer. Real LM Studio reasoning models are **not tested**.
+- **NajdiLab Native** streams `/v1/chat/completions`; see [native runtime](native-runtime.md).
+- Timings (milliseconds, no text) are returned with each result: runtime check, admission (model identity, context proof, token count), first token, thinking, answer, whole generation, final check and save. They are not written to logs or the database.
+
+**Latency change (Ollama):** each turn used to send an oversized history to prove that Ollama refuses overflow instead of truncating. That proof now is reused for 10 minutes for the same port, Ollama version, model digest and budget; the version, digest, local reference and the runner's real context (`/api/ps`) are still checked on every turn, and any failure discards the proof. The `admission.context_proof` timing says `measured` or `reused`.
+
+### INCOMPLETE_RESPONSE diagnosis
+
+The message `Engine did not return an unchanged, complete text reply; no pair was saved.` comes from the final completion check in `app/chat_workspace.py`, not from the engine. It covered six different conditions without saying which. Now the error keeps the same code and adds a fixed `check`: `STOP_REASON_LENGTH`, `STOP_REASON_OTHER`, `EMPTY_CONTENT`, `TOO_LARGE`, `PROMPT_TOKENS_MISMATCH`, `OVER_BUDGET`, `TOOL_CALLS`. For the reported `gemma4-local:e4b` case (Ollama, context 8192, reserve 999, model sends `message.thinking`), the most likely cause is `STOP_REASON_LENGTH`: thinking tokens count toward `num_predict`, so a thinking model can use the whole 999-token reserve before finishing, and Ollama then reports `done_reason: "length"`. The earlier direct API test that succeeded was a different request (no `num_predict` limit), so it does not rule this out. **This was reproduced only with synthetic engines, not with the real model**; the next real failure will show the exact `check`. Use a larger reply reserve (Balanced 2048 or Long 3072) for thinking models.
+
+### Markdown
+
+Replies are stored exactly as the model wrote them. The page renders Markdown (headings, lists, bold/italic, inline code, code blocks with copy, tables, links) with an original renderer (`static/chat-markdown.js`) that builds DOM nodes only: HTML in a reply is shown as text, and only `http`, `https` and `mailto` links become links. Before V2 the page showed replies as plain text, which is why Gemma's Markdown symbols appeared literally; that was a display issue, not model output corruption.
+
+### Collection segments (single-turn and multi-turn)
+
+While collection is on, consecutive completed turns form one *segment* (one review conversation). The first collected turn is recorded as `single_turn`; each next one links to the previous collected answer and is recorded as `multi_turn`. Metadata on each collected answer: `collection_mode`, `segment_turn`, `earlier_turns_excluded` (count only), `depends_on_excluded_context`, `context_complete`, `thinking_collected: false`. Turning collection off and on starts a new segment.
+
+**Reconciled with PR #21 (95e7604):** `context_complete` is true only when the segment starts at the conversation's first turn. A segment that starts later can be reviewed, but the review form disables training and evaluation, `save_review` refuses them, export readiness reports `EXPORT_INCOMPLETE_CONTEXT`, and both exporters reject it. To produce a training example, turn collection on before the first message of a new chat. For complete segments, a segment's first reviewed pair appears in `sft.jsonl` and later pairs in `multi_turn.jsonl` with only the consented turns as context; in the clean/Unsloth export the earlier assistant turns stay exact prompt context and only the final reviewed answer is the target (tested). A 60/40 multi/single mix is an idea for experiments only; nothing enforces it.
 
 ## Backup and rollback
 
@@ -77,3 +115,7 @@ This source change makes no installed update. Before any update, run the owner [
 Migration 006 adds one table, `chat_session_bindings`, and alters nothing. A table rather than `ALTER TABLE` keeps replay idempotent across the loader's commit/ledger crash gap, as 005 does. Sessions created before it keep working: LM Studio ones bind on their next turn; Ollama ones must be restarted, since they never had load approval.
 
 This cleanup is source-only: revert its source changes if needed, with no data/schema rollback. Leave Chat tables, receipts, consent/archive restrictions and historical dataset/export bytes intact. Older source can reopen removed interfaces or unsafe Hermes ingress, so inspect before any rollback launch. Physical erasure and old-export purging remain separate retention decisions. No rollback or installed update is performed by this task.
+
+## 2026-11-02 owner-authorized follow-up
+
+See [UI behavior](chat-ui-fixes.md), [collection/SFT audit](chat-dataset-context-audit.md), and [actual checks, safe local upgrade and rollback](chat-review-workflow-results.md). These supersede earlier descriptions only as specifically recorded there. Context completeness uses existing metadata, not a migration; unknown historical completeness blocks future training selection without changing stored data.

@@ -55,14 +55,39 @@ credentials and prints a startup warning. This weakens ingestion protection;
 remove it after migration. Supplied invalid credentials still fail. Host, Origin,
 JSON content type, and browser CSRF checks remain enforced in compatibility mode.
 
-The signature authenticates body contents; it does not provide freshness or
-replay prevention. Do not assume all ingestion payloads are idempotent. Protect
-secrets and avoid replaying events unless the relevant event identity and dedup
-behavior have been verified. Payload sizes are bounded before authentication.
+### Freshness and replay (QA-07)
+
+A body-only signature (`X-Hermes-Signature-256` over the raw body) and a bearer
+token authenticate the sender but do not prove freshness: a captured request can be
+replayed. Replays of a turn that carries `source_message_id` are deduplicated; other
+replays create a duplicate turn and a new PENDING review.
+
+Senders that can be updated should use a **timestamped signature**: send
+`X-NajdiLab-Timestamp: <unix seconds>` and sign `"<timestamp>.<raw body>"` with
+HMAC-SHA256 in `X-Hermes-Signature-256: sha256=<hex>`. The server refuses a
+timestamp more than 300 seconds from its clock (401 `STALE_SIGNATURE`) and a
+signature it has already accepted within that window (409 `INGEST_REPLAY`); sign
+each attempt, including retries, with a new timestamp. The replay record is kept in
+memory only: after a restart, a captured request is still refused once its
+timestamp leaves the window. Only valid signatures are recorded.
+
+Body-only signatures and bearer tokens keep working so existing senders do not
+break. Set `NAJDILAB_REQUIRE_FRESH_SIGNATURE=1` once every sender uses timestamps;
+the server then refuses body-only signatures, bearer tokens and the credential-less
+legacy mode (401 `FRESH_SIGNATURE_REQUIRED`). Keep server and sender clocks
+synchronized. Payload sizes are bounded before authentication.
 
 ## Local runtime integrations
 
 Settings discovery probes only fixed numeric-loopback model-list APIs and metadata on verified local known home-directory markers. No DNS/proxies/redirects, custom URLs, credentials, histories or configuration reads are supported. Connect/select/test/disconnect additionally require explicit approval and CSRF. Synthetic tests are bound to the displayed selection revision to reject cross-tab changes. Response bytes (including HTTP framing) and request time are bounded. Consent is process-local and revoked by restart; disconnect serializes with in-flight tests and does not stop upstream compute/services. See [Integrations](docs/integrations.md) for exact limits and unsupported cases. LM Studio/Ollama do not automatically expose application history.
+
+## Hugging Face Direct (model library)
+
+One of two outbound paths: explicit, CSRF-protected requests to `huggingface.co` (search, revision-pinned details, bounded header reads, downloads). HTTPS only; every redirect hop must stay on `huggingface.co`, `*.huggingface.co` or `*.hf.co` at port 443; no user-supplied URLs, credentials, cookies or tokens; gated and private repositories are refused. Trending and recommendations add only list pages (`/api/models`, cursor validated), repository details and base-model tags, each after a button press; hardware facts used for recommendations stay local. Only `.gguf` files are fetched (never repository code, configuration or packages), into `data/models/huggingface/` only, after a storage preflight with a safety reserve, with live free-space monitoring, and are usable only after their published size and SHA-256 match. NajdiLab Native refuses unverified managed files, and nothing loads without a separate approval. Chat text, datasets and hardware details are never sent. Details and threat table: [Hugging Face Direct](docs/development/HUGGING_FACE_DIRECT.md#10-security-boundaries).
+
+## Managed llama.cpp runtime
+
+The other outbound path: an explicitly approved installation of the **pinned** llama.cpp build, from `github.com` and then only GitHub's asset hosts (`release-assets.githubusercontent.com`, `objects.githubusercontent.com`) over HTTPS at port 443, at most three redirects, no credentials. Every archive must match its pinned size and SHA-256 before it is opened; extraction refuses absolute paths, `..`, unexpected names, devices, hard links and escaping symlinks, and writes into a fresh staging folder. The build becomes active only after `--version` reports the pinned build and commit, `--list-devices` shows its backend's device and a tiny locally generated model computes on that device. Before each Native start the files' sizes and times and the server's SHA-256 are re-checked. The GPU/driver read is local, needs approval and is never sent. Install, rollback and uninstall are refused while Native runs; processes bind 127.0.0.1 with a random key and are stopped only through NajdiLab's own handle. An owner-supplied `NAJDILAB_NATIVE_SERVER` is never changed. Details: [Managed runtime](docs/development/MANAGED_RUNTIME.md#3-safety-rules).
 
 ## Files and data
 

@@ -1,5 +1,7 @@
 # Dependency and attribution matrix
 
+> Historical / Archived Documentation. This is a dated dependency-rights investigation for its named source revision. Current runtime dependencies are described in [the dependency guide](dependencies-and-attribution.md).
+
 Checked 2026-10-27 against source at `ae0ebb634459a8cadb742143a49f65c755f2b290`. Scope: a proposed source-only distribution; **no ML runtime, model, interpreter or third-party binary is bundled**. An upstream license-text check is narrower than verification of an installed wheel and its native/transitive components. Historical version observations are not a lockfile. NOT_VERIFIED means redistribution clearance is absent, not that use is necessarily prohibited.
 
 The ML/GPU entries below are dated licensing evidence for now-external or removed components, not application dependencies. This source cleanup does not install, redistribute or certify those artifacts. Current dependencies are described in [the application inventory](dependencies-and-attribution.md).

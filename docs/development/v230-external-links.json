@@ -1,0 +1,479 @@
+{
+  "checked_at": "2026-11-07T00:40:52.899915+00:00",
+  "results": [
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/commit/7659c8b00e961f6c291cbe5c53041bff9eedb27f",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/chat-completion-results.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/41275717498",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/chat-completion-results.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/41275717499",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/chat-completion-results.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/41287022924",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/chat-completion-results.md",
+        "docs/verification-evidence.md",
+        "PROJECT_STATUS.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/41287022915",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/chat-completion-results.md",
+        "docs/verification-evidence.md",
+        "PROJECT_STATUS.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/41223719740",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/integrations-validation.md"
+      ]
+    },
+    {
+      "url": "https://opensource.org/license/mit",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/license-options.md"
+      ]
+    },
+    {
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/license-options.md"
+      ]
+    },
+    {
+      "url": "https://github.com/python/cpython",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md",
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/python/cpython/blob/v3.12.14/LICENSE",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md"
+      ]
+    },
+    {
+      "url": "https://github.com/sqlite/sqlite",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md"
+      ]
+    },
+    {
+      "url": "https://github.com/sqlite/sqlite/blob/version-3.53.1/LICENSE.md",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md"
+      ]
+    },
+    {
+      "url": "https://github.com/pytest-dev/pytest",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md",
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/pytest-dev/pytest/blob/9.1.1/LICENSE",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md"
+      ]
+    },
+    {
+      "url": "https://github.com/puppeteer/puppeteer",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md",
+        "docs/THIRD_PARTY_ATTRIBUTION.md"
+      ]
+    },
+    {
+      "url": "https://github.com/puppeteer/puppeteer/blob/puppeteer-core-v25.16.0/LICENSE",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/rights-evidence.md"
+      ]
+    },
+    {
+      "url": "https://www.sqlite.org/copyright.html",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/pytorch/pytorch",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/huggingface/transformers",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/unslothai/unsloth",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/huggingface/peft",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/huggingface/accelerate",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/bitsandbytes-foundation/bitsandbytes",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/numpy/numpy",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/huggingface/safetensors",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/huggingface/huggingface_hub",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/huggingface/trl",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://docs.nvidia.com/cuda/",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/ollama/ollama",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md",
+        "docs/THIRD_PARTY_ATTRIBUTION.md"
+      ]
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/third-party-attributions.md"
+      ]
+    },
+    {
+      "url": "https://github.com/open-webui/open-webui",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/THIRD_PARTY_ATTRIBUTION.md"
+      ]
+    },
+    {
+      "url": "https://github.com/danny-avila/LibreChat",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/THIRD_PARTY_ATTRIBUTION.md"
+      ]
+    },
+    {
+      "url": "https://github.com/assistant-ui/assistant-ui",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/THIRD_PARTY_ATTRIBUTION.md"
+      ]
+    },
+    {
+      "url": "https://github.com/dequelabs/axe-core",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "docs/THIRD_PARTY_ATTRIBUTION.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/41242203217",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/verification-evidence.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/41242203310",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/verification-evidence.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/pull/13",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "docs/verification-evidence.md",
+        "PROJECT_STATUS.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "public_source/README.md"
+      ]
+    },
+    {
+      "url": "https://www.python.org/downloads/",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "public_source/README.md"
+      ]
+    },
+    {
+      "url": "https://www.sqlite.org/index.html",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "public_source/README.md"
+      ]
+    },
+    {
+      "url": "https://www.chromium.org/",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "public_source/README.md"
+      ]
+    },
+    {
+      "url": "https://git-scm.com/downloads/",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "public_source/README.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/blob/a04e2ea8e1db7fbc094a6ba5ffc30a99d16110f9/docs/public-core-phase5-verification.md",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "public_source/README.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/pull/23",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/SQLite-3.24%2B-003B57?style=for-the-badge&logo=sqlite&logoColor=white",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/HTML5-Interface-E34F26?style=for-the-badge&logo=html5&logoColor=white",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/CSS3-Styling-1572B6?style=for-the-badge&logo=css3&logoColor=white",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/Architecture-Local--first-0D9488?style=for-the-badge",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/UI-Arabic%20RTL%20%2B%20English-0F766E?style=for-the-badge",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/Runtimes-LM%20Studio%20%7C%20Ollama-6366F1?style=for-the-badge",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/NajdiLab%20Native-llama.cpp%20(in%20development)-7C3AED?style=for-the-badge",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/Tests-Local%20synthetic%20runs-16A34A?style=for-the-badge&logo=pytest&logoColor=white",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/Hermes-Blocked-B91C1C?style=for-the-badge",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/Development-Private-64748B?style=for-the-badge",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://img.shields.io/badge/License-Apache%202.0%20planned-CA8A04?style=for-the-badge",
+      "status": 200,
+      "method": "HTTP HEAD",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "url": "https://github.com/abinadwan/NajdiLab/actions/runs/42322521062",
+      "status": 200,
+      "method": "authenticated GitHub GET",
+      "checked_at": "2026-11-07T01:12:51.314915+00:00",
+      "files": [
+        "docs/development/V230_FINALIZATION.md"
+      ]
+    }
+  ]
+}

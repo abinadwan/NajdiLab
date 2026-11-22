@@ -33,7 +33,7 @@ See [remediation evidence, limitations and source rollback](review-restriction-i
 
 ## Limits that remain open
 
-Reviewer categories `human`, `import`, `ai_suggestion` are asserted labels, not authenticated named identities or RBAC. Current manual rows can carry eligibility without the fully proposed human approval/version-bound lifecycle; do not claim that future lifecycle has been implemented. `review_events` consumers are optional and its proposed migration is not approved by source cleanup. Without authoritative events, complete cross-decision history cannot be proven (`REVIEW_HISTORY_UNAVAILABLE`). No automatic AI approval or historical reconstruction is supplied.
+Reviewer categories `human`, `import`, `ai_suggestion` are asserted labels, not authenticated named identities or RBAC. Current manual rows can carry eligibility without the fully proposed human approval/version-bound lifecycle; do not claim that future lifecycle has been implemented. Migration 007 supplies immutable `review_events` and a baseline for reviews that predate that history. The separate reduced Core profile can omit that optional event table. Legacy reviews without authoritative events retain explicit history warnings and cannot acquire fabricated past decisions. No automatic AI approval or historical reconstruction is supplied.
 
 The legacy dataset table, filesystem inventory and prepared canonical registry can represent different scopes. Legacy undeclared state may be treated as Frozen while prepared registry state is Unknown. A canonical read cutover remains unresolved; current counts cannot be inferred from old nine-version reports.
 

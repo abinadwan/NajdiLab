@@ -1,5 +1,7 @@
 (() => {
   const key = 'najdilab.theme';
+  const read = () => { try { return localStorage.getItem(key); } catch { return null; } };
+  const write = value => { try { localStorage.setItem(key, value); } catch { /* not persisted */ } };
   const media = matchMedia('(prefers-color-scheme: dark)');
   const apply = mode => {
     const safe = ['light','dark','system'].includes(mode) ? mode : 'system';
@@ -11,12 +13,12 @@
     if (status) status.textContent = `Current theme: ${dark ? 'Dark' : 'Light'}`;
   };
   document.addEventListener('DOMContentLoaded', () => {
-    apply(localStorage.getItem(key) || 'system');
+    apply(read() || 'system');
     document.querySelectorAll('#theme-select,#theme-select-settings').forEach(select => select.addEventListener('change', event => {
-      localStorage.setItem(key, event.target.value); apply(event.target.value);
+      write(event.target.value); apply(event.target.value);
     }));
   });
   media.addEventListener?.('change', () => {
-    if ((localStorage.getItem(key) || 'system') === 'system') apply('system');
+    if ((read() || 'system') === 'system') apply('system');
   });
 })();

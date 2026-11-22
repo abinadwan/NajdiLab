@@ -1,5 +1,18 @@
 # NajdiLab project status
 
+Current Documentation — V2.3.0 development candidate
+
+The official data workspace is a four-stage Guided Wizard. Shared manual editing/history, privacy and split checks, explicit Gold approval, attested export and guarded Gold deletion remain active. The independent-tool presentation is preserved as a lazy bundle and tested in a synthetic restoration tree. [Candidate notes](docs/development/RELEASE_NOTES_V2.3.0.md), [current user guide](docs/user-guide.md), [documentation audit](docs/development/V230_DOCUMENTATION_AUDIT.md).
+
+The private candidate targets `update-project` and PR #23 retains Draft status. Review and production/installed-update acceptance have distinct scopes. Models and approved managed runtimes are supported by the current Model library. Training uses an external environment. Startup migrations use a reviewed hash registry and transactions. Manual edit history and Gold deletion audit are implemented.
+
+Open limits include local-operator trust, reviewer authentication/RBAC, HMAC replay freshness, automated content/rights certification, complete erasure across backups/downstream copies, and environment-specific engine/capacity acceptance. [Security](SECURITY.md), [retention](docs/data-retention.md), [migration safety](docs/database-and-migrations.md).
+
+## Historical cleanup status and evidence
+
+The following record describes the earlier source-cleanup milestone. Its removed features, open debt and test counts are dated statements for that revision. Current behavior is described above and in the current guides.
+
+
 Active scope: local Chat → human review/correction → quality/dedup → immutable dataset version → external Unsloth handoff. Internal training/runtime/model-acquisition/model-evaluation/deployment source, tests and operational guides are removed by this cleanup. Dataset-specific remediation/review/freeze workflows remain. Private operational records, earlier exports and applied migrations are preserved; removed source is not restored by a compatibility endpoint.
 
 Chat has complete-turn receipts, separate collection consent OFF on creation/restart, immutable local model binding, exact context admission and explicit rollover. Unsloth exports preserve the approved sole-target loss contract and privacy/provenance/hash gates. Real installed Ollama/LM Studio model acceptance, owner Windows acceptance and capacity validation remain open; [completion evidence](docs/chat-completion-results.md).

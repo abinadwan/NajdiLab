@@ -28,6 +28,22 @@
     {
       "name": "007_review_events.sql",
       "sha256": "d1e4407d2d42df236dda26aaa72da9d739cf9c53b73845fcd1246261c259ebaf"
+    },
+    {
+      "name": "008_chat_experience_v2.sql",
+      "sha256": "599b6ebafc46e9fb919f0985273979b745ce807d62452b2ed7354660520543bc"
+    },
+    {
+      "name": "009_managed_models.sql",
+      "sha256": "a507e8d337d659336e33f3768da507513e024979275b99c5dbb76e44a6f51dd2"
+    },
+    {
+      "name": "010_language_metadata.sql",
+      "sha256": "92928c9dabfbef3b3b4ad9347c1da1dc3388c382647cc8514dcc840bd0db6abc"
+    },
+    {
+      "name": "011_gold_version_deletions.sql",
+      "sha256": "21f9d255782a7fd6e26af3852da6d741cb55d0451561c4e971bd98e137e470a4"
     }
   ]
 }

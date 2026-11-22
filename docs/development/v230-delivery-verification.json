@@ -1,0 +1,132 @@
+{
+  "sha": "5fdd6837cf288ed80c3fe752f5efce182604e942",
+  "branch": "update-project",
+  "tree_files_verified": 471,
+  "assets_verified": [
+    {
+      "path": "README.md",
+      "sha256": "2219369357e8cd7421837db907501481ea624b0a082443237eaf2eb6bdafad18",
+      "bytes": 17186
+    },
+    {
+      "path": "assets/najdilab-readme-banner.webp",
+      "sha256": "2e3ff5e5ad2b5ba50414982d27e652534c143d415c35b1c7ab535db28e62be94",
+      "bytes": 56868
+    },
+    {
+      "path": "docs/images/architecture/najdilab-system-architecture.svg",
+      "sha256": "e4046d869edf30b7844353994e9bf7d67e975b6c5cf87340f385377e3b21e225",
+      "bytes": 5934
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/dark-export.png",
+      "sha256": "cac9245eabc7ab25c2945ba5a8d2187d4e8d1b1198a75670c63147e1f531edcc",
+      "bytes": 79912
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/dashboard.png",
+      "sha256": "b0aaad993a8ca9665b9caf61289d65bc94471d58f3c368c55eb4313f592fda81",
+      "bytes": 110529
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/gold-delete-confirm.png",
+      "sha256": "8463052d5bf96f64a62739fa0592ea9e50ff802cbad283ef8efb4f1dc0177b76",
+      "bytes": 140238
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/gold-versions.png",
+      "sha256": "04a87e9eb3e64ef5bc53b1bff16d67e3e6e28982dab082923afca271153bd0f2",
+      "bytes": 92137
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/manual-edit.png",
+      "sha256": "a50c3a8bad6e00ade241bcb6cd7bcdd00ebc8be82cf96ef0b5ab6bef030a0006",
+      "bytes": 126631
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/mobile-data.png",
+      "sha256": "c9768e1598747df2d58f6b77e21f4f50de2eae3bcbc218e0a3c949a9d2a8e051",
+      "bytes": 122645
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/mobile-version.png",
+      "sha256": "6a130523763458b5f3bbe6526912820155d06a7dac7865d0bac5211b388109a1",
+      "bytes": 39211
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/provenance.json",
+      "sha256": "4ef3ca55f45c21db6e287dddbaa5ae4d3cb0cf685462e40e1219a164cdafce71",
+      "bytes": 5404
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/wizard-approve.png",
+      "sha256": "b82b52fa30905fa176608aa56a40721c3e1b097a6a3311f90a2897ddb182fd9a",
+      "bytes": 92267
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/wizard-check-problem.png",
+      "sha256": "706fc91803c53c251916f6182e5781da2c801896abe03c852848090582e1a4d9",
+      "bytes": 78506
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/wizard-check-ready.png",
+      "sha256": "ed924d651ff4cf5fa1a684ad23b1daa0d4a1823199cb26ab66ad1f6dee512473",
+      "bytes": 106784
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/wizard-data.png",
+      "sha256": "c82e805d3eb96bde1849f504b409173df92b24aec4dd4e7072ac48f2bdaea516",
+      "bytes": 183253
+    },
+    {
+      "path": "docs/assets/screenshots/v2.3.0/wizard-export.png",
+      "sha256": "2650ab69c75003ee382f205ffb76ca05333c9273860d32c9cd6b171f92b79dfa",
+      "bytes": 127059
+    },
+    {
+      "path": "docs/legacy/advanced-workspace/screenshots/arabic-mobile-dark.png",
+      "sha256": "c92df12f9a05e67eed3048080a8f11c795d86fdff6f6f7d67905fdc3adfa967e",
+      "bytes": 27841
+    },
+    {
+      "path": "docs/legacy/advanced-workspace/screenshots/english-desktop-light.png",
+      "sha256": "6f0260e6927947106997959611cba0e11e53dc6c2b1e3ca6c85bb37eba2c3e70",
+      "bytes": 69284
+    },
+    {
+      "path": "docs/legacy/advanced-workspace/screenshots/provenance.json",
+      "sha256": "0fbaca75feb9620a730b233d2c7ffc708688562519e6aa13fbc52418781d12fe",
+      "bytes": 796
+    }
+  ],
+  "rendered_html_sha256": "9cbc5c79de9f74bd37387a911aef00992aebb4b34dcbf3d2c4372a6155ac4cd3",
+  "rendered_headings": 23,
+  "rendered_images": 19,
+  "pr": {
+    "number": 23,
+    "state": "open",
+    "draft": true,
+    "base": "main",
+    "head": "update-project"
+  },
+  "observed_at": "2026-11-07T01:12:15.205284+00:00",
+  "scope": "Verified candidate commit. This delivery-evidence documentation is committed afterward.",
+  "push": "ordinary fast-forward from 1abf2d71db284a2becf2d89703feaaaffbace124 to 5fdd6837cf288ed80c3fe752f5efce182604e942",
+  "actions": {
+    "run_id": 42322521062,
+    "url": "https://github.com/abinadwan/NajdiLab/actions/runs/42322521062",
+    "event": "workflow_dispatch",
+    "head_sha": "5fdd6837cf288ed80c3fe752f5efce182604e942",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs_started": false,
+    "jobs": [
+      "tests (ubuntu-latest)",
+      "tests (windows-latest)"
+    ],
+    "github_annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the \"Billing & plans\" section in your settings",
+    "draft_pull_request_runs": "Source checks and Source-only candidate skipped under the existing Draft policy"
+  },
+  "delivery_status": "BLOCKED on hosted verification by GitHub account billing/spending limits. Candidate push and authenticated file/image verification succeeded.",
+  "browser_limit": "Available browser is signed out of GitHub. Authenticated API HTML and image bytes were verified, and GitHub Markdown API HTML was visually inspected in Chromium before push."
+}

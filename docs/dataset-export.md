@@ -12,18 +12,44 @@ Original messages and responses remain immutable; corrections are separate overl
 
 SFT and multi-turn records retain `target_message_index`, `train_on_last_assistant_only=true` and `message_loss_mask`: earlier messages are context, only the final approved assistant target is supervised. `app/dataset_masks.py` and `app/dataset_validation.py` own shared validation; `app/dataset_tools.py` retains pure tool-schema/canonicalization helpers without a controller. `scripts/validate_dataset_masks.py` accepts an explicitly selected local tokenizer path with `trust_remote_code=False`; it does not fetch weights or run optimization.
 
-Conversation-level splitting uses seed 42, targets about 12% holdout (10–15%), caps each evaluation conversation at eight representative records and requires at least three holdout conversations when enough source conversations exist. Gold selection caps multi-turn examples at ten per conversation using a deterministic subset. Selection changes files, never database originals.
+The evaluation policy is decided once per version and recorded in the manifest (`evaluation_split.evaluation_policy`); the preview in Prepare data runs the same planning function, so it accepts exactly what the build accepts and reports the policy before anything is written:
+
+- `explicit_evaluation_only`: the chosen records marked *Evaluation only* are the evaluation set, as chosen. Nothing more is held out automatically; a record from the same conversation as an evaluation record is kept out of training (conversation isolation). A share outside 10–15% is explained in the preview, not blocked.
+- `automatic_holdout` (no evaluation-only records, at least 20 records and three source conversations): conversation-level splitting with seed 42, about 12% holdout (10–15%), at most eight representative records per evaluation conversation and at least three holdout conversations.
+- `training_only`: otherwise. Manual records have no conversation and are never given one, so a version of manual records alone is training-only and says so; NajdiLab never reports evaluation readiness without evaluation records.
+
+In every policy an evaluation answer identical (case and whitespace normalized) to a training answer, or to another evaluation answer, is refused on that evaluation record, as are shared conversations and record ids between the two sides. Gold selection caps multi-turn examples at ten per conversation using a deterministic subset. Selection changes files, never database originals. A check is bound to a fingerprint of the chosen records and their content: if either changes before the version is created, the build refuses and asks for a new check.
 
 Exact target duplicates use casefold/whitespace-normalized SHA256 and priority APPROVED, FULL_CORRECTION, DIALECT_CORRECTION, CONTENT_CORRECTION, then stable insertion order. Near duplicates use SequenceMatcher at 0.90 and remain advisory. Context/target conflicts, invalid masks and train/holdout leakage block where confirmed; no automatic source deletion occurs.
 
-Each new `exports/gold-vNNN/` contains `manifest.json`, `sft.jsonl`, `multi_turn.jsonl`, `direct_language.jsonl`, `preference_pairs.jsonl`, `evaluation_holdout.jsonl`, private `full_archive.json` and `dedup_report.json`. Direct-language and preference assets remain separate from conversational SFT. Managed versions may retain structured native-tool evidence; this does not enable tool execution or make those records supported by the text-only Unsloth handoff.
+Each new `exports/gold-vNNN/` contains `manifest.json`, the diagnostics `loss-mask-validation.json` and `balancing_report.json` (generated before the version is published, bound to its training files; older versions are diagnosed read-only), `sft.jsonl`, `multi_turn.jsonl`, `direct_language.jsonl`, `preference_pairs.jsonl`, `evaluation_holdout.jsonl`, private `full_archive.json` and `dedup_report.json`. Direct-language and preference assets remain separate from conversational SFT. Managed versions may retain structured native-tool evidence; this does not enable tool execution or make those records supported by the text-only Unsloth handoff.
 
 Manifests record counts, split seed, selection/exclusion and duplicate facts, privacy policy, validation and file hashes. The manifest's own hash is excluded from its hash map. Builds stage in a new temporary directory and publish a new version; existing versions are never rewritten. `manual_data_export_history` records actual included manual items; indexing older JSONL does not mutate old files.
 
 ## Unsloth handoff
 
-`POST /api/v1/unsloth-exports` takes a dataset version and publishes immutable `dataset.jsonl`, `provenance.jsonl` and `manifest.json`. It verifies and snapshots every quality/holdout input, rechecks source evidence and preserves the sole approved target as completion. Downloads use `/api/v1/unsloth-exports/{hex-id}/{file}` and verify the declared bytes.
+`POST /api/v1/unsloth-exports` takes `{version, profile}` and publishes immutable `dataset.jsonl`, `provenance.jsonl` and `manifest.json`. It verifies and snapshots every quality/holdout input, rechecks source evidence and keeps each record's sole approved answer as its only training target. Downloads use `/api/v1/unsloth-exports/{hex-id}/{file}` and verify the declared bytes.
 
-The external operator must use conversational prompt/completion support with `completion_only_loss=True`, `packing=False`, and refuse overlength records. Do not silently truncate, train on every assistant turn, merge holdout data, or upload the recovery archive. This is an interoperability contract, not an included trainer or proof that a particular external package version is compatible. Unsloth package/extras and data/model rights require separate verification; [rights](dependency-licensing-matrix.md).
+Choose the profile for the tool you train with; the files are not interchangeable:
+
+| Profile | Layout | Use with |
+|---|---|---|
+| `studio_chat` — Unsloth Studio SFT (chat), default | `messages` with exactly one assistant message, the approved answer; earlier turns of a multi-turn record become a transcript inside the user turn | Unsloth Studio with “Train on completions” on and packing off |
+| `studio_alpaca` — Unsloth Studio SFT (Alpaca) | `instruction`, `input` (earlier turns), `output` (approved answer) | Unsloth Studio; the Alpaca prompt differs from the model's chat template at inference |
+| `trl_prompt_completion` — Unsloth/TRL in Python | conversational `prompt` and `completion` | programmatic TRL/Unsloth with `completion_only_loss=True` and `packing=False`; **not** Unsloth Studio, which also trains the assistant turns inside `prompt` |
+
+Refuse overlength records instead of truncating them, and never merge holdout data or upload the recovery archive. To check which tokens your trainer will supervise, run `scripts/verify_unsloth_studio.py <handoff folder> --model <training model>` with the Python inside your Unsloth Studio install: it runs Studio's own formatting and masking for every record with the model's tokenizer and requires the trained text to be exactly the approved answer. Results, limits and the real-data check: [training correctness](development/TRAINING_CORRECTNESS.md). This is an interoperability contract, not an included trainer; a passing mask check says nothing about model quality. Unsloth package/extras and data/model rights require separate verification; [rights](dependency-licensing-matrix.md).
 
 File hashes and quality PASS establish neither consent nor redistribution rights. Keep raw archives, Chat history, databases and backups private. Privacy changes require a new reviewed version; erasure of existing versions/backups is a separate retention decision.
+
+## Collected Chat context
+
+[The consent/context audit](chat-dataset-context-audit.md) documents complete multi-turn prefixes, single-turn rows, final-only masks and incomplete-prefix quarantine. Enabling collection never imports older roles or approves training. A 60% multi-turn / 40% single-turn mixture is only an experimental idea for later evaluation, never an ingestion quota. Existing frozen files are not rewritten. No schema change is required.
+
+## V2.3.0 guided preparation and Gold lifecycle
+
+Data workspace combines entry, selection, checks/correction, explicit approval and export in four stages. Check and create share backend planning and a content/selection fingerprint. Source edits leave earlier Frozen bytes intact. Existing Gold opens directly at Export from My versions.
+
+`GET /api/v1/dataset-versions/{version}/export-options` reports actual raw files and compatible Unsloth profiles with reasons. Raw downloads use `/files/{filename}` with a manifest-verified allowlist that excludes `full_archive.json`. SFT and multi-turn targets can enter supported text profiles. Direct Language, DPO and evaluation retain separate raw files.
+
+Permanent deletion uses `/delete-preview` followed by `/delete` with `token` and `confirm_version`, under the normal CSRF boundary. It requires complete registered ownership, valid hashes and safe paths/links, with no dependencies. New manifests record `ownership.managed_reference_policy=1`. Legacy versions without that proof are refused for deletion. Started/failed/completed audit and retained tombstones support recovery and prevent identity reuse. A durable handoff reservation can conservatively block deletion after a failed publication. [Retention](data-retention.md).

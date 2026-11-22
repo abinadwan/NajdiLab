@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1090" viewBox="0 0 1200 1090" role="img" aria-labelledby="title desc">
 <title id="title">NajdiLab: local Chat to reviewed dataset and external Unsloth export</title>
-<desc id="desc">Separately managed inference and authorized local inputs enter request checks. Completed consented Chat pairs enter human review, privacy, quality, deduplication and holdout gates. Immutable dataset versions provide a file handoff. SQLite records and file manifests remain distinct; recovery is private and uses a separate location.</desc>
+<desc id="desc">Local inference (LM Studio, Ollama or NajdiLab Native) and authorized local inputs enter request checks. Completed consented Chat pairs enter human review, privacy, quality, deduplication and holdout gates. Immutable dataset versions provide a file handoff. SQLite records and file manifests remain distinct; recovery is private and uses a separate location.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="none" stroke="#35556e" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#18334b}.title{font-size:27px;font-weight:700}.heading{font-size:21px;font-weight:700}.body{font-size:16px}.small{font-size:16px}.card{stroke:#a6bdcd;stroke-width:1.5}.line{fill:none;stroke:#35556e;stroke-width:2;marker-end:url(#arrow)}</style>
 <rect width="1200" height="1090" fill="#f6f9fc"/>
 <text x="40" y="48" class="title">NajdiLab · Chat → Review → Quality → Version → External export</text>
 <text x="40" y="80" class="body">Local dataset preparation · externally managed inference · no internal trainer</text>
 <rect x="40" y="110" width="540" height="116" rx="12" class="card" fill="#ffffff"/>
-<text x="60" y="141" class="heading">Separately managed local inference</text>
-<text x="60" y="170" class="body">LM Studio / Ollama · explicit connection and consent</text>
-<text x="60" y="195" class="body">Exact context admission · immutable model identity</text>
+<text x="60" y="141" class="heading">Local inference (no cloud models)</text>
+<text x="60" y="170" class="body">LM Studio / Ollama, or NajdiLab Native (own llama-server)</text>
+<text x="60" y="195" class="body">Exact context admission · pinned model identity · streaming</text>
 <rect x="620" y="110" width="540" height="116" rx="12" class="card" fill="#ffffff"/>
 <text x="640" y="141" class="heading">Authorized local inputs</text>
 <text x="640" y="170" class="body">Credentialed completed-turn ingestion / manual data</text>
@@ -24,7 +24,7 @@
 <path d="M890 372V390H600V450H580" class="line"/>
 <rect x="40" y="412" width="540" height="140" rx="12" class="card" fill="#edf6f3"/>
 <text x="60" y="443" class="heading">Own Chat and pending human review</text>
-<text x="60" y="472" class="body">Complete-turn receipts · revisions · Stop and rollover</text>
+<text x="60" y="472" class="body">Streamed replies; only verified complete turns are saved</text>
 <text x="60" y="497" class="body">Collection OFF by default / restart; complete pairs only</text>
 <text x="60" y="522" class="body">Correction and explicit eligibility; originals stay</text>
 <rect x="620" y="412" width="540" height="140" rx="12" class="card" fill="#edf6f3"/>
@@ -51,7 +51,7 @@
 <text x="60" y="807" class="heading">Private backup and separate restore</text>
 <text x="60" y="836" class="body">SQLite online snapshot + declared file inventory</text>
 <text x="60" y="861" class="body">Verify hashes / integrity / FKs / counts in a new location</text>
-<text x="60" y="886" class="body">Raw archives stay private; archive is not erasure</text>
+<text x="60" y="886" class="body">Archive hides; permanent delete has a declared scope</text>
 <rect x="620" y="776" width="540" height="144" rx="12" class="card" fill="#eef3f8"/>
 <text x="640" y="807" class="heading">External Unsloth file handoff</text>
 <text x="640" y="836" class="body">Prompt/completion JSONL · provenance · manifest</text>

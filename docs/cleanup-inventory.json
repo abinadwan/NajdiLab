@@ -81,7 +81,7 @@
     },
     "app/chat_engine.py": {
       "classification": "PROTECT",
-      "sha256": "684ec06a3cecf7fe20bc13c631646d2b16506f249fcc922c9d4607e5b1609723",
+      "sha256": "346cc9f1e9cd7927dc2665759e5b1691694a342e2b6653162e645598c9df2c40",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .db import ROOT",
@@ -105,7 +105,7 @@
     },
     "app/chat_engine_worker.py": {
       "classification": "PROTECT",
-      "sha256": "036c31aa01bad3d772d780c8fd7cd5ed4f458784ec6526a08391c5406fd9e672",
+      "sha256": "d35a8cb0280e99bd76c515089deb147a25e9c7188d8ada3493f35938899ea7b2",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from importlib.metadata import version",
@@ -123,7 +123,7 @@
     },
     "app/chat_workspace.py": {
       "classification": "PROTECT",
-      "sha256": "c53de9eced9505e03e56b0b0c1a6c93f4e882534f5c99f4120cd59b897963107",
+      "sha256": "9b1df6962752f8d8a8d065f526b9be3368d7d0cb953d378d958d873e905bbf00",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .chat_engine import open_engine",
@@ -441,7 +441,7 @@
     },
     "app/integrations.py": {
       "classification": "PROTECT",
-      "sha256": "083c5fa816c9b90b7cda31333635e2aa661f5ceaf36583d711283b238b043096",
+      "sha256": "05801a6411adaacefe0c877b13b3af5805fbc092dc4bff9134082adf12fb8ded",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .db import utc_now",
@@ -842,7 +842,7 @@
         "from .runtime_control import attempt_logs, attempt_metrics, cancel_attempt, check_runtime as check_runtime_target, deploy_adapter, dry_run, authorize_full_training, execution_gate, full_training_disabled, get_attempt, get_runtime_result, get_worker_state, initialize_runtime_control, list_runtimes, register_runtime, stage_dataset, staging_status, prepare_full_recovery, resume_full_training, start_full_training, start_smoke, start_worker, validate_trained_adapter, worker_heartbeat",
         "from .service import ValidationError, add_direct_text, add_manual_sft, add_message, add_preference_pair, analytics, approve_review, bulk_review_actions, create_conversation, create_export, dedup_report, bulk_update_manual_data, clone_manual_data, correct_review, delete_manual_data, delete_review, get_manual_data, get_conversation, ingest_turn, ingest_hermes_hook, ignore_manual_data, ignore_review, exclude_review, list_conversations, list_exports, list_manual_data, list_manual_versions, list_review_queue, list_reviewed, save_review, restore_review, seed_demo_data, sync_manual_export_history, training_dataset, update_manual_data, initialize_manual_versions",
         "from .training_control import TrainingControlError, cancel_job, create_job, create_production_job, get_job, initialize_training_control, discover_models, list_jobs, list_models, mark_job_ready, quality_gate, register_model, training_datasets, validate_model, training_preflight, update_job, model_acquisition_catalog, prepare_model_acquisition, acquire_model",
-        "from .unsloth_export import create_handoff, read_handoff",
+        "from .unsloth_export import create_handoff, list_handoffs, read_handoff",
         "from __future__ import annotations",
         "from http import HTTPStatus",
         "from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer",
@@ -1053,7 +1053,7 @@
     },
     "app/unsloth_export.py": {
       "classification": "PROTECT",
-      "sha256": "50925933fccee5ebf9c5b1839b7e4bee0f27e87982a1db614f31b926d728fd15",
+      "sha256": "e1faecdb91547745dd45c4dad0460683d713db54113ee1d85f26aa1915633618",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from .dataset_platform import _version_dir, KNOWN_FILES, NATIVE_TRAIN_FILE",
@@ -1069,7 +1069,11 @@
         "import tempfile"
       ],
       "declarations": [
+        "PROFILES",
+        "ROLE_LABELS",
         "digest",
+        "_transcript",
+        "convert",
         "create_handoff",
         "read_handoff"
       ]
@@ -2434,7 +2438,7 @@
     },
     "scripts/backup.py": {
       "classification": "PROTECT",
-      "sha256": "3105167010b396412296ce92ebd2bd0c8f9c5106381855f64cd7caf559ee678d",
+      "sha256": "1bf2d9cedd82d8950946007614fc8768a2d6665ceedebe37d99b67fa6a288aed",
       "reason": "Applied SQL, backup contract, dataset migration proposal or preserved Chat/export security invariant",
       "imports": [
         "from __future__ import annotations",
@@ -3353,17 +3357,16 @@
     },
     "tests/ollama_disposable.py": {
       "classification": "KEEP",
-      "sha256": "7cc133f07df565e1edbc024db3307c64cf209bdacb9e1ceae87b296778202e76",
+      "sha256": "e9dc93fb0fcbc223a8692f8a1ea09e6ace8251831e451c383f664cfca7473b04",
       "reason": "Dataset workflow, source/inference security, install/test or protected distribution support",
       "imports": [
         "from __future__ import annotations",
+        "from app.synthetic_gguf import TRAIN_CONTEXT, write_gguf",
         "from pathlib import Path",
         "import json",
         "import os",
-        "import random",
         "import shutil",
         "import socket",
-        "import struct",
         "import subprocess",
         "import time",
         "import urllib.error",
@@ -3371,9 +3374,6 @@
       ],
       "declarations": [
         "binary",
-        "_text",
-        "_kv",
-        "write_gguf",
         "DisposableOllama"
       ]
     },
@@ -4572,6 +4572,18 @@
     },
     "migrations/007_review_events.sql": {
       "sha256": "d1e4407d2d42df236dda26aaa72da9d739cf9c53b73845fcd1246261c259ebaf"
+    },
+    "migrations/008_chat_experience_v2.sql": {
+      "sha256": "599b6ebafc46e9fb919f0985273979b745ce807d62452b2ed7354660520543bc"
+    },
+    "migrations/009_managed_models.sql": {
+      "sha256": "a507e8d337d659336e33f3768da507513e024979275b99c5dbb76e44a6f51dd2"
+    },
+    "migrations/010_language_metadata.sql": {
+      "sha256": "92928c9dabfbef3b3b4ad9347c1da1dc3388c382647cc8514dcc840bd0db6abc"
+    },
+    "migrations/011_gold_version_deletions.sql": {
+      "sha256": "21f9d255782a7fd6e26af3852da6d741cb55d0451561c4e971bd98e137e470a4"
     }
   },
   "removed_routes": [

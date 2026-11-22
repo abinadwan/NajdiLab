@@ -32,7 +32,9 @@ def test_theme_uses_tokens_and_distinguishes_status_classes():
 def test_dashboard_describes_dataset_scope_without_training_status_probes():
     app = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
     assert "/api/v1/platform/status" not in app
-    assert "Training runs externally in Unsloth" in app
+    assert "Privacy, eligibility and split checks run in Prepare data" in app
+    assert "build readiness has not been checked here" in app
+    assert "Training runs externally in Unsloth" not in app
 
 
 def test_manual_modal_color_pairs_meet_text_contrast_in_both_themes():
@@ -44,6 +46,7 @@ def test_manual_modal_color_pairs_meet_text_contrast_in_both_themes():
     manual = (ROOT / "static/manual-data.css").read_text(encoding="utf-8")
 
     def declarations(source, selector):
+        source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
         result = {}
         for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", source):
             if selector in [item.strip() for item in selectors.split(",")]:

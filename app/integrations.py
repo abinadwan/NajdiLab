@@ -70,6 +70,10 @@ class BoundedReader:
     def readline(self, size=-1):
         return self._read(self.source.readline, size)
 
+    def peek(self, size=0):
+        # Non-consuming (used by chunked readline); bytes are counted when read.
+        return self.source.peek(size)[:max(self.remaining + 1, 0)]
+
     def close(self):
         self.source.close()
 
@@ -99,7 +103,7 @@ class WakingSocket(socket.socket):
 
 def request_json(connector: Connector, path: str, payload: dict | None = None, *, timeout: float = 3,
                  limit: int = MAX_RESPONSE, cancel: threading.Event | None = None,
-                 error_status: tuple[int, ...] = ()) -> dict:
+                 error_status: tuple[int, ...] = (), headers: dict | None = None) -> dict:
     """Numeric IPv4 socket: no DNS, proxy, redirect, credential or user URL support.
 
     A deadline or `cancel` shuts down the socket even if a peer trickles
@@ -142,10 +146,10 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
         if expired.is_set():
             raise TimeoutError
         body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        headers = {"Accept": "application/json", "Connection": "close"}
+        sent = {"Accept": "application/json", "Connection": "close", **(headers or {})}
         if body is not None:
-            headers["Content-Type"] = "application/json"
-        connection.request("GET" if body is None else "POST", path, body=body, headers=headers)
+            sent["Content-Type"] = "application/json"
+        connection.request("GET" if body is None else "POST", path, body=body, headers=sent)
         sock.settimeout(min(timeout, .1))
         response = connection.getresponse()
         # Shutdown can yield partial headers instead of raising on some platforms.
@@ -182,6 +186,120 @@ def request_json(connector: Connector, path: str, payload: dict | None = None, *
         if response.status != 200:
             value["http_status"] = response.status
         return value
+    except IntegrationError:
+        raise
+    except (TimeoutError, socket.timeout):
+        raise IntegrationError("TIMEOUT", "Runtime request exceeded its deadline.") from None
+    except ConnectionRefusedError:
+        raise IntegrationError("UNREACHABLE", "No runtime API is listening at the known endpoint.") from None
+    except (OSError, http.client.HTTPException, ValueError, RecursionError):
+        if expired.is_set():
+            raise IntegrationError("TIMEOUT", "Runtime request exceeded its deadline.") from None
+        raise IntegrationError("INVALID_RESPONSE", "Runtime is unavailable or returned an invalid response.") from None
+    finally:
+        finished.set()
+        timer.cancel()
+        connection.close()
+        sock.close()
+
+
+STREAM_TYPES = ("application/x-ndjson", "text/event-stream")
+MAX_STREAM_LINE = 256 * 1024
+
+
+def request_stream(connector: Connector, path: str, payload: dict, on_line, *, timeout: float,
+                   limit: int, cancel: threading.Event | None = None, headers: dict | None = None,
+                   error_status: tuple[int, ...] = ()) -> dict | None:
+    """Streaming twin of `request_json` with the same socket guarantees.
+
+    Numeric loopback IPv4 only, registry-checked path, no proxy/redirect/
+    compression, one total wire limit (headers, framing and body together),
+    a hard deadline and `cancel`, both of which shut the socket down. Each
+    complete non-empty line goes to `on_line(bytes)`. Returns None after a
+    200 stream, or the JSON body of a listed `error_status` (marked
+    `http_status`). Upstream text never becomes an error message.
+    """
+    if not connector.port or path not in {connector.models_path, connector.test_path, *connector.chat_paths}:
+        raise IntegrationError("ENDPOINT_BLOCKED", "Endpoint is not in the connector registry.")
+    connection = http.client.HTTPConnection("127.0.0.1", connector.port, timeout=timeout)
+    connection.response_class = partial(BoundedResponse, limit=limit)
+    sock = WakingSocket(socket.AF_INET, socket.SOCK_STREAM)
+    expired = sock.expired = threading.Event()
+    deadline = time.monotonic() + timeout
+
+    def expire():
+        expired.set()
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+
+    timer = threading.Timer(timeout, expire)
+    timer.daemon = True
+    finished = threading.Event()
+
+    def watch_cancel():
+        while not finished.wait(.05):
+            if cancel.is_set():
+                expire()
+                return
+
+    try:
+        sock.settimeout(timeout)
+        timer.start()
+        if cancel is not None:
+            threading.Thread(target=watch_cancel, daemon=True).start()
+        sock.connect(("127.0.0.1", connector.port))
+        connection.sock = sock
+        if expired.is_set():
+            raise TimeoutError
+        body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+        sent = {"Accept": ", ".join(STREAM_TYPES) + ", application/json", "Connection": "close",
+                "Content-Type": "application/json", **(headers or {})}
+        connection.request("POST", path, body=body, headers=sent)
+        sock.settimeout(min(timeout, .1))
+        response = connection.getresponse()
+        if expired.is_set() or time.monotonic() >= deadline:
+            raise TimeoutError
+        if response.status in {401, 403}:
+            raise IntegrationError("AUTH_REQUIRED", "Runtime requires authentication; credential forwarding is unsupported.")
+        if 300 <= response.status < 400:
+            raise IntegrationError("REDIRECT_BLOCKED", "Runtime redirects are refused.")
+        if response.status != 200 and response.status not in error_status:
+            raise IntegrationError("HTTP_ERROR", "Runtime returned an unsuccessful HTTP status.")
+        lengths = response.headers.get_all("Content-Length", [])
+        encodings = response.headers.get_all("Transfer-Encoding", [])
+        if len(lengths) > 1 or (lengths and encodings) or (encodings and encodings != ["chunked"]):
+            raise IntegrationError("INVALID_RESPONSE", "Runtime response framing is unsupported.")
+        if lengths and (not lengths[0].isascii() or not lengths[0].isdigit()):
+            raise IntegrationError("INVALID_RESPONSE", "Runtime response length is invalid.")
+        if response.headers.get("Content-Encoding", "identity").lower() != "identity":
+            raise IntegrationError("INVALID_RESPONSE", "Compressed runtime responses are unsupported.")
+        kind = response.headers.get_content_type()
+        if response.status != 200:
+            if kind != "application/json":
+                raise IntegrationError("INVALID_RESPONSE", "Runtime response must be JSON.")
+            raw = response.read(MAX_RESPONSE + 1)
+            if len(raw) > MAX_RESPONSE:
+                raise IntegrationError("RESPONSE_TOO_LARGE", "Runtime response exceeds the size limit.")
+            value = json.loads(raw.decode("utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError
+            value["http_status"] = response.status
+            return value
+        if kind not in STREAM_TYPES:
+            raise IntegrationError("INVALID_RESPONSE", "Runtime did not return a supported stream.")
+        while True:
+            line = response.readline(MAX_STREAM_LINE + 1)
+            if expired.is_set() or time.monotonic() >= deadline:
+                raise TimeoutError
+            if not line:
+                return None
+            if len(line) > MAX_STREAM_LINE:
+                raise IntegrationError("RESPONSE_TOO_LARGE", "A runtime stream line exceeds the size limit.")
+            line = line.strip()
+            if line:
+                on_line(line)
     except IntegrationError:
         raise
     except (TimeoutError, socket.timeout):

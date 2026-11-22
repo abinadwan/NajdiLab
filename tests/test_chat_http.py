@@ -95,6 +95,20 @@ def test_selected_model_hardware_uses_read_only_limits_and_survives_runtime_fail
     assert request('/api/v1/chat/hardware',{**body,'path':'C:/secrets'})[0]==400
 
 
+def test_host_snapshot_runs_after_the_runtime_lease_is_released(api):
+    """A slow host snapshot (nvidia-smi) must not keep the runtime busy: a chat started right
+    after a preset check failed with ENGINE_BUSY on Windows before this was fixed."""
+    request,http=api
+    seen=[]
+
+    def snapshot(limits=None,limits_error=None):
+        seen.append(('lmstudio' in http.integrations._leased,limits is not None))
+        return {'read_only':True,'warnings':[],'recommendation':{}}
+    with patch('app.chat_workspace.hardware_snapshot',snapshot):
+        status,_=request('/api/v1/chat/hardware',{'approved':True,'provider':'lmstudio','model':'fixture','selection_revision':2})
+    assert status==200 and seen==[(False,True)], 'limits were read under the lease, the snapshot taken after it'
+
+
 def test_status_reads_stay_live_during_a_turn_and_disconnect_waits_for_it(api):
     request,http=api
     data={'provider':'lmstudio','model':'fixture','selection_revision':2,'context_budget':512,'reply_reserve':32,'load_approved':False}

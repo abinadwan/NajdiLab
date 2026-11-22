@@ -1,0 +1,44 @@
+/* Phase UX/UI refinements (2026-11-03). Loaded last. Every value below fixes a
+   measured axe-core finding or a screenshot finding; see docs/UX_UI_DESIGN_REVIEW.md. */
+
+/* Contrast (WCAG 2 AA 4.5:1 for small text). Light values measured against
+   their real backgrounds; dark mode uses the theme tokens. */
+.app-footer,footer{color:var(--muted)}                   /* was #71807b: 3.62 → 5.01 (light), 9+ (dark) */
+.chatv2-answer a{color:var(--status-info-text)}                          /* was #547da6: 4.32 → 6.0 */
+.status-neutral{color:var(--muted)}                           /* was #66736f: 4.31 → 5.48 */
+:root[data-theme="dark"] .chatv2-answer a{color:var(--blue)}
+:root[data-theme="dark"] .status-neutral{color:var(--ink)}
+:root[data-theme="dark"] :is(.eyebrow,[data-version-name]>span){color:var(--gold)}   /* #8a6d2e: 3.26 → 7.3 */
+:root[data-theme="dark"] .subtabs button.active{background:var(--surface-raised);color:var(--ink)} /* was 1.1:1 */
+:root[data-theme="dark"] :is(.inline-check,.balance-notice small,.recommendation small,.count-grid code,.hash-list code){color:var(--muted)}
+
+/* Keyboard access to horizontally scrolling code blocks. */
+.md-code pre:focus-visible{outline:3px solid var(--focus,var(--focus));outline-offset:-3px}
+
+/* Tablet: below 1100px the app navigation and the conversation list no longer
+   both fit beside a readable conversation, so the list becomes an overlay and
+   the top bar wraps instead of overflowing the page. */
+@media (max-width:1100px){
+  .topbar{flex-wrap:wrap;row-gap:8px}
+  .top-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+  .chatv2,.chatv2[data-sidebar="closed"]{grid-template-columns:minmax(0,1fr)}
+  .chatv2-sidebar{position:absolute;inset-block:0;inset-inline-start:0;z-index:30;width:min(320px,86vw);max-height:none;box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.25))}
+  .chatv2-main{max-height:none;min-height:calc(100vh - 140px)}
+}
+
+/* "New chat" stays reachable when the list is hidden (phones, tablets, collapsed). */
+#chat-new-header{display:none}
+.chatv2[data-sidebar="closed"] #chat-new-header{display:inline-block}
+
+/* Second pass (dark mode leftovers from the audit). */
+:root[data-theme="dark"] :is(#page-breadcrumb,.health-card small){color:var(--gold)}
+:root[data-theme="dark"] :is(.privacy-chip,.status-ok){color:var(--status-ready-text)}
+:root[data-theme="dark"] :is(label[for="health-version"],label[for="balance-version"]){color:var(--muted)}
+:root[data-theme="dark"] .warning{background:var(--status-warning-bg);color:var(--status-warning-text)}
+
+/* Dialogs scroll inside themselves on short screens and at 400% zoom
+   (screenshot finding: the New chat dialog was cut off with no way to reach Start). */
+.chatv2-dialog{overflow-y:auto;overscroll-behavior:contain}
+/* Dark mode: the Add data tab bar kept a light background (screenshot finding). */
+:root[data-theme="dark"] .subtabs{background:var(--surface-soft)}
+:root[data-theme="dark"] .subtabs button:not(.active){color:var(--muted)}

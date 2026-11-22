@@ -1,5 +1,7 @@
 # Chat completion results
 
+> Historical / Archived Documentation. This record describes its dated implementation and verification. Follow the [current V2.3.0 user guide](user-guide.md) for present operation.
+
 Historical PR #12 record: draft follow-up to PR #11, on branch `feat/chat-workspace-claude`, based on reviewed commit `aa328ff` and targeting `feat/dataset-chat-workspace`. Original evidence collected 2026-11-01; the original result counts and dates below are retained as that history, not current cleanup-head counts. PR #13 now reviews `refactor/remove-legacy-training` against the exact PR #12 head; its hosted results are recorded separately below. This is not merge or installation approval. [Contract](chat-workspace.md) · [owner acceptance](chat-windows-acceptance.md).
 
 ## Independent security review and Codex remediation (2026-11-01)

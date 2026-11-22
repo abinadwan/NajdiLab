@@ -1,0 +1,46 @@
+/* The guided workspace extends NajdiLab's existing local typography and tokens. */
+.workspace-intro{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:22px}
+.workspace-intro h2{font-size:1.25rem;margin:0 0 5px}
+.workspace-intro p{color:var(--muted);margin:0;max-width:65ch}
+#workflow-save-status{color:var(--muted);font-size:.75rem;max-width:24ch}
+.prepare-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:var(--radius-control);overflow:hidden}
+.prepare-stepper li+li{border-inline-start:1px solid var(--line)}
+.prepare-stepper-item{border:0;border-block-end:3px solid transparent;border-radius:0;width:100%;height:100%;padding:14px 16px;justify-content:start;text-align:start;font-weight:500}
+.prepare-stepper-item[aria-current="step"]{box-shadow:none;border-block-end-color:var(--accent);background:var(--surface-soft);color:var(--ink)}
+.prepare-step{padding:24px;min-width:0}
+.prepare-records{max-height:none;overflow:visible;gap:12px;margin-block:18px}
+.prepare-record{border-radius:var(--radius-control);padding:16px;display:grid;gap:8px}
+.record-heading{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.record-kind{font-weight:600}
+.record-preview{max-height:5.5em;overflow:hidden;overflow-wrap:anywhere;line-height:1.7}
+.record-actions{display:flex;flex-wrap:wrap;gap:8px}
+.record-actions .button{font-size:.8125rem;min-height:34px}
+#wizard-entry{border:1px solid var(--line);border-radius:var(--radius-control);padding:12px 16px;margin-block:16px}
+#wizard-entry>summary{cursor:pointer;font-weight:600}
+#wizard-entry[open]>summary{margin-bottom:18px}
+#wizard-editor .data-form{box-shadow:none;border:0;padding:0;margin:0}
+#wizard-editor .add-data-tabs{margin-top:10px}
+#wizard-editor .page-heading{display:none}
+.check-successes,.check-distribution,.raw-downloads{padding-inline-start:22px}
+.check-successes{color:var(--status-ready-fg,var(--accent))}
+.check-warning{border-inline-start:3px solid var(--warning);padding:12px 16px;background:var(--surface-soft);margin-block:10px}
+.prepare-problem{padding:16px;border-inline-start:3px solid var(--danger);margin-block:12px}
+.prepare-nav{display:flex;flex-wrap:wrap;gap:10px;justify-content:end;border-top:1px solid var(--line);margin-top:24px;padding-top:18px}
+.prepare-nav .button:first-child:not(.primary){margin-inline-end:auto}
+.raw-downloads{display:grid;gap:10px;margin-bottom:25px}
+#prepare-export-result{display:grid;gap:10px;margin-top:14px;overflow-wrap:anywhere}
+.workspace-empty{padding:34px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line)}
+.workspace-empty h3{color:var(--ink)}
+#gold-delete-dialog{max-width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto}
+#gold-delete-files{overflow-wrap:anywhere}
+.version-card .toolbar{flex-wrap:wrap}
+@media(max-width:700px){
+ .workspace-intro{display:block}.workspace-intro #workflow-save-status{display:block;margin-top:10px;max-width:none}
+ .prepare-step{padding:16px}.prepare-stepper{grid-template-columns:repeat(2,minmax(0,1fr))}.prepare-stepper li:nth-child(3){border-inline-start:0}.prepare-stepper li:nth-child(n+3){border-top:1px solid var(--line)}
+ .prepare-stepper-item{padding:11px 10px;font-size:.8125rem;gap:7px}
+ .top-actions{flex-wrap:wrap;justify-content:end}
+ .record-actions .button{flex:1}.prepare-filters{display:grid;grid-template-columns:auto minmax(0,1fr)}
+ #wizard-entry{padding:10px}.prepare-nav .button{flex:1;white-space:normal}
+}
+
+#wizard-editor [data-add-records]{display:none}

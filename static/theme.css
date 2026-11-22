@@ -1,17 +1,95 @@
-:root{color-scheme:light;--surface:#fff;--surface-soft:#f6f8f7;--surface-raised:#fff;--focus:#d9a83d;--status-ready-bg:#e4f6f0;--status-ready-text:#176b57;--status-warning-bg:#fff5d9;--status-warning-text:#765512;--status-blocked-bg:#fff0f0;--status-blocked-text:#8d3030}
-:root[data-theme="dark"]{color-scheme:dark;--ink:#edf5f2;--muted:#a9bbb5;--bg:#0d1715;--panel:#152522;--line:#355049;--deep:#09110f;--deep-2:#25483f;--gold:#e5b84e;--gold-soft:#392f18;--mint:#56c5a2;--mint-soft:#173b32;--red:#ef8585;--red-soft:#411f22;--blue:#8bb5df;--shadow:0 12px 36px rgba(0,0,0,.35);--surface:#152522;--surface-soft:#1b2d29;--surface-raised:#203530;--focus:#f0c65e;--status-ready-bg:#173b32;--status-ready-text:#83e0c1;--status-warning-bg:#3b3119;--status-warning-text:#f0cf78;--status-blocked-bg:#411f22;--status-blocked-text:#ffaaaa}
-:root[data-theme="dark"] .topbar{background:rgba(21,37,34,.92)}
-:root[data-theme="dark"] :is(.health-identity,.health-card,.version-list button,.conversation-item,.reviewed-card,.stat-card,.empty-state,.button.ghost,.icon-button,.status-grid button,.tag-picker button,.balance-notice,.derive-box,.derived-workflow){background:var(--surface);color:var(--ink)}
-:root[data-theme="dark"] :is(.original-card,.reviewed-card .answer,.version-summary span,.count-grid span,.type-grid span,.skeleton-row){background:var(--surface-soft);color:var(--ink)}
-:root[data-theme="dark"] :is(input,textarea,select,.technical-select){background:#10201d;color:var(--ink);border-color:var(--line)}
-:root[data-theme="dark"] :is(details pre,#leakage-detail pre){background:#07100e;color:#dcebe6}
-:root[data-theme="dark"] .message.user{background:#19382f}:root[data-theme="dark"] .message.assistant{background:#332e20;border-color:#5b5030}
-:root[data-theme="dark"] :is(.gate-badge.pass,.health-card-status.ready,.health-card-status.clean,.health-pill.healthy){background:var(--status-ready-bg);color:var(--status-ready-text)}
-:root[data-theme="dark"] :is(.gate-badge.pass_with_warnings,.health-card-status.warning,.health-card-status.ready_with_warnings,.health-pill.warning){background:var(--status-warning-bg);color:var(--status-warning-text)}
-:root[data-theme="dark"] :is(.gate-badge.blocked,.gate-badge.unavailable,.health-card-status.failed,.health-card-status.not_ready,.health-pill.critical){background:var(--status-blocked-bg);color:var(--status-blocked-text)}
+/* Najdi Lab design tokens — the single source of colour, type and shape.
+   Light is the default; dark redefines the same roles. Every stylesheet reads these
+   roles only (no hard-coded colours), so both themes and both languages stay in step.
+   Palette: a Najd limestone frame, a white working sheet, brand ink (#14201f) for the one
+   primary action, a refined teal accent for selection and focus, and pale status pairs
+   whose text holds 4.5:1 or more on its own tint.
+   Order inside each block: surfaces (frame → sheet → nested), lines (card edge, row rule,
+   control edge), text tiers, brand, status pairs (ready = PASS, warning, blocked = FAIL,
+   hold = BLOCKED, info = REVIEW, neutral = PENDING), legacy role names that older rules
+   still read, shape and depth (nothing at rest casts a shadow), type (IBM Plex Sans and
+   IBM Plex Sans Arabic share the family "Najdi Sans"), then space. */
+:root{color-scheme:light;
+  --bg:#f3f1ec;--frame:#f3f1ec;--panel:#fff;--surface:#fff;--surface-soft:#f8f7f4;--surface-raised:#fff;--active:#e9e6e0;
+  --line:#e4e1db;--rule:#eeece7;--control:#b8b3aa;
+  --ink:#161a19;--muted:#565c5a;--faint:#696f6c;
+  --brand-ink:#14201f;--brand-sand:#efe9df;--brand-teal:#3fb2b8;
+  --primary:#14201f;--primary-hover:#2a3836;--on-primary:#fff;
+  --accent:#136f78;--accent-text:#0f5f67;--accent-soft:#e2f0f0;
+  --focus:#136f78;--focus-ring:rgba(19,111,120,.22);
+  --code-bg:#f4f3ef;--code-ink:#22302e;
+  --status-ready-bg:#dff3e7;--status-ready-text:#145233;--status-ready-border:#a7d8b9;--status-ready-dot:#1e7b4f;
+  --status-warning-bg:#fcf1d6;--status-warning-text:#664500;--status-warning-border:#e8cd86;--status-warning-dot:#a36a00;
+  --status-blocked-bg:#fde7e4;--status-blocked-text:#8a1f1f;--status-blocked-border:#efb6ae;--status-blocked-dot:#c4242a;
+  --status-hold-bg:#fbe8da;--status-hold-text:#76330d;--status-hold-border:#ecbd9b;--status-hold-dot:#b2541a;
+  --status-info-bg:#e5edf8;--status-info-text:#1c4777;--status-info-border:#b5c9e5;--status-info-dot:#2f70bb;
+  --status-neutral-bg:#ecebe7;--status-neutral-text:#3d4240;--status-neutral-border:#d5d1ca;--status-neutral-dot:#767b78;
+  --deep:var(--primary);--deep-2:var(--primary);--gold:var(--accent);--gold-soft:var(--accent-soft);
+  --mint:var(--status-ready-dot);--mint-soft:var(--status-ready-bg);--red:var(--status-blocked-dot);--red-soft:var(--status-blocked-bg);--blue:var(--status-info-text);
+  --shadow:none;--shadow-float:0 12px 32px rgba(20,32,31,.14),0 2px 6px rgba(20,32,31,.08);
+  --radius:10px;--radius-sheet:16px;--radius-control:8px;--radius-chip:999px;
+  --font:"Najdi Sans",system-ui,"Segoe UI",Tahoma,sans-serif;
+  --font-mono:"Najdi Mono",ui-monospace,Consolas,monospace;
+  --fs-title:1.375rem;--fs-section:1rem;--fs-kpi:1.75rem;--fs-body:.875rem;--fs-small:.75rem;
+  --gap:24px;--pad:24px;--sidebar-width:248px;--topbar-height:56px;--control-height:36px
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#0e100f;--frame:#0e100f;--panel:#161918;--surface:#161918;--surface-soft:#1c1f1e;--surface-raised:#1c1f1e;--active:#272b29;
+  --line:#2a2e2c;--rule:#222524;--control:#5a605d;
+  --ink:#eceeed;--muted:#a9afac;--faint:#959b98;
+  --primary:#eceeed;--primary-hover:#fff;--on-primary:#121514;
+  --accent:#5cc0c6;--accent-text:#7fd0d5;--accent-soft:#16302f;
+  --focus:#7fd0d5;--focus-ring:rgba(127,208,213,.25);
+  --code-bg:#111312;--code-ink:#dfe5e2;
+  --status-ready-bg:#132a1d;--status-ready-text:#86dcaa;--status-ready-border:#24543a;--status-ready-dot:#4cc283;
+  --status-warning-bg:#2c2412;--status-warning-text:#f0cd7a;--status-warning-border:#5a4720;--status-warning-dot:#e0b04c;
+  --status-blocked-bg:#341a1a;--status-blocked-text:#ffa69c;--status-blocked-border:#64302c;--status-blocked-dot:#f0675d;
+  --status-hold-bg:#33200f;--status-hold-text:#f5b585;--status-hold-border:#633c1c;--status-hold-dot:#e48b4a;
+  --status-info-bg:#162336;--status-info-text:#a2c4f0;--status-info-border:#2c4469;--status-info-dot:#6ea2e6;
+  --status-neutral-bg:#252928;--status-neutral-text:#d6dad8;--status-neutral-border:#3b403e;--status-neutral-dot:#9aa09d;
+  --shadow-float:0 16px 40px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4)
+}
+:is(.gate-badge.pass,.health-card-status.ready,.health-card-status.clean,.health-pill.healthy){background:var(--status-ready-bg);color:var(--status-ready-text)}
+:is(.gate-badge.pass_with_warnings,.health-card-status.warning,.health-card-status.ready_with_warnings,.health-pill.warning){background:var(--status-warning-bg);color:var(--status-warning-text)}
+:is(.gate-badge.blocked,.gate-badge.unavailable,.health-card-status.failed,.health-card-status.not_ready,.health-pill.critical){background:var(--status-blocked-bg);color:var(--status-blocked-text)}
 .theme-control{display:flex;align-items:center;gap:7px}.theme-control label{font-size:.75rem;font-weight:700}.theme-control select{padding:7px 28px 7px 8px;min-width:92px}.theme-setting{grid-column:1/-1}.theme-setting select{min-width:150px}.sr-status{font-size:.72rem;color:var(--muted)}
 :focus-visible{outline:3px solid var(--focus)!important;outline-offset:2px}
 .technical-value,bdi,code,pre{overflow-wrap:anywhere;word-break:break-word}.gate-badge{direction:ltr}
-:root[data-theme="dark"] .safety-banner{background:var(--surface-raised);color:var(--ink);border-color:var(--line)}
-@media (prefers-contrast:more){:root{--line:#53645f}.button,input,select,textarea,.panel{border-width:2px}.muted,small{color:var(--ink)!important}}
+@media (prefers-contrast:more){:root{--line:var(--control);--muted:var(--ink)}.button,input,select,textarea,.panel{border-width:2px}.muted,small{color:var(--ink)!important}}
 @media(max-width:760px){.theme-control label{display:none}.theme-control select{min-width:78px}.theme-setting{grid-column:auto}}
+
+/* Phase B UX-20 — server-side list paging. Logical properties keep it correct in RTL. */
+.list-column{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-block:12px;color:var(--ink)}
+.pager:empty{display:none}
+.pager-summary{margin-inline-end:auto;font-size:.82rem;font-variant-numeric:tabular-nums}
+.pager .button:disabled{opacity:.5;cursor:not-allowed}
+#chat-saved-count:empty{display:none}
+
+/* Phase B UX-10 — workflow-ordered navigation groups. */
+.nav-section{display:flex;flex-direction:column;gap:2px}
+/* Collapsed: names are hidden visually but stay available to assistive technology. */
+.sidebar-collapsed .nav-item>.nav-label{display:block;position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.sidebar-collapsed .nav-section+.nav-section{border-block-start:1px solid var(--line);margin-block-start:4px;padding-block-start:4px}
+
+/* Phase B UX-22 — skip link and shortcut hint. */
+.skip-link{position:absolute;inset-inline-start:12px;top:-60px;z-index:100;background:var(--deep-2,var(--primary));color:var(--on-primary);padding:10px 14px;border-radius:9px;font-weight:700;text-decoration:none}
+.skip-link:focus{top:12px;outline:3px solid var(--gold,var(--focus));outline-offset:2px}
+#main-content:focus{outline:none}
+.review-progress .kbd-hint{font:inherit;border:1px solid var(--line);border-bottom-width:2px;padding:2px 6px;border-radius:5px;background:var(--surface-soft,var(--surface-soft))}
+@media(max-width:760px){.review-progress .kbd-hint{display:none}}
+
+/* Phase B QA-05 — reflow at 320 CSS px (400% zoom). Data tables scroll inside their panel. */
+.analytics-grid>.panel{overflow-x:auto;min-width:0}
+.cards-grid{grid-template-columns:repeat(auto-fill,minmax(min(310px,100%),1fr))}
+@media(max-width:480px){
+  .settings-card{grid-template-columns:1fr;justify-items:start}
+  .settings-card select,.settings-card .inline-check{min-width:0;max-width:100%}
+}
+
+/* Phase B UX-05 — complete text behind a preview. */
+.full-text{margin-block-start:4px}
+.full-text summary{cursor:pointer;color:var(--ink);font-size:.78rem;font-weight:700}
+.full-text p{white-space:pre-wrap;margin-block:6px 0}
+/* Long option text (e.g. reviewer identity) must not widen the page at 320 px. */
+.view select{max-width:100%}

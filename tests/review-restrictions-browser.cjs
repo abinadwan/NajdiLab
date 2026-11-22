@@ -17,6 +17,7 @@ test('review restriction integrity in Chromium',async t=>{
     assert.ok(!base.endsWith(':8770'));
     browser=await puppeteer.launch({executablePath:process.env.NAJDILAB_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
     const page=await browser.newPage();
+    await page.evaluateOnNewDocument(()=>{try{localStorage.setItem('najdilab.chat.legacyProviders','1');}catch{}});// The synthetic fixture has no llama-server: Chat checks here use its LM Studio/Ollama runtimes via the Settings opt-in.
     await page.setViewport({width:1440,height:1000});
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     const flags=['#exclude-training','#evaluation-only','#contains-sensitive','#contains-personal','#needs-fact-check'];
@@ -25,11 +26,40 @@ test('review restriction integrity in Chromium',async t=>{
     await page.goto(base+'/review');
     try{await page.waitForFunction(()=>document.querySelector('#queue-position').textContent.includes('of 5'),{timeout:5000});}
     catch(error){throw Error(error.message+'; page errors='+JSON.stringify(errors)+'; toast='+await page.$eval('#toast',e=>e.textContent));}
+    await t.test('UX-07 unsaved review changes block navigation until explicitly discarded',async()=>{
+      await page.$eval('#review-notes',el=>{el.value='Unsaved synthetic review draft';el.dispatchEvent(new Event('input',{bubbles:true}));});
+      const reject=dialog=>dialog.dismiss();
+      page.on('dialog',reject);
+      await page.click('[data-view="conversations"]');
+      page.off('dialog',reject);
+      assert.equal(await page.$eval('#view-review-queue',el=>el.classList.contains('active')),true);
+      assert.equal(await page.$eval('#review-notes',el=>el.value),'Unsaved synthetic review draft');
+      const accept=dialog=>dialog.accept();
+      page.on('dialog',accept);
+      await page.click('[data-view="conversations"]');
+      page.off('dialog',accept);
+      await page.waitForSelector('#view-conversations.active');
+      await page.click('[data-view="review-queue"]');
+      await page.waitForSelector('#view-review-queue.active');
+      // Discarding restores the server-saved value, never the abandoned draft.
+      const saved=(await read()).items[0].review_notes;
+      assert.notEqual(saved,'Unsaved synthetic review draft');
+      await page.waitForFunction(value=>document.querySelector('#review-notes').value===value,{},saved);
+      assert.equal(await page.$eval('#review-notes',el=>el.value),saved);
+    });
     await t.test('initial load and refresh show saved restrictions and tags',async()=>{
       assert.deepEqual(await checked(),[true,true,true,true,true]);
       assert.equal(await page.$eval('[data-tag="dialect_issue"]',e=>e.classList.contains('selected')),true);
       await page.click('#refresh-view');await page.waitForFunction(()=>document.querySelector('#toast').textContent==='Data refreshed.');
       assert.deepEqual(await checked(),[true,true,true,true,true]);
+    });
+    await t.test('UX-03 approval explicitly differs from dataset eligibility',async()=>{
+      assert.match(await page.$eval('#review-eligibility-help',el=>el.textContent),/independent decision/);
+      assert.equal(await page.$eval('#training-eligible',el=>el.checked),false);
+      const descriptions=await page.$eval('#training-eligible',el=>el.getAttribute('aria-describedby').split(/\s+/));
+      for(const id of ['review-eligibility-help','review-context-warning']){
+        assert.ok(descriptions.includes(id));assert.ok(await page.$('#'+id),'description target exists: '+id);
+      }
     });
     await t.test('eligibility selection never clears saved restrictions',async()=>{
       await page.click('#training-eligible');
@@ -58,7 +88,13 @@ test('review restriction integrity in Chromium',async t=>{
       assert.equal(await page.$eval('#save-review',e=>e.disabled),false);
     });
     await t.test('correction and explicit flag change preserve unrelated restrictions',async()=>{
+      // The previous step intentionally left an unsaved draft: reload must raise the
+      // beforeunload guard, and only an explicit accept may discard it.
+      const unload=[];const leave=dialog=>{unload.push(dialog.type());dialog.accept();};
+      page.on('dialog',leave);
       await page.reload();await page.waitForFunction(()=>document.querySelector('#queue-position').textContent.includes('of 3'));
+      page.off('dialog',leave);
+      assert.deepEqual(unload,['beforeunload']);
       assert.deepEqual(await checked(),[true,true,true,true,true]);
       await page.click('#contains-personal');
       await page.click('#edit-review');await page.click('[data-status="DIALECT_CORRECTION"]');
@@ -77,7 +113,9 @@ test('review restriction integrity in Chromium',async t=>{
       await page.setRequestInterception(true);
       const intercept=request=>request.url().endsWith('/correct')?request.respond({status:500,contentType:'application/json',body:JSON.stringify({error:'Synthetic save failure'})}):request.continue();
       page.on('request',intercept);
-      await page.click('#save-review');await page.waitForFunction(()=>document.querySelector('#toast').textContent==='Synthetic save failure');
+      await page.click('#save-review');await page.waitForFunction(()=>document.querySelector('#toast .toast-message')?.textContent==='Synthetic save failure');
+      assert.equal(await page.$eval('#toast',e=>e.getAttribute('role')),'alert');
+      assert.equal(await page.$eval('#toast .toast-dismiss',e=>e.getAttribute('aria-label')),'Dismiss error');
       assert.equal(await page.$eval('#corrected-response',e=>e.value),'مسودة غير محفوظة');
       assert.deepEqual(await checked(),[true,true,true,true,true]);
       const after=(await read()).items[0];assert.deepEqual(after,before);
@@ -88,9 +126,19 @@ test('review restriction integrity in Chromium',async t=>{
       await page.evaluate(async items=>{
         for(const r of items)await api(`/api/v1/reviews/${r.id}/exclude`,{method:'POST',body:JSON.stringify({reason:'Synthetic browser exclusion',expected_updated_at:r.updated_at})});
       },pending);
+      // The failed save left an unsaved draft; leaving must ask before discarding it.
+      const prompts=[];const discard=dialog=>{prompts.push([dialog.type(),dialog.message()]);dialog.accept();};
+      page.on('dialog',discard);
       await page.click('[data-view="reviewed"]');
+      await page.waitForSelector('#view-reviewed.active');
+      page.off('dialog',discard);
+      assert.deepEqual(prompts,[['confirm','You have unsaved review changes. Leave and discard this draft?']]);
       await page.select('#filter-status','IGNORED');await page.click('#apply-reviewed-filters');
       await page.waitForSelector(`[data-restore-review="${pending[0].id}"]`);
+      // UX-20: the reviewed list states its range and total from the server page.
+      const shown=await page.$$eval('[data-restore-review]',els=>els.length);
+      assert.equal(await page.$eval('#reviewed-pager .pager-summary',e=>e.textContent),`Showing 1–${shown} of ${shown}`);
+      assert.equal(await page.$eval('#reviewed-pager [data-page="next"]',e=>e.disabled),true);
       await page.type('#bulk-review-reason','Synthetic single-card restoration');
       await page.click(`[data-restore-review="${pending[0].id}"]`);
       await page.waitForFunction(()=>document.querySelectorAll('[data-restore-review]').length===1);

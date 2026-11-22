@@ -1,9 +1,11 @@
 # Dataset roadmap
 
-The product boundary is local Chat → human review/correction → quality/dedup → immutable dataset versions → external Unsloth export. LM Studio/Ollama are externally managed inference services; native application history capture and Hermes collection are unsupported. No internal trainer, model acquisition/benchmark/merge/GGUF/deployment or WSL worker is planned in this application.
+Current Documentation — V2.3.0 development candidate
 
-Current work removes the internal execution source and obsolete documentation while retaining dataset tools, originals/overlays, privacy gates, manifests/provenance and applied migrations. APIs use dataset terminology; removed execution routes have no compatibility shim. This change is source-only and needs no data rollback.
+The current product covers local Chat, human review/correction, the four-stage Guided Wizard, immutable dataset versions and external Unsloth exports. Model library supports explicitly approved and verified model/runtime acquisition. Training runs in an external environment. Hermes collection remains blocked.
 
-Remaining product verification is actual installed-model/owner acceptance, honest hardware estimates, recovery rehearsal and exact source-only candidate checks after source changes. Future review improvements include identity/accountability and canonical dataset catalog/event semantics, each requiring its own design and schema review. Physical erasure and old-export retention require an explicit data-owner decision; cleanup does not remove private state.
+The official data workspace combines entry/history-aware editing, privacy and split checks, explicit Gold approval and compatible exports. My versions supports readiness, file/Manifest inspection, direct export entry and verified permanent deletion with recovery. The archived Advanced Workspace has a separate developer restoration procedure.
 
-[Status](../PROJECT_STATUS.md), [external export contract](dataset-export.md), [verification limits](verification-evidence.md), [publication gates](public-release-decision.md).
+Open work includes user acceptance, environment-specific engine/capacity checks, reviewer identity/RBAC, content-quality evaluation, complete retention across backups/downstream copies, and separately reviewed publication/licensing. The narrower Core distribution profile requires its own reviewed source hashes and build evidence after shared sources change.
+
+[Current status](../PROJECT_STATUS.md), [candidate notes](development/RELEASE_NOTES_V2.3.0.md), [export contract](dataset-export.md), [publication gates](public-release-decision.md).

@@ -244,3 +244,20 @@ def test_http_readiness_and_export_return_structured_blockers(tmp_path):
             server.server_close()
             thread.join(timeout=5)
 
+
+
+def test_a_review_waiting_for_a_decision_is_one_problem_not_two(tmp_path):
+    # Acceptance run: a new pending review also raised REVIEW_EVENT_MISSING ("The current state has no recorded
+    # review event"), so one waiting review showed as two blocking problems, one of them technical. A review that
+    # was never decided has no transition to audit; it still blocks through REVIEW_PENDING (fail-closed).
+    db = fixture_db(tmp_path)
+    insert_review(db, status="PENDING", eligible=0)
+    result = export_readiness(db)
+    assert result["status"] == "BLOCKED"
+    assert [f["code"] for f in result["blocking_findings"] if f["sample_id"] == "review:1"] == ["REVIEW_PENDING"]
+
+
+def test_a_decided_review_without_its_event_is_still_blocked(tmp_path):
+    db = fixture_db(tmp_path)
+    insert_review(db, status="APPROVED")
+    assert "REVIEW_EVENT_MISSING" in {f["code"] for f in export_readiness(db)["blocking_findings"]}
