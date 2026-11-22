@@ -22,7 +22,9 @@ def markdown_paths(root):
 
 def prose(source):
     source = re.sub(r'(?ms)^(`{3,}|~{3,})[^\n]*\n.*?^\1[ \t]*$', '', source)
-    return re.sub(r'<!--.*?-->', '', source, flags=re.S)
+    source = re.sub(r'<!--.*?-->', '', source, flags=re.S)
+    # Markdown inline code is an example, not an active HTML or link reference.
+    return re.sub(r'`[^`]*`', '', source)
 
 
 class HtmlReferences(HTMLParser):
