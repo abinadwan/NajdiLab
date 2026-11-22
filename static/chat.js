@@ -202,7 +202,7 @@
   // conversations and can be offered again from Settings → Models & Integrations.
   const LEGACY_PROVIDERS_KEY='najdilab.chat.legacyProviders';
   function legacyProviders(){try{return global.localStorage.getItem(LEGACY_PROVIDERS_KEY)==='1';}catch{return false;}}
-  let catalog=null,selection=null,plan=null,pendingSend=false,preparing=false,draftCollect=false,bound=false,notice=[];
+  let catalog=null,selection=null,plan=null,pendingSend=false,preparing=false,submissionLocked=false,draftCollect=false,bound=false,notice=[];
   let listMode='active',listQuery='',savedLoaded=0,menuTarget=null,live=null,pendingUse=null;
   const thinkingByRequest=new Map(),timingsByRequest=new Map();
 
@@ -585,7 +585,7 @@
   // ------------------------------------------------------------ render
   function sendEnabled(){
     const s=controller.session,text=el('chat-draft').value;
-    if(!text.trim()||controller.pending||preparing||s?.busy)return false;
+    if(!text.trim()||controller.pending||preparing||submissionLocked||s?.busy)return false;
     return s?s.status==='OPEN':!!selection?.model;
   }
   function render(){
@@ -859,8 +859,12 @@
   function autosize(){const t=el('chat-draft');t.style.height='auto';t.style.height=Math.min(t.scrollHeight,240)+'px';}
 
   async function submit(prepared=null){
-    const draft=el('chat-draft'),submitted=draft.value;
+    // Claim the full prepare/create/send path synchronously; repeated Enter must
+    // not start a second first-turn request while no session is assigned yet.
     if(!sendEnabled())return;
+    submissionLocked=true;
+    try{
+    const draft=el('chat-draft'),submitted=draft.value;
     notice=[];
     const ready=prepared||await check(true);
     if(!ready){render();return;}
@@ -882,6 +886,7 @@
     render();
     await saved();await loadCatalog().catch(()=>{});render();
     if(result&&result.status==='COMPLETED')scrollDown(true);
+    }finally{submissionLocked=false;render();}
   }
 
   /* Model library → "Use in Chat": an empty draft with that model chosen. Nothing loads. */
