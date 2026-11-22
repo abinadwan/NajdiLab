@@ -1,4 +1,16 @@
-# Publication decision
+# Publication and licensing decision
+
+## Current decision — 2026-11-22
+
+The NajdiLab maintainer confirmed authority over the original project source and expressly approved activating **Apache License, Version 2.0**. The [root LICENSE](../LICENSE) now grants the applicable open-source permissions. The repository is already **public** on GitHub.
+
+The license covers original NajdiLab project work the maintainer has authority to license. It does not override separately licensed third-party components, fonts, binaries, model weights, external datasets, user records or their privacy obligations. Applicable upstream notices must be retained.
+
+**Release status:** V2.3.0 remains a development candidate with an unpublished GitHub Release draft. Source CI success is not a claim of production/installed-runtime acceptance. A public release, distribution of model/data archives, or Git-history rewriting is a separate decision.
+
+The historical audit below records findings from the former private-candidate review. Its original statements that no license was active and the repository was private are **superseded** by this dated owner decision. Historical privacy and attribution findings do not disappear solely because licensing was adopted.
+
+## Historical pre-adoption decision (retained for audit)
 
 **NOT READY — BLOCKERS REMAIN.** The existing repository stays private. The owner approved Apache-2.0 only as the target for a future clean Core release (2026-10-28), not an active LICENSE/NOTICE or permission to publish. No source cleanup, passing test or hash manifest grants redistribution rights.
 

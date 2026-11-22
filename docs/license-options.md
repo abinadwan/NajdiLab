@@ -1,8 +1,8 @@
 # Source license decision: Apache-2.0, MIT or BSD-3-Clause
 
-Final inactive drafts and owner fields: [licensing approval package](proposals/licensing-approval.md), [Apache-2.0 text proposal](proposals/LICENSE-Apache-2.0.txt) and [NOTICE proposal](proposals/NOTICE.txt). No root LICENSE or active NOTICE is introduced.
+The maintainer adopted [Apache-2.0 for the original project source](../LICENSE) on 2026-11-22. Previous [licensing approval paperwork](proposals/licensing-approval.md), [inactive license draft](proposals/LICENSE-Apache-2.0.txt) and [NOTICE proposal](proposals/NOTICE.txt) remain archived as review evidence; the root LICENSE controls.
 
-Status: **OWNER DECISION REQUIRED — no LICENSE has been added.** This is a preparation recommendation, not a license grant or a conclusion that all contributions are cleared. Confirm copyright ownership/contributor authority and the intended public attribution before applying any license. Do not substitute an actual developer identity without consent.
+Status: **Apache-2.0 ACTIVE** for original NajdiLab source following the maintainer's rights confirmation. Licenses of external components and rights over datasets/models/individual contributions remain separate. Do not substitute an actual developer identity without consent.
 
 | Option | Main effect | Distribution obligations | Tradeoff |
 |---|---|---|---|
@@ -12,7 +12,7 @@ Status: **OWNER DECISION REQUIRED — no LICENSE has been added.** This is a pre
 
 The [OSI MIT text](https://opensource.org/license/mit) and [Apache 2.0 text, especially sections 3–6](https://www.apache.org/licenses/LICENSE-2.0) are the primary references checked on 2026-10-26. Both disclaim warranties; neither requires every downstream modification to be published.
 
-**Recommendation:** Apache-2.0 for NajdiLab source and documentation if the owner wants an explicit patent framework for external contributors and integrations. MIT is reasonable if minimal obligations are the main priority. This recommendation does not select a license on the owner's behalf. If Apache-2.0 is chosen, retain third-party notices and add a project NOTICE only where attribution requirements warrant it; do not invent provenance. If MIT is chosen, use the owner-approved copyright holder and year.
+**Decision:** Apache-2.0 was selected and adopted. MIT and BSD-3-Clause remain comparisons only. The maintainer's authorization does not relicense third-party material. If Apache-2.0 is chosen, retain third-party notices and add a project NOTICE only where attribution requirements warrant it; do not invent provenance. If MIT is chosen, use the owner-approved copyright holder and year.
 
 ## Separate rights layers
 
@@ -24,7 +24,7 @@ A NajdiLab source license covers only material the licensor has authority to lic
 - Adapters and merged/quantized exports may carry source-model or data obligations. Review their intended distribution separately.
 - Private backups and existing Git history remain private-risk material until the owner approves their public disposition; adding a license does not sanitize them.
 
-See the [dependency inventory](dependencies-and-attribution.md) and [publication blockers](open-source-readiness.md). No final license, release or history rewrite is authorized by this document.
+See the [dependency inventory](dependencies-and-attribution.md) and [publication blockers](open-source-readiness.md). The [LICENSE](../LICENSE) is active; release publication and any Git-history rewrite are separate decisions.
 
 ## Attribution and derivatives
 
@@ -32,6 +32,6 @@ All three permit free/commercial use, modification and redistribution when their
 
 Legally required notices are distinct from recommended visible credit. None requires a homepage backlink in every derivative application. Recommend downstream README/About credit linking the original repository and making modifications clear, without implying owner endorsement. If mandatory public homepage attribution is desired, that exceeds these standard terms and needs a separate legal/owner decision; no custom restriction is added here.
 
-[Proposed NOTICE](proposals/NOTICE.txt) is inactive until license/copyright/rights approval. Only after compatible licensing is selected may distribution text state: "NajdiLab is free and open-source software. When redistributing NajdiLab or works derived from it, preserve all copyright, license, and attribution notices required by the applicable license. Original project: NajdiLab. Source repository: https://github.com/abinadwan/NajdiLab". This conditional text is not a current license grant.
+[Historical NOTICE proposal](proposals/NOTICE.txt) remains inactive; any required upstream notices must be retained when distributing applicable materials. Only after compatible licensing is selected may distribution text state: "NajdiLab is free and open-source software. When redistributing NajdiLab or works derived from it, preserve all copyright, license, and attribution notices required by the applicable license. Original project: NajdiLab. Source repository: https://github.com/abinadwan/NajdiLab". This conditional text is not a current license grant.
 
 BSD reference: https://opensource.org/license/bsd-3-clause . Compatibility is distribution-specific: preserve each dependency's terms; unverified/strong-copyleft auxiliary components, weights/data or third-party code are not automatically relicensed by choosing Apache/MIT/BSD. Exact-artifact review remains open.

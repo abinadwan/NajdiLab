@@ -25,12 +25,12 @@
 </p>
 <p align="center">
   <a href="docs/hermes-integration.md"><img alt="Hermes collection blocked" src="https://img.shields.io/badge/Hermes-Blocked-B91C1C?style=for-the-badge"></a>
-  <a href="PROJECT_STATUS.md"><img alt="Private development" src="https://img.shields.io/badge/Development-Private-64748B?style=for-the-badge"></a>
-  <a href="docs/proposals/licensing-approval.md"><img alt="Source license not yet active; Apache 2.0 is proposed" src="https://img.shields.io/badge/License-Pending%20approval-CA8A04?style=for-the-badge"></a>
+  <a href="PROJECT_STATUS.md"><img alt="Public development" src="https://img.shields.io/badge/Development-Public-64748B?style=for-the-badge"></a>
+  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache--2.0-0D9488?style=for-the-badge"></a>
   <a href="https://github.com/abinadwan/NajdiLab/releases"><img alt="NajdiLab V2.3.0 release draft, not published" src="https://img.shields.io/badge/Release-V2.3.0%20draft-64748B?style=for-the-badge"></a>
 </p>
 
-<p align="center"><sub>Apache-2.0 is proposed for a future rights-cleared Core distribution only. This public repository has no active project-wide redistribution license; V2.3.0 is an unpublished release draft.</sub></p>
+<p align="center"><sub>NajdiLab original project source is licensed under <a href="LICENSE">Apache-2.0</a>. Third-party components and separately supplied models, datasets, and user records retain their own rights and terms. V2.3.0 remains an unpublished development-candidate release draft.</sub></p>
 
 NajdiLab is a local-first platform for local model conversations, human review and traceable dataset preparation, with Arabic and Saudi/Najdi language data as a central use case.
 
@@ -81,7 +81,7 @@ The [visual guide](docs/screenshots.md) covers correction, approval, exports, ma
 
 ## Current status
 
-**V2.3.0 is a development candidate for review on `update-project`.** The existing [PR #23](https://github.com/abinadwan/NajdiLab/pull/23) remains Draft. The repository is private and production acceptance is a separate owner decision.
+**V2.3.0 is the current development candidate on `main`.** The former [PR #23](https://github.com/abinadwan/NajdiLab/pull/23) was merged. The repository is public and its original source is licensed under [Apache-2.0](LICENSE). The GitHub Release remains an unpublished draft; installed-model, hardware and production acceptance are separate.
 
 The official data workspace uses four stages with no Advanced Mode setting. A previously stored mode preference is ignored while selections and drafts are retained. [Candidate notes](docs/development/RELEASE_NOTES_V2.3.0.md).
 
@@ -130,7 +130,7 @@ Authorized repository access and Git are required for the private source checkou
 Review the scripts before launching an intended local instance. These commands initialize that checkout's own state when it starts.
 
 ```powershell
-git clone --branch update-project https://github.com/abinadwan/NajdiLab.git
+git clone --branch main https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
 python scripts/install.py --check
 .\scripts\install.ps1
@@ -138,7 +138,7 @@ python scripts/install.py --check
 ```
 
 ```bash
-git clone --branch update-project https://github.com/abinadwan/NajdiLab.git
+git clone --branch main https://github.com/abinadwan/NajdiLab.git
 cd NajdiLab
 python3 scripts/install.py --check
 sh scripts/install.sh
@@ -240,7 +240,7 @@ Start with the [documentation index](docs/documentation-index.md), [developer se
 
 ## Licensing and attribution
 
-This private repository has **no active source license**. The proposed future Public Core licensing and publication decisions have their own approval boundaries. Code, models, datasets, fonts and screenshots require their respective rights. [Third-party attribution](docs/THIRD_PARTY_ATTRIBUTION.md), [source rights](docs/rights-evidence.md), [license decisions](docs/license-options.md).
+The project's original source code and documentation are available under the [Apache License, Version 2.0](LICENSE), adopted with the maintainer's confirmation of authority on 2026-11-22. This license does **not** relicense third-party dependencies, separately licensed fonts/assets, model weights, datasets, or user records. Preserve applicable external notices and licenses. [Third-party attribution](docs/THIRD_PARTY_ATTRIBUTION.md), [dated source-rights evidence](docs/rights-evidence.md), [licensing decision](docs/public-release-decision.md).
 
 ## Maintainer handover
 

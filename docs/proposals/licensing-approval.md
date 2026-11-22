@@ -1,5 +1,8 @@
 # Inactive licensing and attribution approval package
 
+> **Current status (2026-11-22):** The maintainer confirmed rights to the original project source and adopted the [root Apache-2.0 license](../../LICENSE). This file is a historical **inactive proposal**, not the controlling license text. Placeholder ownership fields and proposal-only language below describe the earlier review, not the current license status.
+
+
 **PROPOSAL ONLY. No NajdiLab license is activated and no source redistribution permission is asserted.**
 
 Owner decision fields:

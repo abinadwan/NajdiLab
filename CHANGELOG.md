@@ -1,5 +1,11 @@
 # Changelog
 
+## License adoption (2026-11-22)
+
+- The maintainer confirmed authority to license the original NajdiLab project source; adopted the standard Apache License, Version 2.0 in root `LICENSE` and added a README license badge.
+- Core's source-only candidate now carries the same license. Existing separate third-party licenses/notices remain applicable; model weights, datasets and user records are not relicensed.
+- This is a licensing/documentation update, not a SemVer feature increment. V2.3.0 remains a development candidate and the GitHub Release remains unpublished.
+
 ## V2.3.0 — development candidate (2026-11-07, `update-project`, Draft PR #23)
 
 - Minor version step for adoption of the four-stage Guided Wizard as the official data workspace. Manual records, shared safety APIs, Gold lifecycle and compatible external exports retain their contracts.

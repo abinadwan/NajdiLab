@@ -1,5 +1,7 @@
 # Dated source and rights evidence
 
+> **Current owner decision (2026-11-22):** The maintainer has confirmed rights to license original NajdiLab project source, and the repository has adopted [Apache-2.0](../LICENSE). This document's October 2026 license-inactive/private-repository statements are retained as historical evidence, not current project status. Independent historical-privacy findings and third-party/model/dataset rights still require their own handling. [Current decision](public-release-decision.md).
+
 Evidence baseline: 2026-10-27; the listed hashes describe that selected candidate, not the current cleanup. **NOT READY — BLOCKERS REMAIN**. This is an inactive decision package, not a license grant. The engineering candidate can work while ownership, attribution, privacy and publication approvals remain open. No model/data rights are inferred from framework terms or successful tests.
 
 Current private review: [74-row rights evidence ledger](#private-rights-evidence-ledger--2026-10-28), including [inactive proposal anomaly](#inactive-apache-proposal-anomaly--finding-r-apache-01). No rights gate is closed by this record.

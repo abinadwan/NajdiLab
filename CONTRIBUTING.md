@@ -1,6 +1,6 @@
 # Contributing
 
-Publication and source-license selection are pending owner approval. Coordinate contributions through the repository's available review channel; do not assume a public redistribution license or contributor agreement exists.
+The NajdiLab original source is licensed under [Apache-2.0](LICENSE), adopted with the maintainer's confirmation of source rights. Submit contributions through a reviewed pull request. Contributors must have the right to submit their work and preserve applicable upstream licenses; no DCO or CLA is required by this repository.
 
 ## Local workflow
 
@@ -22,7 +22,7 @@ Prefer fixture databases and temporary directories. Do not point tests at produc
 
 ## Rights and attribution
 
-Read the [inactive contributor/license approval package](docs/proposals/licensing-approval.md) and [source-only data/model policy](docs/dataset-model-distribution-policy.md). No inbound license, DCO or CLA is activated by those proposals.
+Read the active [Apache-2.0 license](LICENSE), the [historical licensing proposal](docs/proposals/licensing-approval.md), and the [data/model distribution policy](docs/dataset-model-distribution-policy.md). Contributions intentionally submitted for inclusion ordinarily follow Apache-2.0 Section 5 unless expressly stated otherwise. No separate DCO or CLA has been adopted.
 
 Identify new dependency versions, upstream licenses and required notices. Confirm rights for code, examples and any dataset; a source license does not license model weights or training data. See [license options](docs/license-options.md) and [dependencies](docs/dependencies-and-attribution.md). Security reports should follow [SECURITY.md](SECURITY.md), with sensitive details withheld from public issues.
 
@@ -30,9 +30,9 @@ Identify new dependency versions, upstream licenses and required notices. Confir
 
 Use descriptive snake_case Python names, existing formatting/type patterns and standard-library components where they own the responsibility. Keep browser code framework-free unless a reviewed need changes architecture. Comments/docstrings/UI/docs are English; Arabic processing/test content remains semantically intact. Branches: fix/short-purpose, feat/short-purpose or docs/short-purpose. Commits should describe intent (for example fix: reject stale dataset authorization); never include secrets/private identifiers.
 
-Use a PR to main; no force push, automatic merge or deployment. Reviewers check trust boundaries, data/schema/API compatibility, regressions, English clarity/Arabic direction and rollback. Release versioning, when approved, should use semantic versions with documented compatibility impact. Deprecate APIs in docs/changelog with a reviewed transition before removal; do not rename machine-readable keys for localization. No releases/tags are authorized by this preparation.
+Use a PR to main; no force push, automatic merge or deployment. Reviewers check trust boundaries, data/schema/API compatibility, regressions, English clarity/Arabic direction and rollback. Release versioning, when approved, should use semantic versions with documented compatibility impact. Deprecate APIs in docs/changelog with a reviewed transition before removal; do not rename machine-readable keys for localization. Publishing a release or moving tags requires separate maintainer approval; the V2.3.0 GitHub Release is currently an unpublished draft.
 
-Definition of Done: implementation complete; meaningful tests; security impact reviewed; data compatibility confirmed; English docs/status/changelog updated; rollback documented; no secrets/private data; all relevant owner gates respected. Use the PR template. Contributor rights/dependency notices must be cleared before final licensing. Follow CODE_OF_CONDUCT.md.
+Definition of Done: implementation complete; meaningful tests; security impact reviewed; data compatibility confirmed; English docs/status/changelog updated; rollback documented; no secrets/private data; all relevant owner gates respected. Use the PR template. Contributor rights and dependency notices must be checked for each contribution and distribution, despite the project-wide Apache-2.0 license. Follow CODE_OF_CONDUCT.md.
 
 ## V2.3.0 documentation and screenshots
 
