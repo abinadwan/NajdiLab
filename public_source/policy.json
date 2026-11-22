@@ -648,7 +648,7 @@
     },
     "public_source/tests/browser.cjs": {
       "destination": "tests/browser.cjs",
-      "sha256": "17b3398c41be95bc981fb58ebb88acf41b5d852dd41bd3afa73840528b5e13c5"
+      "sha256": "4f9bb1ccce475abe0c7b4e39f4c7ff49293ec9a10ca1a6113b45af6927e8d99e"
     },
     "public_source/tests/candidate-copy.cjs": {
       "destination": "tests/candidate-copy.cjs",
