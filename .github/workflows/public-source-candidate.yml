@@ -1,6 +1,8 @@
 name: Source-only candidate
-# Same trigger policy as Source checks: no automatic heavy runs for draft PR pushes.
+# Match Source checks: verify main on every push; skip heavy draft PR checks.
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
