@@ -26,7 +26,7 @@
 <p align="center">
   <a href="docs/hermes-integration.md"><img alt="Hermes collection blocked" src="https://img.shields.io/badge/Hermes-Blocked-B91C1C?style=for-the-badge"></a>
   <a href="PROJECT_STATUS.md"><img alt="Public development" src="https://img.shields.io/badge/Development-Public-64748B?style=for-the-badge"></a>
-  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache--2.0-0D9488?style=for-the-badge"></a>
+  <a href="LICENSE"><img alt="NajdiLab License: Apache-2.0" src="https://img.shields.io/github/license/abinadwan/NajdiLab?style=for-the-badge"></a>
   <a href="https://github.com/abinadwan/NajdiLab/releases"><img alt="NajdiLab V2.3.0 release draft, not published" src="https://img.shields.io/badge/Release-V2.3.0%20draft-64748B?style=for-the-badge"></a>
 </p>
 

@@ -516,7 +516,7 @@
     },
     "public_source/README.md": {
       "destination": "README.md",
-      "sha256": "507aab944e585e80b53e6fb9aa7a0d3eaafd432aceddbfb472e193ae3aebc732"
+      "sha256": "9cdccd1f491025681897f34bffa849000efee98424209323be262f58d0a09b4d"
     },
     "public_source/artifacts.py": {
       "destination": "app/core_artifacts.py",

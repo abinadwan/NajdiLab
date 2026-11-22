@@ -8,7 +8,7 @@ It is for dataset curators, reviewers and developers who want to understand what
 
 **NajdiLab Core is a dataset review and preparation platform, not a complete model-training or inference runtime.** It runs without a GPU, Hermes, Ollama, model weights or an ML framework. Training, historical research and deployment remain unavailable.
 
-**Source-only engineering candidate — not a published release.** The original NajdiLab project source is licensed under [Apache-2.0](LICENSE), adopted with the maintainer's rights confirmation. This generated Core profile carries the license but does not bundle model weights, research data or user records, and its passing synthetic tests are not production acceptance. Original project: [NajdiLab](https://github.com/abinadwan/NajdiLab), a public repository.
+**Source-only engineering candidate — not a published release.** The original NajdiLab project source is licensed under [Apache-2.0](https://github.com/abinadwan/NajdiLab/blob/main/LICENSE), adopted with the maintainer's rights confirmation. The verified Core package also includes a local `LICENSE` file. This generated Core profile carries the license but does not bundle model weights, research data or user records, and its passing synthetic tests are not production acceptance. Original project: [NajdiLab](https://github.com/abinadwan/NajdiLab), a public repository.
 
 ## Explore
 
