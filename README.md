@@ -26,10 +26,11 @@
 <p align="center">
   <a href="docs/hermes-integration.md"><img alt="Hermes collection blocked" src="https://img.shields.io/badge/Hermes-Blocked-B91C1C?style=for-the-badge"></a>
   <a href="PROJECT_STATUS.md"><img alt="Private development" src="https://img.shields.io/badge/Development-Private-64748B?style=for-the-badge"></a>
-  <a href="docs/proposals/licensing-approval.md"><img alt="Apache 2.0 planned, not yet active" src="https://img.shields.io/badge/License-Apache%202.0%20planned-CA8A04?style=for-the-badge"></a>
+  <a href="docs/proposals/licensing-approval.md"><img alt="Source license not yet active; Apache 2.0 is proposed" src="https://img.shields.io/badge/License-Pending%20approval-CA8A04?style=for-the-badge"></a>
+  <a href="https://github.com/abinadwan/NajdiLab/releases"><img alt="NajdiLab V2.3.0 release draft, not published" src="https://img.shields.io/badge/Release-V2.3.0%20draft-64748B?style=for-the-badge"></a>
 </p>
 
-<p align="center"><sub>Apache-2.0 is approved as a <strong>future Public Core target only</strong>; this private repository has no active redistribution license.</sub></p>
+<p align="center"><sub>Apache-2.0 is proposed for a future rights-cleared Core distribution only. This public repository has no active project-wide redistribution license; V2.3.0 is an unpublished release draft.</sub></p>
 
 NajdiLab is a local-first platform for local model conversations, human review and traceable dataset preparation, with Arabic and Saudi/Najdi language data as a central use case.
 
