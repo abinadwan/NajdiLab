@@ -44,7 +44,7 @@ The `ux-review/` before/after images are captured by `tests/ux-audit.cjs` from t
 
 ## Najdi Lab identity and redesign captures (2026-11-03)
 
-The previous favicon (`d4335ecf…bf22`, unresolved authorship) is **replaced** by an original Najdi Lab mark drawn for this redesign: the Arabic letter ن as a geometric bowl with a triangular Najdi wall opening as its dot. Files: `static/favicon.svg`, `static/brand/*.svg`, and the inline sidebar logo in `static/index.html`. The wordmarks are outlines of the bundled OFL fonts (see [attribution](THIRD_PARTY_ATTRIBUTION.md#najdi-lab-interface-redesign-2026-11-03-update-project)). Rationale: [design system](design-system.md#brand).
+The previous favicon (`d4335ecf…bf22`, unresolved authorship) is **replaced** by an original Najdi Lab mark drawn for this redesign: the Arabic letter ن as a geometric bowl with a triangular Najdi wall opening as its dot. Files: `static/favicon.svg`, `static/brand/*.svg`, and the inline sidebar logo in `static/index.html`. The wordmarks are outlines of the bundled OFL fonts (see [attribution](THIRD_PARTY_ATTRIBUTION.md)). Rationale: [design system](design-system.md#brand).
 
 Before/after captures in `docs/images/redesign/` and the regenerated README screenshots are Chromium/Puppeteer captures of the disposable synthetic fixture (`tests/chat_browser_fixture.py`); no personal conversation, credential or real model appears.
 
