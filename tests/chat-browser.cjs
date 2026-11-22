@@ -50,16 +50,6 @@ const puppeteer=require('puppeteer-core');
     await plainContext.close();
     assert.equal(await page.$eval('#local-address',e=>e.textContent),new URL(base).host);
 
-    // UX-24: check desktop grid collapse before changing to the mobile drawer layout.
-    const sidebarToggle=page.locator('#collapse-sidebar');
-    const sidebarWidth=()=>page.$eval('.shell',e=>parseFloat(getComputedStyle(e).gridTemplateColumns.split(' ')[0]));
-    const expanded=await sidebarWidth();
-    await sidebarToggle.click();
-    const collapsed=await sidebarWidth();
-    assert.ok(collapsed<expanded, `sidebar widths expanded=${expanded}, collapsed=${collapsed}`);
-    await sidebarToggle.click();
-    assert.equal(await sidebarWidth(),expanded,'reopening restores the expanded sidebar width');
-
     // UX-23: 390px layout acceptance for visible workflow panes.
     await page.setViewport({width:390,height:844});
     for(const [view,selector] of [
@@ -98,6 +88,23 @@ const puppeteer=require('puppeteer-core');
       return pairs;
     });
     for(const row of contrasts)assert.ok(row.ratio>=4.5,row.selector+' dark-mode ratio '+row.ratio);
+
+    // UX-24: collapsing navigation must resize the desktop grid in both motion modes.
+    const sidebarWidth=()=>page.$eval('.shell',e=>parseFloat(getComputedStyle(e).gridTemplateColumns.split(' ')[0]));
+    for(const motion of ['no-preference','reduce']){
+      await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:motion}]);
+      if(motion==='reduce'){
+        const duration=await page.$eval('.shell',e=>getComputedStyle(e).transitionDuration);
+        assert.equal(duration,'0s','reduced motion disables grid transitions');
+      }
+      const expanded=await sidebarWidth();
+      await page.click('#collapse-sidebar');
+      const collapsed=await sidebarWidth();
+      assert.ok(collapsed<expanded, `sidebar widths expanded=${expanded}, collapsed=${collapsed} (${motion})`);
+      await page.click('#collapse-sidebar');
+      assert.equal(await sidebarWidth(),expanded,`reopening restores the sidebar width (${motion})`);
+    }
+    await page.emulateMediaFeatures([]);
 
     const evidence=process.env.NAJDILAB_BROWSER_ARTIFACTS||'.test-tmp/browser';fs.mkdirSync(evidence,{recursive:true});
     const read=route=>page.evaluate(async route=>{const r=await fetch(route);return r.json();},route);
