@@ -134,8 +134,18 @@ test('Wizard draft, selected record, check stage, Arabic survive application res
     // Unload the app and its connections before terminating the actual server process.
     await page.goto('about:blank');await stop(service);
     assert.ok(service.child.exitCode!==null||service.child.signalCode!==null,'first Python process has exited');
-    service=fixture(['--state-root',stateRoot,'--port',String(port)]);
-    assert.equal(await service.ready,origin,'restart retains the browser storage origin');
+    // A just-terminated listener can briefly retain the same port on hosted OSes.
+    // Retry only that transient bind error; the origin and persistent fixture stay fixed.
+    for(let attempt=0;attempt<6;attempt++){
+      service=fixture(['--state-root',stateRoot,'--port',String(port)]);
+      try{
+        assert.equal(await service.ready,origin,'restart retains the browser storage origin');
+        break;
+      }catch(error){
+        if(!/Address already in use|Errno 98|WinError 10048/.test(String(error))||attempt===5)throw error;
+        await new Promise(resolve=>setTimeout(resolve,150*(attempt+1)));
+      }
+    }
     assert.notEqual(service.child.pid,firstPid,'restart launches a new Python process');
     await page.goto(workspaceUrl);await page.waitForSelector('#guided-wizard',{visible:true});
     assert.equal(await page.$('#workspace-mode,#advanced-mode,#advanced-workspace'),null);
