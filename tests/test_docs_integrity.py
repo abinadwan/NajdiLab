@@ -41,3 +41,13 @@ def test_documentation_checks_anchors_html_images_and_mdx(tmp_path, monkeypatch,
     (tmp_path / 'sample.mdx').write_text(markup, encoding='utf-8')
     with pytest.raises(SystemExit):
         checker.main()
+
+
+def test_inline_code_is_not_treated_as_active_html_link(tmp_path, monkeypatch):
+    root = Path(__file__).resolve().parents[1]
+    monkeypatch.syspath_prepend(str(root / 'scripts'))
+    spec = importlib.util.spec_from_file_location('source_docs_inline_code', root / 'scripts/check_docs.py')
+    checker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checker)
+    assert checker.links('`<source src="assets/river.webm">`') == []
+    assert checker.links('<img src="actual.png">') == ['actual.png']
