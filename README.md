@@ -7,6 +7,7 @@
 **Local model conversations → human review and correction → validated, versioned datasets → external Unsloth training.**
 
 <p align="center">
+  <a href="app/version.py"><img alt="NajdiLab version V2.3.0 (development candidate)" src="https://img.shields.io/badge/Version-V2.3.0%20dev%20candidate-2563EB?style=for-the-badge"></a>
   <a href="docs/system-requirements.md"><img alt="Python 3.11 or newer" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&amp;logo=python&amp;logoColor=white"></a>
   <a href="docs/system-requirements.md"><img alt="SQLite 3.24 or newer" src="https://img.shields.io/badge/SQLite-3.24%2B-003B57?style=for-the-badge&amp;logo=sqlite&amp;logoColor=white"></a>
   <a href="docs/architecture.md"><img alt="Vanilla JavaScript frontend" src="https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?style=for-the-badge&amp;logo=javascript&amp;logoColor=black"></a>
