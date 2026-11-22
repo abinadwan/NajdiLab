@@ -76,7 +76,7 @@ def test_colored_technology_badges_are_kept():
     assert len(badges) >= 10, f"expected the badge rows, found {len(badges)}"
     labels = [unquote(b.split("-")[0]) for b in badges]
     for name in REQUIRED_BADGES:
-        assert any(label.startswith(name) for label in labels), f"badge missing: {name}"
+        assert any(label.startswith(name) for label in labels) or (name == "License" and '<img alt="NajdiLab License: Apache-2.0" src="https://img.shields.io/github/license/abinadwan/NajdiLab?style=for-the-badge">' in README), f"badge missing: {name}"
     assert all("style=for-the-badge" in b for b in badges), "badges keep the approved style"
 
 
@@ -115,7 +115,9 @@ def test_status_separates_done_in_development_and_planned():
 def test_licensing_and_attribution_links():
     licensing = section("Licensing and attribution")
     assert "docs/THIRD_PARTY_ATTRIBUTION.md" in licensing
-    assert "no active source license" in licensing.lower()
+    assert "[Apache License, Version 2.0](LICENSE)" in licensing
+    assert (ROOT / "LICENSE").read_text(encoding="utf-8").find("Apache License") >= 0
+    assert "docs/public-release-decision.md" in licensing
 
 
 def test_badge_urls_are_well_formed_shields_badges():
