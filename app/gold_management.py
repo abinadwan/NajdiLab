@@ -86,6 +86,9 @@ def _references(conn, version: str, directory: Path) -> None:
         if Path(row['export_path']).resolve() == directory or other.get('source_version') == version or source == version:
             raise _error('GOLD_DELETE_BLOCKED', 'Another version references this version or its directory.', version)
     handoffs = Path(unsloth_export.HANDOFFS)
+    if _linked(handoffs):
+        raise _error('GOLD_DELETE_BLOCKED', 'A reference catalog is linked and cannot be proven safe.', version)
+    handoffs = handoffs.resolve()
     roots = tuple(dict.fromkeys(platform._registry_roots() + (handoffs,)))
     for root in roots:
         if _linked(root):

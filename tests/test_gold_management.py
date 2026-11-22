@@ -148,6 +148,23 @@ def test_dependencies_and_shared_database_references_block_delete(gold, referenc
     assert Path(result['path']).is_dir()
 
 
+def test_deletion_preview_matches_an_aliased_handoff_catalog(gold, monkeypatch):
+    from app import unsloth_export
+
+    db, exports, source = gold
+    unsloth_export.create_handoff(source['version'])
+    other = create_export(db, exports)
+    handoffs = unsloth_export.HANDOFFS
+    monkeypatch.setattr(unsloth_export, 'HANDOFFS', Path(source['path']) / '..' / handoffs.name)
+
+    preview = management().deletion_preview(other['version'], db_path=db)
+    assert preview['allowed'] is True, preview['blockers']
+    assert preview['files']
+    source_preview = management().deletion_preview(source['version'], db_path=db)
+    assert source_preview['allowed'] is False
+    assert any('handoff reference' in message for message in source_preview['blockers'])
+
+
 def test_partial_file_failure_is_audited_and_can_retry_safely(gold, monkeypatch):
     db, exports, result = gold
     module = management()
