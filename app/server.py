@@ -136,7 +136,9 @@ STREAM_WRITE_TIMEOUT = 30
 class NajdiLabHTTPServer(ThreadingHTTPServer):
     """Prevent two NajdiLab processes from sharing the same Windows port."""
 
-    allow_reuse_address = False
+    # Allow a clean immediate restart on POSIX (TIME_WAIT) without allowing
+    # concurrent listeners; Windows retains exclusive address binding below.
+    allow_reuse_address = os.name != "nt"
 
     def __init__(self, *args, **kwargs):
         self.integrations = IntegrationManager()
